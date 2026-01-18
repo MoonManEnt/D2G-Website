@@ -1,0 +1,719 @@
+// Dispute2Go Database Schema
+// Authoritative schema per Master Spec + All Recommendations
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum UserRole {
+  ADMIN
+  SPECIALIST
+}
+
+enum SubscriptionTier {
+  FREE
+  PRO
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIALING
+}
+
+enum ConfidenceLevel {
+  HIGH    // >= 70
+  MEDIUM  // 45-69
+  LOW     // < 45
+}
+
+enum FlowType {
+  ACCURACY
+  COLLECTION
+  CONSENT
+  COMBO
+}
+
+enum AccountStatus {
+  OPEN
+  CLOSED
+  PAID
+  CHARGED_OFF
+  COLLECTION
+  UNKNOWN
+}
+
+enum DisputeStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  SENT
+  RESPONDED
+  RESOLVED
+  ESCALATED
+}
+
+enum DocumentType {
+  CRA_LETTER
+  CFPB_DRAFT
+}
+
+enum CRA {
+  EXPERIAN
+  EQUIFAX
+  TRANSUNION
+}
+
+enum EvidenceType {
+  CROP
+  ANNOTATION
+  EXTERNAL
+}
+
+enum EventType {
+  // Auth events
+  USER_LOGIN
+  USER_LOGOUT
+  USER_CREATED
+  USER_UPDATED
+  USER_DELETED
+  
+  // Client events
+  CLIENT_CREATED
+  CLIENT_UPDATED
+  CLIENT_DELETED
+  
+  // Report events
+  REPORT_UPLOADED
+  REPORT_PARSED
+  REPORT_PARSE_FAILED
+  
+  // Account events
+  ACCOUNT_CREATED
+  ACCOUNT_UPDATED
+  ACCOUNT_CONFIRMED
+  ACCOUNT_FLOW_ASSIGNED
+  
+  // Dispute events
+  DISPUTE_CREATED
+  DISPUTE_APPROVED
+  DISPUTE_SENT
+  DISPUTE_RESPONDED
+  
+  // Document events
+  DOCUMENT_GENERATED
+  DOCUMENT_APPROVED
+  
+  // Evidence events
+  EVIDENCE_CREATED
+  EVIDENCE_ATTACHED
+  
+  // System events
+  DIFF_COMPUTED
+  ROUND_ADVANCED
+  SUBSCRIPTION_CHANGED
+}
+
+enum ApprovalStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
+// ============================================================================
+// ORGANIZATION & USERS
+// ============================================================================
+
+model Organization {
+  id                  String             @id @default(uuid())
+  name                String
+  slug                String             @unique
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  
+  // Subscription
+  subscriptionTier    SubscriptionTier   @default(FREE)
+  subscriptionStatus  SubscriptionStatus @default(ACTIVE)
+  stripeCustomerId    String?
+  stripeSubscriptionId String?
+  
+  // Settings
+  settings            Json               @default("{}")
+  
+  // Relations
+  users               User[]
+  clients             Client[]
+  reports             CreditReport[]
+  documents           Document[]
+  evidences           Evidence[]
+  eventLogs           EventLog[]
+  files               StoredFile[]
+  letterTemplates     LetterTemplate[]
+  statuteContents     StatuteContent[]
+  
+  @@index([slug])
+  @@index([stripeCustomerId])
+}
+
+model User {
+  id              String       @id @default(uuid())
+  email           String       @unique
+  passwordHash    String
+  name            String
+  role            UserRole     @default(SPECIALIST)
+  isActive        Boolean      @default(true)
+  lastLoginAt     DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  // Organization
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  // Relations
+  eventLogs       EventLog[]   @relation("EventActor")
+  uploadedReports CreditReport[]
+  createdDocuments Document[]
+  
+  @@index([organizationId])
+  @@index([email])
+}
+
+// ============================================================================
+// CLIENTS
+// ============================================================================
+
+model Client {
+  id              String       @id @default(uuid())
+  firstName       String
+  lastName        String
+  email           String?
+  phone           String?
+  
+  // Address (for letters)
+  addressLine1    String?
+  addressLine2    String?
+  city            String?
+  state           String?
+  zipCode         String?
+  
+  // Identity (NO full SSN - only last 4)
+  ssnLast4        String?
+  dateOfBirth     DateTime?
+  
+  // Status
+  isActive        Boolean      @default(true)
+  notes           String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  // Organization
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  // Relations
+  reports         CreditReport[]
+  accounts        AccountItem[]
+  disputes        Dispute[]
+  
+  @@index([organizationId])
+  @@index([lastName, firstName])
+}
+
+// ============================================================================
+// CREDIT REPORTS
+// ============================================================================
+
+model CreditReport {
+  id              String          @id @default(uuid())
+  
+  // Metadata
+  reportDate      DateTime        // Date on the report itself
+  uploadedAt      DateTime        @default(now())
+  sourceType      String          @default("IDENTITYIQ")
+  
+  // File reference
+  originalFileId  String
+  originalFile    StoredFile      @relation("OriginalReport", fields: [originalFileId], references: [id])
+  
+  // Parse status
+  parseStatus     String          @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  parseError      String?
+  pageCount       Int             @default(0)
+  
+  // Rendered pages (JSON array of file IDs)
+  renderedPageIds String[]        @default([])
+  
+  // Organization & Client
+  organizationId  String
+  organization    Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  clientId        String
+  client          Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  uploadedById    String
+  uploadedBy      User            @relation(fields: [uploadedById], references: [id])
+  
+  // Relations
+  accounts        AccountItem[]
+  diffResults     DiffResult[]    @relation("NewReport")
+  priorDiffs      DiffResult[]    @relation("PriorReport")
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  @@index([organizationId])
+  @@index([clientId])
+  @@index([reportDate])
+}
+
+// ============================================================================
+// ACCOUNT ITEMS (Parsed from reports)
+// ============================================================================
+
+model AccountItem {
+  id                  String           @id @default(uuid())
+  
+  // Identification
+  creditorName        String
+  maskedAccountId     String           // e.g., "XXXX1234"
+  fingerprint         String           // Hash for matching across reports
+  
+  // Which CRA reported this
+  cra                 CRA
+  
+  // Account details
+  accountType         String?          // Credit Card, Mortgage, Collection, etc.
+  accountStatus       AccountStatus    @default(UNKNOWN)
+  balance             Decimal?         @db.Decimal(12, 2)
+  pastDue             Decimal?         @db.Decimal(12, 2)
+  creditLimit         Decimal?         @db.Decimal(12, 2)
+  highBalance         Decimal?         @db.Decimal(12, 2)
+  monthlyPayment      Decimal?         @db.Decimal(12, 2)
+  
+  // Dates
+  dateOpened          DateTime?
+  dateReported        DateTime?
+  lastActivityDate    DateTime?
+  
+  // Dispute info from report
+  disputeComment      String?
+  
+  // Parse confidence
+  confidenceScore     Int              @default(0) // 0-100
+  confidenceLevel     ConfidenceLevel  @default(LOW)
+  isConfirmed         Boolean          @default(false) // Specialist confirmed
+  confirmedAt         DateTime?
+  
+  // Flow assignment
+  assignedFlow        FlowType?
+  currentRound        Int              @default(0) // 0 = not started
+  flowLockedAt        DateTime?        // When flow was locked in
+  
+  // Raw extracted data (for debugging/audit)
+  rawExtractedData    Json?
+  
+  // Source
+  reportId            String
+  report              CreditReport     @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  organizationId      String
+  clientId            String
+  client              Client           @relation(fields: [clientId], references: [id])
+  
+  // Relations
+  disputes            DisputeItem[]
+  evidences           Evidence[]
+  diffChangesNew      DiffChange[]     @relation("NewAccount")
+  diffChangesOld      DiffChange[]     @relation("OldAccount")
+  
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  
+  @@unique([reportId, fingerprint, cra])
+  @@index([organizationId])
+  @@index([clientId])
+  @@index([fingerprint])
+  @@index([confidenceLevel])
+  @@index([isConfirmed])
+}
+
+// ============================================================================
+// DIFF ENGINE
+// ============================================================================
+
+model DiffResult {
+  id              String       @id @default(uuid())
+  
+  // Which reports were compared
+  priorReportId   String
+  priorReport     CreditReport @relation("PriorReport", fields: [priorReportId], references: [id])
+  newReportId     String
+  newReport       CreditReport @relation("NewReport", fields: [newReportId], references: [id])
+  
+  // Summary
+  accountsAdded   Int          @default(0)
+  accountsRemoved Int          @default(0)
+  accountsChanged Int          @default(0)
+  accountsUnchanged Int        @default(0)
+  
+  computedAt      DateTime     @default(now())
+  
+  // Changes
+  changes         DiffChange[]
+  
+  @@unique([priorReportId, newReportId])
+  @@index([newReportId])
+}
+
+model DiffChange {
+  id              String      @id @default(uuid())
+  diffResultId    String
+  diffResult      DiffResult  @relation(fields: [diffResultId], references: [id], onDelete: Cascade)
+  
+  // Change type
+  changeType      String      // ADDED, REMOVED, MODIFIED, UNCHANGED
+  
+  // Account references
+  oldAccountId    String?
+  oldAccount      AccountItem? @relation("OldAccount", fields: [oldAccountId], references: [id])
+  newAccountId    String?
+  newAccount      AccountItem? @relation("NewAccount", fields: [newAccountId], references: [id])
+  
+  // What changed (for MODIFIED)
+  changedFields   Json?       // { fieldName: { old: x, new: y } }
+  
+  createdAt       DateTime    @default(now())
+  
+  @@index([diffResultId])
+}
+
+// ============================================================================
+// DISPUTES & ROUNDS
+// ============================================================================
+
+model Dispute {
+  id              String        @id @default(uuid())
+  
+  // Which client and round
+  clientId        String
+  client          Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  organizationId  String
+  
+  // Round info
+  flow            FlowType
+  round           Int           // 1-12 for Accuracy, 1-10 for Collection, etc.
+  cra             CRA
+  
+  // Status
+  status          DisputeStatus @default(DRAFT)
+  
+  // Dates
+  createdAt       DateTime      @default(now())
+  approvedAt      DateTime?
+  sentAt          DateTime?
+  respondedAt     DateTime?
+  resolvedAt      DateTime?
+  
+  // Response tracking
+  responseNotes   String?
+  responseOutcome String?       // DELETED, VERIFIED, UPDATED, NO_RESPONSE
+  
+  // Relations
+  items           DisputeItem[]
+  documents       Document[]
+  
+  updatedAt       DateTime      @updatedAt
+  
+  @@index([organizationId])
+  @@index([clientId])
+  @@index([status])
+  @@index([cra, round])
+}
+
+model DisputeItem {
+  id              String      @id @default(uuid())
+  disputeId       String
+  dispute         Dispute     @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  
+  accountItemId   String
+  accountItem     AccountItem @relation(fields: [accountItemId], references: [id])
+  
+  // Dispute reason/argument
+  disputeReason   String?
+  
+  // Outcome per item
+  outcome         String?     // DELETED, VERIFIED, UPDATED
+  outcomeNotes    String?
+  
+  createdAt       DateTime    @default(now())
+  
+  @@unique([disputeId, accountItemId])
+  @@index([disputeId])
+}
+
+// ============================================================================
+// DOCUMENTS (Letters & Drafts)
+// ============================================================================
+
+model Document {
+  id                  String         @id @default(uuid())
+  
+  documentType        DocumentType
+  title               String
+  
+  // Content
+  content             String         @db.Text // Full letter content
+  
+  // For CRA letters: statute info
+  statutesCited       String[]       @default([])
+  
+  // Approval workflow (Recommendation #4)
+  approvalStatus      ApprovalStatus @default(DRAFT)
+  approvalNotes       String?
+  approvedAt          DateTime?
+  approvedById        String?
+  
+  // Version tracking
+  version             Int            @default(1)
+  parentDocumentId    String?        // For version history
+  
+  // File output
+  generatedFileId     String?
+  generatedFile       StoredFile?    @relation("GeneratedDocument", fields: [generatedFileId], references: [id])
+  
+  // Relations
+  disputeId           String?
+  dispute             Dispute?       @relation(fields: [disputeId], references: [id])
+  organizationId      String
+  organization        Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdById         String
+  createdBy           User           @relation(fields: [createdById], references: [id])
+  
+  // Evidence attachments
+  evidenceAttachments DocumentEvidence[]
+  
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  
+  @@index([organizationId])
+  @@index([disputeId])
+  @@index([approvalStatus])
+}
+
+model DocumentEvidence {
+  id          String   @id @default(uuid())
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  evidenceId  String
+  evidence    Evidence @relation(fields: [evidenceId], references: [id])
+  sortOrder   Int      @default(0)
+  
+  @@unique([documentId, evidenceId])
+}
+
+// ============================================================================
+// EVIDENCE SYSTEM
+// ============================================================================
+
+model Evidence {
+  id              String        @id @default(uuid())
+  
+  evidenceType    EvidenceType
+  title           String?
+  description     String?
+  
+  // Source (for crops)
+  sourcePageNum   Int?
+  cropRegion      Json?         // { x, y, width, height }
+  
+  // Annotations (vector data)
+  annotations     Json?         // Array of annotation objects
+  
+  // Files
+  sourceFileId    String?
+  sourceFile      StoredFile?   @relation("EvidenceSource", fields: [sourceFileId], references: [id])
+  renderedFileId  String?
+  renderedFile    StoredFile?   @relation("EvidenceRendered", fields: [renderedFileId], references: [id])
+  
+  // Relations
+  accountItemId   String?
+  accountItem     AccountItem?  @relation(fields: [accountItemId], references: [id])
+  organizationId  String
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  documentAttachments DocumentEvidence[]
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@index([organizationId])
+  @@index([accountItemId])
+}
+
+// ============================================================================
+// FILE STORAGE
+// ============================================================================
+
+model StoredFile {
+  id              String       @id @default(uuid())
+  
+  filename        String
+  mimeType        String
+  sizeBytes       Int
+  
+  // Storage location
+  storagePath     String       // Local path or cloud key
+  storageType     String       @default("LOCAL") // LOCAL, S3, etc.
+  
+  // Security
+  checksum        String?      // SHA-256
+  
+  // Organization isolation
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  // Relations
+  originalReports   CreditReport[] @relation("OriginalReport")
+  generatedDocuments Document[]    @relation("GeneratedDocument")
+  evidenceSources   Evidence[]     @relation("EvidenceSource")
+  evidenceRendered  Evidence[]     @relation("EvidenceRendered")
+  
+  createdAt       DateTime     @default(now())
+  
+  @@index([organizationId])
+  @@index([storagePath])
+}
+
+// ============================================================================
+// STATUTE & TEMPLATE CONTENT (Recommendation #3)
+// ============================================================================
+
+model StatuteContent {
+  id              String       @id @default(uuid())
+  
+  flow            FlowType
+  round           Int
+  statuteCode     String       // e.g., "1681e(b)"
+  
+  // Content
+  shortTitle      String       // e.g., "Accuracy of Reports"
+  fullText        String       @db.Text
+  argumentText    String       @db.Text // Template argument for letters
+  
+  // Organization (allows customization)
+  organizationId  String?
+  organization    Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  isSystemDefault Boolean      @default(false)
+  
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  @@unique([flow, round, organizationId])
+  @@index([flow, round])
+}
+
+model LetterTemplate {
+  id              String       @id @default(uuid())
+  
+  name            String
+  documentType    DocumentType
+  flow            FlowType?
+  round           Int?
+  cra             CRA?
+  
+  // Template content with placeholders
+  headerTemplate  String       @db.Text
+  bodyTemplate    String       @db.Text
+  footerTemplate  String       @db.Text
+  
+  // Organization
+  organizationId  String?
+  organization    Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  isSystemDefault Boolean      @default(false)
+  isActive        Boolean      @default(true)
+  
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  @@index([documentType, flow, round])
+  @@index([organizationId])
+}
+
+// ============================================================================
+// AUDIT LOG (Immutable Event Log - Recommendations #9)
+// ============================================================================
+
+model EventLog {
+  id              String       @id @default(uuid())
+  
+  eventType       EventType
+  
+  // Actor
+  actorId         String?
+  actor           User?        @relation("EventActor", fields: [actorId], references: [id])
+  actorEmail      String?      // Denormalized for immutability
+  
+  // Target entity
+  targetType      String?      // Client, Report, Account, Document, etc.
+  targetId        String?
+  
+  // Event data
+  eventData       Json?        // Additional context
+  
+  // Request context
+  ipAddress       String?
+  userAgent       String?
+  
+  // Organization
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime     @default(now())
+  
+  // Immutable - no updatedAt
+  
+  @@index([organizationId])
+  @@index([eventType])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+  @@index([actorId])
+}
+
+// ============================================================================
+// NOTIFICATIONS (Recommendation #10)
+// ============================================================================
+
+model Notification {
+  id              String       @id @default(uuid())
+  
+  userId          String
+  
+  // Content
+  title           String
+  message         String
+  type            String       // INFO, WARNING, SUCCESS, ERROR
+  
+  // Link
+  linkUrl         String?
+  linkText        String?
+  
+  // Status
+  isRead          Boolean      @default(false)
+  readAt          DateTime?
+  
+  createdAt       DateTime     @default(now())
+  
+  @@index([userId, isRead])
+  @@index([createdAt])
+}
