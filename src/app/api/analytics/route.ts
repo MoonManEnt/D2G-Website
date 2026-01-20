@@ -59,7 +59,7 @@ export async function GET() {
       prisma.accountItem.count({
         where: {
           organizationId,
-          isDisputable: true,
+          confidenceLevel: { in: ["LOW", "MEDIUM"] },
         },
       }),
 

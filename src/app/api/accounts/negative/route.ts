@@ -17,8 +17,7 @@ export async function GET() {
       where: {
         organizationId: session.user.organizationId,
         OR: [
-          { isDisputable: true },
-          { issueCount: { gt: 0 } },
+          { confidenceLevel: { in: ["LOW", "MEDIUM"] } },
           { accountStatus: { in: ["COLLECTION", "CHARGED_OFF"] } },
           { pastDue: { gt: 0 } },
         ],
@@ -42,7 +41,7 @@ export async function GET() {
         },
       },
       orderBy: [
-        { issueCount: "desc" },
+        { confidenceScore: "asc" },
         { createdAt: "desc" },
       ],
     });

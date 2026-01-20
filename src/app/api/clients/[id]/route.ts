@@ -42,11 +42,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         accounts: {
           where: {
             OR: [
-              { isDisputable: true },
-              { issueCount: { gt: 0 } },
+              { confidenceLevel: "LOW" },
+              { accountStatus: { in: ["COLLECTION", "CHARGED_OFF"] } },
             ],
           },
-          orderBy: { issueCount: "desc" },
+          orderBy: { confidenceScore: "asc" },
           include: {
             evidences: {
               select: {
