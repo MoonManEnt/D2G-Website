@@ -19,7 +19,7 @@ async function getDashboardStats(organizationId: string) {
     prisma.dispute.count({ where: { organizationId, status: { in: ["DRAFT", "PENDING_REVIEW", "APPROVED"] } } }),
     prisma.dispute.count({ where: { organizationId, status: "RESOLVED" } }),
     prisma.accountItem.count({ where: { organizationId, isConfirmed: false, confidenceLevel: "LOW" } }),
-    prisma.accountItem.count({ where: { organizationId, isDisputable: true, issueCount: { gt: 0 } } }),
+    prisma.accountItem.count({ where: { organizationId, confidenceLevel: { in: ["LOW", "MEDIUM"] } } }),
     prisma.evidence.count({ where: { organizationId } }),
     prisma.dispute.count({ where: { organizationId, status: "SENT" } }),
   ]);
