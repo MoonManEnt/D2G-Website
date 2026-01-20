@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyPortalToken, extractBearerToken } from "@/lib/jwt";
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/portal/dashboard - Get client portal dashboard data
 export async function GET(request: NextRequest) {
   try {

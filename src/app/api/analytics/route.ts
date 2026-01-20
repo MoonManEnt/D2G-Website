@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { subDays, startOfDay, format, startOfMonth, subMonths } from "date-fns";
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/analytics - Get dashboard analytics
 export async function GET() {
   try {
