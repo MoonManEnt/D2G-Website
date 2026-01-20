@@ -14,7 +14,7 @@ async function main() {
       id: "demo-org-001",
       name: "Demo Credit Repair",
       slug: "demo-credit-repair",
-      subscriptionTier: "PROFESSIONAL",
+      subscriptionTier: "PROFESSIONAL" as string,
       settings: JSON.stringify({
         defaultFlow: "METRO2",
         autoGenerateLetters: true,
@@ -32,7 +32,7 @@ async function main() {
       email: "admin@dispute2go.demo",
       name: "Demo Admin",
       passwordHash: hashedPassword,
-      role: "OWNER",
+      role: "OWNER" as string,
       organizationId: org.id,
     },
   });
@@ -116,10 +116,10 @@ async function main() {
       id: "dispute-001",
       clientId: "client-001",
       organizationId: org.id,
-      flow: "METRO2",
+      flow: "METRO2" as string,
       round: 1,
-      cra: "TRANSUNION",
-      status: "DRAFT",
+      cra: "TRANSUNION" as string,
+      status: "DRAFT" as string,
       letterContent: "Sample dispute letter content...",
     },
   });
