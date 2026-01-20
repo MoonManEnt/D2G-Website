@@ -1,0 +1,673 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // Use "sqlite" for local development, "postgresql" for production
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id                   String           @id @default(uuid())
+  name                 String
+  slug                 String           @unique
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  subscriptionTier     String           @default("FREE")
+  subscriptionStatus   String           @default("ACTIVE")
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  settings             String           @default("{}")
+  clients              Client[]
+  reports              CreditReport[]
+  documents            Document[]
+  eventLogs            EventLog[]
+  evidences            Evidence[]
+  letterTemplates      LetterTemplate[]
+  statuteContents      StatuteContent[]
+  files                StoredFile[]
+  users                User[]
+
+  @@index([slug])
+  @@index([stripeCustomerId])
+}
+
+model User {
+  id               String         @id @default(uuid())
+  email            String         @unique
+  passwordHash     String
+  name             String
+  role             String         @default("SPECIALIST")
+  isActive         Boolean        @default(true)
+  profilePicture   String?        // Base64 encoded profile picture or URL
+  lastLoginAt      DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  organizationId   String
+  uploadedReports  CreditReport[]
+  createdDocuments Document[]
+  eventLogs        EventLog[]     @relation("EventActor")
+  organization     Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([email])
+}
+
+model Client {
+  id                      String              @id @default(uuid())
+  firstName               String
+  lastName                String
+  email                   String?
+  phone                   String?
+  addressLine1            String?
+  addressLine2            String?
+  city                    String?
+  state                   String?
+  zipCode                 String?
+  ssnLast4                String?
+  dateOfBirth             DateTime?
+  isActive                Boolean             @default(true)
+  notes                   String?
+  creditMonitoringId      String?             // External enrollment ID
+  creditMonitoringStatus  String?             // PENDING, ACTIVE, SUSPENDED
+  creditMonitoringProvider String?            // identityiq, array
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+  organizationId          String
+  accounts                AccountItem[]
+  organization            Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  reports                 CreditReport[]
+  disputes                Dispute[]
+  creditScores            CreditScore[]
+  portalAccess            ClientPortalAccess?
+  reminders               Reminder[]
+  communications          Communication[]
+  clientDocuments         ClientDocument[]
+
+  @@index([organizationId])
+  @@index([lastName, firstName])
+  @@index([creditMonitoringId])
+}
+
+model CreditReport {
+  id              String        @id @default(uuid())
+  reportDate      DateTime
+  uploadedAt      DateTime      @default(now())
+  sourceType      String        @default("IDENTITYIQ")
+  originalFileId  String
+  parseStatus     String        @default("PENDING")
+  parseError      String?
+  pageCount       Int           @default(0)
+  renderedPageIds String        @default("[]")
+  organizationId  String
+  clientId        String
+  uploadedById    String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  accounts        AccountItem[]
+  uploadedBy      User          @relation(fields: [uploadedById], references: [id])
+  client          Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  originalFile    StoredFile    @relation("OriginalReport", fields: [originalFileId], references: [id])
+  diffResults     DiffResult[]  @relation("NewReport")
+  priorDiffs      DiffResult[]  @relation("PriorReport")
+
+  @@index([organizationId])
+  @@index([clientId])
+  @@index([reportDate])
+}
+
+model AccountItem {
+  id               String        @id @default(uuid())
+  creditorName     String
+  maskedAccountId  String
+  fingerprint      String
+  cra              String
+  accountType      String?
+  accountStatus    String        @default("UNKNOWN")
+  balance          Decimal?
+  pastDue          Decimal?
+  creditLimit      Decimal?
+  highBalance      Decimal?
+  monthlyPayment   Decimal?
+  dateOpened       DateTime?
+  dateReported     DateTime?
+  lastActivityDate DateTime?
+  disputeComment   String?
+  paymentStatus    String?
+  confidenceScore  Int           @default(0)
+  confidenceLevel  String        @default("LOW")
+  isConfirmed      Boolean       @default(false)
+  confirmedAt      DateTime?
+  assignedFlow     String?
+  suggestedFlow    String?
+  currentRound     Int           @default(0)
+  flowLockedAt     DateTime?
+  rawExtractedData String?
+  // Issues detected during parsing (JSON array)
+  detectedIssues   String?
+  isDisputable     Boolean       @default(false)
+  issueCount       Int           @default(0)
+  reportId         String
+  organizationId   String
+  clientId         String
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  client           Client        @relation(fields: [clientId], references: [id])
+  report           CreditReport  @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  diffChangesNew   DiffChange[]  @relation("NewAccount")
+  diffChangesOld   DiffChange[]  @relation("OldAccount")
+  disputes         DisputeItem[]
+  evidences        Evidence[]
+
+  @@unique([reportId, fingerprint, cra])
+  @@index([organizationId])
+  @@index([clientId])
+  @@index([fingerprint])
+  @@index([confidenceLevel])
+  @@index([isConfirmed])
+}
+
+model DiffResult {
+  id                String       @id @default(uuid())
+  priorReportId     String
+  newReportId       String
+  accountsAdded     Int          @default(0)
+  accountsRemoved   Int          @default(0)
+  accountsChanged   Int          @default(0)
+  accountsUnchanged Int          @default(0)
+  computedAt        DateTime     @default(now())
+  changes           DiffChange[]
+  newReport         CreditReport @relation("NewReport", fields: [newReportId], references: [id])
+  priorReport       CreditReport @relation("PriorReport", fields: [priorReportId], references: [id])
+
+  @@unique([priorReportId, newReportId])
+  @@index([newReportId])
+}
+
+model DiffChange {
+  id            String       @id @default(uuid())
+  diffResultId  String
+  changeType    String
+  oldAccountId  String?
+  newAccountId  String?
+  changedFields String?
+  createdAt     DateTime     @default(now())
+  newAccount    AccountItem? @relation("NewAccount", fields: [newAccountId], references: [id])
+  oldAccount    AccountItem? @relation("OldAccount", fields: [oldAccountId], references: [id])
+  diffResult    DiffResult   @relation(fields: [diffResultId], references: [id], onDelete: Cascade)
+
+  @@index([diffResultId])
+}
+
+model Dispute {
+  id               String        @id @default(uuid())
+  clientId         String
+  organizationId   String
+  flow             String
+  round            Int
+  cra              String
+  status           String        @default("DRAFT")
+  letterContent    String?       // AI-generated letter content
+  referenceNumber  String?       // Reference number for tracking
+  aiStrategy       String?       // JSON: AI-generated strategy and recommendations
+  createdAt        DateTime      @default(now())
+  approvedAt       DateTime?
+  sentDate         DateTime?     // When the letter was officially sent
+  mailedLetterId   String?       // Lob letter ID
+  mailedAt         DateTime?     // When mailed via physical mail
+  respondedAt      DateTime?
+  resolvedAt       DateTime?
+  responseNotes    String?
+  responseOutcome  String?
+  deadlineDate     DateTime?     // 30-day FCRA deadline
+  updatedAt        DateTime      @updatedAt
+  client           Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  items            DisputeItem[]
+  documents        Document[]
+  reminders        Reminder[]
+
+  @@index([organizationId])
+  @@index([clientId])
+  @@index([status])
+  @@index([cra, round])
+  @@index([mailedLetterId])
+}
+
+model DisputeItem {
+  id            String      @id @default(uuid())
+  disputeId     String
+  accountItemId String
+  disputeReason String?
+  suggestedFlow String?     // AI-recommended flow for this item
+  priorityScore Int?        // AI priority score (1-100)
+  outcome       String?
+  outcomeNotes  String?
+  createdAt     DateTime    @default(now())
+  accountItem   AccountItem @relation(fields: [accountItemId], references: [id])
+  dispute       Dispute     @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+
+  @@unique([disputeId, accountItemId])
+  @@index([disputeId])
+}
+
+model Document {
+  id                  String             @id @default(uuid())
+  documentType        String
+  title               String
+  content             String
+  statutesCited       String             @default("[]")
+  approvalStatus      String             @default("DRAFT")
+  approvalNotes       String?
+  approvedAt          DateTime?
+  approvedById        String?
+  version             Int                @default(1)
+  parentDocumentId    String?
+  generatedFileId     String?
+  disputeId           String?
+  organizationId      String
+  createdById         String
+  aiGenerated         Boolean            @default(false)
+  aiMetadata          String?            // JSON: AI generation metadata (tone, requestId, etc.)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  createdBy           User               @relation(fields: [createdById], references: [id])
+  organization        Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  dispute             Dispute?           @relation(fields: [disputeId], references: [id])
+  generatedFile       StoredFile?        @relation("GeneratedDocument", fields: [generatedFileId], references: [id])
+  evidenceAttachments DocumentEvidence[]
+
+  @@index([organizationId])
+  @@index([disputeId])
+  @@index([approvalStatus])
+}
+
+model DocumentEvidence {
+  id         String   @id @default(uuid())
+  documentId String
+  evidenceId String
+  sortOrder  Int      @default(0)
+  evidence   Evidence @relation(fields: [evidenceId], references: [id])
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, evidenceId])
+}
+
+model Evidence {
+  id                  String             @id @default(uuid())
+  evidenceType        String
+  title               String?
+  description         String?
+  sourcePageNum       Int?
+  cropRegion          String?
+  annotations         String?
+  sourceFileId        String?
+  renderedFileId      String?
+  accountItemId       String?
+  organizationId      String
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  documentAttachments DocumentEvidence[]
+  organization        Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  accountItem         AccountItem?       @relation(fields: [accountItemId], references: [id])
+  renderedFile        StoredFile?        @relation("EvidenceRendered", fields: [renderedFileId], references: [id])
+  sourceFile          StoredFile?        @relation("EvidenceSource", fields: [sourceFileId], references: [id])
+
+  @@index([organizationId])
+  @@index([accountItemId])
+}
+
+model StoredFile {
+  id                 String         @id @default(uuid())
+  filename           String
+  mimeType           String
+  sizeBytes          Int
+  storagePath        String
+  storageType        String         @default("LOCAL")
+  checksum           String?
+  organizationId     String
+  createdAt          DateTime       @default(now())
+  originalReports    CreditReport[] @relation("OriginalReport")
+  generatedDocuments Document[]     @relation("GeneratedDocument")
+  evidenceRendered   Evidence[]     @relation("EvidenceRendered")
+  evidenceSources    Evidence[]       @relation("EvidenceSource")
+  organization       Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  clientDocuments    ClientDocument[]
+
+  @@index([organizationId])
+  @@index([storagePath])
+}
+
+model StatuteContent {
+  id              String        @id @default(uuid())
+  flow            String
+  round           Int
+  statuteCode     String
+  shortTitle      String
+  fullText        String
+  argumentText    String
+  organizationId  String?
+  isSystemDefault Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  organization    Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([flow, round, organizationId])
+  @@index([flow, round])
+}
+
+model LetterTemplate {
+  id              String        @id @default(uuid())
+  name            String
+  documentType    String
+  flow            String?
+  round           Int?
+  cra             String?
+  headerTemplate  String
+  bodyTemplate    String
+  footerTemplate  String
+  organizationId  String?
+  isSystemDefault Boolean       @default(false)
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  organization    Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([documentType, flow, round])
+  @@index([organizationId])
+}
+
+model EventLog {
+  id             String       @id @default(uuid())
+  eventType      String
+  actorId        String?
+  actorEmail     String?
+  targetType     String?
+  targetId       String?
+  eventData      String?
+  ipAddress      String?
+  userAgent      String?
+  organizationId String
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actor          User?        @relation("EventActor", fields: [actorId], references: [id])
+
+  @@index([organizationId])
+  @@index([eventType])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+  @@index([actorId])
+}
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      String
+  linkUrl   String?
+  linkText  String?
+  isRead    Boolean   @default(false)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+}
+
+// =============================================================================
+// LLM ORCHESTRATION - Track AI usage, performance, and costs
+// =============================================================================
+
+model LLMRequest {
+  id              String   @id @default(uuid())
+  taskType        String   // DISPUTE_STRATEGY, LETTER_GENERATION, CFPB_COMPLAINT, ISSUE_ANALYSIS
+  provider        String   // CLAUDE, OPENAI
+  model           String   // claude-sonnet-4-20250514, gpt-4-turbo, etc.
+
+  // Request details
+  promptTokens    Int      @default(0)
+  completionTokens Int     @default(0)
+  totalTokens     Int      @default(0)
+
+  // Performance metrics
+  latencyMs       Int
+  costCents       Int      @default(0) // Store in cents for precision
+
+  // Quality metrics (filled in later via feedback)
+  userAccepted    Boolean?
+  userEdited      Boolean?
+  editDistance    Int?     // Levenshtein distance if edited
+
+  // A/B Testing
+  isABTest        Boolean  @default(false)
+  abTestGroup     String?  // A or B
+  alternateOutput String?  // Store the other model's output for comparison
+
+  // Outcome tracking (for learning)
+  disputeId       String?
+  disputeOutcome  String?  // RESOLVED, REJECTED, PENDING
+
+  // Context for analysis
+  flow            String?  // ACCURACY, COLLECTION, CONSENT, COMBO
+  round           Int?
+  cra             String?
+
+  // Error tracking
+  wasError        Boolean  @default(false)
+  errorMessage    String?
+  wasRetry        Boolean  @default(false)
+  retryOf         String?  // ID of original request if this is a retry
+
+  organizationId  String
+  createdAt       DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([taskType])
+  @@index([provider])
+  @@index([createdAt])
+  @@index([disputeId])
+}
+
+model LLMProviderStats {
+  id              String   @id @default(uuid())
+  provider        String   // CLAUDE, OPENAI
+  taskType        String   // Task type this stat is for
+
+  // Aggregated stats (computed daily)
+  avgLatencyMs    Float    @default(0)
+  avgCostCents    Float    @default(0)
+  acceptanceRate  Float    @default(0)    // % accepted without edit
+  successRate     Float    @default(0)    // % of disputes resolved favorably
+  errorRate       Float    @default(0)
+  totalRequests   Int      @default(0)
+
+  // Period this stat covers
+  periodStart     DateTime
+  periodEnd       DateTime
+
+  computedAt      DateTime @default(now())
+
+  @@unique([provider, taskType, periodStart])
+  @@index([provider, taskType])
+}
+
+// Password reset tokens for email flow
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([userId])
+}
+
+// =============================================================================
+// CREDIT SCORE TRACKING - Track score history over time
+// =============================================================================
+
+model CreditScore {
+  id             String   @id @default(uuid())
+  clientId       String
+  cra            String   // TRANSUNION, EXPERIAN, EQUIFAX
+  scoreType      String   @default("VANTAGE3") // FICO8, FICO9, VANTAGE3, VANTAGE4
+  score          Int
+  scoreDate      DateTime
+  reportId       String?  // Link to report if extracted from it
+  source         String   @default("MANUAL") // MANUAL, REPORT_PARSE, API_SYNC
+  factorsPositive String?  // JSON array of positive factors
+  factorsNegative String?  // JSON array of negative factors
+  createdAt      DateTime @default(now())
+  client         Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, scoreDate])
+  @@index([clientId, cra])
+  @@index([scoreDate])
+}
+
+// =============================================================================
+// CLIENT PORTAL - Support for client self-service login
+// =============================================================================
+
+model ClientPortalAccess {
+  id             String    @id @default(uuid())
+  clientId       String    @unique
+  email          String    @unique
+  passwordHash   String
+  isActive       Boolean   @default(true)
+  lastLoginAt    DateTime?
+  loginAttempts  Int       @default(0)
+  lockedUntil    DateTime?
+  invitedAt      DateTime  @default(now())
+  acceptedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  client         Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([email])
+  @@index([clientId])
+}
+
+// =============================================================================
+// REMINDERS & FOLLOW-UPS - Automated task scheduling
+// =============================================================================
+
+model Reminder {
+  id             String    @id @default(uuid())
+  clientId       String
+  disputeId      String?
+  reminderType   String    // FOLLOW_UP, DEADLINE, DOCUMENT_REQUEST, RESPONSE_DUE, SCORE_CHECK, CUSTOM
+  title          String
+  description    String?
+  scheduledFor   DateTime
+  status         String    @default("PENDING") // PENDING, COMPLETED, SNOOZED, CANCELLED
+  repeatInterval String    @default("NONE") // NONE, DAILY, WEEKLY, MONTHLY
+
+  completedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  client         Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  dispute        Dispute?  @relation(fields: [disputeId], references: [id])
+
+  @@index([clientId, scheduledFor])
+  @@index([status, scheduledFor])
+  @@index([disputeId])
+}
+
+// =============================================================================
+// CLIENT DOCUMENTS - Secure document storage for clients
+// =============================================================================
+
+model ClientDocument {
+  id             String     @id @default(uuid())
+  clientId       String
+  organizationId String
+  fileId         String
+  title          String
+  description    String?
+  category       String     @default("OTHER") // ID, PROOF_OF_ADDRESS, BANK_STATEMENT, UTILITY_BILL, OTHER
+
+  // Access control
+  isClientVisible Boolean   @default(false) // Whether client can see in portal
+  isSecure        Boolean   @default(true)  // Extra security for sensitive docs
+
+  // Audit
+  uploadedById   String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  client         Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  file           StoredFile @relation(fields: [fileId], references: [id])
+
+  @@index([clientId, category])
+  @@index([organizationId])
+  @@index([fileId])
+}
+
+// =============================================================================
+// COMMUNICATION LOG - Track all client interactions
+// =============================================================================
+
+// =============================================================================
+// AMELIA CONTENT TRACKING - Prevent duplicate phrases/structures
+// =============================================================================
+
+model AmeliaContentHash {
+  id             String   @id @default(uuid())
+  clientId       String
+  contentHash    String   // SHA-256 hash of the content
+  contentType    String   // SENTENCE, PARAGRAPH, PHRASE, STORY
+  sourceDocId    String?  // Document this came from
+  createdAt      DateTime @default(now())
+
+  @@unique([clientId, contentHash])
+  @@index([clientId])
+  @@index([contentHash])
+}
+
+model Communication {
+  id             String    @id @default(uuid())
+  clientId       String
+  organizationId String
+  userId         String?   // User who created the communication
+
+  // Communication details
+  type           String    // EMAIL, SMS, CALL, NOTE, PORTAL_MESSAGE, LETTER
+  direction      String    @default("OUTBOUND") // INBOUND, OUTBOUND, INTERNAL
+  subject        String?
+  content        String    // Message content or call notes
+  contentHtml    String?   // HTML version for emails
+
+  // Status tracking
+  status         String    @default("SENT") // DRAFT, SENT, DELIVERED, FAILED, READ
+  sentAt         DateTime?
+  deliveredAt    DateTime?
+  readAt         DateTime?
+  failureReason  String?
+
+  // External references
+  externalId     String?   // Email ID from Resend, SMS ID from Twilio, etc.
+  provider       String?   // resend, twilio, lob
+
+  // Related entities
+  disputeId      String?
+  documentId     String?
+
+  // Metadata
+  metadata       String    @default("{}") // JSON for additional data
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  client         Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([type, status])
+  @@index([externalId])
+}

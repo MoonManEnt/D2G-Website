@@ -1,0 +1,89 @@
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import prisma from "@/lib/prisma";
+
+// GET /api/accounts/negative - Get all negative/disputable accounts
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Fetch accounts that are marked as disputable (have issues)
+    const accounts = await prisma.accountItem.findMany({
+      where: {
+        organizationId: session.user.organizationId,
+        OR: [
+          { isDisputable: true },
+          { issueCount: { gt: 0 } },
+          { accountStatus: { in: ["COLLECTION", "CHARGED_OFF"] } },
+          { pastDue: { gt: 0 } },
+        ],
+      },
+      include: {
+        client: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        evidences: {
+          select: {
+            id: true,
+            evidenceType: true,
+            description: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: "desc" },
+        },
+      },
+      orderBy: [
+        { issueCount: "desc" },
+        { createdAt: "desc" },
+      ],
+    });
+
+    // Transform decimal fields to numbers for JSON
+    const transformedAccounts = accounts.map(account => ({
+      ...account,
+      balance: account.balance ? Number(account.balance) : null,
+      pastDue: account.pastDue ? Number(account.pastDue) : null,
+      creditLimit: account.creditLimit ? Number(account.creditLimit) : null,
+      highBalance: account.highBalance ? Number(account.highBalance) : null,
+      monthlyPayment: account.monthlyPayment ? Number(account.monthlyPayment) : null,
+    }));
+
+    // Calculate summary
+    const summary = {
+      totalNegative: accounts.length,
+      highSeverity: accounts.filter(a => {
+        try {
+          const issues = a.detectedIssues ? JSON.parse(a.detectedIssues) : [];
+          return issues.some((i: { severity: string }) => i.severity === "HIGH");
+        } catch {
+          return false;
+        }
+      }).length,
+      collections: accounts.filter(a => a.accountStatus === "COLLECTION").length,
+      chargeOffs: accounts.filter(a => a.accountStatus === "CHARGED_OFF").length,
+      withPastDue: accounts.filter(a => a.pastDue && Number(a.pastDue) > 0).length,
+      withEvidence: accounts.filter(a => a.evidences.length > 0).length,
+    };
+
+    return NextResponse.json({
+      accounts: transformedAccounts,
+      summary,
+    });
+
+  } catch (error) {
+    console.error("Error fetching negative accounts:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch negative accounts" },
+      { status: 500 }
+    );
+  }
+}

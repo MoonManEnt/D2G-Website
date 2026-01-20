@@ -1,0 +1,393 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 207 90% 42%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 207 90% 42%;
+    --radius: 0.5rem;
+
+    /* Branding CSS variables (can be overridden by JS) */
+    --brand-primary: #3b82f6;
+    --brand-primary-hover: #2563eb;
+    --brand-accent: #8b5cf6;
+    --brand-sidebar-bg: #1e293b;
+    --brand-sidebar-text: #94a3b8;
+    --brand-sidebar-active: #3b82f6;
+    --brand-success: #22c55e;
+    --brand-warning: #f59e0b;
+    --brand-error: #ef4444;
+    --brand-info: #3b82f6;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 207 90% 54%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 207 90% 54%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30 rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/50;
+  }
+}
+
+@layer components {
+  /* Page header styles */
+  .page-header {
+    @apply mb-8;
+  }
+  
+  .page-title {
+    @apply text-3xl font-bold tracking-tight;
+  }
+  
+  .page-description {
+    @apply text-muted-foreground mt-2;
+  }
+  
+  /* Card variants */
+  .card-interactive {
+    @apply transition-all duration-200 hover:shadow-md hover:border-primary/50 cursor-pointer;
+  }
+  
+  /* Badge variants for confidence levels */
+  .badge-confidence-high {
+    @apply bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400;
+  }
+  
+  .badge-confidence-medium {
+    @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400;
+  }
+  
+  .badge-confidence-low {
+    @apply bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400;
+  }
+  
+  /* CRA color badges */
+  .badge-experian {
+    @apply bg-blue-900 text-white;
+  }
+  
+  .badge-equifax {
+    @apply bg-red-900 text-white;
+  }
+  
+  .badge-transunion {
+    @apply bg-sky-800 text-white;
+  }
+  
+  /* Status badges */
+  .badge-status-draft {
+    @apply bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300;
+  }
+  
+  .badge-status-pending {
+    @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400;
+  }
+  
+  .badge-status-approved {
+    @apply bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400;
+  }
+  
+  .badge-status-sent {
+    @apply bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400;
+  }
+  
+  .badge-status-resolved {
+    @apply bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400;
+  }
+  
+  /* Table styles */
+  .data-table {
+    @apply w-full text-sm;
+  }
+  
+  .data-table th {
+    @apply px-4 py-3 text-left font-medium text-muted-foreground bg-muted/50;
+  }
+  
+  .data-table td {
+    @apply px-4 py-3 border-t;
+  }
+  
+  .data-table tr:hover td {
+    @apply bg-muted/30;
+  }
+  
+  /* Form styles */
+  .form-section {
+    @apply space-y-4 py-6 border-b last:border-b-0;
+  }
+  
+  .form-section-title {
+    @apply text-lg font-semibold mb-4;
+  }
+  
+  /* Progress indicator styles */
+  .progress-striped {
+    background-image: linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.15) 25%,
+      transparent 25%,
+      transparent 50%,
+      rgba(255, 255, 255, 0.15) 50%,
+      rgba(255, 255, 255, 0.15) 75%,
+      transparent 75%,
+      transparent
+    );
+    background-size: 1rem 1rem;
+  }
+  
+  /* Navigation active state */
+  .nav-item-active {
+    @apply bg-primary/10 text-primary border-r-2 border-primary;
+  }
+  
+  /* Empty state styles */
+  .empty-state {
+    @apply flex flex-col items-center justify-center py-12 text-center;
+  }
+  
+  .empty-state-icon {
+    @apply w-16 h-16 text-muted-foreground/50 mb-4;
+  }
+  
+  .empty-state-title {
+    @apply text-lg font-medium mb-2;
+  }
+  
+  .empty-state-description {
+    @apply text-muted-foreground max-w-sm;
+  }
+  
+  /* Loading skeleton */
+  .skeleton {
+    @apply animate-pulse bg-muted rounded;
+  }
+  
+  /* Print styles */
+  @media print {
+    .no-print {
+      display: none !important;
+    }
+    
+    .print-only {
+      display: block !important;
+    }
+    
+    body {
+      @apply bg-white text-black;
+    }
+  }
+}
+
+@layer utilities {
+  /* Text utilities */
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  /* Animation utilities */
+  .animate-in {
+    animation: animateIn 0.2s ease-out;
+  }
+  
+  @keyframes animateIn {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Gradient utilities */
+  .gradient-brand {
+    @apply bg-gradient-to-r from-brand-600 to-brand-500;
+  }
+  
+  .gradient-success {
+    @apply bg-gradient-to-r from-success-600 to-success-500;
+  }
+  
+  /* Focus utilities */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+  }
+
+  /* Branded color utilities */
+  .bg-brand-primary {
+    background-color: var(--brand-primary);
+  }
+  .bg-brand-primary\/10 {
+    background-color: color-mix(in srgb, var(--brand-primary) 10%, transparent);
+  }
+  .bg-brand-primary\/20 {
+    background-color: color-mix(in srgb, var(--brand-primary) 20%, transparent);
+  }
+  .text-brand-primary {
+    color: var(--brand-primary);
+  }
+  .border-brand-primary {
+    border-color: var(--brand-primary);
+  }
+  .border-brand-primary\/30 {
+    border-color: color-mix(in srgb, var(--brand-primary) 30%, transparent);
+  }
+
+  .bg-brand-success {
+    background-color: var(--brand-success);
+  }
+  .bg-brand-success\/10 {
+    background-color: color-mix(in srgb, var(--brand-success) 10%, transparent);
+  }
+  .bg-brand-success\/20 {
+    background-color: color-mix(in srgb, var(--brand-success) 20%, transparent);
+  }
+  .text-brand-success {
+    color: var(--brand-success);
+  }
+  .border-brand-success {
+    border-color: var(--brand-success);
+  }
+  .border-brand-success\/30 {
+    border-color: color-mix(in srgb, var(--brand-success) 30%, transparent);
+  }
+
+  .bg-brand-warning {
+    background-color: var(--brand-warning);
+  }
+  .bg-brand-warning\/10 {
+    background-color: color-mix(in srgb, var(--brand-warning) 10%, transparent);
+  }
+  .bg-brand-warning\/20 {
+    background-color: color-mix(in srgb, var(--brand-warning) 20%, transparent);
+  }
+  .text-brand-warning {
+    color: var(--brand-warning);
+  }
+  .border-brand-warning {
+    border-color: var(--brand-warning);
+  }
+  .border-brand-warning\/30 {
+    border-color: color-mix(in srgb, var(--brand-warning) 30%, transparent);
+  }
+
+  .bg-brand-error {
+    background-color: var(--brand-error);
+  }
+  .bg-brand-error\/10 {
+    background-color: color-mix(in srgb, var(--brand-error) 10%, transparent);
+  }
+  .bg-brand-error\/20 {
+    background-color: color-mix(in srgb, var(--brand-error) 20%, transparent);
+  }
+  .text-brand-error {
+    color: var(--brand-error);
+  }
+  .border-brand-error {
+    border-color: var(--brand-error);
+  }
+  .border-brand-error\/30 {
+    border-color: color-mix(in srgb, var(--brand-error) 30%, transparent);
+  }
+
+  .bg-brand-info {
+    background-color: var(--brand-info);
+  }
+  .bg-brand-info\/10 {
+    background-color: color-mix(in srgb, var(--brand-info) 10%, transparent);
+  }
+  .bg-brand-info\/20 {
+    background-color: color-mix(in srgb, var(--brand-info) 20%, transparent);
+  }
+  .text-brand-info {
+    color: var(--brand-info);
+  }
+  .border-brand-info {
+    border-color: var(--brand-info);
+  }
+  .border-brand-info\/30 {
+    border-color: color-mix(in srgb, var(--brand-info) 30%, transparent);
+  }
+
+  .bg-brand-accent {
+    background-color: var(--brand-accent);
+  }
+  .bg-brand-accent\/10 {
+    background-color: color-mix(in srgb, var(--brand-accent) 10%, transparent);
+  }
+  .bg-brand-accent\/20 {
+    background-color: color-mix(in srgb, var(--brand-accent) 20%, transparent);
+  }
+  .text-brand-accent {
+    color: var(--brand-accent);
+  }
+  .border-brand-accent {
+    border-color: var(--brand-accent);
+  }
+  .border-brand-accent\/30 {
+    border-color: color-mix(in srgb, var(--brand-accent) 30%, transparent);
+  }
+}

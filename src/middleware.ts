@@ -1,0 +1,187 @@
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { getToken } from "next-auth/jwt";
+
+// Simple in-memory rate limiting for middleware
+// Note: This is per-instance. For multi-instance deployments, use Redis.
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+
+function rateLimit(ip: string, limit: number, windowMs: number): boolean {
+  const now = Date.now();
+  const key = ip;
+
+  const entry = rateLimitMap.get(key);
+
+  if (!entry || now > entry.resetTime) {
+    rateLimitMap.set(key, { count: 1, resetTime: now + windowMs });
+    return true;
+  }
+
+  if (entry.count >= limit) {
+    return false;
+  }
+
+  entry.count++;
+  return true;
+}
+
+// Cleanup old entries every minute
+if (typeof setInterval !== "undefined") {
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of rateLimitMap.entries()) {
+      if (now > entry.resetTime) {
+        rateLimitMap.delete(key);
+      }
+    }
+  }, 60000);
+}
+
+// Security headers to add to all responses
+const securityHeaders = {
+  // Prevent clickjacking
+  "X-Frame-Options": "DENY",
+  // Prevent MIME type sniffing
+  "X-Content-Type-Options": "nosniff",
+  // Enable XSS filter
+  "X-XSS-Protection": "1; mode=block",
+  // Referrer policy
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  // Permissions policy
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+};
+
+// Content Security Policy
+const cspDirectives = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https:",
+  "font-src 'self' data:",
+  "connect-src 'self' https://api.stripe.com https://*.sentry.io",
+  "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+  // Only upgrade to HTTPS in production
+  ...(process.env.NODE_ENV === "production" ? ["upgrade-insecure-requests"] : []),
+].join("; ");
+
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+             request.headers.get("x-real-ip") ||
+             "unknown";
+
+  // Apply rate limiting to API routes
+  if (pathname.startsWith("/api/")) {
+    // Stricter limits for auth endpoints
+    if (pathname.includes("/auth/") || pathname.includes("/forgot-password") || pathname.includes("/reset-password")) {
+      if (!rateLimit(ip, 10, 15 * 60 * 1000)) { // 10 requests per 15 minutes
+        return new NextResponse(
+          JSON.stringify({ error: "Too many authentication attempts. Please try again later." }),
+          {
+            status: 429,
+            headers: {
+              "Content-Type": "application/json",
+              "Retry-After": "900",
+            }
+          }
+        );
+      }
+    }
+    // Standard API rate limit
+    else if (!pathname.includes("/billing/webhook")) { // Skip webhooks
+      if (!rateLimit(ip, 100, 60 * 1000)) { // 100 requests per minute
+        return new NextResponse(
+          JSON.stringify({ error: "Too many requests. Please slow down." }),
+          {
+            status: 429,
+            headers: {
+              "Content-Type": "application/json",
+              "Retry-After": "60",
+            }
+          }
+        );
+      }
+    }
+  }
+
+  // Protected routes that require authentication
+  const protectedPaths = [
+    "/dashboard",
+    "/clients",
+    "/disputes",
+    "/reports",
+    "/evidence",
+    "/negative-items",
+    "/settings",
+    "/billing",
+    "/analytics",
+    "/ledger",
+  ];
+
+  const isProtectedPath = protectedPaths.some((path) => pathname.startsWith(path));
+
+  if (isProtectedPath) {
+    const token = await getToken({ req: request });
+
+    if (!token) {
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  // Redirect authenticated users away from auth pages
+  const authPaths = ["/login", "/register", "/forgot-password"];
+  const isAuthPath = authPaths.some((path) => pathname.startsWith(path));
+
+  if (isAuthPath) {
+    const token = await getToken({ req: request });
+
+    if (token) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+  }
+
+  // Create response and add security headers
+  const response = NextResponse.next();
+
+  // Add security headers
+  Object.entries(securityHeaders).forEach(([key, value]) => {
+    response.headers.set(key, value);
+  });
+
+  // Add CSP header
+  response.headers.set("Content-Security-Policy", cspDirectives);
+
+  // Add CORS headers for API routes
+  if (pathname.startsWith("/api/")) {
+    response.headers.set("Access-Control-Allow-Credentials", "true");
+    response.headers.set("Access-Control-Allow-Origin", request.headers.get("origin") || "*");
+    response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+    response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+
+    // Handle preflight requests
+    if (request.method === "OPTIONS") {
+      return new NextResponse(null, { status: 200, headers: response.headers });
+    }
+  }
+
+  return response;
+}
+
+export const config = {
+  matcher: [
+    /*
+     * Match all paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization)
+     * - favicon.ico
+     * - public folder
+     */
+    "/((?!_next/static|_next/image|favicon.ico|public/).*)",
+  ],
+};
