@@ -5,6 +5,10 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['pdfjs-dist'],
   },
+  env: {
+    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+  },
   webpack: (config) => {
     // Handle canvas for Konva server-side
     config.externals = [...(config.externals || []), { canvas: 'canvas' }];
