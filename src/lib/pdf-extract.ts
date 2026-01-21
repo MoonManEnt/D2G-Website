@@ -38,11 +38,25 @@ export async function extractTextFromPDF(filePath: string): Promise<PDFExtractio
  * Extract text from a PDF buffer
  */
 export async function extractTextFromBuffer(buffer: Buffer): Promise<PDFExtractionResult> {
+  console.log("Starting PDF extraction, buffer size:", buffer.length);
+
   return new Promise((resolve) => {
     try {
-      const pdfParser = new PDFParser();
+      const pdfParser = new PDFParser(null, true); // null = no password, true = raw text
+
+      // Set a timeout in case events never fire
+      const timeout = setTimeout(() => {
+        console.error("PDF parsing timeout after 30 seconds");
+        resolve({
+          success: false,
+          text: "",
+          pageCount: 0,
+          error: "PDF parsing timed out",
+        });
+      }, 30000);
 
       pdfParser.on("pdfParser_dataError", (errData: { parserError: Error }) => {
+        clearTimeout(timeout);
         console.error("PDF parsing error:", errData.parserError);
         resolve({
           success: false,
@@ -53,6 +67,8 @@ export async function extractTextFromBuffer(buffer: Buffer): Promise<PDFExtracti
       });
 
       pdfParser.on("pdfParser_dataReady", (pdfData: { Pages: Array<{ Texts: Array<{ R: Array<{ T: string }> }> }> }) => {
+        clearTimeout(timeout);
+        console.log("PDF parsing complete, pages:", pdfData?.Pages?.length);
         try {
           const numPages = pdfData.Pages?.length || 0;
 
