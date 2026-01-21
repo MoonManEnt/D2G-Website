@@ -173,18 +173,21 @@ export default function ReportsPage() {
     setUploading(true);
 
     try {
-      // Use client-side direct upload to Vercel Blob
-      // File goes directly from browser to Blob storage (supports up to 500MB)
-      const { upload } = await import("@vercel/blob/client");
+      // Simple FormData upload - file goes to Edge function then to Vercel Blob
+      const formData = new FormData();
+      formData.append("file", selectedFile);
 
-      // Pathname MUST start with "reports/" and end with ".pdf" for server validation
-      const randomId = Math.random().toString(36).substring(2, 15);
-      const pathname = `reports/${randomId}.pdf`;
-
-      const blob = await upload(pathname, selectedFile, {
-        access: "public",
-        handleUploadUrl: "/api/upload",
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
       });
+
+      if (!uploadRes.ok) {
+        const errorData = await uploadRes.json();
+        throw new Error(errorData.error || "Upload failed");
+      }
+
+      const blob = await uploadRes.json();
 
       // Now process the report with the blob URL
       const res = await fetch("/api/reports", {

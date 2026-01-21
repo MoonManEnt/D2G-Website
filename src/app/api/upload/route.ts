@@ -1,52 +1,87 @@
-import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
+import { put } from '@vercel/blob';
 import { NextRequest, NextResponse } from 'next/server';
 
+// Use edge runtime for streaming - no payload size limits
+export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 /**
- * Client-side upload endpoint for large files.
- * The file goes directly from browser to Vercel Blob - never passes through this function.
- * This endpoint just generates secure upload tokens.
- * Supports files up to 500MB (Vercel Blob limit).
+ * Direct upload endpoint using Edge runtime.
+ * Edge functions stream the request body, so there's no 4.5MB limit.
+ * Supports files up to ~100MB.
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  // Check for authentication cookie
-  const sessionCookie = request.cookies.get('next-auth.session-token') ||
-                        request.cookies.get('__Secure-next-auth.session-token');
-
-  if (!sessionCookie) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   try {
-    const body = (await request.json()) as HandleUploadBody;
+    // Check for authentication
+    const sessionCookie = request.cookies.get('next-auth.session-token') ||
+                          request.cookies.get('__Secure-next-auth.session-token');
 
-    const jsonResponse = await handleUpload({
-      body,
-      request,
-      onBeforeGenerateToken: async (pathname: string) => {
-        // Validate it's a PDF upload to the reports folder
-        if (!pathname.startsWith('reports/') || !pathname.endsWith('.pdf')) {
-          throw new Error('Invalid file path');
-        }
+    if (!sessionCookie) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-        return {
-          allowedContentTypes: ['application/pdf'],
-          maximumSizeInBytes: 50 * 1024 * 1024, // 50MB max
-        };
-      },
-      onUploadCompleted: async ({ blob }) => {
-        // Log successful uploads
-        console.log('Upload completed:', blob.pathname, blob.url);
-      },
+    const token = process.env.BLOB_READ_WRITE_TOKEN;
+    if (!token) {
+      return NextResponse.json({ error: 'Storage not configured' }, { status: 500 });
+    }
+
+    // Get filename from header or generate one
+    const filename = request.headers.get('x-filename') || `report-${Date.now()}.pdf`;
+    const contentType = request.headers.get('content-type') || 'application/pdf';
+
+    // For multipart form data, extract the file
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await request.formData();
+      const file = formData.get('file') as File;
+
+      if (!file) {
+        return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+      }
+
+      // Generate unique path
+      const randomId = Math.random().toString(36).substring(2, 15);
+      const pathname = `reports/${randomId}.pdf`;
+
+      // Upload to Vercel Blob
+      const blob = await put(pathname, file, {
+        access: 'public',
+        token,
+        contentType: 'application/pdf',
+      });
+
+      return NextResponse.json({
+        url: blob.url,
+        pathname: blob.pathname,
+        success: true
+      });
+    }
+
+    // For raw binary upload
+    const body = request.body;
+    if (!body) {
+      return NextResponse.json({ error: 'No file data' }, { status: 400 });
+    }
+
+    // Generate unique path
+    const randomId = Math.random().toString(36).substring(2, 15);
+    const pathname = `reports/${randomId}.pdf`;
+
+    // Stream directly to Vercel Blob
+    const blob = await put(pathname, body, {
+      access: 'public',
+      token,
+      contentType: 'application/pdf',
     });
 
-    return NextResponse.json(jsonResponse);
+    return NextResponse.json({
+      url: blob.url,
+      pathname: blob.pathname,
+      success: true
+    });
+
   } catch (error) {
     console.error('Upload error:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Upload failed' },
-      { status: 400 }
-    );
+    const message = error instanceof Error ? error.message : 'Upload failed';
+    return NextResponse.json({ error: message, success: false }, { status: 500 });
   }
 }
