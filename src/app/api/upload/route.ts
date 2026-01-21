@@ -4,9 +4,10 @@ import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  console.log("DEBUG: POST /api/upload called");
   // Check auth
   const sessionCookie = request.cookies.get('next-auth.session-token') ||
-                        request.cookies.get('__Secure-next-auth.session-token');
+    request.cookies.get('__Secure-next-auth.session-token');
 
   if (!sessionCookie) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

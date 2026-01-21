@@ -198,7 +198,7 @@ export default function ReportsPage() {
 
       const blob = await upload(safePath, selectedFile, {
         access: "public",
-        handleUploadUrl: "/api/upload",
+        handleUploadUrl: "/api/reports/upload-token",
       });
 
       console.log("Upload complete:", blob.url);
