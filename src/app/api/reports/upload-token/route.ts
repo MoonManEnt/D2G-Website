@@ -5,11 +5,13 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
     console.log("DEBUG: POST /api/reports/upload-token called");
+
     // Check auth
     const sessionCookie = request.cookies.get('next-auth.session-token') ||
         request.cookies.get('__Secure-next-auth.session-token');
 
     if (!sessionCookie) {
+        console.log("DEBUG: Unauthorized access attempt to upload-token");
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -17,7 +19,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         const body = (await request.json()) as HandleUploadBody;
 
         console.log('Upload request body type:', body.type);
-        // console.log('Upload request payload:', JSON.stringify(body.payload));
 
         const jsonResponse = await handleUpload({
             body,
@@ -42,4 +43,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         const message = error instanceof Error ? error.message : 'Upload failed';
         return NextResponse.json({ error: message }, { status: 400 });
     }
+}
+
+// Handle OPTIONS explicitly to ensure no 405s on preflight if middleware misses it
+export async function OPTIONS() {
+    return new NextResponse(null, { status: 200 });
 }
