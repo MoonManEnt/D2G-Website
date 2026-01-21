@@ -58,7 +58,7 @@ const cspDirectives = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  "connect-src 'self' https://api.stripe.com https://*.sentry.io",
+  "connect-src 'self' https://api.stripe.com https://*.sentry.io https://*.vercel.com https://*.public.blob.vercel-storage.com https://*.blob.vercel-storage.com",
   "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
   "object-src 'none'",
   "base-uri 'self'",
