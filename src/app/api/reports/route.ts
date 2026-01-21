@@ -7,6 +7,9 @@ import { extractTextFromBuffer } from "@/lib/pdf-extract";
 import { parseIdentityIQReport, analyzeAccountsForIssues, getIssuesSummary } from "@/lib/parser";
 import { computeConfidenceLevel } from "@/types";
 
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60; // Allow up to 60 seconds for PDF processing
+
 // GET /api/reports - List reports
 export async function GET() {
   try {
