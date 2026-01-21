@@ -45,7 +45,7 @@ export async function GET() {
   }
 }
 
-// POST /api/reports - Upload new report
+// POST /api/reports - Upload new report (supports both direct upload and blob URL)
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -62,33 +62,78 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const formData = await request.formData();
-    const file = formData.get("file") as File;
-    const clientId = formData.get("clientId") as string;
-    const reportDate = formData.get("reportDate") as string;
+    const contentType = request.headers.get("content-type") || "";
 
-    if (!file || !clientId) {
-      return NextResponse.json(
-        { error: "File and clientId are required" },
-        { status: 400 }
-      );
-    }
+    let clientId: string;
+    let reportDate: string | null = null;
+    let pdfBuffer: Buffer;
+    let fileName: string;
+    let fileSize: number;
 
-    // Validate file type
-    if (file.type !== "application/pdf") {
-      return NextResponse.json(
-        { error: "Only PDF files are allowed" },
-        { status: 400 }
-      );
-    }
+    // Check if this is a JSON request (blob URL) or form data (direct upload)
+    if (contentType.includes("application/json")) {
+      // Blob URL mode - fetch PDF from blob storage
+      const body = await request.json();
+      clientId = body.clientId;
+      reportDate = body.reportDate;
+      const blobUrl = body.blobUrl;
+      fileName = body.fileName || "report.pdf";
 
-    // Validate file size (50MB limit)
-    const maxSize = 50 * 1024 * 1024;
-    if (file.size > maxSize) {
-      return NextResponse.json(
-        { error: "File size exceeds 50MB limit" },
-        { status: 400 }
-      );
+      if (!clientId || !blobUrl) {
+        return NextResponse.json(
+          { error: "clientId and blobUrl are required" },
+          { status: 400 }
+        );
+      }
+
+      // Fetch the PDF from blob storage
+      const blobResponse = await fetch(blobUrl);
+      if (!blobResponse.ok) {
+        return NextResponse.json(
+          { error: "Failed to fetch PDF from storage" },
+          { status: 400 }
+        );
+      }
+
+      const arrayBuffer = await blobResponse.arrayBuffer();
+      pdfBuffer = Buffer.from(arrayBuffer);
+      fileSize = pdfBuffer.length;
+
+    } else {
+      // Direct upload mode (for smaller files)
+      const formData = await request.formData();
+      const file = formData.get("file") as File;
+      clientId = formData.get("clientId") as string;
+      reportDate = formData.get("reportDate") as string;
+
+      if (!file || !clientId) {
+        return NextResponse.json(
+          { error: "File and clientId are required" },
+          { status: 400 }
+        );
+      }
+
+      // Validate file type
+      if (file.type !== "application/pdf") {
+        return NextResponse.json(
+          { error: "Only PDF files are allowed" },
+          { status: 400 }
+        );
+      }
+
+      // Validate file size (50MB limit)
+      const maxSize = 50 * 1024 * 1024;
+      if (file.size > maxSize) {
+        return NextResponse.json(
+          { error: "File size exceeds 50MB limit" },
+          { status: 400 }
+        );
+      }
+
+      const bytes = await file.arrayBuffer();
+      pdfBuffer = Buffer.from(bytes);
+      fileName = file.name;
+      fileSize = file.size;
     }
 
     // Verify client belongs to organization
@@ -106,20 +151,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Process file in memory (no filesystem writes for serverless compatibility)
+    // Create file record
     const fileId = uuid();
-    const bytes = await file.arrayBuffer();
-    const pdfBuffer = Buffer.from(bytes);
-
-    // Create file record (stored as MEMORY type - no file persistence)
     const storedFile = await prisma.storedFile.create({
       data: {
         id: fileId,
-        filename: file.name,
-        mimeType: file.type,
-        sizeBytes: file.size,
-        storagePath: `memory://${fileId}`,
-        storageType: "MEMORY",
+        filename: fileName,
+        mimeType: "application/pdf",
+        sizeBytes: fileSize,
+        storagePath: `blob://${fileId}`,
+        storageType: "BLOB",
         organizationId: session.user.organizationId,
       },
     });
@@ -147,8 +188,8 @@ export async function POST(request: NextRequest) {
         targetId: report.id,
         eventData: JSON.stringify({
           clientId,
-          fileName: file.name,
-          fileSize: file.size,
+          fileName,
+          fileSize,
         }),
         organizationId: session.user.organizationId,
       },

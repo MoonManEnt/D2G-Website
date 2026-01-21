@@ -210,30 +210,75 @@ export default function ClientDetailPage() {
     }
 
     setUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("clientId", clientId);
-    formData.append("reportType", "IDENTITY_IQ");
 
     try {
-      const res = await fetch("/api/reports", {
-        method: "POST",
-        body: formData,
-      });
+      // Use blob storage for files over 4MB (Vercel serverless limit is 4.5MB)
+      const USE_BLOB_THRESHOLD = 4 * 1024 * 1024;
 
-      if (res.ok) {
-        toast({
-          title: "Report Uploaded",
-          description: "Credit report uploaded and parsing started",
+      if (file.size > USE_BLOB_THRESHOLD) {
+        // Upload to blob storage first
+        const uploadRes = await fetch(`/api/upload?filename=${encodeURIComponent(file.name)}`, {
+          method: "POST",
+          body: file,
         });
-        fetchClient();
+
+        if (!uploadRes.ok) {
+          const error = await uploadRes.json();
+          throw new Error(error.error || "Failed to upload file to storage");
+        }
+
+        const blob = await uploadRes.json();
+
+        // Now process the report with the blob URL
+        const res = await fetch("/api/reports", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            clientId,
+            blobUrl: blob.url,
+            fileName: file.name,
+          }),
+        });
+
+        if (res.ok) {
+          toast({
+            title: "Report Uploaded",
+            description: "Credit report uploaded and parsing started",
+          });
+          fetchClient();
+        } else {
+          const error = await res.json();
+          toast({
+            title: "Upload Failed",
+            description: error.error || "Failed to process report",
+            variant: "destructive",
+          });
+        }
       } else {
-        const error = await res.json();
-        toast({
-          title: "Upload Failed",
-          description: error.error || "Failed to upload report",
-          variant: "destructive",
+        // Direct upload for smaller files
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("clientId", clientId);
+
+        const res = await fetch("/api/reports", {
+          method: "POST",
+          body: formData,
         });
+
+        if (res.ok) {
+          toast({
+            title: "Report Uploaded",
+            description: "Credit report uploaded and parsing started",
+          });
+          fetchClient();
+        } else {
+          const error = await res.json();
+          toast({
+            title: "Upload Failed",
+            description: error.error || "Failed to upload report",
+            variant: "destructive",
+          });
+        }
       }
     } catch (error) {
       console.error("Upload error:", error);
