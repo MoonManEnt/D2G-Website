@@ -306,15 +306,21 @@ export async function POST(request: NextRequest) {
         });
       }
     } catch (parseError) {
-      console.error("Auto-parse error:", parseError);
-      const errorMessage = parseError instanceof Error ? parseError.message : "Unknown parsing error";
+      console.error("Auto-parse trigger error:", parseError);
+
+      const errorMessage = parseError instanceof Error ? parseError.message : "Unknown parsing error during trigger";
+
+      // Update the report status to FAILED with the specific error
       await prisma.creditReport.update({
         where: { id: report.id },
         data: {
           parseStatus: "FAILED",
-          parseError: errorMessage,
+          parseError: `Auto-parse failed: ${errorMessage}`,
         },
       });
+
+      // We don't throw here to ensure the upload itself is still considered successful
+      // The user will see the "FAILED" status in the UI
     }
 
     // Fetch final report state
@@ -335,8 +341,8 @@ export async function POST(request: NextRequest) {
       message: finalReport?.parseStatus === "COMPLETED"
         ? `Report uploaded and parsed successfully. ${accountsParsed} accounts found.`
         : finalReport?.parseStatus === "FAILED"
-        ? `Report uploaded but parsing failed: ${finalReport.parseError}`
-        : "Report uploaded successfully.",
+          ? `Report uploaded but parsing failed: ${finalReport.parseError}`
+          : "Report uploaded successfully.",
       accountsParsed: finalReport?._count?.accounts || 0,
       pageCount: finalReport?.pageCount || 0,
     }, { status: 201 });

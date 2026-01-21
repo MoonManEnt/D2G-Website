@@ -112,6 +112,19 @@ export default function ReportsPage() {
     fetchData();
   }, []);
 
+  // Poll for updates if any report is processing
+  useEffect(() => {
+    const hasProcessing = reports.some(r => r.parseStatus === "PROCESSING" || r.parseStatus === "PENDING");
+
+    if (!hasProcessing) return;
+
+    const interval = setInterval(() => {
+      fetchData();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [reports]);
+
   const fetchReportAccounts = async (reportId: string) => {
     setLoadingAccounts(true);
     try {
@@ -212,10 +225,24 @@ export default function ReportsPage() {
         setSelectedClient("");
         fetchData();
       } else {
-        const error = await res.json();
+        let errorMessage = "Failed to upload report";
+        try {
+          const contentType = res.headers.get("content-type");
+          if (contentType && contentType.indexOf("application/json") !== -1) {
+            const error = await res.json();
+            errorMessage = error.error || errorMessage;
+          } else {
+            const textText = await res.text();
+            console.error("Non-JSON error response:", textText);
+            errorMessage = `Upload failed (${res.status}): ${res.statusText}`;
+          }
+        } catch (e) {
+          console.error("Error parsing error response:", e);
+        }
+
         toast({
           title: "Upload Failed",
-          description: error.error || "Failed to upload report",
+          description: errorMessage,
           variant: "destructive",
         });
       }
@@ -447,6 +474,11 @@ export default function ReportsPage() {
                     </div>
                     <div className="flex items-center gap-3">
                       {getStatusBadge(report.parseStatus)}
+                      {report.parseStatus === "FAILED" && (
+                        <div className="hidden group-hover:block absolute right-24 top-0 bg-red-900/90 text-white text-xs p-2 rounded max-w-xs z-10 shadow-lg border border-red-500/50">
+                          {report.parseError || "Unknown error"}
+                        </div>
+                      )}
                       <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">
                         <Eye className="w-4 h-4 mr-1" />
                         View
@@ -519,11 +551,10 @@ export default function ReportsPage() {
                       return (
                         <div
                           key={account.id}
-                          className={`p-4 rounded-lg border ${
-                            account.isDisputable
-                              ? "bg-red-900/10 border-red-500/30"
-                              : "bg-slate-700/30 border-slate-700/50"
-                          }`}
+                          className={`p-4 rounded-lg border ${account.isDisputable
+                            ? "bg-red-900/10 border-red-500/30"
+                            : "bg-slate-700/30 border-slate-700/50"
+                            }`}
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
