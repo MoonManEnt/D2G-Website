@@ -215,9 +215,9 @@ export default function ClientDetailPage() {
       // Use client-side direct upload to Vercel Blob (bypasses serverless size limits)
       const { upload } = await import("@vercel/blob/client");
 
-      // Add timestamp to filename to ensure uniqueness
-      const timestamp = Date.now();
-      const uniqueFilename = file.name.replace(/\.pdf$/i, `-${timestamp}.pdf`);
+      // Generate unique filename with random ID
+      const randomId = Math.random().toString(36).substring(2, 10);
+      const uniqueFilename = `report-${randomId}.pdf`;
 
       const blob = await upload(uniqueFilename, file, {
         access: "public",
