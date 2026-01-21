@@ -173,14 +173,24 @@ export default function ReportsPage() {
     setUploading(true);
 
     try {
-      const formData = new FormData();
-      formData.append("file", selectedFile);
-      formData.append("clientId", selectedClient);
-      formData.append("reportDate", new Date().toISOString());
+      // Use client-side direct upload to Vercel Blob (bypasses serverless size limits)
+      const { upload } = await import("@vercel/blob/client");
 
+      const blob = await upload(selectedFile.name, selectedFile, {
+        access: "public",
+        handleUploadUrl: "/api/upload",
+      });
+
+      // Now process the report with the blob URL
       const res = await fetch("/api/reports", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId: selectedClient,
+          blobUrl: blob.url,
+          fileName: selectedFile.name,
+          reportDate: new Date().toISOString(),
+        }),
       });
 
       if (res.ok) {
@@ -200,10 +210,11 @@ export default function ReportsPage() {
           variant: "destructive",
         });
       }
-    } catch {
+    } catch (error) {
+      console.error("Upload error:", error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
         variant: "destructive",
       });
     } finally {
