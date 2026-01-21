@@ -1,48 +1,52 @@
-import { put } from '@vercel/blob';
+import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
 import { NextRequest, NextResponse } from 'next/server';
 
-// Use edge runtime for streaming uploads (bypasses 4.5MB serverless limit)
-export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
-// Simple server-side upload endpoint
+/**
+ * Client-side upload endpoint for large files.
+ * The file goes directly from browser to Vercel Blob - never passes through this function.
+ * This endpoint just generates secure upload tokens.
+ * Supports files up to 500MB (Vercel Blob limit).
+ */
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  // Check for authentication cookie
+  const sessionCookie = request.cookies.get('next-auth.session-token') ||
+                        request.cookies.get('__Secure-next-auth.session-token');
+
+  if (!sessionCookie) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
-    // Check for authentication cookie (edge runtime doesn't support getServerSession)
-    const sessionCookie = request.cookies.get('next-auth.session-token') ||
-                          request.cookies.get('__Secure-next-auth.session-token');
+    const body = (await request.json()) as HandleUploadBody;
 
-    if (!sessionCookie) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const jsonResponse = await handleUpload({
+      body,
+      request,
+      onBeforeGenerateToken: async (pathname: string) => {
+        // Validate it's a PDF upload to the reports folder
+        if (!pathname.startsWith('reports/') || !pathname.endsWith('.pdf')) {
+          throw new Error('Invalid file path');
+        }
 
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      return NextResponse.json({ error: 'Storage not configured' }, { status: 500 });
-    }
-
-    const formData = await request.formData();
-    const file = formData.get('file') as File;
-
-    if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
-    }
-
-    // Generate unique filename
-    const randomId = Math.random().toString(36).substring(2, 10);
-    const filename = `reports/${randomId}.pdf`;
-
-    // Upload to Vercel Blob
-    const blob = await put(filename, file, {
-      access: 'public',
-      token: process.env.BLOB_READ_WRITE_TOKEN,
+        return {
+          allowedContentTypes: ['application/pdf'],
+          maximumSizeInBytes: 50 * 1024 * 1024, // 50MB max
+        };
+      },
+      onUploadCompleted: async ({ blob }) => {
+        // Log successful uploads
+        console.log('Upload completed:', blob.pathname, blob.url);
+      },
     });
 
-    return NextResponse.json({ url: blob.url, pathname: blob.pathname });
+    return NextResponse.json(jsonResponse);
   } catch (error) {
     console.error('Upload error:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Upload failed' },
-      { status: 500 }
+      { status: 400 }
     );
   }
 }
