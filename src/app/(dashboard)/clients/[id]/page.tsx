@@ -212,21 +212,36 @@ export default function ClientDetailPage() {
     setUploading(true);
 
     try {
-      // Simple FormData upload to Edge function
-      const formData = new FormData();
-      formData.append("file", file);
+      // Step 1: Get upload token from server
+      const tokenRes = await fetch("/api/upload");
+      if (!tokenRes.ok) {
+        const errorData = await tokenRes.json();
+        throw new Error(errorData.error || "Failed to get upload token");
+      }
+      const { pathname, uploadToken } = await tokenRes.json();
 
-      const uploadRes = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
+      // Step 2: Upload directly to Vercel Blob (bypasses server size limits)
+      const blobRes = await fetch(
+        `https://blob.vercel-storage.com/${pathname}`,
+        {
+          method: "PUT",
+          headers: {
+            "Authorization": `Bearer ${uploadToken}`,
+            "Content-Type": "application/pdf",
+            "x-api-version": "7",
+            "x-content-type": "application/pdf",
+            "x-add-random-suffix": "0",
+          },
+          body: file,
+        }
+      );
 
-      if (!uploadRes.ok) {
-        const errorData = await uploadRes.json();
-        throw new Error(errorData.error || "Upload failed");
+      if (!blobRes.ok) {
+        const errorText = await blobRes.text();
+        throw new Error(`Upload failed: ${errorText}`);
       }
 
-      const blob = await uploadRes.json();
+      const blob = await blobRes.json();
 
       // Now process the report with the blob URL
       const res = await fetch("/api/reports", {
