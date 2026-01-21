@@ -179,6 +179,7 @@ export default function ReportsPage() {
       const blob = await upload(selectedFile.name, selectedFile, {
         access: "public",
         handleUploadUrl: "/api/upload",
+        clientPayload: JSON.stringify({ addRandomSuffix: true }),
       });
 
       // Now process the report with the blob URL
