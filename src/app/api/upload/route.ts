@@ -1,42 +1,48 @@
-import { put } from '@vercel/blob';
+import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
-// This endpoint handles direct blob uploads
+// This endpoint handles client-side upload token generation
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  const body = (await request.json()) as HandleUploadBody;
+
   try {
-    const session = await getServerSession(authOptions);
+    const jsonResponse = await handleUpload({
+      body,
+      request,
+      onBeforeGenerateToken: async () => {
+        // Authenticate the user before allowing upload
+        const session = await getServerSession(authOptions);
 
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+        if (!session?.user) {
+          throw new Error('Unauthorized');
+        }
 
-    const { searchParams } = new URL(request.url);
-    const filename = searchParams.get('filename');
-
-    if (!filename) {
-      return NextResponse.json({ error: 'Filename is required' }, { status: 400 });
-    }
-
-    // Verify it's a PDF
-    if (!filename.toLowerCase().endsWith('.pdf')) {
-      return NextResponse.json({ error: 'Only PDF files are allowed' }, { status: 400 });
-    }
-
-    const blob = await put(filename, request.body!, {
-      access: 'public',
-      token: process.env.BLOB_READ_WRITE_TOKEN,
+        return {
+          allowedContentTypes: ['application/pdf'],
+          maximumSizeInBytes: 50 * 1024 * 1024, // 50MB
+          tokenPayload: JSON.stringify({
+            userId: session.user.id,
+            organizationId: session.user.organizationId,
+          }),
+        };
+      },
+      onUploadCompleted: async ({ blob, tokenPayload }) => {
+        // This runs after the file is uploaded to blob storage
+        console.log('Upload completed:', blob.url);
+        console.log('Token payload:', tokenPayload);
+      },
     });
 
-    return NextResponse.json(blob);
+    return NextResponse.json(jsonResponse);
   } catch (error) {
-    console.error('Blob upload error:', error);
+    console.error('Upload error:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Upload failed' },
-      { status: 500 }
+      { status: 400 }
     );
   }
 }
