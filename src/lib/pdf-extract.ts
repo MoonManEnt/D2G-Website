@@ -1,12 +1,13 @@
 /**
  * PDF Text Extraction Service
  *
- * Uses unpdf for serverless-compatible PDF text extraction.
- * For IdentityIQ reports which have embedded text layers.
+ * Uses pdf2json for serverless-compatible PDF text extraction.
+ * Pure Node.js implementation - no workers needed.
  */
 
 import { readFile } from "fs/promises";
-import { extractText, getDocumentProxy } from "unpdf";
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const PDFParser = require("pdf2json");
 
 export interface PDFExtractionResult {
   success: boolean;
@@ -37,49 +38,70 @@ export async function extractTextFromPDF(filePath: string): Promise<PDFExtractio
  * Extract text from a PDF buffer
  */
 export async function extractTextFromBuffer(buffer: Buffer): Promise<PDFExtractionResult> {
-  try {
-    // Convert Buffer to Uint8Array (required by unpdf)
-    const uint8Array = new Uint8Array(buffer);
+  return new Promise((resolve) => {
+    try {
+      const pdfParser = new PDFParser();
 
-    // Get document proxy first to access page count
-    const pdf = await getDocumentProxy(uint8Array);
-    const numPages = pdf.numPages;
+      pdfParser.on("pdfParser_dataError", (errData: { parserError: Error }) => {
+        console.error("PDF parsing error:", errData.parserError);
+        resolve({
+          success: false,
+          text: "",
+          pageCount: 0,
+          error: errData.parserError?.message || "Failed to parse PDF",
+        });
+      });
 
-    // Extract text using unpdf
-    const result = await extractText(uint8Array, { mergePages: true });
+      pdfParser.on("pdfParser_dataReady", (pdfData: { Pages: Array<{ Texts: Array<{ R: Array<{ T: string }> }> }> }) => {
+        try {
+          const numPages = pdfData.Pages?.length || 0;
 
-    // Handle text result - coerce to string
-    let fullText: string;
-    if (typeof result.text === 'string') {
-      fullText = result.text;
-    } else if (Array.isArray(result.text)) {
-      fullText = (result.text as string[]).join("\n\n");
-    } else {
-      fullText = String(result.text);
-    }
+          // Extract text from all pages
+          let fullText = "";
+          for (const page of pdfData.Pages || []) {
+            const pageText = page.Texts?.map((textItem) => {
+              return textItem.R?.map((r) => decodeURIComponent(r.T || "")).join("") || "";
+            }).join(" ") || "";
+            fullText += pageText + "\n\n";
+          }
 
-    if (!fullText || fullText.trim().length < 100) {
-      return {
+          if (!fullText || fullText.trim().length < 100) {
+            resolve({
+              success: false,
+              text: "",
+              pageCount: numPages,
+              error: "PDF appears to be image-based or contains no extractable text. Please upload a native IdentityIQ export.",
+            });
+            return;
+          }
+
+          resolve({
+            success: true,
+            text: fullText,
+            pageCount: numPages,
+          });
+        } catch (error) {
+          console.error("PDF text extraction error:", error);
+          resolve({
+            success: false,
+            text: "",
+            pageCount: 0,
+            error: error instanceof Error ? error.message : "Failed to extract text",
+          });
+        }
+      });
+
+      // Parse the buffer
+      pdfParser.parseBuffer(buffer);
+
+    } catch (error) {
+      console.error("PDF extraction error:", error);
+      resolve({
         success: false,
         text: "",
-        pageCount: numPages,
-        error: "PDF appears to be image-based or contains no extractable text. Please upload a native IdentityIQ export.",
-      };
+        pageCount: 0,
+        error: error instanceof Error ? error.message : "Failed to extract text from PDF",
+      });
     }
-
-    return {
-      success: true,
-      text: fullText,
-      pageCount: numPages,
-    };
-
-  } catch (error) {
-    console.error("PDF extraction error:", error);
-    return {
-      success: false,
-      text: "",
-      pageCount: 0,
-      error: error instanceof Error ? error.message : "Failed to extract text from PDF",
-    };
-  }
+  });
 }
