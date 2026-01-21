@@ -212,36 +212,18 @@ export default function ClientDetailPage() {
     setUploading(true);
 
     try {
-      // Step 1: Get upload token from server
-      const tokenRes = await fetch("/api/upload");
-      if (!tokenRes.ok) {
-        const errorData = await tokenRes.json();
-        throw new Error(errorData.error || "Failed to get upload token");
-      }
-      const { pathname, uploadToken } = await tokenRes.json();
+      // Use Vercel Blob client for direct upload
+      const { upload } = await import("@vercel/blob/client");
 
-      // Step 2: Upload directly to Vercel Blob (bypasses server size limits)
-      const blobRes = await fetch(
-        `https://blob.vercel-storage.com/${pathname}`,
-        {
-          method: "PUT",
-          headers: {
-            "Authorization": `Bearer ${uploadToken}`,
-            "Content-Type": "application/pdf",
-            "x-api-version": "7",
-            "x-content-type": "application/pdf",
-            "x-add-random-suffix": "0",
-          },
-          body: file,
-        }
-      );
+      // Use simple alphanumeric pathname
+      const timestamp = Date.now();
+      const randomNum = Math.floor(Math.random() * 100000);
+      const safePath = `reports/report${timestamp}${randomNum}.pdf`;
 
-      if (!blobRes.ok) {
-        const errorText = await blobRes.text();
-        throw new Error(`Upload failed: ${errorText}`);
-      }
-
-      const blob = await blobRes.json();
+      const blob = await upload(safePath, file, {
+        access: "public",
+        handleUploadUrl: "/api/upload",
+      });
 
       // Now process the report with the blob URL
       const res = await fetch("/api/reports", {
