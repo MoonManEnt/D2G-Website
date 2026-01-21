@@ -34,10 +34,23 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Read the PDF file
-    const pdfBuffer = await readFile(report.originalFile.storagePath);
+    let pdfBuffer: Buffer;
+
+    if (report.originalFile.storagePath.startsWith("http")) {
+      const response = await fetch(report.originalFile.storagePath);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch PDF from storage: ${response.statusText}`);
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      pdfBuffer = Buffer.from(arrayBuffer);
+    } else {
+      // Fallback for local files
+      pdfBuffer = await readFile(report.originalFile.storagePath);
+    }
 
     // Return the PDF with proper headers
-    return new NextResponse(pdfBuffer, {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return new NextResponse(new Blob([pdfBuffer as any]), {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",

@@ -69,6 +69,7 @@ export async function POST(request: NextRequest) {
     let pdfBuffer: Buffer;
     let fileName: string;
     let fileSize: number;
+    let blobUrl: string | undefined;
 
     // Check if this is a JSON request (blob URL) or form data (direct upload)
     if (contentType.includes("application/json")) {
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest) {
       const body = await request.json();
       clientId = body.clientId;
       reportDate = body.reportDate;
-      const blobUrl = body.blobUrl;
+      blobUrl = body.blobUrl;
       fileName = body.fileName || "report.pdf";
 
       if (!clientId || !blobUrl) {
@@ -159,7 +160,7 @@ export async function POST(request: NextRequest) {
         filename: fileName,
         mimeType: "application/pdf",
         sizeBytes: fileSize,
-        storagePath: `blob://${fileId}`,
+        storagePath: blobUrl || `blob://${fileId}`, // Use actual URL if available
         storageType: "BLOB",
         organizationId: session.user.organizationId,
       },
