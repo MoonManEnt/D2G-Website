@@ -6,7 +6,7 @@
  */
 
 import { readFile } from "fs/promises";
-import { extractText } from "unpdf";
+import { extractText, getDocumentProxy } from "unpdf";
 
 export interface PDFExtractionResult {
   success: boolean;
@@ -38,11 +38,22 @@ export async function extractTextFromPDF(filePath: string): Promise<PDFExtractio
  */
 export async function extractTextFromBuffer(buffer: Buffer): Promise<PDFExtractionResult> {
   try {
-    const result = await extractText(buffer);
+    // Get document proxy first to access page count
+    const pdf = await getDocumentProxy(new Uint8Array(buffer));
+    const numPages = pdf.numPages;
 
-    // unpdf returns text as an array of strings (one per page)
-    const fullText = Array.isArray(result.text) ? result.text.join("\n\n") : result.text;
-    const numPages = result.totalPages;
+    // Extract text using unpdf
+    const result = await extractText(buffer, { mergePages: true });
+
+    // Handle text result - coerce to string
+    let fullText: string;
+    if (typeof result.text === 'string') {
+      fullText = result.text;
+    } else if (Array.isArray(result.text)) {
+      fullText = (result.text as string[]).join("\n\n");
+    } else {
+      fullText = String(result.text);
+    }
 
     if (!fullText || fullText.trim().length < 100) {
       return {

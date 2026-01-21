@@ -3,7 +3,7 @@ const { withSentryConfig } = require("@sentry/nextjs");
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    serverComponentsExternalPackages: ['pdfjs-dist'],
+    serverComponentsExternalPackages: ['pdfjs-dist', 'unpdf'],
   },
   env: {
     NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
