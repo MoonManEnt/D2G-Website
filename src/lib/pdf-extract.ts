@@ -6,12 +6,10 @@
  */
 
 import { readFile } from "fs/promises";
-import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
-import path from "path";
+import { getDocument } from "pdfjs-dist";
 
-// Set worker source to the local worker file
-const workerPath = path.join(process.cwd(), "node_modules/pdfjs-dist/build/pdf.worker.mjs");
-GlobalWorkerOptions.workerSrc = workerPath;
+// Disable worker for serverless compatibility - runs on main thread
+// This is fine for server-side processing
 
 export interface PDFExtractionResult {
   success: boolean;
@@ -36,6 +34,8 @@ export async function extractTextFromPDF(filePath: string): Promise<PDFExtractio
       isEvalSupported: false,
       useWorkerFetch: false,
       disableFontFace: true,
+      // @ts-expect-error - disableWorker exists but types are outdated
+      disableWorker: true,
     });
 
     const pdf = await loadingTask.promise;
@@ -100,6 +100,8 @@ export async function extractTextFromBuffer(buffer: Buffer): Promise<PDFExtracti
       isEvalSupported: false,
       useWorkerFetch: false,
       disableFontFace: true,
+      // @ts-expect-error - disableWorker exists but types are outdated
+      disableWorker: true,
     });
 
     const pdf = await loadingTask.promise;
