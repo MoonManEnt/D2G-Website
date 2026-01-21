@@ -235,10 +235,11 @@ export default function ClientDetailPage() {
           variant: "destructive",
         });
       }
-    } catch {
+    } catch (error) {
+      console.error("Upload error:", error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
         variant: "destructive",
       });
     } finally {
