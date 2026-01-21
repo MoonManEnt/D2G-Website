@@ -173,17 +173,21 @@ export default function ReportsPage() {
     setUploading(true);
 
     try {
-      // Use client-side direct upload to Vercel Blob (bypasses serverless size limits)
-      const { upload } = await import("@vercel/blob/client");
+      // Upload file to Vercel Blob via our server endpoint
+      const formData = new FormData();
+      formData.append("file", selectedFile);
 
-      // Generate unique filename with random ID
-      const randomId = Math.random().toString(36).substring(2, 10);
-      const uniqueFilename = `report-${randomId}.pdf`;
-
-      const blob = await upload(uniqueFilename, selectedFile, {
-        access: "public",
-        handleUploadUrl: "/api/upload",
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
       });
+
+      if (!uploadRes.ok) {
+        const uploadError = await uploadRes.json();
+        throw new Error(uploadError.error || "Failed to upload file");
+      }
+
+      const blob = await uploadRes.json();
 
       // Now process the report with the blob URL
       const res = await fetch("/api/reports", {
