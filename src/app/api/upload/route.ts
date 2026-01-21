@@ -23,7 +23,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       body,
       request,
       token: process.env.BLOB_READ_WRITE_TOKEN,
-      onBeforeGenerateToken: async () => {
+      onBeforeGenerateToken: async (pathname) => {
         // Authenticate the user before allowing upload
         const session = await getServerSession(authOptions);
 
@@ -31,10 +31,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           throw new Error('Unauthorized');
         }
 
+        // Add timestamp to filename to ensure uniqueness
+        const timestamp = Date.now();
+        const uniquePathname = pathname.replace(/\.pdf$/i, `-${timestamp}.pdf`);
+
         return {
           allowedContentTypes: ['application/pdf'],
           maximumSizeInBytes: 50 * 1024 * 1024, // 50MB
-          addRandomSuffix: true, // Ensure unique filenames
+          pathname: uniquePathname,
           tokenPayload: JSON.stringify({
             userId: session.user.id,
             organizationId: session.user.organizationId,
