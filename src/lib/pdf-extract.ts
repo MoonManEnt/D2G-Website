@@ -6,10 +6,11 @@
  */
 
 import { readFile } from "fs/promises";
-import { getDocument } from "pdfjs-dist";
+// Use legacy build for serverless compatibility (no worker required)
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 
-// Disable worker for serverless compatibility - runs on main thread
-// This is fine for server-side processing
+// Explicitly disable worker for serverless
+pdfjsLib.GlobalWorkerOptions.workerSrc = "";
 
 export interface PDFExtractionResult {
   success: boolean;
@@ -28,7 +29,7 @@ export async function extractTextFromPDF(filePath: string): Promise<PDFExtractio
     const uint8Array = new Uint8Array(dataBuffer);
 
     // Load the PDF document
-    const loadingTask = getDocument({
+    const loadingTask = pdfjsLib.getDocument({
       data: uint8Array,
       useSystemFonts: true,
       isEvalSupported: false,
@@ -94,7 +95,7 @@ export async function extractTextFromBuffer(buffer: Buffer): Promise<PDFExtracti
   try {
     const uint8Array = new Uint8Array(buffer);
 
-    const loadingTask = getDocument({
+    const loadingTask = pdfjsLib.getDocument({
       data: uint8Array,
       useSystemFonts: true,
       isEvalSupported: false,
