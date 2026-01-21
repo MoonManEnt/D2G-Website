@@ -3,13 +3,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { v4 as uuid } from "uuid";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
-import { extractTextFromPDF } from "@/lib/pdf-extract";
+import { extractTextFromBuffer } from "@/lib/pdf-extract";
 import { parseIdentityIQReport, analyzeAccountsForIssues, getIssuesSummary } from "@/lib/parser";
 import { computeConfidenceLevel } from "@/types";
-
-const UPLOAD_DIR = process.env.UPLOAD_DIR || "./public/uploads";
 
 // GET /api/reports - List reports
 export async function GET() {
@@ -107,26 +103,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Save file
+    // Process file in memory (no filesystem writes for serverless compatibility)
     const fileId = uuid();
-    const orgDir = join(UPLOAD_DIR, session.user.organizationId);
-    const fileName = `${fileId}.pdf`;
-    const filePath = join(orgDir, fileName);
-
-    await mkdir(orgDir, { recursive: true });
-
     const bytes = await file.arrayBuffer();
-    await writeFile(filePath, Buffer.from(bytes));
+    const pdfBuffer = Buffer.from(bytes);
 
-    // Create file record
+    // Create file record (stored as MEMORY type - no file persistence)
     const storedFile = await prisma.storedFile.create({
       data: {
         id: fileId,
         filename: file.name,
         mimeType: file.type,
         sizeBytes: file.size,
-        storagePath: filePath,
-        storageType: "LOCAL",
+        storagePath: `memory://${fileId}`,
+        storageType: "MEMORY",
         organizationId: session.user.organizationId,
       },
     });
@@ -172,8 +162,8 @@ export async function POST(request: NextRequest) {
         data: { parseStatus: "PROCESSING" },
       });
 
-      // Extract text from PDF
-      const extractionResult = await extractTextFromPDF(filePath);
+      // Extract text from PDF buffer (in-memory processing)
+      const extractionResult = await extractTextFromBuffer(pdfBuffer);
 
       if (extractionResult.success) {
         // Parse the extracted text
