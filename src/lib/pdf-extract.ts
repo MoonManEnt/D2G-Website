@@ -1,13 +1,12 @@
 /**
  * PDF Text Extraction Service
  *
- * Uses pdf-parse for serverless-compatible PDF text extraction.
+ * Uses unpdf for serverless-compatible PDF text extraction.
  * For IdentityIQ reports which have embedded text layers.
  */
 
 import { readFile } from "fs/promises";
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdf = require("pdf-parse");
+import { extractText } from "unpdf";
 
 export interface PDFExtractionResult {
   success: boolean;
@@ -39,10 +38,11 @@ export async function extractTextFromPDF(filePath: string): Promise<PDFExtractio
  */
 export async function extractTextFromBuffer(buffer: Buffer): Promise<PDFExtractionResult> {
   try {
-    const data = await pdf(buffer);
+    const result = await extractText(buffer);
 
-    const fullText = data.text;
-    const numPages = data.numpages;
+    // unpdf returns text as an array of strings (one per page)
+    const fullText = Array.isArray(result.text) ? result.text.join("\n\n") : result.text;
+    const numPages = result.totalPages;
 
     if (!fullText || fullText.trim().length < 100) {
       return {
