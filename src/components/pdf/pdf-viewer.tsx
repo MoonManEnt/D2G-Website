@@ -44,8 +44,8 @@ export function PDFViewer({
     const loadPdfJs = async () => {
       try {
         const pdfjs = await import("pdfjs-dist");
-        // Set worker source to unpkg which matches npm versions better
-        pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+        // Set worker source to local file in public folder (most reliable)
+        pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
         setPdfjsLib(pdfjs);
       } catch (err) {
         console.error("Error loading pdfjs:", err);
