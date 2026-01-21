@@ -215,7 +215,11 @@ export default function ClientDetailPage() {
       // Use client-side direct upload to Vercel Blob (bypasses serverless size limits)
       const { upload } = await import("@vercel/blob/client");
 
-      const blob = await upload(file.name, file, {
+      // Add timestamp to filename to ensure uniqueness
+      const timestamp = Date.now();
+      const uniqueFilename = file.name.replace(/\.pdf$/i, `-${timestamp}.pdf`);
+
+      const blob = await upload(uniqueFilename, file, {
         access: "public",
         handleUploadUrl: "/api/upload",
       });
