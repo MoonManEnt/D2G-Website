@@ -38,12 +38,15 @@ export async function extractTextFromPDF(filePath: string): Promise<PDFExtractio
  */
 export async function extractTextFromBuffer(buffer: Buffer): Promise<PDFExtractionResult> {
   try {
+    // Convert Buffer to Uint8Array (required by unpdf)
+    const uint8Array = new Uint8Array(buffer);
+
     // Get document proxy first to access page count
-    const pdf = await getDocumentProxy(new Uint8Array(buffer));
+    const pdf = await getDocumentProxy(uint8Array);
     const numPages = pdf.numPages;
 
     // Extract text using unpdf
-    const result = await extractText(buffer, { mergePages: true });
+    const result = await extractText(uint8Array, { mergePages: true });
 
     // Handle text result - coerce to string
     let fullText: string;
