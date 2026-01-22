@@ -40,10 +40,10 @@ export function OnboardingChecklist() {
       exit={{ opacity: 0, y: 50, scale: 0.9 }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
     >
-      <div className="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl overflow-hidden">
+      <div className="bg-slate-900/95 backdrop-blur-md border border-slate-700/50 rounded-xl shadow-2xl shadow-black/50 ring-1 ring-white/10 overflow-hidden">
         {/* Header */}
         <div
-          className="p-4 bg-gradient-to-r from-brand-600/20 to-purple-600/20 border-b border-slate-700 cursor-pointer"
+          className="p-4 bg-gradient-to-r from-brand-500/10 via-purple-500/10 to-blue-500/10 border-b border-slate-700/50 cursor-pointer"
           onClick={() => setIsCollapsed(!isCollapsed)}
         >
           <div className="flex items-center justify-between">
@@ -107,13 +107,12 @@ export function OnboardingChecklist() {
                   >
                     <Link href={step.href}>
                       <div
-                        className={`flex items-start gap-3 p-3 rounded-lg transition-all ${
-                          step.completed
-                            ? "bg-emerald-500/10"
+                        className={`flex items-start gap-3 p-3 rounded-lg transition-all border ${step.completed
+                            ? "bg-emerald-500/5 border-emerald-500/10 opacity-60"
                             : index === currentStep
-                            ? "bg-brand-500/10 border border-brand-500/30"
-                            : "hover:bg-slate-700/50"
-                        }`}
+                              ? "bg-brand-500/10 border-brand-500/20 shadow-sm shadow-brand-500/10"
+                              : "bg-transparent border-transparent hover:bg-white/5"
+                          }`}
                       >
                         <div className="mt-0.5">
                           {step.completed ? (
@@ -137,11 +136,10 @@ export function OnboardingChecklist() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p
-                            className={`text-sm font-medium ${
-                              step.completed
-                                ? "text-emerald-400 line-through"
-                                : "text-white"
-                            }`}
+                            className={`text-sm font-medium ${step.completed
+                              ? "text-emerald-400 line-through"
+                              : "text-white"
+                              }`}
                           >
                             {step.title}
                           </p>

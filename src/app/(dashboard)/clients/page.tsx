@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Plus, Search, User, FileText, ChevronRight } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
 import { useRouter } from "next/navigation";
+import { Spotlight, useOnboarding } from "@/components/onboarding";
 
 interface Client {
   id: string;
@@ -37,6 +38,7 @@ export default function ClientsPage() {
   const { data: session } = useSession();
   const { toast } = useToast();
   const router = useRouter();
+  const { steps, currentStep } = useOnboarding();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -123,12 +125,17 @@ export default function ClientsPage() {
           <p className="text-slate-400 mt-1">Manage your client portfolio</p>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Client
-            </Button>
-          </DialogTrigger>
+          <Spotlight
+            active={!steps.find(s => s.id === "add-client")?.completed && steps[currentStep]?.id === "add-client"}
+            message="Start here by adding your first client."
+          >
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Client
+              </Button>
+            </DialogTrigger>
+          </Spotlight>
           <DialogContent className="bg-slate-800 border-slate-700">
             <DialogHeader>
               <DialogTitle className="text-white">Add New Client</DialogTitle>

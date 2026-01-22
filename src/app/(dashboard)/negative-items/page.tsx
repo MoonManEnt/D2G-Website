@@ -36,6 +36,7 @@ import {
 import { useToast } from "@/lib/use-toast";
 import { useRouter } from "next/navigation";
 import { EvidenceCaptureModal } from "@/components/evidence/capture-modal";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface AccountIssue {
   code: string;
@@ -322,34 +323,6 @@ export default function NegativeItemsPage() {
           <h1 className="text-2xl font-bold text-white">Negative Items</h1>
           <p className="text-slate-400 mt-1">Accounts negatively impacting credit - ready for dispute</p>
         </div>
-        {selectedAccountIds.size > 0 && (
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-slate-400">
-              {selectedAccountIds.size} account{selectedAccountIds.size !== 1 ? "s" : ""} selected
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={clearSelection}
-              className="border-slate-600 text-slate-300"
-            >
-              Clear
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleCreateDispute}
-              disabled={creatingDispute}
-              className="bg-primary hover:bg-primary/90"
-            >
-              {creatingDispute ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4 mr-2" />
-              )}
-              Create Dispute
-            </Button>
-          </div>
-        )}
       </div>
 
       {/* Summary Stats */}
@@ -485,85 +458,96 @@ export default function NegativeItemsPage() {
                 const issues = parseIssues(account.detectedIssues);
                 const hasEvidence = account.evidences && account.evidences.length > 0;
                 const isSelected = selectedAccountIds.has(account.id);
+
+                // Smart Selection Logic
+                // If any items are selected, we must match their CRA and Client
+                const firstSelectedId = Array.from(selectedAccountIds)[0];
+                const firstSelectedAccount = accounts.find(a => a.id === firstSelectedId);
+                const isDisabled = firstSelectedAccount
+                  ? (account.cra !== firstSelectedAccount.cra || account.client.id !== firstSelectedAccount.client.id)
+                  : false;
+
                 return (
                   <div
                     key={account.id}
-                    className={`p-4 rounded-lg border ${
-                      isSelected
-                        ? "bg-primary/10 border-primary/50"
+                    className={`p-4 rounded-lg border transition-all ${isSelected
+                      ? "bg-primary/10 border-primary/50"
+                      : isDisabled
+                        ? "bg-slate-800/30 border-slate-700/50 opacity-50"
                         : "bg-red-900/10 border-red-500/30"
-                    }`}
+                      }`}
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start gap-3">
                         <Checkbox
                           checked={isSelected}
+                          disabled={isDisabled}
                           onCheckedChange={() => toggleAccountSelection(account.id)}
-                          className="mt-1 border-slate-500"
+                          className="mt-1 border-slate-500 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                         />
                         <div className="flex-1 min-w-0">
-                        {/* Header */}
-                        <div className="flex items-center gap-2 flex-wrap mb-2">
-                          <span className="text-xs text-slate-500">
-                            {account.client.firstName} {account.client.lastName}
-                          </span>
-                          <span className="text-slate-600">•</span>
-                          <span className="font-semibold text-white">{account.creditorName}</span>
-                          {getCRABadge(account.cra)}
-                          {getFlowBadge(account.suggestedFlow)}
-                          <Badge className="bg-brand-error/20 text-brand-error">
-                            {account.issueCount} Issue{account.issueCount !== 1 ? "s" : ""}
-                          </Badge>
-                          {hasEvidence && (
-                            <Badge className="bg-brand-success/20 text-brand-success">
-                              <ImageIcon className="w-3 h-3 mr-1" />
-                              Evidence
-                            </Badge>
-                          )}
-                        </div>
-
-                        {/* Account Details */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm mb-3">
-                          <div>
-                            <span className="text-slate-500">Account:</span>
-                            <span className="text-white ml-1">{account.maskedAccountId}</span>
-                          </div>
-                          <div>
-                            <span className="text-slate-500">Balance:</span>
-                            <span className="text-white ml-1">{formatCurrency(account.balance)}</span>
-                          </div>
-                          <div>
-                            <span className="text-slate-500">Status:</span>
-                            <span className={`ml-1 ${account.accountStatus === "OPEN" ? "text-brand-success" : "text-brand-error"}`}>
-                              {account.accountStatus}
+                          {/* Header */}
+                          <div className="flex items-center gap-2 flex-wrap mb-2">
+                            <span className="text-xs text-slate-500">
+                              {account.client.firstName} {account.client.lastName}
                             </span>
+                            <span className="text-slate-600">•</span>
+                            <span className="font-semibold text-white">{account.creditorName}</span>
+                            {getCRABadge(account.cra)}
+                            {getFlowBadge(account.suggestedFlow)}
+                            <Badge className="bg-brand-error/20 text-brand-error">
+                              {account.issueCount} Issue{account.issueCount !== 1 ? "s" : ""}
+                            </Badge>
+                            {hasEvidence && (
+                              <Badge className="bg-brand-success/20 text-brand-success">
+                                <ImageIcon className="w-3 h-3 mr-1" />
+                                Evidence
+                              </Badge>
+                            )}
                           </div>
-                          {account.pastDue && account.pastDue > 0 && (
-                            <div>
-                              <span className="text-slate-500">Past Due:</span>
-                              <span className="text-brand-error font-medium ml-1">{formatCurrency(account.pastDue)}</span>
-                            </div>
-                          )}
-                        </div>
 
-                        {/* Issues */}
-                        <div className="space-y-1">
-                          {issues.slice(0, 3).map((issue, idx) => (
-                            <div
-                              key={idx}
-                              className="flex items-start gap-2 text-xs"
-                            >
-                              {getSeverityIcon(issue.severity)}
-                              <span className="text-slate-300">{issue.description}</span>
-                              {issue.fcraSection && (
-                                <span className="text-slate-500">({issue.fcraSection})</span>
-                              )}
+                          {/* Account Details */}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm mb-3">
+                            <div>
+                              <span className="text-slate-500">Account:</span>
+                              <span className="text-white ml-1">{account.maskedAccountId}</span>
                             </div>
-                          ))}
-                          {issues.length > 3 && (
-                            <span className="text-xs text-slate-500">+{issues.length - 3} more issues</span>
-                          )}
-                        </div>
+                            <div>
+                              <span className="text-slate-500">Balance:</span>
+                              <span className="text-white ml-1">{formatCurrency(account.balance)}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-500">Status:</span>
+                              <span className={`ml-1 ${account.accountStatus === "OPEN" ? "text-brand-success" : "text-brand-error"}`}>
+                                {account.accountStatus}
+                              </span>
+                            </div>
+                            {account.pastDue && account.pastDue > 0 && (
+                              <div>
+                                <span className="text-slate-500">Past Due:</span>
+                                <span className="text-brand-error font-medium ml-1">{formatCurrency(account.pastDue)}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Issues */}
+                          <div className="space-y-1">
+                            {issues.slice(0, 3).map((issue, idx) => (
+                              <div
+                                key={idx}
+                                className="flex items-start gap-2 text-xs"
+                              >
+                                {getSeverityIcon(issue.severity)}
+                                <span className="text-slate-300">{issue.description}</span>
+                                {issue.fcraSection && (
+                                  <span className="text-slate-500">({issue.fcraSection})</span>
+                                )}
+                              </div>
+                            ))}
+                            {issues.length > 3 && (
+                              <span className="text-xs text-slate-500">+{issues.length - 3} more issues</span>
+                            )}
+                          </div>
                         </div>
                       </div>
 
@@ -668,13 +652,12 @@ export default function NegativeItemsPage() {
                   {parseIssues(selectedAccount.detectedIssues).map((issue, idx) => (
                     <div
                       key={idx}
-                      className={`p-3 rounded border ${
-                        issue.severity === "HIGH"
-                          ? "bg-brand-error/10 border-brand-error/30"
-                          : issue.severity === "MEDIUM"
+                      className={`p-3 rounded border ${issue.severity === "HIGH"
+                        ? "bg-brand-error/10 border-brand-error/30"
+                        : issue.severity === "MEDIUM"
                           ? "bg-brand-warning/10 border-brand-warning/30"
                           : "bg-brand-info/10 border-brand-info/30"
-                      }`}
+                        }`}
                     >
                       <div className="flex items-start gap-2">
                         {getSeverityIcon(issue.severity)}
@@ -693,8 +676,8 @@ export default function NegativeItemsPage() {
                         </div>
                         <Badge className={
                           issue.severity === "HIGH" ? "bg-brand-error/20 text-brand-error" :
-                          issue.severity === "MEDIUM" ? "bg-brand-warning/20 text-brand-warning" :
-                          "bg-brand-info/20 text-brand-info"
+                            issue.severity === "MEDIUM" ? "bg-brand-warning/20 text-brand-warning" :
+                              "bg-brand-info/20 text-brand-info"
                         }>
                           {issue.severity}
                         </Badge>
@@ -769,6 +752,51 @@ export default function NegativeItemsPage() {
           onEvidenceCaptured={handleEvidenceCaptured}
         />
       )}
+
+      {/* Sticky Action Bar */}
+      <AnimatePresence>
+        {selectedAccountIds.size > 0 && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-2xl bg-slate-900/95 backdrop-blur-md border border-slate-700/50 rounded-2xl shadow-2xl p-4 flex items-center justify-between z-50 ring-1 ring-white/10"
+          >
+            <div className="flex items-center gap-4">
+              <div className="bg-brand-500/20 p-2 rounded-full">
+                <Send className="w-5 h-5 text-brand-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-white">
+                  {selectedAccountIds.size} item{selectedAccountIds.size !== 1 ? "s" : ""} selected
+                </p>
+                <p className="text-xs text-slate-400">
+                  Ready to create a dispute letter
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                onClick={clearSelection}
+                className="text-slate-400 hover:text-white"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCreateDispute}
+                disabled={creatingDispute}
+                className="bg-brand-600 hover:bg-brand-700 shadow-lg shadow-brand-500/20"
+              >
+                {creatingDispute && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Create Dispute
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

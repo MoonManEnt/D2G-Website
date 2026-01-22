@@ -50,7 +50,7 @@ export function WelcomeModal() {
         >
           {/* Backdrop */}
           <motion.div
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/60 backdrop-blur-md"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -59,11 +59,11 @@ export function WelcomeModal() {
 
           {/* Modal */}
           <motion.div
-            className="relative bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden"
-            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            className="relative bg-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl shadow-black/50 ring-1 ring-white/10 max-w-2xl w-full overflow-hidden"
+            initial={{ scale: 0.95, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            transition={{ type: "spring", duration: 0.5 }}
+            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+            transition={{ type: "spring", duration: 0.6, bounce: 0.3 }}
           >
             {/* Header with gradient */}
             <div className="relative bg-gradient-to-br from-brand-600 to-purple-600 p-8 text-center overflow-hidden">
@@ -130,7 +130,7 @@ export function WelcomeModal() {
                 {features.map((feature, index) => (
                   <motion.div
                     key={feature.title}
-                    className="flex items-start gap-4 p-4 rounded-lg bg-slate-700/30 border border-slate-700"
+                    className="flex items-start gap-4 p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.5 + index * 0.1 }}
@@ -155,7 +155,8 @@ export function WelcomeModal() {
               >
                 <Button
                   onClick={dismissWelcome}
-                  className="flex-1 bg-gradient-to-r from-brand-500 to-purple-500 hover:from-brand-600 hover:to-purple-600"
+                  size="lg"
+                  className="flex-1 bg-gradient-to-r from-brand-600 to-purple-600 hover:from-brand-500 hover:to-purple-500 shadow-lg shadow-brand-500/25 transition-all hover:scale-[1.02]"
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
                   Get Started
