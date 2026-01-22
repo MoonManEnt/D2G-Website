@@ -6,14 +6,16 @@ import { parseIdentityIQReport, analyzeAccountsForIssues, getIssuesSummary } fro
 import { computeConfidenceLevel } from "@/types";
 import { withAuth } from "@/lib/api-middleware";
 import { z } from "zod";
+import path from "path";
+import fs from "fs";
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // Allow up to 60 seconds for PDF processing
 
-// Schema for report upload (now strictly JSON/Blob URL)
+// Schema for report upload
 const uploadReportSchema = z.object({
   clientId: z.string().min(1, "Client ID is required"),
-  blobUrl: z.string().url("Valid Blob URL is required"),
+  blobUrl: z.string().min(1, "Blob URL is required"),
   fileName: z.string().optional().default("report.pdf"),
   reportDate: z.string().datetime().optional().nullable(),
 });
@@ -24,9 +26,6 @@ type UploadReportBody = z.infer<typeof uploadReportSchema>;
 export const GET = withAuth(async (req, { organizationId }) => {
   const { searchParams } = new URL(req.url);
   const clientId = searchParams.get('clientId');
-  // const status = searchParams.get('status'); // Future: Parse status filter
-  // const page = parseInt(searchParams.get('page') || '1');
-  // const limit = parseInt(searchParams.get('limit') || '50');
 
   const where: any = {
     organizationId,
@@ -47,7 +46,7 @@ export const GET = withAuth(async (req, { organizationId }) => {
       },
     },
     orderBy: { uploadedAt: "desc" },
-    take: 100, // Hard limit to prevent massive fetches until proper pagination UI
+    take: 100,
   });
 
   return NextResponse.json(reports);
@@ -64,26 +63,52 @@ export const POST = withAuth<UploadReportBody>(async (req, { session, body, orga
   }
 
   const { clientId, blobUrl, fileName, reportDate } = body;
-  let pdfBuffer: Buffer;
-  let fileSize: number;
+  console.log("📂 [REPORTS] Processing upload:", { clientId, fileName, blobUrl });
 
-  // Fetch the PDF from blob storage
+  let pdfBuffer: Buffer = Buffer.alloc(0);
+  let fileSize: number = 0;
+
+  // Fetch the PDF from storage (could be cloud URL or local public path)
   try {
-    const blobResponse = await fetch(blobUrl);
-    if (!blobResponse.ok) {
-      return NextResponse.json(
-        { error: "Failed to fetch PDF from storage" },
-        { status: 400 }
-      );
+    let blobResponse;
+    if (blobUrl.startsWith('http')) {
+      blobResponse = await fetch(blobUrl);
+    } else {
+      // Local file fetch from public folder or absolute path
+      const rootDir = process.cwd();
+      const localPath = path.join(rootDir, 'public', blobUrl.replace(/^\/public/, ''));
+      const uploadsPath = path.join(rootDir, blobUrl.startsWith('/') ? blobUrl.slice(1) : blobUrl);
+
+      console.log(`📂 [REPORTS] Trying local paths: ${localPath} OR ${uploadsPath}`);
+
+      let fileBuffer: Buffer;
+      if (fs.existsSync(localPath)) {
+        fileBuffer = fs.readFileSync(localPath);
+      } else if (fs.existsSync(uploadsPath)) {
+        fileBuffer = fs.readFileSync(uploadsPath);
+      } else {
+        throw new Error(`Local file not found at ${localPath} or ${uploadsPath}`);
+      }
+
+      pdfBuffer = fileBuffer;
+      fileSize = fileBuffer.length;
     }
 
-    const arrayBuffer = await blobResponse.arrayBuffer();
-    pdfBuffer = Buffer.from(arrayBuffer);
-    fileSize = pdfBuffer.length;
+    if (blobResponse) {
+      if (!blobResponse.ok) {
+        return NextResponse.json(
+          { error: "Failed to fetch PDF from cloud storage" },
+          { status: 400 }
+        );
+      }
+      const arrayBuffer = await blobResponse.arrayBuffer();
+      pdfBuffer = Buffer.from(arrayBuffer);
+      fileSize = pdfBuffer.length;
+    }
   } catch (fetchError) {
-    console.error("Blob fetch error:", fetchError);
+    console.error("PDF retrieval error:", fetchError);
     return NextResponse.json(
-      { error: "Failed to retrieve uploaded file" },
+      { error: `Failed to retrieve uploaded file: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}` },
       { status: 400 }
     );
   }
@@ -112,7 +137,7 @@ export const POST = withAuth<UploadReportBody>(async (req, { session, body, orga
       mimeType: "application/pdf",
       sizeBytes: fileSize,
       storagePath: blobUrl,
-      storageType: "BLOB",
+      storageType: blobUrl.startsWith('http') ? "BLOB" : "LOCAL",
       organizationId,
     },
   });
@@ -148,9 +173,6 @@ export const POST = withAuth<UploadReportBody>(async (req, { session, body, orga
   });
 
   // Auto-trigger parsing
-  // Note: In a real serverless setup, this should ideally be an async background job (e.g., Inngest or BullMQ)
-  // But keeping strictly to the original logic for now to ensure behavior consistency
-  let parseResult = null;
   let accountsParsed = 0;
 
   try {
@@ -165,7 +187,7 @@ export const POST = withAuth<UploadReportBody>(async (req, { session, body, orga
 
     if (extractionResult.success) {
       // Parse the extracted text
-      parseResult = await parseIdentityIQReport(extractionResult.text);
+      const parseResult = await parseIdentityIQReport(extractionResult.text);
 
       if (parseResult.success) {
         // Analyze accounts for potential FCRA violations and issues
@@ -272,9 +294,6 @@ export const POST = withAuth<UploadReportBody>(async (req, { session, body, orga
         parseError: `Auto-parse failed: ${errorMessage}`,
       },
     });
-
-    // We don't throw here to ensure the upload itself is still considered successful
-    // The user will see the "FAILED" status in the UI
   }
 
   // Fetch final report state

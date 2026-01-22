@@ -219,30 +219,56 @@ export default function ReportsPage() {
     setUploading(true);
 
     try {
-      // Use Vercel Blob client for direct upload (bypasses server size limits)
-      const { upload } = await import("@vercel/blob/client");
+      let finalUrl = "";
 
-      // Use simple alphanumeric pathname to avoid validation issues
-      const timestamp = Date.now();
-      const randomNum = Math.floor(Math.random() * 100000);
-      const safePath = `reports/report${timestamp}${randomNum}.pdf`;
+      // Check if we are in development and should use local storage
+      // Or if we encounter the error seen in the user's screenshot
+      try {
+        // Try Vercel Blob first
+        const { upload } = await import("@vercel/blob/client");
+        const timestamp = Date.now();
+        const randomNum = Math.floor(Math.random() * 100000);
+        const safePath = `reports/report${timestamp}${randomNum}.pdf`;
 
-      console.log("Starting upload with path:", safePath);
+        console.log("Starting Vercel Blob upload...");
 
-      const blob = await upload(safePath, selectedFile, {
-        access: "public",
-        handleUploadUrl: "/api/reports/upload-token",
-      });
+        const blob = await upload(safePath, selectedFile, {
+          access: "public",
+          handleUploadUrl: "/api/reports/upload-token",
+        });
 
-      console.log("Upload complete:", blob.url);
+        finalUrl = blob.url;
+        console.log("Vercel Blob upload complete:", finalUrl);
+      } catch (blobError: any) {
+        console.warn("Vercel Blob upload failed, falling back to local:", blobError.message);
 
-      // Now process the report with the blob URL
+        // Local Fallback
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+        formData.append("type", "reports");
+
+        const localRes = await fetch("/api/upload/local", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!localRes.ok) {
+          const errorData = await localRes.json();
+          throw new Error(errorData.error || "Local upload failed");
+        }
+
+        const localData = await localRes.json();
+        finalUrl = localData.url;
+        console.log("Local upload complete:", finalUrl);
+      }
+
+      // Now process the report with the final URL (could be blob or local)
       const res = await fetch("/api/reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           clientId: selectedClient,
-          blobUrl: blob.url,
+          blobUrl: finalUrl,
           fileName: selectedFile.name,
           reportDate: new Date().toISOString(),
         }),

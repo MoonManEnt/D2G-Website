@@ -17,8 +17,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     try {
         const body = (await request.json()) as HandleUploadBody;
+        console.log("📂 [UPLOAD-TOKEN] Request body type:", body.type);
 
-        console.log('Upload request body type:', body.type);
+        if (!process.env.BLOB_READ_WRITE_TOKEN) {
+            console.error("❌ [UPLOAD-TOKEN] BLOB_READ_WRITE_TOKEN is missing! Local upload will fail.");
+        }
 
         const jsonResponse = await handleUpload({
             body,
