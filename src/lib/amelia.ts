@@ -582,11 +582,11 @@ const PENALTY_TEMPLATES = {
 // CONTENT UNIQUENESS TRACKING
 // =============================================================================
 
-function hashContent(content: string): string {
+export function hashContent(content: string): string {
   return crypto.createHash("sha256").update(content.toLowerCase().trim()).digest("hex").substring(0, 16);
 }
 
-async function getUsedContentHashes(clientId: string): Promise<Set<string>> {
+export async function getUsedContentHashes(clientId: string): Promise<Set<string>> {
   const usedHashes = new Set<string>();
 
   try {
@@ -727,7 +727,7 @@ Enclosures:
 // SECTION BUILDERS
 // =============================================================================
 
-function buildDamagesSection(
+export function buildDamagesSection(
   round: number,
   usedHashes: Set<string>,
   previousHistory?: LetterGenerationRequest["previousHistory"]
@@ -826,7 +826,7 @@ function buildDamagesSection(
   return paragraph;
 }
 
-function buildFactsSection(
+export function buildFactsSection(
   flow: DisputeFlow,
   accounts: DisputeAccount[],
   round: number,
@@ -996,7 +996,7 @@ function formatCitation(text: string, style: "full" | "short" | "conversational"
   }
 }
 
-function buildAccountsList(accounts: DisputeAccount[]): string {
+export function buildAccountsList(accounts: DisputeAccount[]): string {
   // Randomize account list formatting style
   const listStyles = ["numbered", "bulleted", "narrative", "table_style", "direct"];
   const style = listStyles[Math.floor(Math.random() * listStyles.length)];
@@ -1095,7 +1095,7 @@ function buildAccountsList(accounts: DisputeAccount[]): string {
   }
 }
 
-function buildPenaltySection(
+export function buildPenaltySection(
   round: number,
   usedHashes: Set<string>,
   previousHistory?: LetterGenerationRequest["previousHistory"]

@@ -65,7 +65,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     if (previousDispute?.sentDate) {
       daysSinceDispute = Math.floor(
         (Date.now() - new Date(previousDispute.sentDate).getTime()) /
-          (1000 * 60 * 60 * 24)
+        (1000 * 60 * 60 * 24)
       );
       previousDisputeDate = new Date(previousDispute.sentDate).toLocaleDateString(
         "en-US",
@@ -105,6 +105,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Build CFPB complaint data
     const complaintData: CFPBComplaintData = {
       clientName: `${dispute.client.firstName} ${dispute.client.lastName}`,
+      clientId: dispute.clientId, // Pass client ID for duplication checking
       cra: dispute.cra as "TRANSUNION" | "EXPERIAN" | "EQUIFAX",
       accounts,
       round: dispute.round,
@@ -115,7 +116,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     if (format === "text") {
       // Return formatted text ready for copy/paste
-      const textContent = formatCFPBComplaintForCopy(complaintData);
+      const textContent = await formatCFPBComplaintForCopy(complaintData);
       return new NextResponse(textContent, {
         headers: {
           "Content-Type": "text/plain",
@@ -124,7 +125,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Return structured JSON
-    const complaint = generateCFPBComplaint(complaintData);
+    const complaint = await generateCFPBComplaint(complaintData);
 
     return NextResponse.json({
       complaint,
@@ -138,7 +139,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         previousDisputeDate,
         daysSinceDispute,
       },
-      copyText: formatCFPBComplaintForCopy(complaintData),
+      copyText: await formatCFPBComplaintForCopy(complaintData),
     });
   } catch (error) {
     console.error("Error generating CFPB complaint:", error);
