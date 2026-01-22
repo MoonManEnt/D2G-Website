@@ -3,6 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import prisma from "./prisma";
 import { UserRole, SubscriptionTier, SubscriptionStatus } from "@/types";
+import { getEnv } from "./env";
 
 declare module "next-auth" {
   interface Session {
@@ -154,5 +155,5 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  secret: process.env.NEXTAUTH_SECRET || "7whVBO7wLRa8XVzrKLZdUiNbd8wYlkE3U8or3GA2eEg",
+  secret: getEnv().NEXTAUTH_SECRET,
 };

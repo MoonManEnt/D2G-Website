@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { z } from "zod";
+import { withAuth } from "@/lib/api-middleware";
 
 const createClientSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -19,97 +18,64 @@ const createClientSchema = z.object({
   notes: z.string().optional(),
 });
 
-export async function GET() {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+type CreateClientBody = z.infer<typeof createClientSchema>;
 
-    const clients = await prisma.client.findMany({
-      where: {
-        organizationId: session.user.organizationId,
-        isActive: true,
-      },
-      include: {
-        _count: {
-          select: {
-            reports: true,
-            disputes: true,
-          },
+export const GET = withAuth(async (req, { organizationId }) => {
+  const clients = await prisma.client.findMany({
+    where: {
+      organizationId,
+      isActive: true,
+    },
+    include: {
+      _count: {
+        select: {
+          reports: true,
+          disputes: true,
         },
       },
-      orderBy: { createdAt: "desc" },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return NextResponse.json(clients);
+});
+
+export const POST = withAuth<CreateClientBody>(async (req, { session, body, organizationId }) => {
+  // Check subscription
+  if (session.user.subscriptionTier === "FREE") {
+    // Check client count for free tier
+    const clientCount = await prisma.client.count({
+      where: { organizationId, isActive: true },
     });
-
-    return NextResponse.json(clients);
-  } catch (error) {
-    console.error("Error fetching clients:", error);
-    return NextResponse.json(
-      { message: "Internal server error" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
-
-    // Check subscription
-    if (session.user.subscriptionTier === "FREE") {
-      // Check client count for free tier
-      const clientCount = await prisma.client.count({
-        where: { organizationId: session.user.organizationId, isActive: true },
-      });
-      if (clientCount >= 1) {
-        return NextResponse.json(
-          { message: "Free plan limited to 1 client. Upgrade to Pro for unlimited clients." },
-          { status: 403 }
-        );
-      }
-    }
-
-    const body = await request.json();
-    const validatedData = createClientSchema.parse(body);
-
-    const client = await prisma.client.create({
-      data: {
-        ...validatedData,
-        email: validatedData.email || null,
-        dateOfBirth: validatedData.dateOfBirth ? new Date(validatedData.dateOfBirth) : null,
-        organizationId: session.user.organizationId,
-      },
-    });
-
-    // Log event
-    await prisma.eventLog.create({
-      data: {
-        eventType: "CLIENT_CREATED",
-        actorId: session.user.id,
-        actorEmail: session.user.email,
-        targetType: "Client",
-        targetId: client.id,
-        organizationId: session.user.organizationId,
-        eventData: JSON.stringify({ clientName: `${client.firstName} ${client.lastName}` }),
-      },
-    });
-
-    return NextResponse.json(client, { status: 201 });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
+    if (clientCount >= 1) {
       return NextResponse.json(
-        { message: error.errors[0].message },
-        { status: 400 }
+        { message: "Free plan limited to 1 client. Upgrade to Pro for unlimited clients." },
+        { status: 403 }
       );
     }
-    console.error("Error creating client:", error);
-    return NextResponse.json(
-      { message: "Internal server error" },
-      { status: 500 }
-    );
   }
-}
+
+  const client = await prisma.client.create({
+    data: {
+      ...body,
+      email: body.email || null,
+      dateOfBirth: body.dateOfBirth ? new Date(body.dateOfBirth) : null,
+      organizationId,
+    },
+  });
+
+  // Log event
+  await prisma.eventLog.create({
+    data: {
+      eventType: "CLIENT_CREATED",
+      actorId: session.user.id,
+      actorEmail: session.user.email,
+      targetType: "Client",
+      targetId: client.id,
+      organizationId,
+      eventData: JSON.stringify({ clientName: `${client.firstName} ${client.lastName}` }),
+    },
+  });
+
+  return NextResponse.json(client, { status: 201 });
+}, { schema: createClientSchema });
