@@ -41,6 +41,24 @@ export async function GET() {
           },
           orderBy: { createdAt: "desc" },
         },
+        disputes: {
+          where: {
+            dispute: {
+              status: { notIn: ["RESOLVED", "CANCELLED"] }
+            }
+          },
+          include: {
+            dispute: {
+              select: {
+                id: true,
+                status: true,
+                round: true,
+                createdAt: true,
+                cra: true
+              }
+            }
+          }
+        }
       },
       orderBy: [
         { confidenceScore: "asc" },
@@ -49,14 +67,29 @@ export async function GET() {
     });
 
     // Transform decimal fields to numbers for JSON
-    const transformedAccounts = accounts.map(account => ({
-      ...account,
-      balance: account.balance ? Number(account.balance) : null,
-      pastDue: account.pastDue ? Number(account.pastDue) : null,
-      creditLimit: account.creditLimit ? Number(account.creditLimit) : null,
-      highBalance: account.highBalance ? Number(account.highBalance) : null,
-      monthlyPayment: account.monthlyPayment ? Number(account.monthlyPayment) : null,
-    }));
+    const transformedAccounts = accounts.map(account => {
+      // Check for active disputes
+      // Since we filtered in the query to only include active disputes, 
+      // if the array has length > 0, it has an active dispute.
+      const activeDisputeItem = account.disputes[0];
+      const activeDispute = activeDisputeItem ? {
+        id: activeDisputeItem.dispute.id,
+        status: activeDisputeItem.dispute.status,
+        round: activeDisputeItem.dispute.round,
+        date: activeDisputeItem.dispute.createdAt,
+        cra: activeDisputeItem.dispute.cra
+      } : null;
+
+      return {
+        ...account,
+        balance: account.balance ? Number(account.balance) : null,
+        pastDue: account.pastDue ? Number(account.pastDue) : null,
+        creditLimit: account.creditLimit ? Number(account.creditLimit) : null,
+        highBalance: account.highBalance ? Number(account.highBalance) : null,
+        monthlyPayment: account.monthlyPayment ? Number(account.monthlyPayment) : null,
+        activeDispute, // Attach the active dispute info
+      };
+    });
 
     // Calculate summary
     const summary = {
