@@ -57,65 +57,71 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Email and password are required");
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email.toLowerCase() },
-          include: {
-            organization: {
-              select: {
-                id: true,
-                name: true,
-                subscriptionTier: true,
-                subscriptionStatus: true,
+        try {
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email.toLowerCase() },
+            include: {
+              organization: {
+                select: {
+                  id: true,
+                  name: true,
+                  subscriptionTier: true,
+                  subscriptionStatus: true,
+                },
               },
             },
-          },
-        });
+          });
 
-        if (!user) {
-          throw new Error("Invalid email or password");
+          if (!user) {
+            throw new Error("Invalid email or password");
+          }
+
+          if (!user.isActive) {
+            throw new Error("Your account has been deactivated");
+          }
+
+          const isPasswordValid = await compare(credentials.password, user.passwordHash);
+
+          if (!isPasswordValid) {
+            console.log("❌ Invalid password for:", credentials.email);
+            throw new Error("Invalid email or password");
+          }
+
+          // Update last login
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { lastLoginAt: new Date() },
+          });
+
+          // Log login event
+          await prisma.eventLog.create({
+            data: {
+              eventType: "USER_LOGIN",
+              actorId: user.id,
+              actorEmail: user.email,
+              targetType: "User",
+              targetId: user.id,
+              organizationId: user.organizationId,
+              eventData: JSON.stringify({
+                timestamp: new Date().toISOString(),
+              }),
+            },
+          });
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role as UserRole,
+            organizationId: user.organization.id,
+            organizationName: user.organization.name,
+            subscriptionTier: user.organization.subscriptionTier as SubscriptionTier,
+            subscriptionStatus: user.organization.subscriptionStatus as SubscriptionStatus,
+          };
+
+        } catch (error) {
+          throw error;
         }
-
-        if (!user.isActive) {
-          throw new Error("Your account has been deactivated");
-        }
-
-        const isPasswordValid = await compare(credentials.password, user.passwordHash);
-
-        if (!isPasswordValid) {
-          throw new Error("Invalid email or password");
-        }
-
-        // Update last login
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { lastLoginAt: new Date() },
-        });
-
-        // Log login event
-        await prisma.eventLog.create({
-          data: {
-            eventType: "USER_LOGIN",
-            actorId: user.id,
-            actorEmail: user.email,
-            targetType: "User",
-            targetId: user.id,
-            organizationId: user.organizationId,
-            eventData: JSON.stringify({
-              timestamp: new Date().toISOString(),
-            }),
-          },
-        });
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role as UserRole,
-          organizationId: user.organization.id,
-          organizationName: user.organization.name,
-          subscriptionTier: user.organization.subscriptionTier as SubscriptionTier,
-          subscriptionStatus: user.organization.subscriptionStatus as SubscriptionStatus,
-        };
       },
     }),
   ],

@@ -1,7 +1,6 @@
 import { PrismaClient } from "@prisma/client";
-import dotenv from "dotenv";
-
-dotenv.config();
+import path from "path";
+import fs from "fs";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -10,24 +9,34 @@ const globalForPrisma = globalThis as unknown as {
 const isDev = process.env.NODE_ENV === "development";
 let dbUrl = process.env.DATABASE_URL;
 
-// Hardcode fallback for local development to ensure protocol is always present
-if (isDev && (!dbUrl || !dbUrl.startsWith("file:"))) {
-  console.log("🛠️ Dev Mode: Forcing DATABASE_URL to absolute sqlite path.");
-  dbUrl = "file:/Users/reginaldsmith/Dispute2Go-1/prisma/dev.db";
+// Force absolute path in development to avoid common Next.js/Prisma path resolution issues
+if (isDev) {
+  const rootDir = process.cwd();
+  const absoluteDbPath = path.resolve(rootDir, "prisma/dev.db");
+
+  if (fs.existsSync(absoluteDbPath)) {
+    // If the env var is missing or not a file protocol, force use the detected absolute path
+    if (!dbUrl || !dbUrl.startsWith("file:")) {
+      dbUrl = `file:${absoluteDbPath}`;
+    }
+  } else {
+    // Fallback if the file isn't in prisma/ (e.g. it was moved to root)
+    const rootDbPath = path.resolve(rootDir, "dev.db");
+    if (fs.existsSync(rootDbPath)) {
+      dbUrl = `file:${rootDbPath}`;
+    }
+  }
 }
 
-if (!dbUrl) {
-  console.error("❌ DATABASE_URL is not defined in process.env!");
-} else if (!dbUrl.startsWith("file:")) {
-  console.warn("⚠️ DATABASE_URL does not start with 'file:'. It is:", dbUrl);
-} else {
-  console.log("✅ DATABASE_URL detected:", dbUrl);
+// Fallback to the standard absolute path if all else fails
+if (!dbUrl || !dbUrl.startsWith("file:")) {
+  dbUrl = "file:/Users/reginaldsmith/Dispute2Go-1/prisma/dev.db";
 }
 
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    log: isDev ? ["query", "error", "warn"] : ["error"],
+    log: isDev ? ["error", "warn"] : ["error"],
     datasources: {
       db: {
         url: dbUrl,
@@ -37,7 +46,6 @@ export const prisma =
 
 if (isDev) {
   globalForPrisma.prisma = prisma;
-  console.log("Prisma Initialized with URL:", dbUrl);
 }
 
 export default prisma;
