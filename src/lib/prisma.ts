@@ -9,29 +9,35 @@ const globalForPrisma = globalThis as unknown as {
 const isDev = process.env.NODE_ENV === "development";
 let dbUrl = process.env.DATABASE_URL;
 
-// Force absolute path in development to avoid common Next.js/Prisma path resolution issues
+/**
+ * PATH HARDENING LOGIC
+ * Only active in development to solve local Next.js/Prisma path resolution issues.
+ * In production (Vercel), we MUST use the environment variable provided by the cloud provider.
+ */
 if (isDev) {
   const rootDir = process.cwd();
   const absoluteDbPath = path.resolve(rootDir, "prisma/dev.db");
 
   if (fs.existsSync(absoluteDbPath)) {
-    // If the env var is missing or not a file protocol, force use the detected absolute path
+    // If DATABASE_URL is missing or not an absolute file path, force it for local stability
     if (!dbUrl || !dbUrl.startsWith("file:")) {
       dbUrl = `file:${absoluteDbPath}`;
     }
   } else {
-    // Fallback if the file isn't in prisma/ (e.g. it was moved to root)
+    // Check root as fallback
     const rootDbPath = path.resolve(rootDir, "dev.db");
     if (fs.existsSync(rootDbPath)) {
       dbUrl = `file:${rootDbPath}`;
     }
   }
+
+  // Final local-only fallback to avoid "protocol file: required" errors
+  if (!dbUrl || !dbUrl.startsWith("file:")) {
+    dbUrl = "file:/Users/reginaldsmith/Dispute2Go-1/prisma/dev.db";
+  }
 }
 
-// Fallback to the standard absolute path if all else fails
-if (!dbUrl || !dbUrl.startsWith("file:")) {
-  dbUrl = "file:/Users/reginaldsmith/Dispute2Go-1/prisma/dev.db";
-}
+// In production, if dbUrl is missing, we let Prisma throw its own error to help the user identify missing Vercel env vars.
 
 export const prisma =
   globalForPrisma.prisma ??
