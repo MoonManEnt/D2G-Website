@@ -6,7 +6,7 @@ import prisma from "@/lib/prisma";
 export const dynamic = 'force-dynamic';
 
 // GET /api/accounts/negative - Get all negative/disputable accounts
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -15,15 +15,24 @@ export async function GET() {
     }
 
     // Fetch accounts that are marked as disputable (have issues)
+    const { searchParams } = new URL(request.url);
+    const clientId = searchParams.get('clientId');
+
+    const whereClause: any = {
+      organizationId: session.user.organizationId,
+      OR: [
+        { confidenceLevel: { in: ["LOW", "MEDIUM"] } },
+        { accountStatus: { in: ["COLLECTION", "CHARGED_OFF"] } },
+        { pastDue: { gt: 0 } },
+      ],
+    };
+
+    if (clientId) {
+      whereClause.clientId = clientId;
+    }
+
     const accounts = await prisma.accountItem.findMany({
-      where: {
-        organizationId: session.user.organizationId,
-        OR: [
-          { confidenceLevel: { in: ["LOW", "MEDIUM"] } },
-          { accountStatus: { in: ["COLLECTION", "CHARGED_OFF"] } },
-          { pastDue: { gt: 0 } },
-        ],
-      },
+      where: whereClause,
       include: {
         client: {
           select: {

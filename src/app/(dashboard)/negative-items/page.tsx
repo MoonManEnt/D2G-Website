@@ -40,7 +40,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { EvidenceCaptureModal } from "@/components/evidence/capture-modal";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -95,6 +95,8 @@ interface NegativeAccount {
 export default function NegativeItemsPage() {
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const clientId = searchParams.get("clientId");
   const [accounts, setAccounts] = useState<NegativeAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAccount, setSelectedAccount] = useState<NegativeAccount | null>(null);
@@ -107,17 +109,33 @@ export default function NegativeItemsPage() {
 
   const fetchNegativeAccounts = useCallback(async () => {
     try {
-      const res = await fetch("/api/accounts/negative");
-      if (res.ok) {
-        const data = await res.json();
+      setLoading(true);
+      const url = clientId
+        ? `/api/accounts/negative?clientId=${clientId}`
+        : "/api/accounts/negative";
+
+      const response = await fetch(url);
+      if (response.ok) {
+        const data = await response.json();
         setAccounts(data.accounts || []);
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to fetch negative accounts",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Failed to fetch negative accounts:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load accounts",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [toast, clientId]);
 
   useEffect(() => {
     fetchNegativeAccounts();

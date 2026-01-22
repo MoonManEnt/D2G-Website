@@ -212,7 +212,7 @@ export default function WorkbenchPage() {
                                                         size="sm"
                                                         variant="default"
                                                         className="h-8 text-xs bg-blue-600 hover:bg-blue-700"
-                                                        onClick={() => router.push(`/clients/${client.id}/negative-items`)}
+                                                        onClick={() => router.push(`/negative-items?clientId=${client.id}`)}
                                                     >
                                                         Start Dispute <ArrowRight className="w-3 h-3 ml-1" />
                                                     </Button>
@@ -222,7 +222,7 @@ export default function WorkbenchPage() {
                                                         size="sm"
                                                         variant="destructive"
                                                         className="h-8 text-xs"
-                                                        onClick={() => router.push(`/clients/${client.id}/disputes`)}
+                                                        onClick={() => router.push(`/disputes?clientId=${client.id}`)}
                                                     >
                                                         Resolve Issues
                                                     </Button>

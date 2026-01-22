@@ -29,7 +29,7 @@ export function DashboardWrapper({ children, user }: DashboardWrapperProps) {
       <OnboardingProvider>
         <div className="flex h-screen bg-slate-900">
           <Sidebar user={user} />
-          <main className="flex-1 overflow-auto bg-slate-900">
+          <main className="flex-1 overflow-auto bg-slate-900 lg:ml-64">
             <AnimatePresence mode="wait">
               <motion.div
                 key={pathname}
