@@ -44,6 +44,16 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
             }
         }
 
+        // 2.5 Delete related DiffResults (manual cascade because schema lacks onDelete: Cascade)
+        await prisma.diffResult.deleteMany({
+            where: {
+                OR: [
+                    { newReportId: id },
+                    { priorReportId: id }
+                ]
+            }
+        });
+
         // 3. Delete the report from database
         // Note: Prisma schema typically cascades deletes for accounts, but might not for StoredFile if it's a relation
         await prisma.creditReport.delete({
