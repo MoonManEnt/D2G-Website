@@ -22,6 +22,7 @@ import {
   RoundDefinition,
 } from "@/types";
 import { formatDate, CRA_INFO } from "./utils";
+import prisma from "./prisma";
 
 // ============================================================================
 // TYPES
@@ -174,52 +175,92 @@ const STATUTE_TEXT: Record<string, { title: string; argument: string }> = {
 };
 
 // ============================================================================
+// CONTENT RESOLUTION HELPERS
+// ============================================================================
+
+async function resolveStatute(flow: FlowType, round: number, statuteCode: string) {
+  try {
+    const statute = await prisma.statuteContent.findFirst({
+      where: {
+        flow,
+        round,
+        statuteCode,
+      },
+    });
+    return statute?.argumentText || STATUTE_TEXT[statuteCode]?.argument;
+  } catch (error) {
+    console.error("Error resolving statute from DB, falling back:", error);
+    return STATUTE_TEXT[statuteCode]?.argument;
+  }
+}
+
+async function resolveTemplate(flow: FlowType, round: number) {
+  try {
+    const template = await prisma.letterTemplate.findFirst({
+      where: {
+        flow,
+        round,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    return template;
+  } catch (error) {
+    console.error("Error resolving template from DB, falling back:", error);
+    return null;
+  }
+}
+
+// ============================================================================
 // CRA LETTER GENERATION
 // ============================================================================
 
-export function generateCRALetter(context: GenerationContext): GeneratedLetter {
+export async function generateCRALetter(context: GenerationContext): Promise<GeneratedLetter> {
   const { client, accounts, cra, flow, round, evidence, customDamages, customFacts, customStatement } = context;
-  
+
   const roundDef = getRoundDefinition(flow, round);
   const statutesCited = roundDef ? [roundDef.statuteCode] : [];
   const sections: LetterSection[] = [];
-  
+
+  // Try to find a specialized template
+  const dbTemplate = await resolveTemplate(flow, round);
+
   // Header
   sections.push({
     type: "HEADER",
     content: generateHeader(client, cra),
   });
-  
+
   // Headline
   sections.push({
     type: "HEADLINE",
     content: generateHeadline(flow, round, cra),
   });
-  
+
   // Damages section
   sections.push({
     type: "DAMAGES",
     content: customDamages || generateDamagesSection(),
   });
-  
+
   // Facts section
+  const resolvedStatute = roundDef ? await resolveStatute(flow, round, roundDef.statuteCode) : null;
   sections.push({
     type: "FACTS",
-    content: customFacts || generateFactsSection(flow, round),
+    content: customFacts || generateFactsSection(flow, round, resolvedStatute),
   });
-  
+
   // Item list
   sections.push({
     type: "ITEMS",
     content: generateItemList(accounts),
   });
-  
+
   // Consumer statement
   sections.push({
     type: "STATEMENT",
     content: customStatement || generateConsumerStatement(flow, round, roundDef),
   });
-  
+
   // Evidence appendix (if present)
   if (evidence && evidence.length > 0) {
     sections.push({
@@ -227,16 +268,16 @@ export function generateCRALetter(context: GenerationContext): GeneratedLetter {
       content: generateEvidenceAppendix(evidence),
     });
   }
-  
+
   // Footer
   sections.push({
     type: "FOOTER",
     content: generateFooter(client),
   });
-  
+
   // Combine into full content
   const fullContent = sections.map(s => s.content).join("\n\n");
-  
+
   return {
     documentType: DocumentType.CRA_LETTER,
     cra,
@@ -251,10 +292,10 @@ export function generateCRALetter(context: GenerationContext): GeneratedLetter {
 function generateHeader(client: ClientInfo, cra: CRA): string {
   const today = formatDate(new Date());
   const craInfo = CRA_ADDRESSES[cra];
-  
+
   let header = `${today}\n\n`;
   header += `${client.firstName} ${client.lastName}\n`;
-  
+
   if (client.addressLine1) {
     header += `${client.addressLine1}\n`;
     if (client.addressLine2) header += `${client.addressLine2}\n`;
@@ -262,15 +303,15 @@ function generateHeader(client: ClientInfo, cra: CRA): string {
       header += `${client.city}, ${client.state} ${client.zipCode}\n`;
     }
   }
-  
+
   header += `\nSSN: XXX-XX-${client.ssnLast4 || "XXXX"}\n`;
   if (client.dateOfBirth) {
     header += `DOB: ${formatDate(client.dateOfBirth)}\n`;
   }
-  
+
   header += `\n${craInfo.address.join("\n")}\n`;
   header += `\nRe: Formal Dispute and Request for Investigation\n`;
-  
+
   return header;
 }
 
@@ -291,24 +332,26 @@ function generateDamagesSection(): string {
 I reserve all rights to pursue statutory and actual damages under applicable law.`;
 }
 
-function generateFactsSection(flow: FlowType, round: number): string {
+function generateFactsSection(flow: FlowType, round: number, resolvedStatute?: string | null): string {
   const roundDef = getRoundDefinition(flow, round);
-  
+
   let facts = `I am writing to formally dispute inaccurate information appearing on my credit report. `;
   facts += `This dispute is being submitted pursuant to my rights under the Fair Credit Reporting Act (FCRA).\n\n`;
-  
-  if (roundDef && STATUTE_TEXT[roundDef.statuteCode]) {
+
+  if (resolvedStatute) {
+    facts += `${resolvedStatute}\n\n`;
+  } else if (roundDef && STATUTE_TEXT[roundDef.statuteCode]) {
     facts += `${STATUTE_TEXT[roundDef.statuteCode].argument}\n\n`;
   }
-  
+
   facts += `I have identified the following account(s) as containing inaccurate information that must be investigated and corrected or deleted:`;
-  
+
   return facts;
 }
 
 function generateItemList(accounts: AccountForLetter[]): string {
   let list = "";
-  
+
   accounts.forEach((account, index) => {
     list += `\n${index + 1}. CREDITOR: ${account.creditorName}\n`;
     list += `   Account Number: ${account.maskedAccountId}\n`;
@@ -321,7 +364,7 @@ function generateItemList(accounts: AccountForLetter[]): string {
       list += `   Dispute Reason: Information is inaccurate and cannot be verified\n`;
     }
   });
-  
+
   return list;
 }
 
@@ -332,22 +375,22 @@ function generateConsumerStatement(flow: FlowType, round: number, roundDef: Roun
   statement += `2. Written notice of the results of your investigation\n`;
   statement += `3. The method of verification used for each disputed item\n`;
   statement += `4. Contact information for any furnishers contacted during your investigation\n\n`;
-  
+
   if (roundDef && !roundDef.isLitigationMarker) {
     statement += `This dispute is submitted under ${roundDef.statuteCode}. `;
     statement += `Please be advised that I am maintaining detailed records of this dispute process for potential use in litigation.\n\n`;
   }
-  
+
   statement += `You have 30 days from receipt of this letter to complete your investigation and provide the requested information. `;
   statement += `Failure to comply with these requirements may result in legal action.`;
-  
+
   return statement;
 }
 
 function generateEvidenceAppendix(evidence: EvidenceItem[]): string {
   let appendix = `EVIDENCE APPENDIX\n${"=".repeat(50)}\n\n`;
   appendix += `The following evidence is attached in support of this dispute:\n\n`;
-  
+
   evidence.forEach((item, index) => {
     appendix += `Exhibit ${String.fromCharCode(65 + index)}: `;
     appendix += item.title || `Evidence Item ${index + 1}`;
@@ -356,7 +399,7 @@ function generateEvidenceAppendix(evidence: EvidenceItem[]): string {
     }
     appendix += `\n\n`;
   });
-  
+
   return appendix;
 }
 
@@ -377,50 +420,50 @@ Enclosures: Copy of identification, supporting evidence (if applicable)`;
 
 export function generateCFPBDraft(context: GenerationContext): GeneratedLetter {
   const { client, accounts, cra, flow, round } = context;
-  
+
   // CFPB drafts are statute-free per spec
   const sections: LetterSection[] = [];
-  
+
   // Generate the CFPB narrative structure
   const cfpbStructure = generateCFPBStructure(client, accounts, cra);
-  
+
   sections.push({
     type: "HEADER",
     content: `CFPB COMPLAINT DRAFT\nConsumer: ${client.firstName} ${client.lastName}\nAgainst: ${CRA_INFO[cra].name}`,
   });
-  
+
   // Intro
   sections.push({
     type: "FACTS",
     content: `INTRODUCTION\n${"—".repeat(40)}\n\n${cfpbStructure.intro}`,
   });
-  
+
   // When
   sections.push({
     type: "FACTS",
     content: `WHEN DID THIS HAPPEN?\n${"—".repeat(40)}\n\n${cfpbStructure.when}`,
   });
-  
+
   // How
   sections.push({
     type: "FACTS",
     content: `HOW DID THIS AFFECT YOU?\n${"—".repeat(40)}\n\n${cfpbStructure.how}`,
   });
-  
+
   // Why
   sections.push({
     type: "FACTS",
     content: `WHY IS THIS A PROBLEM?\n${"—".repeat(40)}\n\n${cfpbStructure.why}`,
   });
-  
+
   // What
   sections.push({
     type: "STATEMENT",
     content: `WHAT DO YOU WANT TO HAPPEN?\n${"—".repeat(40)}\n\n${cfpbStructure.what}`,
   });
-  
+
   const fullContent = sections.map(s => s.content).join("\n\n");
-  
+
   return {
     documentType: DocumentType.CFPB_DRAFT,
     cra,
@@ -439,16 +482,16 @@ function generateCFPBStructure(
 ): CFPBDraftStructure {
   const craName = CRA_INFO[cra].name;
   const accountList = accounts.map(a => `${a.creditorName} (${a.maskedAccountId})`).join(", ");
-  
+
   return {
     intro: `I am filing this complaint against ${craName} regarding inaccurate information appearing on my credit report. Despite my previous attempts to resolve this matter directly with ${craName}, the inaccurate information continues to be reported, causing ongoing harm to my creditworthiness and financial standing.\n\nThe following account(s) contain inaccurate information: ${accountList}.`,
-    
+
     when: `I first discovered the inaccurate information on my credit report and subsequently sent a written dispute to ${craName}. I have disputed this information through proper channels, but ${craName} has failed to adequately investigate my dispute or correct the inaccurate information. The inaccurate reporting has been ongoing.`,
-    
+
     how: `The inaccurate information on my credit report has caused me significant harm, including:\n\n• Negative impact on my credit score\n• Difficulty obtaining credit at favorable terms\n• Denial of credit applications\n• Emotional distress and anxiety about my financial standing\n• Time and resources spent attempting to correct this information`,
-    
+
     why: `${craName} has a legal obligation to investigate consumer disputes thoroughly and to ensure the accuracy of the information they report. By failing to properly investigate my dispute and continuing to report inaccurate information, ${craName} has not met its obligations to me as a consumer. The continued reporting of this inaccurate information is unacceptable and has caused me real harm.`,
-    
+
     what: `I am requesting that the CFPB:\n\n1. Investigate my complaint against ${craName}\n2. Require ${craName} to conduct a proper investigation of my dispute\n3. Require ${craName} to correct or delete the inaccurate information from my credit report\n4. Provide me with documentation of the investigation and its findings\n5. Take appropriate action if ${craName} is found to have violated my rights as a consumer`,
   };
 }
@@ -459,7 +502,7 @@ function generateCFPBStructure(
 
 function getRoundDefinition(flow: FlowType, round: number): RoundDefinition | null {
   let rounds: RoundDefinition[];
-  
+
   switch (flow) {
     case FlowType.ACCURACY:
       rounds = ACCURACY_FLOW_ROUNDS;
@@ -477,7 +520,7 @@ function getRoundDefinition(flow: FlowType, round: number): RoundDefinition | nu
     default:
       return null;
   }
-  
+
   return rounds.find(r => r.round === round) || null;
 }
 

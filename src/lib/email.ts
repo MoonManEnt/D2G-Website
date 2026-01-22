@@ -10,6 +10,7 @@ import {
   documentReadyTemplate,
   BrandingConfig,
 } from "./email-templates";
+import prisma from "./prisma";
 
 // Initialize Resend client
 const resend = process.env.RESEND_API_KEY
@@ -34,14 +35,36 @@ async function getOrganizationBranding(
 ): Promise<Partial<BrandingConfig> | undefined> {
   if (!organizationId) return undefined;
 
-  // TODO: Fetch organization branding from database
-  // For now, return default branding
-  return {
-    companyName: process.env.DEFAULT_COMPANY_NAME || "Dispute2Go",
-    primaryColor: "#7c3aed",
-    supportEmail: process.env.DEFAULT_SUPPORT_EMAIL || "support@dispute2go.com",
-    websiteUrl: APP_URL,
-  };
+  try {
+    const org = await prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: {
+        name: true,
+        primaryColor: true,
+        logoUrl: true,
+        supportEmail: true,
+        websiteUrl: true,
+      },
+    });
+
+    if (!org) return undefined;
+
+    return {
+      companyName: org.name,
+      primaryColor: org.primaryColor || "#7c3aed",
+      logoUrl: org.logoUrl || undefined,
+      supportEmail: org.supportEmail || process.env.DEFAULT_SUPPORT_EMAIL || "support@dispute2go.com",
+      websiteUrl: org.websiteUrl || APP_URL,
+    };
+  } catch (error) {
+    console.error("Error fetching organization branding:", error);
+    return {
+      companyName: process.env.DEFAULT_COMPANY_NAME || "Dispute2Go",
+      primaryColor: "#7c3aed",
+      supportEmail: process.env.DEFAULT_SUPPORT_EMAIL || "support@dispute2go.com",
+      websiteUrl: APP_URL,
+    };
+  }
 }
 
 // Strip HTML for plain text version

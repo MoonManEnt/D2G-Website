@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -18,6 +18,11 @@ model Organization {
   stripeCustomerId     String?
   stripeSubscriptionId String?
   settings             String           @default("{}")
+  logoUrl              String?
+  primaryColor         String?          @default("#7c3aed")
+  secondaryColor       String?
+  supportEmail         String?
+  websiteUrl           String?
   clients              Client[]
   reports              CreditReport[]
   documents            Document[]
@@ -125,11 +130,11 @@ model AccountItem {
   cra              String
   accountType      String?
   accountStatus    String        @default("UNKNOWN")
-  balance          Decimal?
-  pastDue          Decimal?
-  creditLimit      Decimal?
-  highBalance      Decimal?
-  monthlyPayment   Decimal?
+  balance          Float?
+  pastDue          Float?
+  creditLimit      Float?
+  highBalance      Float?
+  monthlyPayment   Float?
   dateOpened       DateTime?
   dateReported     DateTime?
   lastActivityDate DateTime?

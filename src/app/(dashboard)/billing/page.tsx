@@ -274,7 +274,7 @@ export default function BillingPage() {
               Full access to all features
             </CardDescription>
             <div className="pt-4">
-              <span className="text-4xl font-bold text-white">$149</span>
+              <span className="text-4xl font-bold text-white">${PLAN_FEATURES.PRO.price}</span>
               <span className="text-slate-400">/month</span>
             </div>
           </CardHeader>
@@ -305,7 +305,7 @@ export default function BillingPage() {
                   ) : (
                     <Zap className="w-4 h-4 mr-2" />
                   )}
-                  Upgrade to Pro - $149/mo
+                  Upgrade to Pro - ${PLAN_FEATURES.PRO.price}/mo
                 </Button>
                 <Button
                   variant="outline"
