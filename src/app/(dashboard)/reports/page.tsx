@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { FileText, Upload, AlertCircle, Loader2, CheckCircle, XCircle, Eye, AlertTriangle, Scale, ShieldAlert } from "lucide-react";
+import { FileText, Upload, AlertCircle, Loader2, CheckCircle, XCircle, Eye, AlertTriangle, Scale, ShieldAlert, Trash2 } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
 
 interface Client {
@@ -137,6 +137,39 @@ export default function ReportsPage() {
       console.error("Failed to fetch accounts:", error);
     } finally {
       setLoadingAccounts(false);
+    }
+  };
+
+  const handleDeleteReport = async (reportId: string, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent opening the report view
+
+    if (!window.confirm("Are you sure you want to delete this report? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/reports/${reportId}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        toast({
+          title: "Report Deleted",
+          description: "The credit report has been successfully deleted.",
+        });
+        // Remove from local state immediately
+        setReports(reports.filter(r => r.id !== reportId));
+      } else {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to delete report");
+      }
+    } catch (error) {
+      console.error("Delete error:", error);
+      toast({
+        title: "Delete Failed",
+        description: error instanceof Error ? error.message : "Could not delete report",
+        variant: "destructive",
+      });
     }
   };
 
@@ -482,6 +515,14 @@ export default function ReportsPage() {
                       <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">
                         <Eye className="w-4 h-4 mr-1" />
                         View
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-slate-400 hover:text-red-400"
+                        onClick={(e) => handleDeleteReport(report.id, e)}
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
