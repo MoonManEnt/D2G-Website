@@ -107,9 +107,10 @@ export async function middleware(request: NextRequest) {
 
   // Apply rate limiting to API routes
   if (pathname.startsWith("/api/")) {
-    // Stricter limits for auth endpoints
-    if (pathname.includes("/auth/") || pathname.includes("/forgot-password") || pathname.includes("/reset-password")) {
-      const isAllowed = await rateLimit(ip, 10, 15 * 60 * 1000); // 10 requests per 15 minutes
+    // Stricter limits for auth endpoints (only for mutation requests like login/reset)
+    // We deny this only for POST requests to allow session polling/CSRF/provider checks (GETs)
+    if ((pathname.includes("/auth/") || pathname.includes("/forgot-password") || pathname.includes("/reset-password")) && request.method === "POST") {
+      const isAllowed = await rateLimit(ip, 10, 15 * 60 * 1000); // 10 failed attempts per 15 minutes
       if (!isAllowed) {
         return new NextResponse(
           JSON.stringify({ error: "Too many authentication attempts. Please try again later." }),
