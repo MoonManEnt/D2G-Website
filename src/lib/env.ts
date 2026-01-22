@@ -54,6 +54,12 @@ const envSchema = z.object({
   // Redis for background jobs (optional)
   REDIS_URL: z.string().optional(),
 
+  // Vercel KV / Upstash (Rate Limiting)
+  KV_REST_API_URL: z.string().optional(),
+  KV_REST_API_TOKEN: z.string().optional(),
+  UPSTASH_REDIS_REST_URL: z.string().optional(),
+  UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
+
   // Vercel Blob (optional)
   BLOB_READ_WRITE_TOKEN: z.string().optional(),
 

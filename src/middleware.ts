@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
-import { kv } from "@vercel/kv";
+import { createClient } from "@vercel/kv";
 
 // In-memory fallback for local development or if KV is not configured
 const localRateLimitMap = new Map<string, { count: number; resetTime: number }>();
@@ -40,8 +40,16 @@ if (typeof setInterval !== "undefined") {
  * Rate limit using Vercel KV with local fallback
  */
 async function rateLimit(ip: string, limit: number, windowMs: number): Promise<boolean> {
-  // Use Vercel KV if configured (Production/Preview)
-  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  // Use Vercel KV / Upstash if configured (Production/Preview)
+  if (url && token) {
+    const kv = createClient({
+      url,
+      token,
+    });
+
     const key = `rate_limit:${ip}`;
     try {
       const count = await kv.incr(key);
