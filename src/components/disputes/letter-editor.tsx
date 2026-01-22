@@ -280,11 +280,11 @@ ${content.replace(/\n/g, "\\par\n").replace(/[{}\\]/g, "\\$&")}
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-slate-800 border-slate-700 max-w-4xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="bg-slate-800 border-slate-700 max-w-4xl h-[90vh] flex flex-col p-0">
+        <DialogHeader className="p-6 pb-2">
           <div className="flex items-center justify-between">
             <div>
-              <DialogTitle className="text-white flex items-center gap-2">
+              <DialogTitle className="text-white flex items-center gap-2 text-xl">
                 <FileText className="w-5 h-5" />
                 {documentTitle}
               </DialogTitle>
@@ -299,8 +299,8 @@ ${content.replace(/\n/g, "\\par\n").replace(/[{}\\]/g, "\\$&")}
         </DialogHeader>
 
         {/* Tabs for Letter and CFPB Complaint */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-          <TabsList className="bg-slate-700/50 border-slate-600 w-full justify-start">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 px-6">
+          <TabsList className="bg-slate-700/50 border-slate-600 w-full justify-start mb-0">
             <TabsTrigger value="letter" className="data-[state=active]:bg-slate-600">
               <FileText className="w-4 h-4 mr-2" />
               Dispute Letter
@@ -312,7 +312,7 @@ ${content.replace(/\n/g, "\\par\n").replace(/[{}\\]/g, "\\$&")}
           </TabsList>
 
           {/* Letter Tab */}
-          <TabsContent value="letter" className="flex-1 flex flex-col overflow-hidden mt-0">
+          <TabsContent value="letter" className="flex-1 flex flex-col min-h-0 mt-0 pt-2">
             {/* Letter Toolbar */}
             <div className="flex items-center justify-between py-2 border-b border-slate-700">
               <div className="flex items-center gap-2">
@@ -395,17 +395,17 @@ ${content.replace(/\n/g, "\\par\n").replace(/[{}\\]/g, "\\$&")}
             </div>
 
             {/* Letter Content Area */}
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 min-h-0 relative">
               {isEditing ? (
                 <Textarea
                   ref={textareaRef}
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  className="w-full h-full min-h-[400px] bg-slate-900 border-slate-700 text-slate-200 font-mono text-sm resize-none"
+                  className="absolute inset-0 w-full h-full bg-slate-900 border-slate-700 text-slate-200 font-mono text-sm resize-none p-4"
                   placeholder="Letter content..."
                 />
               ) : (
-                <div className="h-full overflow-y-auto bg-white rounded-lg p-8">
+                <div className="absolute inset-0 overflow-y-auto bg-white rounded-lg p-8 shadow-inner">
                   <pre className="whitespace-pre-wrap font-mono text-sm text-slate-900 leading-relaxed">
                     {content}
                   </pre>
@@ -414,7 +414,7 @@ ${content.replace(/\n/g, "\\par\n").replace(/[{}\\]/g, "\\$&")}
             </div>
 
             {/* Letter Footer */}
-            <div className="pt-3 border-t border-slate-700 flex items-center justify-between text-xs text-slate-500">
+            <div className="py-4 border-t border-slate-700 flex items-center justify-between text-xs text-slate-500 bg-slate-800">
               <div className="flex items-center gap-2">
                 {isEditing ? (
                   <span className="text-amber-400">Editing mode - changes not saved yet</span>
@@ -431,7 +431,7 @@ ${content.replace(/\n/g, "\\par\n").replace(/[{}\\]/g, "\\$&")}
           </TabsContent>
 
           {/* CFPB Complaint Tab */}
-          <TabsContent value="cfpb" className="flex-1 flex flex-col overflow-hidden mt-0">
+          <TabsContent value="cfpb" className="flex-1 flex flex-col min-h-0 mt-0 pt-2 pb-4">
             {/* CFPB Toolbar */}
             <div className="flex items-center justify-between py-2 border-b border-slate-700">
               <div className="flex items-center gap-2">
@@ -469,13 +469,13 @@ ${content.replace(/\n/g, "\\par\n").replace(/[{}\\]/g, "\\$&")}
             </div>
 
             {/* CFPB Content Area */}
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 min-h-0 relative">
               {cfpbLoading ? (
-                <div className="h-full flex items-center justify-center">
+                <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-slate-400">Generating CFPB complaint...</div>
                 </div>
               ) : (
-                <div className="h-full overflow-y-auto bg-slate-900 rounded-lg p-6">
+                <div className="absolute inset-0 overflow-y-auto bg-slate-900 rounded-lg p-6">
                   <pre className="whitespace-pre-wrap font-mono text-sm text-amber-200/90 leading-relaxed">
                     {cfpbContent}
                   </pre>
