@@ -50,6 +50,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     } else {
       // Handle legacy paths or local files (unlikely to work in serverless unless bundled)
       console.warn(`Attempting to read local file: ${storagePath}`);
+
+      // Check for broken blob:// paths (zombie reports)
+      if (storagePath.startsWith("blob:")) {
+        console.error("Attempted to access non-persisted blob path:", storagePath);
+        return NextResponse.json(
+          { error: "PDF file was not permanently saved. Please re-upload this report." },
+          { status: 404 }
+        );
+      }
+
       try {
         pdfBuffer = await readFile(storagePath);
       } catch (err) {

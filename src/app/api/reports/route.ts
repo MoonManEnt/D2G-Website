@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     let fileSize: number;
     let blobUrl: string | undefined;
 
-    // Check if this is a JSON request (blob URL) or form data (direct upload)
+    // Check if this is a JSON request (blob URL)
     if (contentType.includes("application/json")) {
       // Blob URL mode - fetch PDF from blob storage
       const body = await request.json();
@@ -101,40 +101,14 @@ export async function POST(request: NextRequest) {
       fileSize = pdfBuffer.length;
 
     } else {
-      // Direct upload mode (for smaller files)
-      const formData = await request.formData();
-      const file = formData.get("file") as File;
-      clientId = formData.get("clientId") as string;
-      reportDate = formData.get("reportDate") as string;
-
-      if (!file || !clientId) {
-        return NextResponse.json(
-          { error: "File and clientId are required" },
-          { status: 400 }
-        );
-      }
-
-      // Validate file type
-      if (file.type !== "application/pdf") {
-        return NextResponse.json(
-          { error: "Only PDF files are allowed" },
-          { status: 400 }
-        );
-      }
-
-      // Validate file size (50MB limit)
-      const maxSize = 50 * 1024 * 1024;
-      if (file.size > maxSize) {
-        return NextResponse.json(
-          { error: "File size exceeds 50MB limit" },
-          { status: 400 }
-        );
-      }
-
-      const bytes = await file.arrayBuffer();
-      pdfBuffer = Buffer.from(bytes);
-      fileName = file.name;
-      fileSize = file.size;
+      // Direct upload mode is disabled because we cannot persist files in serverless environment
+      // reliably without an external storage provider (which is what Vercel Blob is for).
+      // Falling back to direct upload creates "zombie" reports with unviewable PDFs.
+      console.error(`Unsupported content-type: ${contentType}`);
+      return NextResponse.json(
+        { error: "Unsupported content-type. Please use the client-side upload flow." },
+        { status: 415 }
+      );
     }
 
     // Verify client belongs to organization
