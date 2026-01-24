@@ -681,3 +681,51 @@ model Communication {
   @@index([type, status])
   @@index([externalId])
 }
+
+// =============================================================================
+// CREDIT DNA - Credit profile classification and analysis
+// =============================================================================
+
+model CreditDNA {
+  id               String   @id @default(uuid())
+  clientId         String
+  reportId         String
+  organizationId   String
+
+  // Primary classification
+  classification   String   // THIN_FILE_REBUILDER, THICK_FILE_DEROG, etc.
+  subClassifications String @default("[]") // JSON array of sub-classifications
+  confidence       Int      @default(0)    // 0-100
+  confidenceLevel  String   @default("MEDIUM") // LOW, MEDIUM, HIGH
+
+  // Overall scores
+  healthScore      Int      @default(0)    // 0-100
+  improvementPotential Int  @default(0)    // 0-100
+  urgencyScore     Int      @default(0)    // 0-100
+
+  // Component analysis (JSON blobs for flexibility)
+  fileThickness    String   @default("{}") // JSON: FileThicknessMetrics
+  derogatoryProfile String  @default("{}") // JSON: DerogatoryProfile
+  utilization      String   @default("{}") // JSON: UtilizationAnalysis
+  bureauDivergence String   @default("{}") // JSON: BureauDivergence
+  inquiryAnalysis  String   @default("{}") // JSON: InquiryAnalysis
+  positiveFactors  String   @default("{}") // JSON: PositiveFactors
+  disputeReadiness String   @default("{}") // JSON: DisputeReadiness
+
+  // Narratives
+  summary          String   @default("")   // Human-readable summary
+  keyInsights      String   @default("[]") // JSON array of insights
+  immediateActions String   @default("[]") // JSON array of recommended actions
+
+  // Metadata
+  version          String   @default("1.0.0")
+  computeTimeMs    Int      @default(0)
+  analyzedAt       DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([organizationId])
+  @@index([classification])
+  @@index([analyzedAt])
+}
