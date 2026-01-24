@@ -48,6 +48,7 @@ import {
 import { useToast } from "@/lib/use-toast";
 import { LetterEditor } from "@/components/disputes/letter-editor";
 import { WorkflowTracker } from "@/components/disputes/workflow-tracker";
+import { RoundHistory } from "@/components/disputes/round-history";
 import { type DisputeFlow, type ResponseOutcome, FLOW_DESCRIPTIONS } from "@/lib/dispute-rounds";
 import {
   getDNAClassificationLabel,
@@ -475,6 +476,40 @@ export default function DisputesPage() {
     return <Badge className={c[cra] || ""}>{cra}</Badge>;
   };
 
+  const getFCRADeadlineBadge = (dispute: Dispute) => {
+    if (dispute.status !== "SENT" || !dispute.sentAt) return null;
+
+    const sentDate = new Date(dispute.sentAt);
+    const deadlineDate = new Date(sentDate);
+    deadlineDate.setDate(deadlineDate.getDate() + 30);
+    const now = new Date();
+    const daysRemaining = Math.ceil((deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (daysRemaining < 0) {
+      return (
+        <Badge className="bg-red-500/20 text-red-400 border-red-500/30 animate-pulse">
+          <AlertTriangle className="w-3 h-3 mr-1" />
+          {Math.abs(daysRemaining)}d Overdue
+        </Badge>
+      );
+    } else if (daysRemaining <= 5) {
+      return (
+        <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">
+          <Clock className="w-3 h-3 mr-1" />
+          {daysRemaining}d Left
+        </Badge>
+      );
+    } else if (daysRemaining <= 10) {
+      return (
+        <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+          <Clock className="w-3 h-3 mr-1" />
+          {daysRemaining}d Left
+        </Badge>
+      );
+    }
+    return null;
+  };
+
   const filteredAccounts = negativeAccounts.filter((a) => (!selectedClient || a.client?.id === selectedClient) && (!selectedCRA || a.cra === selectedCRA));
 
   const draftDisputes = disputes.filter((d) => d.status === "DRAFT");
@@ -560,6 +595,7 @@ export default function DisputesPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
+                          {getFCRADeadlineBadge(dispute)}
                           {getStatusBadge(dispute.status)}
                           <Button size="sm" variant="outline" onClick={() => { setSelectedDispute(dispute); setDetailDialogOpen(true); }}>
                             <Eye className="w-4 h-4 mr-1" />View
@@ -900,6 +936,18 @@ export default function DisputesPage() {
                     }
                   }}
                 />
+
+                {/* Round History - Show for rounds > 1 or after first round completed */}
+                {(selectedDispute.round > 1 || ["RESPONDED", "RESOLVED", "ESCALATED"].includes(selectedDispute.status)) && (
+                  <div className="p-4 bg-slate-700/20 rounded-lg border border-slate-600">
+                    <RoundHistory
+                      disputeId={selectedDispute.id}
+                      clientId={selectedDispute.client.id}
+                      currentRound={selectedDispute.round}
+                      currentCra={selectedDispute.cra}
+                    />
+                  </div>
+                )}
 
                 {/* Response Section - Show for SENT, RESPONDED, RESOLVED */}
                 {["SENT", "RESPONDED", "RESOLVED"].includes(selectedDispute.status) && (

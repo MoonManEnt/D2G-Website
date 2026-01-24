@@ -16,6 +16,7 @@ import {
   Bell,
 } from "lucide-react";
 import { ReminderList } from "@/components/reminders";
+import { FCRAAlerts } from "./fcra-alerts";
 
 // Animation variants
 const containerVariants = {
@@ -192,6 +193,11 @@ export function DashboardClient({
             </motion.a>
           );
         })}
+      </motion.div>
+
+      {/* FCRA Compliance Alerts */}
+      <motion.div variants={itemVariants}>
+        <FCRAAlerts />
       </motion.div>
 
       {/* Needs Review Alert */}

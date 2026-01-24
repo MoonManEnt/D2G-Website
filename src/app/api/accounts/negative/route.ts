@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import {
+  assessDisputeWorthiness,
+  type WorthinessInput,
+} from "@/lib/dispute-intelligence/worthiness";
+import type { DisputeOutcome } from "@/lib/dispute-intelligence/types";
 
 export const dynamic = 'force-dynamic';
 
@@ -75,10 +80,66 @@ export async function GET(request: Request) {
       ],
     });
 
-    // Transform decimal fields to numbers for JSON
+    // Get all account fingerprints to find cross-bureau matches
+    const allFingerprints = accounts.map(a => a.fingerprint).filter(Boolean);
+    const fingerprintMap = new Map<string, typeof accounts>();
+
+    // Group accounts by fingerprint for cross-bureau analysis
+    for (const account of accounts) {
+      if (account.fingerprint) {
+        const existing = fingerprintMap.get(account.fingerprint) || [];
+        existing.push(account);
+        fingerprintMap.set(account.fingerprint, existing);
+      }
+    }
+
+    // Get dispute history for all accounts
+    const accountIds = accounts.map(a => a.id);
+    const disputeResponses = await prisma.disputeResponse.findMany({
+      where: {
+        disputeItem: {
+          accountItemId: { in: accountIds }
+        }
+      },
+      include: {
+        disputeItem: {
+          include: {
+            dispute: {
+              select: {
+                round: true,
+                cra: true,
+                createdAt: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // Build dispute history map
+    const disputeHistoryMap = new Map<string, Array<{
+      round: number;
+      outcome: DisputeOutcome;
+      cra: string;
+      date: Date;
+    }>>();
+
+    for (const response of disputeResponses) {
+      const accountItemId = response.disputeItem.accountItemId;
+      const history = disputeHistoryMap.get(accountItemId) || [];
+      history.push({
+        round: response.disputeItem.dispute.round,
+        outcome: response.outcome as DisputeOutcome,
+        cra: response.disputeItem.dispute.cra,
+        date: response.responseDate
+      });
+      disputeHistoryMap.set(accountItemId, history);
+    }
+
+    // Transform decimal fields to numbers for JSON and calculate worthiness
     const transformedAccounts = accounts.map(account => {
       // Check for active disputes
-      // Since we filtered in the query to only include active disputes, 
+      // Since we filtered in the query to only include active disputes,
       // if the array has length > 0, it has an active dispute.
       const activeDisputeItem = account.disputes[0];
       const activeDispute = activeDisputeItem ? {
@@ -89,6 +150,61 @@ export async function GET(request: Request) {
         cra: activeDisputeItem.dispute.cra
       } : null;
 
+      // Parse detected issues
+      let parsedIssues: Array<{ code: string; severity: string }> = [];
+      try {
+        parsedIssues = account.detectedIssues ? JSON.parse(account.detectedIssues) : [];
+      } catch {
+        parsedIssues = [];
+      }
+
+      // Get cross-bureau accounts with same fingerprint
+      const crossBureauAccounts = account.fingerprint
+        ? (fingerprintMap.get(account.fingerprint) || [])
+        : [account];
+
+      // Build worthiness input
+      const worthinessInput: WorthinessInput = {
+        account: {
+          id: account.id,
+          creditorName: account.creditorName,
+          accountNumber: account.maskedAccountId,
+          cra: account.cra as "TRANSUNION" | "EXPERIAN" | "EQUIFAX",
+          accountType: account.accountType,
+          accountStatus: account.accountStatus || "UNKNOWN",
+          balance: account.balance ? Number(account.balance) : null,
+          creditLimit: account.creditLimit ? Number(account.creditLimit) : null,
+          pastDue: account.pastDue ? Number(account.pastDue) : null,
+          dateOpened: account.dateOpened,
+          dateReported: account.dateReported,
+          paymentStatus: account.paymentStatus,
+          detectedIssues: parsedIssues,
+          fingerprint: account.fingerprint || ""
+        },
+        allAccountsWithFingerprint: crossBureauAccounts.map(a => ({
+          id: a.id,
+          creditorName: a.creditorName,
+          accountNumber: a.maskedAccountId,
+          cra: a.cra as "TRANSUNION" | "EXPERIAN" | "EQUIFAX",
+          accountType: a.accountType,
+          accountStatus: a.accountStatus || "UNKNOWN",
+          balance: a.balance ? Number(a.balance) : null,
+          creditLimit: a.creditLimit ? Number(a.creditLimit) : null,
+          pastDue: a.pastDue ? Number(a.pastDue) : null,
+          dateOpened: a.dateOpened,
+          dateReported: a.dateReported,
+          paymentStatus: a.paymentStatus,
+          detectedIssues: [],
+          fingerprint: a.fingerprint || ""
+        })),
+        disputeHistory: disputeHistoryMap.get(account.id) || [],
+        hasEvidence: account.evidences.length > 0,
+        evidenceType: account.evidences[0]?.evidenceType
+      };
+
+      // Calculate worthiness
+      const worthiness = assessDisputeWorthiness(worthinessInput);
+
       return {
         ...account,
         balance: account.balance ? Number(account.balance) : null,
@@ -97,8 +213,32 @@ export async function GET(request: Request) {
         highBalance: account.highBalance ? Number(account.highBalance) : null,
         monthlyPayment: account.monthlyPayment ? Number(account.monthlyPayment) : null,
         activeDispute, // Attach the active dispute info
+        worthiness: {
+          worthinessScore: worthiness.worthinessScore,
+          priorityScore: worthiness.priorityScore,
+          successLikelihood: worthiness.successLikelihood,
+          timing: worthiness.timing,
+          timingReason: worthiness.timingReason,
+          recommendedFlow: worthiness.recommendedFlow,
+          recommendedApproach: worthiness.recommendedApproach,
+          expectedOutcome: worthiness.expectedOutcome,
+          confidenceLevel: worthiness.confidenceLevel,
+          estimatedScoreImpact: worthiness.estimatedScoreImpact,
+          impactReason: worthiness.impactReason,
+          factors: {
+            bureauReporting: worthiness.factors.bureauReporting,
+            hasDivergence: worthiness.factors.hasDivergence,
+            previousDisputes: worthiness.factors.previousDisputes,
+            wasEverDeleted: worthiness.factors.wasEverDeleted,
+            isTimeBared: worthiness.factors.isTimeBared,
+            potentialViolations: worthiness.factors.potentialViolations
+          }
+        }
       };
     });
+
+    // Sort by priority score (highest first)
+    transformedAccounts.sort((a, b) => b.worthiness.priorityScore - a.worthiness.priorityScore);
 
     // Calculate summary
     const summary = {

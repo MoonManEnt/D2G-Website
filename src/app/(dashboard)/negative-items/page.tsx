@@ -38,6 +38,11 @@ import {
   Send,
   Lock,
   ExternalLink,
+  TrendingUp,
+  Target,
+  Zap,
+  Clock,
+  ArrowUpDown,
 } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -50,6 +55,28 @@ interface AccountIssue {
   description: string;
   suggestedFlow: string;
   fcraSection?: string;
+}
+
+interface WorthinessData {
+  worthinessScore: number;
+  priorityScore: number;
+  successLikelihood: number;
+  timing: "IMMEDIATE" | "NEXT_ROUND" | "WAIT" | "STRATEGIC_HOLD";
+  timingReason: string;
+  recommendedFlow: string;
+  recommendedApproach: string;
+  expectedOutcome: string;
+  confidenceLevel: "LOW" | "MEDIUM" | "HIGH";
+  estimatedScoreImpact: number;
+  impactReason: string;
+  factors: {
+    bureauReporting: number;
+    hasDivergence: boolean;
+    previousDisputes: number;
+    wasEverDeleted: boolean;
+    isTimeBared: boolean;
+    potentialViolations: string[];
+  };
 }
 
 interface NegativeAccount {
@@ -90,6 +117,7 @@ interface NegativeAccount {
     date: string;
     cra: string;
   } | null;
+  worthiness: WorthinessData;
 }
 
 export default function NegativeItemsPage() {
@@ -106,6 +134,7 @@ export default function NegativeItemsPage() {
   const [captureAccount, setCaptureAccount] = useState<NegativeAccount | null>(null);
   const [selectedAccountIds, setSelectedAccountIds] = useState<Set<string>>(new Set());
   const [creatingDispute, setCreatingDispute] = useState(false);
+  const [sortBy, setSortBy] = useState<"priority" | "worthiness" | "success" | "impact">("priority");
 
   const fetchNegativeAccounts = useCallback(async () => {
     try {
@@ -320,23 +349,73 @@ export default function NegativeItemsPage() {
     }).format(amount);
   };
 
-  // Filter accounts
-  const filteredAccounts = accounts.filter(account => {
-    const issues = parseIssues(account.detectedIssues);
-    const hasHighSeverity = issues.some(i => i.severity === "HIGH");
-    const hasMediumSeverity = issues.some(i => i.severity === "MEDIUM");
+  const getWorthinessColor = (score: number) => {
+    if (score >= 70) return "text-green-400";
+    if (score >= 50) return "text-yellow-400";
+    if (score >= 30) return "text-orange-400";
+    return "text-red-400";
+  };
 
-    if (filterSeverity !== "ALL") {
-      if (filterSeverity === "HIGH" && !hasHighSeverity) return false;
-      if (filterSeverity === "MEDIUM" && !hasMediumSeverity) return false;
-    }
+  const getWorthinessBg = (score: number) => {
+    if (score >= 70) return "bg-green-500/20 border-green-500/30";
+    if (score >= 50) return "bg-yellow-500/20 border-yellow-500/30";
+    if (score >= 30) return "bg-orange-500/20 border-orange-500/30";
+    return "bg-red-500/20 border-red-500/30";
+  };
 
-    if (filterFlow !== "ALL" && account.suggestedFlow !== filterFlow) {
-      return false;
-    }
+  const getTimingBadge = (timing: string) => {
+    const config: Record<string, { bg: string; text: string; label: string }> = {
+      IMMEDIATE: { bg: "bg-green-500/20", text: "text-green-400", label: "Dispute Now" },
+      NEXT_ROUND: { bg: "bg-blue-500/20", text: "text-blue-400", label: "Next Round" },
+      WAIT: { bg: "bg-yellow-500/20", text: "text-yellow-400", label: "Wait" },
+      STRATEGIC_HOLD: { bg: "bg-slate-500/20", text: "text-slate-400", label: "Hold" },
+    };
+    const c = config[timing] || config.NEXT_ROUND;
+    return <Badge className={`${c.bg} ${c.text}`}>{c.label}</Badge>;
+  };
 
-    return true;
-  });
+  const getConfidenceBadge = (level: string) => {
+    const config: Record<string, { bg: string; text: string }> = {
+      HIGH: { bg: "bg-green-500/20", text: "text-green-400" },
+      MEDIUM: { bg: "bg-yellow-500/20", text: "text-yellow-400" },
+      LOW: { bg: "bg-red-500/20", text: "text-red-400" },
+    };
+    const c = config[level] || config.MEDIUM;
+    return <Badge className={`${c.bg} ${c.text}`}>{level}</Badge>;
+  };
+
+  // Filter and sort accounts
+  const filteredAccounts = accounts
+    .filter(account => {
+      const issues = parseIssues(account.detectedIssues);
+      const hasHighSeverity = issues.some(i => i.severity === "HIGH");
+      const hasMediumSeverity = issues.some(i => i.severity === "MEDIUM");
+
+      if (filterSeverity !== "ALL") {
+        if (filterSeverity === "HIGH" && !hasHighSeverity) return false;
+        if (filterSeverity === "MEDIUM" && !hasMediumSeverity) return false;
+      }
+
+      if (filterFlow !== "ALL" && account.suggestedFlow !== filterFlow) {
+        return false;
+      }
+
+      return true;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "priority":
+          return (b.worthiness?.priorityScore || 0) - (a.worthiness?.priorityScore || 0);
+        case "worthiness":
+          return (b.worthiness?.worthinessScore || 0) - (a.worthiness?.worthinessScore || 0);
+        case "success":
+          return (b.worthiness?.successLikelihood || 0) - (a.worthiness?.successLikelihood || 0);
+        case "impact":
+          return (b.worthiness?.estimatedScoreImpact || 0) - (a.worthiness?.estimatedScoreImpact || 0);
+        default:
+          return 0;
+      }
+    });
 
   // Summary stats
   const stats = {
@@ -442,6 +521,21 @@ export default function NegativeItemsPage() {
                 <SelectItem value="ACCURACY">Accuracy</SelectItem>
                 <SelectItem value="COLLECTION">Collection</SelectItem>
                 <SelectItem value="CONSENT">Consent</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-2 ml-4">
+              <ArrowUpDown className="w-4 h-4 text-slate-400" />
+              <span className="text-sm text-slate-400">Sort by:</span>
+            </div>
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+              <SelectTrigger className="w-40 bg-slate-700/50 border-slate-600 text-white">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectItem value="priority">Priority Score</SelectItem>
+                <SelectItem value="worthiness">Worthiness Score</SelectItem>
+                <SelectItem value="success">Success Likelihood</SelectItem>
+                <SelectItem value="impact">Score Impact</SelectItem>
               </SelectContent>
             </Select>
             <span className="text-sm text-slate-500">
@@ -555,6 +649,60 @@ export default function NegativeItemsPage() {
                               </Badge>
                             )}
                           </div>
+
+                          {/* Worthiness Scores Row */}
+                          {account.worthiness && (
+                            <div className="flex items-center gap-3 mb-3 flex-wrap">
+                              {/* Priority Score */}
+                              <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border ${getWorthinessBg(account.worthiness.priorityScore)}`}>
+                                <Target className={`w-3.5 h-3.5 ${getWorthinessColor(account.worthiness.priorityScore)}`} />
+                                <span className={`text-xs font-bold ${getWorthinessColor(account.worthiness.priorityScore)}`}>
+                                  {account.worthiness.priorityScore}
+                                </span>
+                                <span className="text-xs text-slate-400">Priority</span>
+                              </div>
+
+                              {/* Success Likelihood */}
+                              <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-700/50 border border-slate-600">
+                                <TrendingUp className={`w-3.5 h-3.5 ${getWorthinessColor(account.worthiness.successLikelihood)}`} />
+                                <span className={`text-xs font-bold ${getWorthinessColor(account.worthiness.successLikelihood)}`}>
+                                  {account.worthiness.successLikelihood}%
+                                </span>
+                                <span className="text-xs text-slate-400">Success</span>
+                              </div>
+
+                              {/* Score Impact */}
+                              <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-700/50 border border-slate-600">
+                                <Zap className="w-3.5 h-3.5 text-amber-400" />
+                                <span className="text-xs font-bold text-amber-400">
+                                  +{account.worthiness.estimatedScoreImpact}
+                                </span>
+                                <span className="text-xs text-slate-400">pts</span>
+                              </div>
+
+                              {/* Timing Badge */}
+                              {getTimingBadge(account.worthiness.timing)}
+
+                              {/* Special Indicators */}
+                              {account.worthiness.factors.wasEverDeleted && (
+                                <Badge className="bg-green-500/20 text-green-400">
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  Deleted Elsewhere
+                                </Badge>
+                              )}
+                              {account.worthiness.factors.hasDivergence && (
+                                <Badge className="bg-purple-500/20 text-purple-400">
+                                  Bureau Divergence
+                                </Badge>
+                              )}
+                              {account.worthiness.factors.isTimeBared && (
+                                <Badge className="bg-red-500/20 text-red-400">
+                                  <Clock className="w-3 h-3 mr-1" />
+                                  Time-Barred
+                                </Badge>
+                              )}
+                            </div>
+                          )}
 
                           {/* Account Details */}
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm mb-3">
@@ -713,6 +861,142 @@ export default function NegativeItemsPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Worthiness Assessment */}
+              {selectedAccount.worthiness && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-white flex items-center gap-2">
+                    <Target className="w-4 h-4 text-brand-400" />
+                    Dispute Worthiness Assessment
+                  </h3>
+
+                  {/* Score Cards */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className={`p-3 rounded-lg border text-center ${getWorthinessBg(selectedAccount.worthiness.priorityScore)}`}>
+                      <div className={`text-2xl font-bold ${getWorthinessColor(selectedAccount.worthiness.priorityScore)}`}>
+                        {selectedAccount.worthiness.priorityScore}
+                      </div>
+                      <div className="text-xs text-slate-400">Priority</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-slate-700/50 border border-slate-600 text-center">
+                      <div className={`text-2xl font-bold ${getWorthinessColor(selectedAccount.worthiness.successLikelihood)}`}>
+                        {selectedAccount.worthiness.successLikelihood}%
+                      </div>
+                      <div className="text-xs text-slate-400">Success Rate</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-slate-700/50 border border-slate-600 text-center">
+                      <div className="text-2xl font-bold text-amber-400">
+                        +{selectedAccount.worthiness.estimatedScoreImpact}
+                      </div>
+                      <div className="text-xs text-slate-400">Score Impact</div>
+                    </div>
+                  </div>
+
+                  {/* Timing Recommendation */}
+                  <div className={`p-3 rounded-lg border ${
+                    selectedAccount.worthiness.timing === "IMMEDIATE"
+                      ? "bg-green-500/10 border-green-500/30"
+                      : "bg-slate-700/50 border-slate-600"
+                  }`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Clock className={`w-4 h-4 ${
+                        selectedAccount.worthiness.timing === "IMMEDIATE"
+                          ? "text-green-400"
+                          : "text-slate-400"
+                      }`} />
+                      <span className={`font-medium ${
+                        selectedAccount.worthiness.timing === "IMMEDIATE"
+                          ? "text-green-400"
+                          : "text-white"
+                      }`}>
+                        {selectedAccount.worthiness.timing === "IMMEDIATE" ? "Dispute Now" :
+                         selectedAccount.worthiness.timing === "NEXT_ROUND" ? "Include in Next Round" :
+                         selectedAccount.worthiness.timing === "WAIT" ? "Wait Before Disputing" :
+                         "Strategic Hold"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400">
+                      {selectedAccount.worthiness.timingReason}
+                    </p>
+                  </div>
+
+                  {/* Strategy Recommendation */}
+                  <div className="p-3 rounded-lg bg-slate-700/50 border border-slate-600">
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-slate-400">Recommended Flow:</span>
+                        <div className="text-white font-medium mt-1">
+                          {selectedAccount.worthiness.recommendedFlow}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Approach:</span>
+                        <div className="text-white font-medium mt-1">
+                          {selectedAccount.worthiness.recommendedApproach.replace(/_/g, " ")}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Expected Outcome:</span>
+                        <div className={`font-medium mt-1 ${
+                          selectedAccount.worthiness.expectedOutcome === "DELETED"
+                            ? "text-green-400"
+                            : selectedAccount.worthiness.expectedOutcome === "UPDATED"
+                            ? "text-yellow-400"
+                            : "text-slate-300"
+                        }`}>
+                          {selectedAccount.worthiness.expectedOutcome}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Confidence:</span>
+                        <div className="mt-1">
+                          {getConfidenceBadge(selectedAccount.worthiness.confidenceLevel)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Key Factors */}
+                  {(selectedAccount.worthiness.factors.potentialViolations.length > 0 ||
+                    selectedAccount.worthiness.factors.wasEverDeleted ||
+                    selectedAccount.worthiness.factors.hasDivergence) && (
+                    <div className="p-3 rounded-lg bg-slate-700/50 border border-slate-600">
+                      <div className="text-sm text-slate-400 mb-2">Key Factors:</div>
+                      <div className="space-y-1">
+                        {selectedAccount.worthiness.factors.wasEverDeleted && (
+                          <div className="flex items-center gap-2 text-xs text-green-400">
+                            <CheckCircle className="w-3 h-3" />
+                            Previously deleted from another bureau
+                          </div>
+                        )}
+                        {selectedAccount.worthiness.factors.hasDivergence && (
+                          <div className="flex items-center gap-2 text-xs text-purple-400">
+                            <AlertTriangle className="w-3 h-3" />
+                            Different data across bureaus (leverage point)
+                          </div>
+                        )}
+                        {selectedAccount.worthiness.factors.isTimeBared && (
+                          <div className="flex items-center gap-2 text-xs text-red-400">
+                            <Clock className="w-3 h-3" />
+                            Past statute of limitations
+                          </div>
+                        )}
+                        {selectedAccount.worthiness.factors.potentialViolations.map((v, i) => (
+                          <div key={i} className="flex items-center gap-2 text-xs text-amber-400">
+                            <ShieldAlert className="w-3 h-3" />
+                            {v}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Impact Explanation */}
+                  <p className="text-xs text-slate-500 italic">
+                    {selectedAccount.worthiness.impactReason}
+                  </p>
+                </div>
+              )}
 
               {/* All Issues */}
               <div>

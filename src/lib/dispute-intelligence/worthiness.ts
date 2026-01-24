@@ -16,7 +16,7 @@ import {
 // WORTHINESS FACTOR ANALYSIS
 // =============================================================================
 
-interface AccountForWorthiness {
+export interface AccountForWorthiness {
   id: string;
   creditorName: string;
   accountNumber: string;
@@ -40,7 +40,7 @@ interface DisputeHistoryItem {
   date: Date;
 }
 
-interface WorthinessInput {
+export interface WorthinessInput {
   account: AccountForWorthiness;
   allAccountsWithFingerprint: AccountForWorthiness[]; // Same account across bureaus
   disputeHistory: DisputeHistoryItem[];
