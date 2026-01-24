@@ -54,6 +54,26 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
             }
         });
 
+        // 2.6 Get all AccountItem IDs for this report
+        const accountItems = await prisma.accountItem.findMany({
+            where: { reportId: id },
+            select: { id: true }
+        });
+        const accountItemIds = accountItems.map(a => a.id);
+
+        // 2.7 Delete DisputeItems that reference these AccountItems
+        // (DisputeItem -> AccountItem doesn't have cascade delete)
+        if (accountItemIds.length > 0) {
+            await prisma.disputeItem.deleteMany({
+                where: { accountItemId: { in: accountItemIds } }
+            });
+
+            // 2.8 Delete Evidence records that reference these AccountItems
+            await prisma.evidence.deleteMany({
+                where: { accountItemId: { in: accountItemIds } }
+            });
+        }
+
         // 3. Delete the report from database
         // Note: Prisma schema typically cascades deletes for accounts, but might not for StoredFile if it's a relation
         await prisma.creditReport.delete({
