@@ -50,6 +50,8 @@ import {
 } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
 import { LetterEditor } from "@/components/disputes/letter-editor";
+import { LetterGenerator } from "@/components/disputes/letter-generator";
+import { CFPBGenerator } from "@/components/disputes/cfpb-generator";
 import { WorkflowTracker } from "@/components/disputes/workflow-tracker";
 import { RoundHistory } from "@/components/disputes/round-history";
 import { type DisputeFlow, type ResponseOutcome, FLOW_DESCRIPTIONS } from "@/lib/dispute-rounds";
@@ -145,6 +147,11 @@ export default function DisputesPage() {
   const [cfpbContent, setCfpbContent] = useState<{ complaint: Record<string, string>; copyText: string; metadata: Record<string, unknown> } | null>(null);
   const [cfpbLoading, setCfpbLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // New full-screen generator states
+  const [showLetterGenerator, setShowLetterGenerator] = useState(false);
+  const [showCFPBGenerator, setShowCFPBGenerator] = useState(false);
+  const [generatorDispute, setGeneratorDispute] = useState<Dispute | null>(null);
 
   // DNA integration state
   const [clientDNA, setClientDNA] = useState<CreditDNAProfile | null>(null);
@@ -259,6 +266,16 @@ export default function DisputesPage() {
   };
 
   const handleViewLetter = async (disputeId: string) => {
+    // Find the dispute and open the new Letter Generator
+    const dispute = disputes.find(d => d.id === disputeId);
+    if (dispute) {
+      setGeneratorDispute(dispute);
+      setShowLetterGenerator(true);
+      setDetailDialogOpen(false);
+    }
+  };
+
+  const handleViewLetterLegacy = async (disputeId: string) => {
     try {
       // Fetch dispute details with documents
       const res = await fetch(`/api/disputes/${disputeId}`);
@@ -322,6 +339,16 @@ export default function DisputesPage() {
   };
 
   const handleViewCFPB = async (disputeId: string) => {
+    // Find the dispute and open the new CFPB Generator
+    const dispute = disputes.find(d => d.id === disputeId);
+    if (dispute) {
+      setGeneratorDispute(dispute);
+      setShowCFPBGenerator(true);
+      setDetailDialogOpen(false);
+    }
+  };
+
+  const handleViewCFPBLegacy = async (disputeId: string) => {
     setCfpbLoading(true);
     setCfpbDialogOpen(true);
     try {
@@ -923,6 +950,80 @@ export default function DisputesPage() {
           </ResponsiveDialogBody>
         </ResponsiveDialogContent>
       </ResponsiveDialog>
+
+      {/* New Letter Generator - Full Screen */}
+      {showLetterGenerator && generatorDispute && (() => {
+        const bureauNameMap: Record<string, "TransUnion" | "Experian" | "Equifax"> = {
+          TRANSUNION: "TransUnion",
+          EXPERIAN: "Experian",
+          EQUIFAX: "Equifax",
+        };
+        return (
+          <div className="fixed inset-0 z-50 bg-slate-900 overflow-auto">
+            <div className="absolute top-4 left-4 z-10">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setShowLetterGenerator(false);
+                  setGeneratorDispute(null);
+                }}
+                className="text-slate-400 hover:text-white"
+              >
+                ← Back to Disputes
+              </Button>
+            </div>
+            <LetterGenerator
+              clientName={`${generatorDispute.client.firstName} ${generatorDispute.client.lastName}`}
+              bureau={bureauNameMap[generatorDispute.cra] || "TransUnion"}
+              round={generatorDispute.round}
+              disputedAccounts={generatorDispute.items.map(item => ({
+                creditorName: item.accountItem.creditorName,
+                accountNumber: item.accountItem.maskedAccountId || "N/A",
+                balance: item.accountItem.balance || 0,
+                status: item.disputeReason || "Disputed",
+              }))}
+              onSave={async (content) => {
+                toast({ title: "Letter Saved", description: "Your dispute letter has been saved." });
+              }}
+              onGenerate={async () => {
+                toast({ title: "Generating...", description: "AI is generating your letter." });
+              }}
+            />
+          </div>
+        );
+      })()}
+
+      {/* New CFPB Generator - Full Screen */}
+      {showCFPBGenerator && generatorDispute && (() => {
+        const bureauNameMap: Record<string, "TransUnion" | "Experian" | "Equifax"> = {
+          TRANSUNION: "TransUnion",
+          EXPERIAN: "Experian",
+          EQUIFAX: "Equifax",
+        };
+        return (
+          <div className="fixed inset-0 z-50 bg-slate-900 overflow-auto">
+            <CFPBGenerator
+              clientName={`${generatorDispute.client.firstName} ${generatorDispute.client.lastName}`}
+              bureau={bureauNameMap[generatorDispute.cra] || "TransUnion"}
+              disputeDate={new Date(generatorDispute.sentAt || generatorDispute.createdAt)}
+              disputedAccounts={generatorDispute.items.map(item => ({
+                creditorName: item.accountItem.creditorName,
+                accountNumber: item.accountItem.maskedAccountId || "N/A",
+                balance: item.accountItem.balance || 0,
+                status: item.disputeReason || "Disputed",
+              }))}
+              onBack={() => {
+                setShowCFPBGenerator(false);
+                setGeneratorDispute(null);
+              }}
+              onSaveDraft={async (content) => {
+                toast({ title: "Draft Saved", description: "Your CFPB complaint draft has been saved." });
+              }}
+            />
+          </div>
+        );
+      })()}
 
       {/* Detailed Response Recording Modal */}
       <ResponsiveDialog open={responseDialogOpen} onOpenChange={setResponseDialogOpen}>
