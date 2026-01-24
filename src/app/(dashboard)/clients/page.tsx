@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -35,18 +35,27 @@ import {
   AlertTriangle,
   Clock,
   TrendingUp,
-  Star,
-  Filter,
+  Zap,
   LayoutGrid,
   List,
-  Zap,
+  Eye,
+  Gavel,
+  X,
+  Mail,
+  Phone,
+  MapPin,
+  Calendar,
+  Shield,
   CheckCircle,
-  BarChart3,
+  Scale,
+  AlertOctagon,
+  Save,
+  Loader2,
 } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Spotlight, useOnboarding } from "@/components/onboarding";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 
 interface Client {
   id: string;
@@ -54,6 +63,13 @@ interface Client {
   lastName: string;
   email: string | null;
   phone: string | null;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zipCode?: string | null;
+  dateOfBirth?: string | null;
+  ssnLast4?: string | null;
   isActive: boolean;
   createdAt: string;
   priority: string;
@@ -71,6 +87,31 @@ interface Client {
     reports: number;
     disputes: number;
   };
+}
+
+interface ClientDetail {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  phone: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  city: string | null;
+  state: string | null;
+  zipCode: string | null;
+  dateOfBirth: string | null;
+  ssnLast4: string | null;
+  createdAt: string;
+  priority: string;
+  segment: string;
+  stage: string;
+  _count: {
+    reports: number;
+    disputes: number;
+  };
+  reports: { id: string }[];
+  disputes: { id: string; status: string }[];
 }
 
 interface Stats {
@@ -94,6 +135,28 @@ const containerVariants = {
 const itemVariants = {
   hidden: { opacity: 0, y: 10 },
   visible: { opacity: 1, y: 0 },
+};
+
+const modalVariants = {
+  hidden: { opacity: 0, scale: 0.95, y: 20 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    transition: { type: "spring" as const, damping: 25, stiffness: 300 }
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.95,
+    y: 20,
+    transition: { duration: 0.2 }
+  },
+};
+
+const backdropVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1 },
+  exit: { opacity: 0 },
 };
 
 // Stat card component
@@ -217,6 +280,397 @@ function BureauBadges({ bureaus }: { bureaus: string[] }) {
   );
 }
 
+// Client Quick View Modal Component
+function ClientQuickViewModal({
+  client,
+  isOpen,
+  onClose,
+  onUpdate,
+}: {
+  client: Client | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onUpdate: () => void;
+}) {
+  const { toast } = useToast();
+  const [detail, setDetail] = useState<ClientDetail | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editForm, setEditForm] = useState({
+    email: "",
+    phone: "",
+    addressLine1: "",
+    addressLine2: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    dateOfBirth: "",
+    ssnLast4: "",
+  });
+  const [accountStats, setAccountStats] = useState({
+    totalAccounts: 0,
+    negativeItems: 0,
+    highSeverity: 0,
+  });
+
+  const fetchClientDetail = useCallback(async () => {
+    if (!client) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/clients/${client.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setDetail(data);
+        setEditForm({
+          email: data.email || "",
+          phone: data.phone || "",
+          addressLine1: data.addressLine1 || "",
+          addressLine2: data.addressLine2 || "",
+          city: data.city || "",
+          state: data.state || "",
+          zipCode: data.zipCode || "",
+          dateOfBirth: data.dateOfBirth ? data.dateOfBirth.split("T")[0] : "",
+          ssnLast4: data.ssnLast4 || "",
+        });
+
+        // Fetch account stats
+        const accountsRes = await fetch(`/api/accounts/negative?clientId=${client.id}`);
+        if (accountsRes.ok) {
+          const accountsData = await accountsRes.json();
+          setAccountStats({
+            totalAccounts: accountsData.total || 0,
+            negativeItems: accountsData.negative || 0,
+            highSeverity: accountsData.highSeverity || 0,
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch client detail:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [client]);
+
+  useEffect(() => {
+    if (isOpen && client) {
+      fetchClientDetail();
+    }
+  }, [isOpen, client, fetchClientDetail]);
+
+  const handleSave = async () => {
+    if (!client) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/clients/${client.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...editForm,
+          dateOfBirth: editForm.dateOfBirth || null,
+        }),
+      });
+
+      if (res.ok) {
+        toast({ title: "Client Updated", description: "Changes saved successfully." });
+        onUpdate();
+        fetchClientDetail();
+      } else {
+        toast({ title: "Error", description: "Failed to save changes", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "An unexpected error occurred", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const formatAddress = () => {
+    if (!editForm.addressLine1) return null;
+    const parts = [
+      editForm.addressLine1,
+      editForm.addressLine2,
+      [editForm.city, editForm.state, editForm.zipCode].filter(Boolean).join(", "),
+    ].filter(Boolean);
+    return parts.join(", ");
+  };
+
+  if (!client) return null;
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            variants={backdropVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            onClick={onClose}
+          />
+
+          {/* Modal */}
+          <motion.div
+            variants={modalVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="fixed inset-4 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-[90vw] sm:max-w-3xl sm:max-h-[85vh] z-50 overflow-hidden"
+          >
+            <div className="h-full rounded-2xl bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 shadow-2xl shadow-black/50 overflow-hidden flex flex-col">
+              {/* Glassmorphic gradient overlay */}
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none" />
+              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent" />
+
+              {/* Header */}
+              <div className="relative p-6 border-b border-slate-700/50">
+                <button
+                  onClick={onClose}
+                  className="absolute top-4 right-4 p-2 rounded-lg hover:bg-slate-700/50 transition-colors"
+                >
+                  <X className="w-5 h-5 text-slate-400" />
+                </button>
+
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500/30 to-purple-500/30 flex items-center justify-center border-2 border-blue-500/30">
+                    <span className="text-xl font-bold text-white">
+                      {client.firstName.charAt(0)}{client.lastName.charAt(0)}
+                    </span>
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-white">
+                      {client.firstName} {client.lastName}
+                    </h2>
+                    <p className="text-slate-400 text-sm">
+                      Client since {detail ? format(new Date(detail.createdAt), "M/d/yyyy") : "..."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="relative flex-1 overflow-y-auto p-6 space-y-6">
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
+                  </div>
+                ) : (
+                  <>
+                    {/* Stats Row */}
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                      <div className="p-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-center">
+                        <FileText className="w-5 h-5 mx-auto mb-1 text-blue-400" />
+                        <p className="text-xl font-bold text-white">{client._count?.reports || 0}</p>
+                        <p className="text-[10px] text-slate-400">Reports</p>
+                      </div>
+                      <div className="p-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-center">
+                        <Users className="w-5 h-5 mx-auto mb-1 text-purple-400" />
+                        <p className="text-xl font-bold text-white">{accountStats.totalAccounts}</p>
+                        <p className="text-[10px] text-slate-400">Accounts</p>
+                      </div>
+                      <div className="p-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-center">
+                        <AlertTriangle className="w-5 h-5 mx-auto mb-1 text-amber-400" />
+                        <p className="text-xl font-bold text-amber-400">{accountStats.negativeItems}</p>
+                        <p className="text-[10px] text-slate-400">Negative Items</p>
+                      </div>
+                      <div className="p-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-center">
+                        <AlertOctagon className="w-5 h-5 mx-auto mb-1 text-red-400" />
+                        <p className="text-xl font-bold text-red-400">{accountStats.highSeverity}</p>
+                        <p className="text-[10px] text-slate-400">High Severity</p>
+                      </div>
+                      <div className="p-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-center">
+                        <Scale className="w-5 h-5 mx-auto mb-1 text-emerald-400" />
+                        <p className="text-xl font-bold text-white">{client.totalDisputes}</p>
+                        <p className="text-[10px] text-slate-400">Disputes</p>
+                      </div>
+                      <div className="p-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-center">
+                        <CheckCircle className="w-5 h-5 mx-auto mb-1 text-emerald-400" />
+                        <p className="text-xl font-bold text-emerald-400">
+                          {client.successRate !== null ? `${client.successRate}%` : "—"}
+                        </p>
+                        <p className="text-[10px] text-slate-400">Success</p>
+                      </div>
+                    </div>
+
+                    {/* Contact Information - Editable */}
+                    <div className="rounded-xl bg-slate-800/30 border border-slate-700/50 p-4">
+                      <h3 className="text-sm font-semibold text-white mb-4">Contact Information</h3>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* Email */}
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-slate-400 flex items-center gap-1.5">
+                            <Mail className="w-3.5 h-3.5" /> Email
+                          </Label>
+                          <Input
+                            type="email"
+                            value={editForm.email}
+                            onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                            placeholder="email@example.com"
+                            className="bg-slate-700/50 border-slate-600 text-white h-9"
+                          />
+                        </div>
+
+                        {/* Phone */}
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-slate-400 flex items-center gap-1.5">
+                            <Phone className="w-3.5 h-3.5" /> Phone
+                          </Label>
+                          <Input
+                            type="tel"
+                            value={editForm.phone}
+                            onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                            placeholder="(555) 555-5555"
+                            className="bg-slate-700/50 border-slate-600 text-white h-9"
+                          />
+                        </div>
+
+                        {/* Address Line 1 */}
+                        <div className="space-y-1.5 sm:col-span-2">
+                          <Label className="text-xs text-slate-400 flex items-center gap-1.5">
+                            <MapPin className="w-3.5 h-3.5" /> Street Address
+                          </Label>
+                          <Input
+                            value={editForm.addressLine1}
+                            onChange={(e) => setEditForm({ ...editForm, addressLine1: e.target.value })}
+                            placeholder="123 Main Street"
+                            className="bg-slate-700/50 border-slate-600 text-white h-9"
+                          />
+                        </div>
+
+                        {/* Address Line 2 */}
+                        <div className="space-y-1.5 sm:col-span-2">
+                          <Label className="text-xs text-slate-400">Apt/Suite/Unit</Label>
+                          <Input
+                            value={editForm.addressLine2}
+                            onChange={(e) => setEditForm({ ...editForm, addressLine2: e.target.value })}
+                            placeholder="Apt 4B"
+                            className="bg-slate-700/50 border-slate-600 text-white h-9"
+                          />
+                        </div>
+
+                        {/* City */}
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-slate-400">City</Label>
+                          <Input
+                            value={editForm.city}
+                            onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+                            placeholder="City"
+                            className="bg-slate-700/50 border-slate-600 text-white h-9"
+                          />
+                        </div>
+
+                        {/* State & Zip */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1.5">
+                            <Label className="text-xs text-slate-400">State</Label>
+                            <Input
+                              value={editForm.state}
+                              onChange={(e) => setEditForm({ ...editForm, state: e.target.value })}
+                              placeholder="TX"
+                              maxLength={2}
+                              className="bg-slate-700/50 border-slate-600 text-white h-9 uppercase"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs text-slate-400">ZIP</Label>
+                            <Input
+                              value={editForm.zipCode}
+                              onChange={(e) => setEditForm({ ...editForm, zipCode: e.target.value })}
+                              placeholder="12345"
+                              className="bg-slate-700/50 border-slate-600 text-white h-9"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Date of Birth */}
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-slate-400 flex items-center gap-1.5">
+                            <Calendar className="w-3.5 h-3.5" /> Date of Birth
+                          </Label>
+                          <Input
+                            type="date"
+                            value={editForm.dateOfBirth}
+                            onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })}
+                            className="bg-slate-700/50 border-slate-600 text-white h-9"
+                          />
+                        </div>
+
+                        {/* SSN Last 4 */}
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-slate-400 flex items-center gap-1.5">
+                            <Shield className="w-3.5 h-3.5" /> Last 4 of SSN
+                          </Label>
+                          <Input
+                            type="text"
+                            value={editForm.ssnLast4}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/\D/g, "").slice(0, 4);
+                              setEditForm({ ...editForm, ssnLast4: val });
+                            }}
+                            placeholder="••••"
+                            maxLength={4}
+                            className="bg-slate-700/50 border-slate-600 text-white h-9 font-mono"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Quick Info Display */}
+                    <div className="rounded-xl bg-slate-800/30 border border-slate-700/50 p-4">
+                      <h3 className="text-sm font-semibold text-white mb-3">Quick Info</h3>
+                      <div className="flex flex-wrap gap-2">
+                        <PriorityBadge priority={client.priority} />
+                        <SegmentBadge segment={client.segment} />
+                        <StageBadge stage={client.derivedStage || client.stage} />
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                        <div className="flex items-center gap-2 text-slate-400">
+                          <Clock className="w-4 h-4" />
+                          <span>
+                            Last active:{" "}
+                            {client.lastActivity
+                              ? formatDistanceToNow(new Date(client.lastActivity), { addSuffix: true })
+                              : "Never"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-400">
+                          <span>Bureaus:</span>
+                          <BureauBadges bureaus={client.activeBureaus} />
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="relative p-4 border-t border-slate-700/50 flex justify-end gap-3">
+                <Button variant="ghost" onClick={onClose}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {saving ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4 mr-2" />
+                  )}
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+
 export default function ClientsPage() {
   const { data: session } = useSession();
   const { toast } = useToast();
@@ -233,6 +687,7 @@ export default function ClientsPage() {
   const [segmentFilter, setSegmentFilter] = useState("all");
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [quickViewClient, setQuickViewClient] = useState<Client | null>(null);
   const [newClient, setNewClient] = useState({
     firstName: "",
     lastName: "",
@@ -324,6 +779,16 @@ export default function ClientsPage() {
     }
   };
 
+  const handleQuickView = (e: React.MouseEvent, client: Client) => {
+    e.stopPropagation();
+    setQuickViewClient(client);
+  };
+
+  const handleDisputeAction = (e: React.MouseEvent, client: Client) => {
+    e.stopPropagation();
+    router.push(`/clients/${client.id}?tab=disputes`);
+  };
+
   return (
     <motion.div
       className="space-y-6"
@@ -331,6 +796,14 @@ export default function ClientsPage() {
       animate="visible"
       variants={containerVariants}
     >
+      {/* Quick View Modal */}
+      <ClientQuickViewModal
+        client={quickViewClient}
+        isOpen={!!quickViewClient}
+        onClose={() => setQuickViewClient(null)}
+        onUpdate={fetchClients}
+      />
+
       {/* Header */}
       <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -549,10 +1022,11 @@ export default function ClientsPage() {
             <div className="col-span-1">Priority</div>
             <div className="col-span-1">Segment</div>
             <div className="col-span-1">Stage</div>
-            <div className="col-span-2">Disputes</div>
+            <div className="col-span-1">Disputes</div>
             <div className="col-span-1">Success</div>
             <div className="col-span-1">Bureaus</div>
             <div className="col-span-2">Last Active</div>
+            <div className="col-span-1 text-right">Actions</div>
           </div>
 
           {/* Table Body */}
@@ -597,22 +1071,14 @@ export default function ClientsPage() {
                 </div>
 
                 {/* Disputes */}
-                <div className="col-span-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-white">{client.activeDisputeCount}/{client.totalDisputes}</span>
-                    {client.totalDisputes > 0 && (
-                      <Progress
-                        value={(client.activeDisputeCount / Math.max(client.totalDisputes, 1)) * 100}
-                        className="h-1.5 w-16"
-                      />
-                    )}
-                  </div>
+                <div className="col-span-1">
+                  <span className="text-white text-sm">{client.activeDisputeCount}/{client.totalDisputes}</span>
                 </div>
 
                 {/* Success Rate */}
                 <div className="col-span-1">
                   {client.successRate !== null ? (
-                    <span className={`font-medium ${client.successRate >= 70 ? "text-emerald-400" : client.successRate >= 40 ? "text-amber-400" : "text-slate-400"}`}>
+                    <span className={`font-medium text-sm ${client.successRate >= 70 ? "text-emerald-400" : client.successRate >= 40 ? "text-amber-400" : "text-slate-400"}`}>
                       {client.successRate}%
                     </span>
                   ) : (
@@ -626,12 +1092,30 @@ export default function ClientsPage() {
                 </div>
 
                 {/* Last Active */}
-                <div className="col-span-2 flex items-center justify-between">
+                <div className="col-span-2">
                   <span className="text-sm text-slate-400">
                     {client.lastActivity
                       ? formatDistanceToNow(new Date(client.lastActivity), { addSuffix: true })
                       : "Never"}
                   </span>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="col-span-1 flex items-center justify-end gap-1">
+                  <button
+                    onClick={(e) => handleQuickView(e, client)}
+                    className="p-2 rounded-lg hover:bg-slate-600/50 transition-colors opacity-60 group-hover:opacity-100"
+                    title="Quick View"
+                  >
+                    <Eye className="w-4 h-4 text-blue-400" />
+                  </button>
+                  <button
+                    onClick={(e) => handleDisputeAction(e, client)}
+                    className="p-2 rounded-lg hover:bg-slate-600/50 transition-colors opacity-60 group-hover:opacity-100"
+                    title="Disputes"
+                  >
+                    <Gavel className="w-4 h-4 text-amber-400" />
+                  </button>
                   <ChevronRight className="w-4 h-4 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               </motion.div>
@@ -647,12 +1131,14 @@ export default function ClientsPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.03 }}
-              onClick={() => router.push(`/clients/${client.id}`)}
-              className="rounded-xl bg-slate-800/40 border border-slate-700/50 p-4 hover:bg-slate-800/60 hover:border-slate-600/50 cursor-pointer transition-all group"
+              className="rounded-xl bg-slate-800/40 border border-slate-700/50 p-4 hover:bg-slate-800/60 hover:border-slate-600/50 transition-all group"
             >
               {/* Header */}
               <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
+                <div
+                  className="flex items-center gap-3 cursor-pointer"
+                  onClick={() => router.push(`/clients/${client.id}`)}
+                >
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center border border-slate-600/50">
                     <span className="font-medium text-white">
                       {client.firstName.charAt(0)}{client.lastName.charAt(0)}
@@ -663,17 +1149,36 @@ export default function ClientsPage() {
                     <p className="text-xs text-slate-400">{client.email || "No email"}</p>
                   </div>
                 </div>
-                <PriorityBadge priority={client.priority} />
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={(e) => handleQuickView(e, client)}
+                    className="p-1.5 rounded-lg hover:bg-slate-600/50 transition-colors"
+                    title="Quick View"
+                  >
+                    <Eye className="w-4 h-4 text-blue-400" />
+                  </button>
+                  <button
+                    onClick={(e) => handleDisputeAction(e, client)}
+                    className="p-1.5 rounded-lg hover:bg-slate-600/50 transition-colors"
+                    title="Disputes"
+                  >
+                    <Gavel className="w-4 h-4 text-amber-400" />
+                  </button>
+                </div>
               </div>
 
               {/* Badges Row */}
               <div className="flex flex-wrap gap-2 mb-4">
+                <PriorityBadge priority={client.priority} />
                 <SegmentBadge segment={client.segment} />
                 <StageBadge stage={client.derivedStage || client.stage} />
               </div>
 
               {/* Stats Row */}
-              <div className="grid grid-cols-3 gap-2 text-center">
+              <div
+                className="grid grid-cols-3 gap-2 text-center cursor-pointer"
+                onClick={() => router.push(`/clients/${client.id}`)}
+              >
                 <div className="p-2 rounded-lg bg-slate-700/30">
                   <p className="text-lg font-bold text-white">{client.totalDisputes}</p>
                   <p className="text-xs text-slate-400">Disputes</p>
@@ -691,7 +1196,10 @@ export default function ClientsPage() {
               </div>
 
               {/* Footer */}
-              <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-700/50">
+              <div
+                className="flex items-center justify-between mt-4 pt-3 border-t border-slate-700/50 cursor-pointer"
+                onClick={() => router.push(`/clients/${client.id}`)}
+              >
                 <BureauBadges bureaus={client.activeBureaus} />
                 <span className="text-xs text-slate-500">
                   {client.lastActivity
