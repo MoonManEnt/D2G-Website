@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/lib/use-toast";
 import {
   Copy,
   Printer,
@@ -22,27 +24,40 @@ import {
   Undo2,
   Zap,
   Bot,
+  Loader2,
+  Edit3,
+  Eye,
+  Save,
+  X,
 } from "lucide-react";
 
 // Letter types with their round numbers
 const LETTER_TYPES = [
-  { id: "initial", label: "Initial Dispute", description: "Basic factual dispute", round: "R1" },
-  { id: "mov", label: "Method of Verification", description: "Demand verification proof", round: "R2" },
-  { id: "violation", label: "Violation Notice", description: "FCRA violation claim", round: "R3" },
-  { id: "final", label: "Final Demand", description: "Intent to litigate", round: "R4" },
+  { id: "initial", label: "Initial Dispute", description: "Basic factual dispute", round: "R1", roundNum: 1 },
+  { id: "mov", label: "Method of Verification", description: "Demand verification proof", round: "R2", roundNum: 2 },
+  { id: "violation", label: "Violation Notice", description: "FCRA violation claim", round: "R3", roundNum: 3 },
+  { id: "final", label: "Final Demand", description: "Intent to litigate", round: "R4", roundNum: 4 },
 ];
 
 // Legal citations
 const LEGAL_CITATIONS = [
   { code: "15 U.S.C. § 1681i(a)(6)", label: "Verification Requirements" },
   { code: "15 U.S.C. § 1681s-2(a)(1)", label: "Furnisher Accuracy" },
+  { code: "15 U.S.C. § 1681i(a)(1)", label: "Reinvestigation Requirement" },
+  { code: "15 U.S.C. § 1681e(b)", label: "Maximum Accuracy" },
 ];
 
 interface AmeliaSuggestion {
   id: string;
   text: string;
-  applied: boolean;
+  category: string;
   impact: "high" | "medium" | "low";
+  originalText?: string;
+  replacementText?: string;
+  insertionPoint?: string;
+  insertionText?: string;
+  reasoning: string;
+  applied?: boolean;
 }
 
 interface LetterVersion {
@@ -50,6 +65,7 @@ interface LetterVersion {
   version: string;
   timestamp: string;
   isCurrent: boolean;
+  content?: string;
 }
 
 interface DisputedAccount {
@@ -64,9 +80,11 @@ interface LetterGeneratorProps {
   bureau: "TransUnion" | "Experian" | "Equifax";
   round: number;
   disputedAccounts: DisputedAccount[];
+  disputeId?: string; // Actual dispute ID for API calls
   initialLetterContent?: string;
   onSave?: (content: string) => void;
   onGenerate?: (letterType: string) => void;
+  onBack?: () => void;
 }
 
 export function LetterGenerator({
@@ -74,25 +92,26 @@ export function LetterGenerator({
   bureau,
   round,
   disputedAccounts,
+  disputeId,
   initialLetterContent,
   onSave,
   onGenerate,
+  onBack,
 }: LetterGeneratorProps) {
+  const { toast } = useToast();
   const [selectedType, setSelectedType] = useState(LETTER_TYPES[Math.min(round - 1, 3)].id);
   const [letterContent, setLetterContent] = useState(initialLetterContent || "");
-  const [eoscarRisk, setEoscarRisk] = useState(87);
-  const [ameliaConfidence, setAmeliaConfidence] = useState(94);
-  const [suggestions, setSuggestions] = useState<AmeliaSuggestion[]>([
-    { id: "1", text: "Add specific dates from prior communication", applied: false, impact: "high" },
-    { id: "2", text: "Include emotional impact statement", applied: true, impact: "medium" },
-    { id: "3", text: "Reference the 30-day timeline requirement", applied: false, impact: "high" },
-  ]);
-  const [versions, setVersions] = useState<LetterVersion[]>([
-    { id: "v12", version: "v1.2", timestamp: "Now", isCurrent: true },
-    { id: "v11", version: "v1.1", timestamp: "5m ago", isCurrent: false },
-    { id: "v10", version: "v1.0", timestamp: "20 ago", isCurrent: false },
-  ]);
+  const [editedContent, setEditedContent] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [eoscarRisk, setEoscarRisk] = useState(75);
+  const [ameliaConfidence, setAmeliaConfidence] = useState(85);
+  const [suggestions, setSuggestions] = useState<AmeliaSuggestion[]>([]);
+  const [versions, setVersions] = useState<LetterVersion[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isApplyingSuggestion, setIsApplyingSuggestion] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   // Bureau addresses
   const bureauAddresses: Record<string, { name: string; address: string }> = {
@@ -105,59 +124,296 @@ export function LetterGenerator({
   const bureauInfo = bureauAddresses[bureau];
   const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
-  // Generate sample letter content
+  // Fetch letter content and suggestions from API
+  const fetchLetterData = useCallback(async () => {
+    if (!disputeId) return;
+
+    try {
+      // Fetch letter content
+      const letterRes = await fetch(`/api/disputes/${disputeId}/amelia`);
+      if (letterRes.ok) {
+        const data = await letterRes.json();
+        if (data.hasLetter && data.letterContent) {
+          setLetterContent(data.letterContent);
+        } else if (!letterContent) {
+          // Generate new letter if none exists
+          handleGenerateLetter();
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch letter data:", error);
+    }
+  }, [disputeId]);
+
+  // Fetch AMELIA suggestions
+  const fetchSuggestions = useCallback(async () => {
+    if (!disputeId || !letterContent) return;
+
+    setIsLoadingSuggestions(true);
+    try {
+      const res = await fetch(`/api/disputes/${disputeId}/amelia/suggestions`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSuggestions(data.suggestions || []);
+        setAmeliaConfidence(data.metrics?.confidence || 85);
+        setEoscarRisk(100 - (data.metrics?.eoscarRisk || 25)); // Invert for UI display
+      }
+    } catch (error) {
+      console.error("Failed to fetch suggestions:", error);
+    } finally {
+      setIsLoadingSuggestions(false);
+    }
+  }, [disputeId, letterContent]);
+
+  // Initial load
   useEffect(() => {
-    if (!letterContent && disputedAccounts.length > 0) {
+    if (disputeId) {
+      fetchLetterData();
+    } else if (!letterContent && disputedAccounts.length > 0) {
+      // Generate sample content if no dispute ID
       const account = disputedAccounts[0];
-      const sampleContent = generateLetterContent(selectedType, account, bureauInfo, clientName);
+      const sampleContent = generateSampleLetterContent(selectedType, account, bureauInfo, clientName, round);
       setLetterContent(sampleContent);
     }
-  }, [selectedType, disputedAccounts, bureauInfo, clientName, letterContent]);
+  }, [disputeId]);
 
-  const handleApplySuggestion = (suggestionId: string) => {
-    setSuggestions((prev) =>
-      prev.map((s) => (s.id === suggestionId ? { ...s, applied: true } : s))
-    );
-    // Increment confidence
-    setAmeliaConfidence((prev) => Math.min(prev + 2, 99));
-    // Decrease EOSCAR risk
-    setEoscarRisk((prev) => Math.max(prev - 3, 50));
+  // Fetch suggestions when letter content changes
+  useEffect(() => {
+    if (letterContent && disputeId) {
+      fetchSuggestions();
+    }
+  }, [letterContent, disputeId, fetchSuggestions]);
+
+  // Generate letter using AMELIA API
+  const handleGenerateLetter = async () => {
+    if (!disputeId) {
+      toast({ title: "Error", description: "No dispute ID provided", variant: "destructive" });
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const res = await fetch(`/api/disputes/${disputeId}/amelia`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ regenerate: true }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setLetterContent(data.letterContent);
+
+        // Add to version history
+        setVersions(prev => [
+          {
+            id: `v${Date.now()}`,
+            version: `v${(prev.length + 1).toFixed(1)}`,
+            timestamp: "Now",
+            isCurrent: true,
+            content: data.letterContent,
+          },
+          ...prev.map(v => ({ ...v, isCurrent: false })),
+        ]);
+
+        toast({ title: "Letter Generated", description: "AMELIA has created a new dispute letter." });
+        onGenerate?.(selectedType);
+      } else {
+        const error = await res.json();
+        toast({ title: "Error", description: error.message || "Failed to generate letter", variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to generate letter", variant: "destructive" });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
-  const handleApplyAll = () => {
-    setSuggestions((prev) => prev.map((s) => ({ ...s, applied: true })));
-    setAmeliaConfidence(98);
-    setEoscarRisk(72);
+  // Apply a single suggestion
+  const handleApplySuggestion = async (suggestion: AmeliaSuggestion) => {
+    if (!disputeId) return;
+
+    setIsApplyingSuggestion(suggestion.id);
+    try {
+      const res = await fetch(`/api/disputes/${disputeId}/amelia/suggestions`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          suggestionId: suggestion.id,
+          action: suggestion.replacementText ? "apply" : "insert",
+          originalText: suggestion.originalText,
+          replacementText: suggestion.replacementText,
+          insertionPoint: suggestion.insertionPoint,
+          insertionText: suggestion.insertionText,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setLetterContent(data.letterContent);
+        setAmeliaConfidence(data.metrics?.confidence || ameliaConfidence + 2);
+        setEoscarRisk(100 - (data.metrics?.eoscarRisk || 25));
+
+        // Mark suggestion as applied
+        setSuggestions(prev =>
+          prev.map(s => s.id === suggestion.id ? { ...s, applied: true } : s)
+        );
+
+        toast({ title: "Suggestion Applied", description: "The letter has been updated." });
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to apply suggestion", variant: "destructive" });
+    } finally {
+      setIsApplyingSuggestion(null);
+    }
   };
 
+  // Apply all suggestions
+  const handleApplyAll = async () => {
+    const unappliedSuggestions = suggestions.filter(s => !s.applied);
+    for (const suggestion of unappliedSuggestions) {
+      await handleApplySuggestion(suggestion);
+    }
+  };
+
+  // Save edited content
+  const handleSaveEdit = async () => {
+    if (!disputeId) {
+      setLetterContent(editedContent);
+      setIsEditing(false);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const res = await fetch(`/api/disputes/${disputeId}/amelia/suggestions`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ letterContent: editedContent }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setLetterContent(editedContent);
+        setAmeliaConfidence(data.metrics?.confidence || 85);
+        setEoscarRisk(100 - (data.metrics?.eoscarRisk || 25));
+        setIsEditing(false);
+
+        // Add to version history
+        setVersions(prev => [
+          {
+            id: `v${Date.now()}`,
+            version: `v${(prev.length + 1).toFixed(1)}`,
+            timestamp: "Now",
+            isCurrent: true,
+            content: editedContent,
+          },
+          ...prev.map(v => ({ ...v, isCurrent: false })),
+        ]);
+
+        toast({ title: "Letter Saved", description: "Your changes have been saved." });
+        onSave?.(editedContent);
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to save changes", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Copy to clipboard
   const handleCopy = () => {
     navigator.clipboard.writeText(letterContent);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast({ title: "Copied", description: "Letter copied to clipboard." });
   };
 
+  // Print
   const handlePrint = () => {
-    window.print();
+    const printWindow = window.open("", "_blank");
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Dispute Letter - ${clientName}</title>
+            <style>
+              body { font-family: 'Times New Roman', serif; padding: 40px; max-width: 800px; margin: 0 auto; }
+              pre { white-space: pre-wrap; font-family: inherit; }
+            </style>
+          </head>
+          <body><pre>${letterContent}</pre></body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
   };
 
-  const handleDownload = () => {
-    // In production, this would generate a DOCX
+  // Download as text (in production, this would be DOCX)
+  const handleDownload = async () => {
+    // Try to get DOCX from API first
+    if (disputeId) {
+      try {
+        const res = await fetch(`/api/disputes/${disputeId}/download?format=docx`);
+        if (res.ok) {
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `dispute-letter-${bureau.toLowerCase()}-round${round}.docx`;
+          a.click();
+          URL.revokeObjectURL(url);
+          return;
+        }
+      } catch {
+        // Fall back to text download
+      }
+    }
+
+    // Fallback to text
     const blob = new Blob([letterContent], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = `dispute-letter-${bureau.toLowerCase()}-round${round}.txt`;
     a.click();
+    URL.revokeObjectURL(url);
   };
 
-  const handleRegenerate = async () => {
-    setIsGenerating(true);
-    // Simulate regeneration
-    setTimeout(() => {
-      setIsGenerating(false);
-      setVersions((prev) => [
-        { id: `v${Date.now()}`, version: `v${parseFloat(prev[0].version.slice(1)) + 0.1}`, timestamp: "Now", isCurrent: true },
-        ...prev.map((v) => ({ ...v, isCurrent: false })),
-      ]);
-    }, 2000);
+  // Revert to a previous version
+  const handleRevertVersion = (version: LetterVersion) => {
+    if (version.content) {
+      setLetterContent(version.content);
+      setVersions(prev =>
+        prev.map(v => ({ ...v, isCurrent: v.id === version.id }))
+      );
+      toast({ title: "Reverted", description: `Reverted to ${version.version}` });
+    }
+  };
+
+  // Undo last change
+  const handleUndo = () => {
+    const previousVersion = versions.find(v => !v.isCurrent);
+    if (previousVersion) {
+      handleRevertVersion(previousVersion);
+    }
+  };
+
+  // Get EOSCAR risk color
+  const getEoscarRiskColor = (risk: number) => {
+    if (risk >= 80) return "text-emerald-400";
+    if (risk >= 60) return "text-amber-400";
+    if (risk >= 40) return "text-orange-400";
+    return "text-red-400";
+  };
+
+  const getEoscarRiskLabel = (risk: number) => {
+    if (risk >= 80) return "Low detection risk";
+    if (risk >= 60) return "Medium detection risk";
+    if (risk >= 40) return "Elevated detection risk";
+    return "High detection risk";
   };
 
   return (
@@ -165,27 +421,53 @@ export function LetterGenerator({
       {/* Top Bar */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
         <div className="flex items-center gap-3">
+          {onBack && (
+            <Button variant="ghost" size="sm" onClick={onBack} className="text-slate-400 hover:text-white">
+              ← Back
+            </Button>
+          )}
           <Badge className="bg-violet-500/20 text-violet-400 border-violet-500/30">
-            Claude-content
+            AMELIA-Powered
           </Badge>
-          <h1 className="text-lg font-semibold text-white">Generate Dispute Letter</h1>
+          <h1 className="text-lg font-semibold text-white">
+            {isEditing ? "Edit Letter" : "Generate Dispute Letter"}
+          </h1>
           <span className="text-sm text-slate-400">
             {clientName} • {bureau} • Round {round}
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleCopy} className="border-slate-700 text-slate-300">
-            <Copy className="w-4 h-4 mr-2" />
-            Copy
-          </Button>
-          <Button variant="outline" size="sm" onClick={handlePrint} className="border-slate-700 text-slate-300">
-            <Printer className="w-4 h-4 mr-2" />
-            Print
-          </Button>
-          <Button size="sm" onClick={handleDownload} className="bg-blue-600 hover:bg-blue-700">
-            <Download className="w-4 h-4 mr-2" />
-            Download DOCX
-          </Button>
+          {isEditing ? (
+            <>
+              <Button variant="outline" size="sm" onClick={() => setIsEditing(false)} className="border-slate-700 text-slate-300">
+                <X className="w-4 h-4 mr-2" />
+                Cancel
+              </Button>
+              <Button size="sm" onClick={handleSaveEdit} disabled={isSaving} className="bg-emerald-600 hover:bg-emerald-700">
+                {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                Save Changes
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="outline" size="sm" onClick={() => { setEditedContent(letterContent); setIsEditing(true); }} className="border-slate-700 text-slate-300">
+                <Edit3 className="w-4 h-4 mr-2" />
+                Edit
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleCopy} className={`border-slate-700 ${copied ? "bg-emerald-600 border-emerald-600 text-white" : "text-slate-300"}`}>
+                {copied ? <CheckCircle className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+                {copied ? "Copied!" : "Copy"}
+              </Button>
+              <Button variant="outline" size="sm" onClick={handlePrint} className="border-slate-700 text-slate-300">
+                <Printer className="w-4 h-4 mr-2" />
+                Print
+              </Button>
+              <Button size="sm" onClick={handleDownload} className="bg-blue-600 hover:bg-blue-700">
+                <Download className="w-4 h-4 mr-2" />
+                Download
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -224,9 +506,14 @@ export function LetterGenerator({
             {LEGAL_CITATIONS.map((cite) => (
               <button
                 key={cite.code}
+                onClick={() => {
+                  navigator.clipboard.writeText(cite.code);
+                  toast({ title: "Copied", description: `${cite.code} copied to clipboard` });
+                }}
                 className="w-full text-left p-2 rounded-lg bg-slate-800/50 border border-slate-700/50 hover:bg-slate-800 transition-all group"
               >
                 <span className="text-sm text-blue-400 group-hover:underline">{cite.code}</span>
+                <p className="text-xs text-slate-500">{cite.label}</p>
               </button>
             ))}
           </div>
@@ -235,103 +522,61 @@ export function LetterGenerator({
           <div className="mt-8 p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">EOSCAR Risk</span>
-              <span className={`text-lg font-bold ${eoscarRisk > 80 ? "text-emerald-400" : eoscarRisk > 60 ? "text-amber-400" : "text-red-400"}`}>
+              <span className={`text-lg font-bold ${getEoscarRiskColor(eoscarRisk)}`}>
                 {eoscarRisk}%
               </span>
             </div>
             <Progress value={eoscarRisk} className="h-2" />
-            <p className="text-xs text-slate-500 mt-2">Low detection risk</p>
+            <p className="text-xs text-slate-500 mt-2">{getEoscarRiskLabel(eoscarRisk)}</p>
           </div>
         </div>
 
-        {/* Center - Letter Preview */}
+        {/* Center - Letter Preview/Editor */}
         <div className="flex-1 p-6 overflow-y-auto bg-slate-950/50">
           <div className="max-w-2xl mx-auto">
-            {/* Letter Document */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white text-slate-900 rounded-lg shadow-2xl p-8 min-h-[800px]"
-            >
-              {/* Date */}
-              <p className="text-right text-sm text-slate-600 mb-8">{today}</p>
-
-              {/* Bureau Address */}
-              <div className="mb-6">
-                <p className="font-medium">{bureauInfo.name}</p>
-                <p className="text-sm text-slate-600 whitespace-pre-line">{bureauInfo.address}</p>
+            {isEditing ? (
+              /* Edit Mode */
+              <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-4">
+                <Textarea
+                  value={editedContent}
+                  onChange={(e) => setEditedContent(e.target.value)}
+                  className="min-h-[600px] bg-slate-900 border-slate-700 text-white font-mono text-sm"
+                  placeholder="Edit your dispute letter..."
+                />
+                <p className="text-xs text-slate-500 mt-2">{editedContent.length} characters</p>
               </div>
-
-              {/* Subject */}
-              <p className="mb-6">
-                <span className="font-medium">Re: </span>
-                Request for {selectedLetterType?.label}
-              </p>
-
-              {/* Salutation */}
-              <p className="mb-6">To Whom It May Concern:</p>
-
-              {/* Body */}
-              <div className="space-y-4 text-sm leading-relaxed">
-                <p>
-                  I am writing to formally request the{" "}
-                  <span className="bg-blue-100 text-blue-800 px-1 rounded font-medium">method of verification</span>{" "}
-                  used during your investigation of my dispute. Pursuant to{" "}
-                  <span className="bg-blue-100 text-blue-800 px-1 rounded font-medium">15 U.S.C. § 1681i(a)(6)(B)(iii)</span>,
-                  you are required to provide this information upon request.
-                </p>
-
-                {/* Disputed Account Box */}
-                {disputedAccounts.length > 0 && (
-                  <div className="border border-slate-300 rounded-lg p-4 my-6 bg-slate-50">
-                    <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">Disputed Account</p>
-                    <p className="font-semibold">{disputedAccounts[0].creditorName}</p>
-                    <p className="text-sm text-slate-600">Account #: {disputedAccounts[0].accountNumber}</p>
+            ) : (
+              /* Preview Mode */
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white text-slate-900 rounded-lg shadow-2xl p-8 min-h-[800px]"
+              >
+                {letterContent ? (
+                  <div className="whitespace-pre-wrap font-serif text-sm leading-relaxed">
+                    {letterContent}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+                    <FileText className="w-12 h-12 mb-4" />
+                    <p>No letter content yet</p>
+                    <Button onClick={handleGenerateLetter} className="mt-4" disabled={isGenerating}>
+                      {isGenerating ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Generate with AMELIA
+                        </>
+                      )}
+                    </Button>
                   </div>
                 )}
-
-                <p>
-                  This information is{" "}
-                  <span className="bg-blue-100 text-blue-800 px-1 rounded font-medium">inaccurate and requires verification</span>.
-                  I demand the following within 15 days:
-                </p>
-
-                <ul className="list-disc list-inside space-y-1 ml-4">
-                  <li>Name, address, and telephone number of persons contacted</li>
-                  <li>Summary of verification method used</li>
-                  <li>Copies of all documents relied upon</li>
-                </ul>
-
-                {/* Emotional Impact Statement */}
-                <div className="bg-amber-50 border-l-4 border-amber-400 p-3 my-6">
-                  <p className="text-amber-800 italic">
-                    This situation has caused me significant financial hardship and emotional distress.
-                  </p>
-                </div>
-              </div>
-
-              {/* Signature */}
-              <div className="mt-12">
-                <p>Sincerely,</p>
-                <p className="mt-6 font-medium">{clientName}</p>
-              </div>
-
-              {/* Footer Legend */}
-              <div className="mt-12 pt-4 border-t border-slate-200 flex items-center gap-4 text-xs text-slate-400">
-                <span className="flex items-center gap-1">
-                  <span className="w-3 h-3 rounded bg-blue-100" /> Key Terms
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="w-3 h-3 rounded bg-amber-100" /> Legal Citations
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="w-3 h-3 rounded bg-emerald-100" /> Dispute Basis
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="w-3 h-3 rounded bg-violet-100" /> AI Added
-                </span>
-              </div>
-            </motion.div>
+              </motion.div>
+            )}
           </div>
         </div>
 
@@ -348,7 +593,7 @@ export function LetterGenerator({
               </div>
             </div>
             <div>
-              <h3 className="font-semibold text-white">Amelia</h3>
+              <h3 className="font-semibold text-white">AMELIA</h3>
               <p className="text-xs text-slate-400">AI Writing Assistant</p>
             </div>
             <div className="ml-auto text-right">
@@ -358,11 +603,19 @@ export function LetterGenerator({
           </div>
 
           {/* Suggestions */}
-          <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Suggestions</h4>
+          <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
+            Suggestions
+            {isLoadingSuggestions && <Loader2 className="w-3 h-3 ml-2 inline animate-spin" />}
+          </h4>
           <div className="space-y-2 mb-4">
+            {suggestions.length === 0 && !isLoadingSuggestions && (
+              <p className="text-sm text-slate-500">No suggestions available. Generate a letter first.</p>
+            )}
             {suggestions.map((suggestion) => (
-              <div
+              <motion.div
                 key={suggestion.id}
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
                 className={`p-3 rounded-xl border transition-all ${
                   suggestion.applied
                     ? "bg-emerald-500/10 border-emerald-500/30"
@@ -371,28 +624,36 @@ export function LetterGenerator({
               >
                 <div className="flex items-start gap-3">
                   {suggestion.applied ? (
-                    <CheckCircle className="w-5 h-5 text-emerald-400 mt-0.5" />
+                    <CheckCircle className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
                   ) : suggestion.impact === "high" ? (
-                    <Zap className="w-5 h-5 text-amber-400 mt-0.5" />
+                    <Zap className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
                   ) : (
-                    <Sparkles className="w-5 h-5 text-blue-400 mt-0.5" />
+                    <Sparkles className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
                   )}
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <p className={`text-sm ${suggestion.applied ? "text-emerald-300" : "text-white"}`}>
                       {suggestion.text}
                     </p>
+                    {suggestion.reasoning && !suggestion.applied && (
+                      <p className="text-xs text-slate-500 mt-1">{suggestion.reasoning}</p>
+                    )}
                   </div>
                   {!suggestion.applied && (
                     <Button
                       size="sm"
-                      onClick={() => handleApplySuggestion(suggestion.id)}
-                      className="bg-blue-600 hover:bg-blue-700 text-xs h-7"
+                      onClick={() => handleApplySuggestion(suggestion)}
+                      disabled={isApplyingSuggestion === suggestion.id}
+                      className="bg-blue-600 hover:bg-blue-700 text-xs h-7 flex-shrink-0"
                     >
-                      Apply
+                      {isApplyingSuggestion === suggestion.id ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        "Apply"
+                      )}
                     </Button>
                   )}
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
 
@@ -400,44 +661,53 @@ export function LetterGenerator({
           {suggestions.some((s) => !s.applied) && (
             <Button onClick={handleApplyAll} className="w-full bg-emerald-600 hover:bg-emerald-700 mb-6">
               <Sparkles className="w-4 h-4 mr-2" />
-              Apply All
+              Apply All ({suggestions.filter(s => !s.applied).length})
             </Button>
           )}
 
           {/* Version History */}
           <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Version History</h4>
           <div className="space-y-2 mb-4">
-            {versions.slice(0, 3).map((version) => (
-              <button
-                key={version.id}
-                className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${
-                  version.isCurrent
-                    ? "bg-blue-500/20 border border-blue-500/50"
-                    : "bg-slate-800/50 border border-slate-700/50 hover:bg-slate-800"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className={`font-medium ${version.isCurrent ? "text-blue-400" : "text-white"}`}>
-                    {version.version}
-                  </span>
-                  {version.isCurrent && (
-                    <Badge className="bg-blue-500/20 text-blue-400 text-[10px]">current</Badge>
-                  )}
-                </div>
-                <span className="text-xs text-slate-500">{version.timestamp}</span>
-              </button>
-            ))}
+            {versions.length === 0 ? (
+              <p className="text-sm text-slate-500">No versions yet</p>
+            ) : (
+              versions.slice(0, 5).map((version) => (
+                <button
+                  key={version.id}
+                  onClick={() => handleRevertVersion(version)}
+                  className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${
+                    version.isCurrent
+                      ? "bg-blue-500/20 border border-blue-500/50"
+                      : "bg-slate-800/50 border border-slate-700/50 hover:bg-slate-800"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={`font-medium ${version.isCurrent ? "text-blue-400" : "text-white"}`}>
+                      {version.version}
+                    </span>
+                    {version.isCurrent && (
+                      <Badge className="bg-blue-500/20 text-blue-400 text-[10px]">current</Badge>
+                    )}
+                  </div>
+                  <span className="text-xs text-slate-500">{version.timestamp}</span>
+                </button>
+              ))
+            )}
           </div>
 
           {/* Undo Button */}
-          <button className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:bg-slate-800 transition-all text-slate-400 hover:text-white">
+          <button
+            onClick={handleUndo}
+            disabled={versions.length <= 1}
+            className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:bg-slate-800 transition-all text-slate-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             <Undo2 className="w-4 h-4" />
             <span className="text-sm">Undo Last Change</span>
           </button>
 
           {/* Regenerate Button */}
           <Button
-            onClick={handleRegenerate}
+            onClick={handleGenerateLetter}
             disabled={isGenerating}
             variant="outline"
             className="w-full mt-4 border-slate-700"
@@ -460,21 +730,51 @@ export function LetterGenerator({
   );
 }
 
-// Helper function to generate letter content
-function generateLetterContent(
+// Helper function to generate sample letter content (used when no disputeId)
+function generateSampleLetterContent(
   letterType: string,
   account: DisputedAccount,
   bureauInfo: { name: string; address: string },
-  clientName: string
+  clientName: string,
+  round: number
 ): string {
   const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
-  return `${today}
+  const letterTemplates: Record<string, string> = {
+    initial: `${today}
 
 ${bureauInfo.name}
 ${bureauInfo.address}
 
-Re: Request for Method of Verification
+Re: Dispute of Inaccurate Information
+
+To Whom It May Concern:
+
+I am writing to dispute inaccurate information that appears on my credit report. After reviewing my report, I have identified the following account that contains errors:
+
+DISPUTED ACCOUNT
+${account.creditorName}
+Account #: ${account.accountNumber}
+${account.balance ? `Reported Balance: $${account.balance.toLocaleString()}` : ""}
+
+I am exercising my rights under the Fair Credit Reporting Act to request that you investigate this matter. The information being reported is inaccurate for the following reasons:
+
+• The account status is incorrectly reported
+• The balance information does not reflect accurate figures
+• I do not recognize this account as belonging to me
+
+Please conduct a thorough investigation and provide me with the results within 30 days as required by law.
+
+Sincerely,
+
+${clientName}`,
+
+    mov: `${today}
+
+${bureauInfo.name}
+${bureauInfo.address}
+
+Re: Request for Method of Verification - Second Notice
 
 To Whom It May Concern:
 
@@ -484,15 +784,82 @@ DISPUTED ACCOUNT
 ${account.creditorName}
 Account #: ${account.accountNumber}
 
-This information is inaccurate and requires verification. I demand the following within 15 days:
+Following my initial dispute, you reported that the information was "verified." However, you have not provided me with:
 
-• Name, address, and telephone number of persons contacted
-• Summary of verification method used
-• Copies of all documents relied upon
+• Name, address, and telephone number of the furnisher contacted
+• Summary of the verification method used
+• Copies of any documents relied upon during the investigation
 
-This situation has caused me significant financial hardship and emotional distress.
+I am entitled to this information under federal law. Please provide the method of verification within 15 days of receipt of this letter.
 
 Sincerely,
 
-${clientName}`;
+${clientName}`,
+
+    violation: `${today}
+
+${bureauInfo.name}
+${bureauInfo.address}
+
+Re: Notice of FCRA Violations
+
+To Whom It May Concern:
+
+This letter serves as formal notice that you have violated the Fair Credit Reporting Act in your handling of my dispute.
+
+DISPUTED ACCOUNT
+${account.creditorName}
+Account #: ${account.accountNumber}
+
+Specifically, you have violated:
+
+1. 15 U.S.C. § 1681i(a)(1)(A) - Failure to conduct a reasonable reinvestigation
+2. 15 U.S.C. § 1681i(a)(6)(B)(iii) - Failure to provide method of verification upon request
+3. 15 U.S.C. § 1681e(b) - Failure to maintain reasonable procedures to assure maximum possible accuracy
+
+Despite multiple written requests, you have failed to provide adequate verification of this disputed information. Your continued reporting of unverified information is causing harm to my creditworthiness.
+
+I demand immediate deletion of this inaccurate information from my credit file.
+
+Sincerely,
+
+${clientName}`,
+
+    final: `${today}
+
+${bureauInfo.name}
+${bureauInfo.address}
+
+Re: Final Demand Before Legal Action
+
+CERTIFIED MAIL - RETURN RECEIPT REQUESTED
+
+To Whom It May Concern:
+
+This is my final demand before I am forced to pursue legal remedies.
+
+DISPUTED ACCOUNT
+${account.creditorName}
+Account #: ${account.accountNumber}
+
+Over the past several months, I have:
+• Submitted multiple written disputes
+• Requested method of verification
+• Documented your violations of the FCRA
+
+You have failed to:
+• Conduct a reasonable investigation
+• Provide the method of verification as required by law
+• Remove unverified information from my credit report
+
+This letter constitutes formal notice that I intend to pursue all available legal remedies if this matter is not resolved within 15 days. This includes filing a complaint with the Consumer Financial Protection Bureau and pursuing statutory damages under the FCRA.
+
+Govern yourself accordingly.
+
+Sincerely,
+
+${clientName}`,
+  };
+
+  return letterTemplates[letterType] || letterTemplates.initial;
 }

@@ -76,6 +76,19 @@ model Client {
   creditMonitoringId      String?             // External enrollment ID
   creditMonitoringStatus  String?             // PENDING, ACTIVE, SUSPENDED
   creditMonitoringProvider String?            // identityiq, array
+
+  // Command Center fields for tracking and prioritization
+  priority                String              @default("STANDARD")  // URGENT, HIGH, STANDARD, LOW
+  segment                 String              @default("NEW")       // NEW, RETURNING, VIP, STANDARD
+  stage                   String              @default("INTAKE")    // INTAKE, ANALYSIS, ROUND_1, ROUND_2, ROUND_3, ROUND_4, AWAITING_RESPONSE, MAINTENANCE, COMPLETED, ESCALATED
+  stageChangedAt          DateTime?                                 // When stage last changed
+  currentRound            Int                 @default(0)           // Current dispute round (0 = not started)
+  successRate             Float?                                    // Calculated success rate (0-100)
+  lastActivityAt          DateTime?                                 // Last dispute/report activity
+  activeBureaus           String              @default("[]")        // JSON array of active bureau disputes ["TU", "EQ", "EX"]
+  totalDisputesSent       Int                 @default(0)           // Running count of disputes sent
+  totalItemsDeleted       Int                 @default(0)           // Running count of items deleted
+
   // Archive fields for 90-day retention
   archivedAt              DateTime?           // When client was archived (null = active)
   archiveReason           String?             // Why archived (manual, inactive, etc.)
@@ -96,6 +109,9 @@ model Client {
   @@index([organizationId])
   @@index([lastName, firstName])
   @@index([creditMonitoringId])
+  @@index([organizationId, priority])
+  @@index([organizationId, stage])
+  @@index([organizationId, lastActivityAt])
 }
 
 model CreditReport {
