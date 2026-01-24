@@ -1,22 +1,26 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { ReactNode } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   Users,
   FileText,
   Scale,
-  AlertTriangle,
-  CheckCircle2,
   Clock,
+  Zap,
+  Search,
+  Plus,
+  ChevronRight,
+  Upload,
+  AlertTriangle,
   TrendingUp,
-  LucideIcon,
-  Bell,
+  TrendingDown,
 } from "lucide-react";
-import { ReminderList } from "@/components/reminders";
-import { FCRAAlerts } from "./fcra-alerts";
 
 // Animation variants
 const containerVariants = {
@@ -24,7 +28,7 @@ const containerVariants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.1,
+      staggerChildren: 0.08,
       delayChildren: 0.1,
     },
   },
@@ -42,354 +46,361 @@ const itemVariants = {
   },
 };
 
-const cardHoverVariants = {
-  hover: {
-    scale: 1.02,
-    y: -4,
-    transition: { duration: 0.2 },
-  },
-  tap: {
-    scale: 0.98,
-    transition: { duration: 0.1 },
-  },
-};
-
-const quickActionVariants = {
-  hover: {
-    scale: 1.05,
-    backgroundColor: "rgba(51, 65, 85, 1)",
-    transition: { duration: 0.2 },
-  },
-  tap: {
-    scale: 0.95,
-  },
-};
-
-// Animated counter component
-function AnimatedNumber({ value }: { value: number }) {
+// Stat card component
+function StatCard({
+  icon: Icon,
+  value,
+  label,
+  change,
+  iconBg,
+  iconColor,
+  href,
+}: {
+  icon: typeof Users;
+  value: string | number;
+  label: string;
+  change?: { value: number; isPositive: boolean };
+  iconBg: string;
+  iconColor: string;
+  href: string;
+}) {
   return (
-    <motion.span
-      initial={{ opacity: 0, scale: 0.5 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.5, type: "spring" }}
-    >
-      {value.toLocaleString()}
-    </motion.span>
+    <Link href={href}>
+      <motion.div
+        className="relative overflow-hidden rounded-2xl bg-slate-800/40 border border-slate-700/50 p-5 hover:bg-slate-800/60 hover:border-slate-600/50 transition-all cursor-pointer group"
+        whileHover={{ y: -2 }}
+        whileTap={{ scale: 0.98 }}
+      >
+        <div className="flex items-start justify-between">
+          <div className={`p-3 rounded-xl ${iconBg}`}>
+            <Icon className={`w-5 h-5 ${iconColor}`} />
+          </div>
+          {change && (
+            <div className={`flex items-center gap-1 text-sm ${change.isPositive ? "text-emerald-400" : "text-red-400"}`}>
+              {change.isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+              {change.isPositive ? "+" : ""}{change.value}%
+            </div>
+          )}
+        </div>
+        <div className="mt-4">
+          <p className="text-3xl font-bold text-white">{value}</p>
+          <p className="text-sm text-slate-400 mt-1">{label}</p>
+        </div>
+        {/* Hover glow effect */}
+        <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-500/0 via-blue-500/5 to-purple-500/0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+      </motion.div>
+    </Link>
   );
 }
 
-// Icon map
-const iconMap: Record<string, LucideIcon> = {
-  Users,
-  FileText,
-  Scale,
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
-  TrendingUp,
-};
+// Client row component
+function ClientRow({
+  id,
+  initials,
+  name,
+  disputeCount,
+  currentRound,
+  bureau,
+  status,
+}: {
+  id: string;
+  initials: string;
+  name: string;
+  disputeCount: number;
+  currentRound: number | string;
+  bureau: "TU" | "EQ" | "EX";
+  status: "active" | "pending" | "completed";
+}) {
+  const bureauColors = {
+    TU: "bg-blue-500/20 text-blue-400",
+    EQ: "bg-amber-500/20 text-amber-400",
+    EX: "bg-purple-500/20 text-purple-400",
+  };
 
-interface StatCard {
-  title: string;
-  value: number;
-  icon: string;
-  color: string;
-  bgColor: string;
-  href: string;
+  const statusColors = {
+    active: "bg-emerald-500/20 text-emerald-400",
+    pending: "bg-amber-500/20 text-amber-400",
+    completed: "bg-slate-500/20 text-slate-400",
+  };
+
+  const initialsColors = [
+    "bg-blue-500/20 text-blue-400",
+    "bg-emerald-500/20 text-emerald-400",
+    "bg-amber-500/20 text-amber-400",
+    "bg-purple-500/20 text-purple-400",
+    "bg-pink-500/20 text-pink-400",
+  ];
+  const colorIndex = name.charCodeAt(0) % initialsColors.length;
+
+  return (
+    <Link href={`/clients/${id}`}>
+      <motion.div
+        className="flex items-center justify-between p-4 rounded-xl hover:bg-slate-700/30 transition-colors cursor-pointer group"
+        whileHover={{ x: 4 }}
+      >
+        <div className="flex items-center gap-4">
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold ${initialsColors[colorIndex]}`}>
+            {initials}
+          </div>
+          <div>
+            <p className="font-medium text-white">{name}</p>
+            <p className="text-sm text-slate-400">
+              {disputeCount} dispute{disputeCount !== 1 ? "s" : ""} • Round {currentRound}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge className={`${bureauColors[bureau]} text-xs font-medium`}>
+            {bureau}
+          </Badge>
+          <Badge className={`${statusColors[status]} text-xs font-medium`}>
+            {status}
+          </Badge>
+          <ChevronRight className="w-4 h-4 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </div>
+      </motion.div>
+    </Link>
+  );
 }
 
-interface ActivityEvent {
+interface RecentClient {
   id: string;
-  eventType: string;
-  createdAt: Date;
-  actor?: { name: string } | null;
+  firstName: string;
+  lastName: string;
+  disputeCount: number;
+  currentRound: number;
+  activeBureau: "TU" | "EQ" | "EX" | null;
+  status: "active" | "pending" | "completed";
 }
 
 interface DashboardClientProps {
   userName: string;
-  statCards: StatCard[];
+  stats: {
+    totalClients: number;
+    activeDisputes: number;
+    pendingReview: number;
+    successRate: number;
+    clientsChange?: number;
+    disputesChange?: number;
+    reviewChange?: number;
+    successChange?: number;
+  };
+  recentClients: RecentClient[];
   needsReviewCount: number;
-  recentActivity: ActivityEvent[];
   subscriptionTier: string;
 }
 
 export function DashboardClient({
   userName,
-  statCards,
+  stats,
+  recentClients,
   needsReviewCount,
-  recentActivity,
   subscriptionTier,
 }: DashboardClientProps) {
-  const formatEventType = (type: string) => {
-    return type
-      .replace(/_/g, " ")
-      .toLowerCase()
-      .replace(/\b\w/g, (c) => c.toUpperCase());
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/clients?search=${encodeURIComponent(searchQuery)}`);
+    }
   };
 
-  const formatTimeAgo = (date: Date) => {
-    const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
-    if (seconds < 60) return "just now";
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    return `${days}d ago`;
-  };
+  const disputeFlows = [
+    { name: "Accuracy", rounds: "12 rounds" },
+    { name: "Collections", rounds: "10 rounds" },
+    { name: "Consent", rounds: "4 rounds" },
+    { name: "Combo", rounds: "Mixed rounds" },
+  ];
 
   return (
     <motion.div
-      className="space-y-6 lg:ml-64 pt-16 lg:pt-0"
+      className="space-y-6"
       initial="hidden"
       animate="visible"
       variants={containerVariants}
     >
       {/* Header */}
-      <motion.div variants={itemVariants}>
-        <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-        <p className="text-slate-400 mt-1">
-          Welcome back, <span className="text-white">{userName}</span>
-        </p>
+      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+          <p className="text-slate-400 mt-1">Welcome back! Here's your dispute overview.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <form onSubmit={handleSearch} className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <Input
+              placeholder="Search clients..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 w-[200px] bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500"
+            />
+          </form>
+          <Button onClick={() => router.push("/clients")} className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="w-4 h-4 mr-2" />
+            Add Client
+          </Button>
+        </div>
       </motion.div>
 
       {/* Stats Grid */}
-      <motion.div
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
-        variants={containerVariants}
-      >
-        {statCards.map((stat, index) => {
-          const Icon = iconMap[stat.icon] || AlertTriangle;
-          return (
-            <motion.a
-              key={stat.title}
-              href={stat.href}
-              variants={itemVariants}
-              whileHover="hover"
-              whileTap="tap"
-              custom={index}
-            >
-              <motion.div variants={cardHoverVariants}>
-                <Card className="bg-slate-800/50 border-slate-700 hover:border-slate-500 transition-colors cursor-pointer overflow-hidden">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-slate-400">{stat.title}</p>
-                        <p className="text-3xl font-bold text-white mt-1">
-                          <AnimatedNumber value={stat.value} />
-                        </p>
-                      </div>
-                      <motion.div
-                        className={`p-3 rounded-full ${stat.bgColor}`}
-                        whileHover={{ rotate: 10, scale: 1.1 }}
-                        transition={{ type: "spring", stiffness: 300 }}
-                      >
-                        <Icon className={`w-6 h-6 ${stat.color}`} />
-                      </motion.div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </motion.a>
-          );
-        })}
+      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          icon={Users}
+          value={stats.totalClients}
+          label="Total Clients"
+          change={stats.clientsChange ? { value: stats.clientsChange, isPositive: stats.clientsChange > 0 } : undefined}
+          iconBg="bg-blue-500/20"
+          iconColor="text-blue-400"
+          href="/clients"
+        />
+        <StatCard
+          icon={FileText}
+          value={stats.activeDisputes}
+          label="Active Disputes"
+          change={stats.disputesChange ? { value: stats.disputesChange, isPositive: stats.disputesChange > 0 } : undefined}
+          iconBg="bg-amber-500/20"
+          iconColor="text-amber-400"
+          href="/disputes"
+        />
+        <StatCard
+          icon={Clock}
+          value={stats.pendingReview}
+          label="Pending Review"
+          change={stats.reviewChange ? { value: Math.abs(stats.reviewChange), isPositive: stats.reviewChange < 0 } : undefined}
+          iconBg="bg-slate-500/20"
+          iconColor="text-slate-400"
+          href="/disputes?status=pending"
+        />
+        <StatCard
+          icon={Zap}
+          value={`${stats.successRate}%`}
+          label="Success Rate"
+          change={stats.successChange ? { value: stats.successChange, isPositive: stats.successChange > 0 } : undefined}
+          iconBg="bg-emerald-500/20"
+          iconColor="text-emerald-400"
+          href="/analytics"
+        />
       </motion.div>
 
-      {/* FCRA Compliance Alerts */}
-      <motion.div variants={itemVariants}>
-        <FCRAAlerts />
-      </motion.div>
+      {/* Main Content */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Recent Clients - 2 columns */}
+        <motion.div variants={itemVariants} className="lg:col-span-2">
+          <div className="rounded-2xl bg-slate-800/40 border border-slate-700/50 overflow-hidden">
+            <div className="flex items-center justify-between p-5 border-b border-slate-700/50">
+              <h2 className="font-semibold text-white">Recent Clients</h2>
+              <Link href="/clients" className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                View all <ChevronRight className="w-4 h-4" />
+              </Link>
+            </div>
+            <div className="divide-y divide-slate-700/30">
+              {recentClients.length === 0 ? (
+                <div className="p-8 text-center">
+                  <Users className="w-12 h-12 mx-auto text-slate-600 mb-3" />
+                  <p className="text-slate-400">No clients yet</p>
+                  <Button
+                    onClick={() => router.push("/clients")}
+                    variant="outline"
+                    className="mt-4 border-slate-600"
+                  >
+                    Add Your First Client
+                  </Button>
+                </div>
+              ) : (
+                recentClients.map((client) => (
+                  <ClientRow
+                    key={client.id}
+                    id={client.id}
+                    initials={`${client.firstName.charAt(0)}${client.lastName.charAt(0)}`}
+                    name={`${client.firstName} ${client.lastName}`}
+                    disputeCount={client.disputeCount}
+                    currentRound={client.currentRound || 1}
+                    bureau={client.activeBureau || "TU"}
+                    status={client.status}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+        </motion.div>
 
-      {/* Needs Review Alert */}
-      {needsReviewCount > 0 && (
-        <motion.div
-          variants={itemVariants}
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.5 }}
-        >
-          <Card className="bg-amber-500/10 border-amber-500/20 overflow-hidden">
+        {/* Right Sidebar - 1 column */}
+        <motion.div variants={itemVariants} className="space-y-4">
+          {/* Upload Report Card */}
+          <div className="rounded-2xl bg-slate-800/40 border border-slate-700/50 p-5">
+            <div className="flex flex-col items-center text-center">
+              <div className="p-4 rounded-full bg-slate-700/50 mb-4">
+                <Upload className="w-6 h-6 text-slate-400" />
+              </div>
+              <h3 className="font-semibold text-white">Upload Report</h3>
+              <p className="text-sm text-slate-400 mt-1 mb-4">Parse a new IdentityIQ credit report</p>
+              <Button
+                onClick={() => router.push("/reports")}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+              >
+                Upload PDF
+              </Button>
+            </div>
+          </div>
+
+          {/* Dispute Flow Reference */}
+          <div className="rounded-2xl bg-slate-800/40 border border-slate-700/50 p-5">
+            <h3 className="font-semibold text-white text-sm uppercase tracking-wide text-slate-400 mb-4">
+              Dispute Flow
+            </h3>
+            <div className="space-y-3">
+              {disputeFlows.map((flow) => (
+                <div key={flow.name} className="flex items-center justify-between">
+                  <span className="text-white">{flow.name}</span>
+                  <span className="text-sm text-slate-500">{flow.rounds}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Needs Review Alert */}
+          {needsReviewCount > 0 && (
             <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-amber-500/5 to-transparent"
-              animate={{
-                x: ["-100%", "100%"],
-              }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                ease: "linear",
-              }}
-            />
-            <CardContent className="p-4 relative">
-              <div className="flex items-center gap-3">
-                <motion.div
-                  animate={{ scale: [1, 1.1, 1] }}
-                  transition={{ duration: 1, repeat: Infinity }}
-                >
-                  <AlertTriangle className="w-5 h-5 text-amber-500" />
-                </motion.div>
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="rounded-2xl bg-red-500/10 border border-red-500/20 p-5"
+            >
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-400 mt-0.5" />
                 <div>
-                  <p className="font-medium text-amber-200">
-                    {needsReviewCount} account{needsReviewCount !== 1 ? "s" : ""} need review
-                  </p>
-                  <p className="text-sm text-amber-300/70">
-                    Low confidence parses require specialist confirmation before disputes can be generated.
+                  <h3 className="font-semibold text-red-400">Needs Review</h3>
+                  <p className="text-sm text-red-300/70 mt-1">
+                    {needsReviewCount} account{needsReviewCount !== 1 ? "s" : ""} flagged with low confidence scores
                   </p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Activity */}
-        <motion.div variants={itemVariants}>
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Clock className="w-5 h-5" />
-                Recent Activity
-              </CardTitle>
-              <CardDescription className="text-slate-400">
-                Latest actions in your organization
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <motion.div
-                className="space-y-4"
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-              >
-                {recentActivity.length === 0 ? (
-                  <p className="text-slate-500 text-sm">No recent activity</p>
-                ) : (
-                  recentActivity.map((event, index) => (
-                    <motion.div
-                      key={event.id}
-                      className="flex items-start gap-3"
-                      variants={itemVariants}
-                      custom={index}
-                    >
-                      <motion.div
-                        className="w-2 h-2 rounded-full bg-primary mt-2"
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: index * 0.1 + 0.5 }}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-white">
-                          {formatEventType(event.eventType)}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {event.actor?.name || "System"} • {formatTimeAgo(event.createdAt)}
-                        </p>
-                      </div>
-                    </motion.div>
-                  ))
-                )}
-              </motion.div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Quick Actions */}
-        <motion.div variants={itemVariants}>
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <TrendingUp className="w-5 h-5" />
-                Quick Actions
-              </CardTitle>
-              <CardDescription className="text-slate-400">
-                Common tasks and workflows
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <motion.div
-                className="grid grid-cols-2 gap-3"
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-              >
-                {[
-                  { href: "/reports", icon: FileText, color: "text-brand-success", label: "Upload Report" },
-                  { href: "/negative-items", icon: AlertTriangle, color: "text-brand-error", label: "Negative Items" },
-                  { href: "/evidence", icon: FileText, color: "text-brand-warning", label: "Evidence Gallery" },
-                  { href: "/disputes", icon: Scale, color: "text-brand-accent", label: "Create Dispute" },
-                ].map((action, index) => (
-                  <motion.a
-                    key={action.href}
-                    href={action.href}
-                    className="p-4 rounded-lg bg-slate-700/50 text-center"
-                    variants={itemVariants}
-                    whileHover="hover"
-                    whileTap="tap"
-                    custom={index}
-                  >
-                    <motion.div variants={quickActionVariants}>
-                      <motion.div
-                        whileHover={{ rotate: [0, -10, 10, 0], scale: 1.1 }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        <action.icon className={`w-8 h-8 mx-auto ${action.color}`} />
-                      </motion.div>
-                      <p className="text-sm font-medium text-white mt-2">{action.label}</p>
-                    </motion.div>
-                  </motion.a>
-                ))}
-              </motion.div>
-            </CardContent>
-          </Card>
+            </motion.div>
+          )}
         </motion.div>
       </div>
 
-      {/* Reminders Section */}
-      <motion.div variants={itemVariants}>
-        <ReminderList showStats={false} compact={true} />
-      </motion.div>
-
-      {/* Subscription Status */}
+      {/* Subscription Prompt for Free Users */}
       {subscriptionTier === "FREE" && (
         <motion.div
           variants={itemVariants}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
+          className="rounded-2xl bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/20 p-6"
         >
-          <Card className="bg-gradient-to-r from-primary/20 to-purple-500/20 border-primary/30 overflow-hidden relative">
-            <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent"
-              animate={{
-                x: ["-100%", "100%"],
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                ease: "linear",
-                repeatDelay: 3,
-              }}
-            />
-            <CardContent className="p-6 relative">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-white">Upgrade to Pro</h3>
-                  <p className="text-slate-300 mt-1">
-                    Unlock report uploads, dispute generation, and evidence tools.
-                  </p>
-                </div>
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Badge variant="outline" className="text-primary border-primary cursor-pointer">
-                    Free Plan
-                  </Badge>
-                </motion.div>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-white">Upgrade to Pro</h3>
+              <p className="text-slate-300 mt-1">
+                Unlock report uploads, AI dispute generation, and CFPB complaint tools.
+              </p>
+            </div>
+            <Button
+              onClick={() => router.push("/billing")}
+              className="bg-white text-slate-900 hover:bg-slate-100"
+            >
+              View Plans
+            </Button>
+          </div>
         </motion.div>
       )}
     </motion.div>

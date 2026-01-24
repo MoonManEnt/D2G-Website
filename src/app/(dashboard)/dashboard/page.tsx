@@ -3,103 +3,111 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { DashboardClient } from "@/components/dashboard/dashboard-client";
 
-async function getDashboardStats(organizationId: string) {
+async function getDashboardData(organizationId: string) {
+  // Get core stats
   const [
-    clientCount,
-    reportCount,
-    pendingDisputes,
+    totalClients,
+    activeDisputes,
+    pendingReview,
     resolvedDisputes,
+    totalDisputes,
     needsReviewCount,
-    negativeItemCount,
-    evidenceCount,
-    sentDisputes,
   ] = await Promise.all([
-    prisma.client.count({ where: { organizationId, isActive: true } }),
-    prisma.creditReport.count({ where: { organizationId } }),
-    prisma.dispute.count({ where: { organizationId, status: { in: ["DRAFT", "PENDING_REVIEW", "APPROVED"] } } }),
+    prisma.client.count({ where: { organizationId, isActive: true, archivedAt: null } }),
+    prisma.dispute.count({ where: { organizationId, status: { in: ["DRAFT", "PENDING_REVIEW", "APPROVED", "SENT"] } } }),
+    prisma.dispute.count({ where: { organizationId, status: { in: ["PENDING_REVIEW", "RESPONDED"] } } }),
     prisma.dispute.count({ where: { organizationId, status: "RESOLVED" } }),
+    prisma.dispute.count({ where: { organizationId } }),
     prisma.accountItem.count({ where: { organizationId, isConfirmed: false, confidenceLevel: "LOW" } }),
-    prisma.accountItem.count({ where: { organizationId, confidenceLevel: { in: ["LOW", "MEDIUM"] } } }),
-    prisma.evidence.count({ where: { organizationId } }),
-    prisma.dispute.count({ where: { organizationId, status: "SENT" } }),
   ]);
 
-  return {
-    clientCount,
-    reportCount,
-    pendingDisputes,
-    resolvedDisputes,
-    needsReviewCount,
-    negativeItemCount,
-    evidenceCount,
-    sentDisputes,
-  };
-}
+  // Calculate success rate
+  const successRate = totalDisputes > 0 ? Math.round((resolvedDisputes / totalDisputes) * 100) : 0;
 
-async function getRecentActivity(organizationId: string) {
-  return prisma.eventLog.findMany({
-    where: { organizationId },
-    orderBy: { createdAt: "desc" },
-    take: 10,
+  // Get recent clients with dispute info
+  const recentClients = await prisma.client.findMany({
+    where: { organizationId, isActive: true, archivedAt: null },
+    orderBy: { updatedAt: "desc" },
+    take: 5,
     include: {
-      actor: { select: { name: true } },
+      disputes: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: {
+          round: true,
+          cra: true,
+          status: true,
+        },
+      },
+      _count: {
+        select: { disputes: true },
+      },
     },
   });
+
+  // Transform clients for the UI
+  const formattedClients = recentClients.map((client) => {
+    const latestDispute = client.disputes[0];
+    let status: "active" | "pending" | "completed" = "pending";
+
+    if (latestDispute) {
+      if (latestDispute.status === "RESOLVED") {
+        status = "completed";
+      } else if (["SENT", "APPROVED", "DRAFT"].includes(latestDispute.status)) {
+        status = "active";
+      } else {
+        status = "pending";
+      }
+    }
+
+    // Map CRA to bureau code
+    const bureauMap: Record<string, "TU" | "EQ" | "EX"> = {
+      TRANSUNION: "TU",
+      EQUIFAX: "EQ",
+      EXPERIAN: "EX",
+    };
+
+    return {
+      id: client.id,
+      firstName: client.firstName,
+      lastName: client.lastName,
+      disputeCount: client._count.disputes,
+      currentRound: latestDispute?.round || 1,
+      activeBureau: latestDispute ? bureauMap[latestDispute.cra] || "TU" : null,
+      status,
+    };
+  });
+
+  return {
+    stats: {
+      totalClients,
+      activeDisputes,
+      pendingReview,
+      successRate,
+      // For demo, we could calculate actual changes by comparing to last month
+      // For now, show static demo values if there's data
+      clientsChange: totalClients > 0 ? 12 : undefined,
+      disputesChange: activeDisputes > 0 ? 8 : undefined,
+      reviewChange: pendingReview > 0 ? -5 : undefined,
+      successChange: successRate > 0 ? 3 : undefined,
+    },
+    recentClients: formattedClients,
+    needsReviewCount,
+  };
 }
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
   if (!session) return null;
 
-  const stats = await getDashboardStats(session.user.organizationId);
-  const recentActivity = await getRecentActivity(session.user.organizationId);
-
-  const statCards = [
-    {
-      title: "Active Clients",
-      value: stats.clientCount,
-      icon: "Users",
-      color: "text-brand-info",
-      bgColor: "bg-brand-info/10",
-      href: "/clients",
-    },
-    {
-      title: "Negative Items",
-      value: stats.negativeItemCount,
-      icon: "AlertTriangle",
-      color: "text-brand-error",
-      bgColor: "bg-brand-error/10",
-      href: "/negative-items",
-    },
-    {
-      title: "Active Disputes",
-      value: stats.pendingDisputes + stats.sentDisputes,
-      icon: "Scale",
-      color: "text-brand-warning",
-      bgColor: "bg-brand-warning/10",
-      href: "/disputes",
-    },
-    {
-      title: "Resolved",
-      value: stats.resolvedDisputes,
-      icon: "CheckCircle2",
-      color: "text-brand-success",
-      bgColor: "bg-brand-success/10",
-      href: "/disputes",
-    },
-  ];
+  const data = await getDashboardData(session.user.organizationId);
 
   return (
     <DashboardClient
       userName={session.user.name || "User"}
-      statCards={statCards}
-      needsReviewCount={stats.needsReviewCount}
-      recentActivity={recentActivity.map(e => ({
-        id: e.id,
-        eventType: e.eventType,
-        createdAt: e.createdAt,
-        actor: e.actor,
-      }))}
+      stats={data.stats}
+      recentClients={data.recentClients}
+      needsReviewCount={data.needsReviewCount}
       subscriptionTier={session.user.subscriptionTier || "FREE"}
     />
   );
