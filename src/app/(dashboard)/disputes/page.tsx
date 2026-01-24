@@ -37,11 +37,26 @@ import {
   Copy,
   CheckCircle2,
   ExternalLink,
+  Dna,
+  Sparkles,
+  ArrowRight,
+  Info,
+  ChevronDown,
+  Target,
+  Zap,
 } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
 import { LetterEditor } from "@/components/disputes/letter-editor";
 import { WorkflowTracker } from "@/components/disputes/workflow-tracker";
 import { type DisputeFlow, type ResponseOutcome, FLOW_DESCRIPTIONS } from "@/lib/dispute-rounds";
+import {
+  getDNAClassificationLabel,
+  getDNAClassificationDescription,
+  type CreditDNAProfile,
+  type DNAClassification,
+} from "@/lib/credit-dna";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 
 interface DisputeItem {
   id: string;
@@ -127,6 +142,27 @@ export default function DisputesPage() {
   const [cfpbLoading, setCfpbLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // DNA integration state
+  const [clientDNA, setClientDNA] = useState<CreditDNAProfile | null>(null);
+  const [dnaLoading, setDnaLoading] = useState(false);
+
+  // Enhanced response recording state
+  const [responseDialogOpen, setResponseDialogOpen] = useState(false);
+  const [responseData, setResponseData] = useState({
+    outcome: "",
+    responseDate: new Date().toISOString().split("T")[0],
+    responseMethod: "MAIL",
+    stallTactic: "",
+    stallDetails: "",
+    updateType: "",
+    previousValue: "",
+    newValue: "",
+    verificationMethod: "",
+    furnisherResponse: "",
+    notes: "",
+  });
+  const [recordingResponse, setRecordingResponse] = useState(false);
+
   const fetchDisputes = useCallback(async () => {
     try {
       const res = await fetch("/api/disputes");
@@ -146,6 +182,33 @@ export default function DisputesPage() {
     fetch("/api/clients").then((r) => { if (r.ok) r.json().then(setClients); });
     fetch("/api/accounts/negative").then((r) => { if (r.ok) r.json().then((d) => setNegativeAccounts(d.accounts || [])); });
   }, [fetchDisputes]);
+
+  // Fetch DNA when client is selected
+  useEffect(() => {
+    if (selectedClient) {
+      setDnaLoading(true);
+      fetch(`/api/clients/${selectedClient}/dna`)
+        .then((r) => {
+          if (r.ok) return r.json();
+          return null;
+        })
+        .then((data) => {
+          if (data?.hasDNA) {
+            setClientDNA(data.dna);
+            // Auto-suggest flow based on DNA
+            if (!selectedFlow && data.dna?.disputeReadiness?.recommendedFlow) {
+              setSelectedFlow(data.dna.disputeReadiness.recommendedFlow);
+            }
+          } else {
+            setClientDNA(null);
+          }
+        })
+        .catch(() => setClientDNA(null))
+        .finally(() => setDnaLoading(false));
+    } else {
+      setClientDNA(null);
+    }
+  }, [selectedClient, selectedFlow]);
 
   const handleCreateDispute = async () => {
     if (!selectedClient || !selectedCRA || !selectedFlow || selectedAccounts.length === 0) {
@@ -283,6 +346,119 @@ export default function DisputesPage() {
     }
   };
 
+  // Record detailed response for each dispute item
+  const handleRecordResponse = async () => {
+    if (!selectedDispute || !responseData.outcome) {
+      toast({ title: "Missing Information", description: "Please select an outcome", variant: "destructive" });
+      return;
+    }
+
+    setRecordingResponse(true);
+    try {
+      // Record response for each item in the dispute
+      for (const item of selectedDispute.items) {
+        const res = await fetch(`/api/disputes/${selectedDispute.id}/responses`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            disputeItemId: item.id,
+            outcome: responseData.outcome,
+            responseDate: responseData.responseDate,
+            responseMethod: responseData.responseMethod,
+            stallTactic: responseData.stallTactic || undefined,
+            stallDetails: responseData.stallDetails || undefined,
+            updateType: responseData.updateType || undefined,
+            previousValue: responseData.previousValue || undefined,
+            newValue: responseData.newValue || undefined,
+            verificationMethod: responseData.verificationMethod || undefined,
+            furnisherResponse: responseData.furnisherResponse || undefined,
+            notes: responseData.notes || undefined,
+          }),
+        });
+
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.error || "Failed to record response");
+        }
+      }
+
+      toast({ title: "Response Recorded", description: "CRA response has been saved" });
+      setResponseDialogOpen(false);
+      setResponseData({
+        outcome: "",
+        responseDate: new Date().toISOString().split("T")[0],
+        responseMethod: "MAIL",
+        stallTactic: "",
+        stallDetails: "",
+        updateType: "",
+        previousValue: "",
+        newValue: "",
+        verificationMethod: "",
+        furnisherResponse: "",
+        notes: "",
+      });
+      fetchDisputes();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to record response",
+        variant: "destructive",
+      });
+    } finally {
+      setRecordingResponse(false);
+    }
+  };
+
+  // Generate next round using Intelligence Engine
+  const handleGenerateNextRound = async () => {
+    if (!selectedDispute) return;
+
+    try {
+      const res = await fetch(`/api/disputes/${selectedDispute.id}/next-round`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.allResolved) {
+          toast({ title: "All Items Resolved!", description: data.message });
+        } else {
+          toast({
+            title: "Next Round Created",
+            description: `Round ${data.newDispute.round} dispute generated with ${data.letterMetadata.tone} tone`,
+          });
+        }
+        setDetailDialogOpen(false);
+        fetchDisputes();
+      } else {
+        const error = await res.json();
+        toast({ title: "Failed", description: error.error, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to generate next round", variant: "destructive" });
+    }
+  };
+
+  // Helper to get DNA color classes
+  const getDNAColors = (classification: DNAClassification) => {
+    const colors: Record<DNAClassification, { bg: string; text: string; border: string }> = {
+      THIN_FILE_REBUILDER: { bg: "bg-amber-500/20", text: "text-amber-400", border: "border-amber-500/50" },
+      THICK_FILE_DEROG: { bg: "bg-red-500/20", text: "text-red-400", border: "border-red-500/50" },
+      CLEAN_THIN: { bg: "bg-green-500/20", text: "text-green-400", border: "border-green-500/50" },
+      COLLECTION_HEAVY: { bg: "bg-red-500/20", text: "text-red-400", border: "border-red-500/50" },
+      LATE_PAYMENT_PATTERN: { bg: "bg-orange-500/20", text: "text-orange-400", border: "border-orange-500/50" },
+      MIXED_FILE: { bg: "bg-blue-500/20", text: "text-blue-400", border: "border-blue-500/50" },
+      INQUIRY_DAMAGED: { bg: "bg-purple-500/20", text: "text-purple-400", border: "border-purple-500/50" },
+      CHARGE_OFF_HEAVY: { bg: "bg-red-500/20", text: "text-red-400", border: "border-red-500/50" },
+      IDENTITY_ISSUES: { bg: "bg-yellow-500/20", text: "text-yellow-400", border: "border-yellow-500/50" },
+      HIGH_UTILIZATION: { bg: "bg-orange-500/20", text: "text-orange-400", border: "border-orange-500/50" },
+      RECOVERING: { bg: "bg-emerald-500/20", text: "text-emerald-400", border: "border-emerald-500/50" },
+      NEAR_PRIME: { bg: "bg-teal-500/20", text: "text-teal-400", border: "border-teal-500/50" },
+    };
+    return colors[classification];
+  };
+
   const getStatusBadge = (status: string) => {
     const cfg: Record<string, string> = {
       DRAFT: "bg-slate-500/20 text-slate-400",
@@ -401,41 +577,150 @@ export default function DisputesPage() {
 
       {/* Create Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="bg-slate-800 border-slate-700 max-w-2xl">
+        <DialogContent className="bg-slate-800 border-slate-700 max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-white">Create New Dispute</DialogTitle>
-            <DialogDescription className="text-slate-400">Generate a dispute letter</DialogDescription>
+            <DialogDescription className="text-slate-400">Generate a dispute letter with AI-powered recommendations</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-200">Client</label>
-              <Select value={selectedClient} onValueChange={setSelectedClient}>
+              <Label className="text-slate-200">Client</Label>
+              <Select value={selectedClient} onValueChange={(v) => { setSelectedClient(v); setSelectedFlow(""); }}>
                 <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white"><SelectValue placeholder="Select client" /></SelectTrigger>
                 <SelectContent className="bg-slate-800 border-slate-700">
                   {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.firstName} {c.lastName}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
+
+            {/* DNA Profile Card - Shows when client is selected */}
+            {selectedClient && (
+              <div className={`p-4 rounded-lg border ${clientDNA ? getDNAColors(clientDNA.classification).border : "border-slate-600"} ${clientDNA ? getDNAColors(clientDNA.classification).bg : "bg-slate-700/30"}`}>
+                {dnaLoading ? (
+                  <div className="flex items-center gap-2 text-slate-400">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="text-sm">Loading credit DNA...</span>
+                  </div>
+                ) : clientDNA ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Dna className={`w-5 h-5 ${getDNAColors(clientDNA.classification).text}`} />
+                        <span className={`font-medium ${getDNAColors(clientDNA.classification).text}`}>
+                          {getDNAClassificationLabel(clientDNA.classification)}
+                        </span>
+                      </div>
+                      <Badge className={`${getDNAColors(clientDNA.classification).bg} ${getDNAColors(clientDNA.classification).text}`}>
+                        {clientDNA.confidenceLevel} Confidence
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-slate-400">{getDNAClassificationDescription(clientDNA.classification)}</p>
+
+                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-600/50">
+                      <div className="text-center">
+                        <p className="text-lg font-bold text-white">{clientDNA.overallHealthScore}</p>
+                        <p className="text-xs text-slate-400">Health</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-lg font-bold text-green-400">{clientDNA.improvementPotential}</p>
+                        <p className="text-xs text-slate-400">Potential</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-lg font-bold text-amber-400">{clientDNA.urgencyScore}</p>
+                        <p className="text-xs text-slate-400">Urgency</p>
+                      </div>
+                    </div>
+
+                    {clientDNA.disputeReadiness && (
+                      <div className="flex items-center gap-2 pt-2 border-t border-slate-600/50">
+                        <Sparkles className="w-4 h-4 text-amber-400" />
+                        <span className="text-xs text-slate-300">
+                          Recommended: <strong className="text-white">{clientDNA.disputeReadiness.recommendedFlow}</strong> flow,
+                          start with <strong className="text-white">{clientDNA.disputeReadiness.recommendedFirstBureau}</strong>,
+                          ~{clientDNA.disputeReadiness.estimatedRounds} rounds
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-slate-400">
+                    <Info className="w-4 h-4" />
+                    <span className="text-sm">No DNA profile. Upload a credit report to generate one.</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-200">Credit Bureau</label>
+              <Label className="text-slate-200">Credit Bureau</Label>
               <Select value={selectedCRA} onValueChange={setSelectedCRA}>
                 <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white"><SelectValue placeholder="Select bureau" /></SelectTrigger>
                 <SelectContent className="bg-slate-800 border-slate-700">
-                  <SelectItem value="TRANSUNION">TransUnion</SelectItem>
-                  <SelectItem value="EXPERIAN">Experian</SelectItem>
-                  <SelectItem value="EQUIFAX">Equifax</SelectItem>
+                  <SelectItem value="TRANSUNION">
+                    <div className="flex items-center gap-2">
+                      TransUnion
+                      {clientDNA?.disputeReadiness?.recommendedFirstBureau === "TRANSUNION" && (
+                        <Badge className="bg-green-500/20 text-green-400 text-[10px]">Recommended</Badge>
+                      )}
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="EXPERIAN">
+                    <div className="flex items-center gap-2">
+                      Experian
+                      {clientDNA?.disputeReadiness?.recommendedFirstBureau === "EXPERIAN" && (
+                        <Badge className="bg-green-500/20 text-green-400 text-[10px]">Recommended</Badge>
+                      )}
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="EQUIFAX">
+                    <div className="flex items-center gap-2">
+                      Equifax
+                      {clientDNA?.disputeReadiness?.recommendedFirstBureau === "EQUIFAX" && (
+                        <Badge className="bg-green-500/20 text-green-400 text-[10px]">Recommended</Badge>
+                      )}
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-200">Dispute Type</label>
+              <Label className="text-slate-200">Dispute Type</Label>
               <Select value={selectedFlow} onValueChange={setSelectedFlow}>
                 <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white"><SelectValue placeholder="Select type" /></SelectTrigger>
                 <SelectContent className="bg-slate-800 border-slate-700">
-                  <SelectItem value="ACCURACY">Accuracy - Challenge inaccurate info</SelectItem>
-                  <SelectItem value="COLLECTION">Collection - Debt validation</SelectItem>
-                  <SelectItem value="CONSENT">Consent - Unauthorized access</SelectItem>
-                  <SelectItem value="COMBO">Combo - Multiple issue types</SelectItem>
+                  <SelectItem value="ACCURACY">
+                    <div className="flex items-center gap-2">
+                      Accuracy - Challenge inaccurate info
+                      {clientDNA?.disputeReadiness?.recommendedFlow === "ACCURACY" && (
+                        <Badge className="bg-green-500/20 text-green-400 text-[10px]">Recommended</Badge>
+                      )}
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="COLLECTION">
+                    <div className="flex items-center gap-2">
+                      Collection - Debt validation
+                      {clientDNA?.disputeReadiness?.recommendedFlow === "COLLECTION" && (
+                        <Badge className="bg-green-500/20 text-green-400 text-[10px]">Recommended</Badge>
+                      )}
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="CONSENT">
+                    <div className="flex items-center gap-2">
+                      Consent - Unauthorized access
+                      {clientDNA?.disputeReadiness?.recommendedFlow === "CONSENT" && (
+                        <Badge className="bg-green-500/20 text-green-400 text-[10px]">Recommended</Badge>
+                      )}
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="COMBO">
+                    <div className="flex items-center gap-2">
+                      Combo - Multiple issue types
+                      {clientDNA?.disputeReadiness?.recommendedFlow === "COMBO" && (
+                        <Badge className="bg-green-500/20 text-green-400 text-[10px]">Recommended</Badge>
+                      )}
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
               {selectedFlow && (
@@ -444,8 +729,25 @@ export default function DisputesPage() {
                 </p>
               )}
             </div>
+
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-200">Accounts ({selectedAccounts.length})</label>
+              <div className="flex items-center justify-between">
+                <Label className="text-slate-200">Accounts ({selectedAccounts.length})</Label>
+                {filteredAccounts.length > 0 && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-xs h-6"
+                    onClick={() => setSelectedAccounts(
+                      selectedAccounts.length === filteredAccounts.length
+                        ? []
+                        : filteredAccounts.map((a) => a.id)
+                    )}
+                  >
+                    {selectedAccounts.length === filteredAccounts.length ? "Deselect All" : "Select All"}
+                  </Button>
+                )}
+              </div>
               <div className="max-h-48 overflow-y-auto space-y-2 p-2 bg-slate-700/30 rounded border border-slate-600">
                 {filteredAccounts.length === 0 ? (
                   <p className="text-sm text-slate-400 text-center py-4">Select client and bureau first</p>
@@ -454,17 +756,40 @@ export default function DisputesPage() {
                     <input type="checkbox" checked={selectedAccounts.includes(a.id)} onChange={(e) => setSelectedAccounts(e.target.checked ? [...selectedAccounts, a.id] : selectedAccounts.filter((id) => id !== a.id))} className="rounded" />
                     <div className="flex-1">
                       <p className="text-sm text-white">{a.creditorName}</p>
-                      <p className="text-xs text-slate-400">{a.issueCount} issues</p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-400">{a.issueCount} issues</span>
+                        {a.suggestedFlow && (
+                          <Badge variant="outline" className="text-[10px] h-4">{a.suggestedFlow}</Badge>
+                        )}
+                      </div>
                     </div>
+                    {a.balance && (
+                      <span className="text-xs text-slate-400">${a.balance.toLocaleString()}</span>
+                    )}
                   </label>
                 ))}
               </div>
             </div>
+
+            {/* Summary before generate */}
+            {selectedAccounts.length > 0 && selectedFlow && selectedCRA && (
+              <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                <div className="flex items-center gap-2 text-blue-400 text-sm">
+                  <Target className="w-4 h-4" />
+                  <span>
+                    Ready to generate <strong>{selectedFlow}</strong> dispute for{" "}
+                    <strong>{selectedAccounts.length}</strong> account(s) to{" "}
+                    <strong>{selectedCRA}</strong>
+                  </span>
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-end gap-3 pt-4">
               <Button variant="ghost" onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
               <Button onClick={handleCreateDispute} disabled={creating}>
-                {creating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Scale className="w-4 h-4 mr-2" />}
-                Generate
+                {creating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                Generate Letter
               </Button>
             </div>
           </div>
@@ -579,12 +904,25 @@ export default function DisputesPage() {
                 {/* Response Section - Show for SENT, RESPONDED, RESOLVED */}
                 {["SENT", "RESPONDED", "RESOLVED"].includes(selectedDispute.status) && (
                   <div className="space-y-3 p-4 bg-slate-700/20 rounded-lg border border-slate-600">
-                    <h3 className="text-sm font-medium text-white flex items-center gap-2">
-                      <FileText className="w-4 h-4" />
-                      CRA Response
-                    </h3>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-medium text-white flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        CRA Response
+                      </h3>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setResponseDialogOpen(true)}
+                        className="bg-blue-600/20 border-blue-600/50 text-blue-400 hover:bg-blue-600/30"
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Record Detailed Response
+                      </Button>
+                    </div>
+
+                    {/* Quick Response Section */}
                     <div className="space-y-2">
-                      <label className="text-xs text-slate-400">Response Outcome</label>
+                      <label className="text-xs text-slate-400">Quick Response Outcome</label>
                       <Select value={responseOutcome || selectedDispute.responseOutcome || ""} onValueChange={setResponseOutcome}>
                         <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
                           <SelectValue placeholder="Select outcome..." />
@@ -607,24 +945,38 @@ export default function DisputesPage() {
                         className="bg-slate-700/50 border-slate-600 text-white min-h-[80px]"
                       />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleUpdateStatus(selectedDispute.id, selectedDispute.status)}
-                        disabled={updating}
-                      >
-                        Save Notes
-                      </Button>
-                      {selectedDispute.status !== "RESOLVED" && (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
                         <Button
                           size="sm"
-                          onClick={() => handleUpdateStatus(selectedDispute.id, "RESOLVED")}
+                          variant="outline"
+                          onClick={() => handleUpdateStatus(selectedDispute.id, selectedDispute.status)}
                           disabled={updating}
-                          className="bg-green-600 hover:bg-green-700"
                         >
-                          <CheckCircle className="w-4 h-4 mr-1" />
-                          Mark Resolved
+                          Save Notes
+                        </Button>
+                        {selectedDispute.status !== "RESOLVED" && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleUpdateStatus(selectedDispute.id, "RESOLVED")}
+                            disabled={updating}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            <CheckCircle className="w-4 h-4 mr-1" />
+                            Mark Resolved
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* Next Round Button - Show when response received but not resolved */}
+                      {selectedDispute.status === "RESPONDED" && (
+                        <Button
+                          size="sm"
+                          onClick={handleGenerateNextRound}
+                          className="bg-purple-600 hover:bg-purple-700"
+                        >
+                          <Zap className="w-4 h-4 mr-1" />
+                          Generate Next Round
                         </Button>
                       )}
                     </div>
@@ -730,6 +1082,253 @@ export default function DisputesPage() {
               </p>
             </div>
           ) : null}
+        </DialogContent>
+      </Dialog>
+
+      {/* Detailed Response Recording Modal */}
+      <Dialog open={responseDialogOpen} onOpenChange={setResponseDialogOpen}>
+        <DialogContent className="bg-slate-800 border-slate-700 max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <FileText className="w-5 h-5 text-blue-400" />
+              Record CRA Response
+            </DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Document the response from {selectedDispute?.cra} for this dispute
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-4">
+            {/* Response Outcome */}
+            <div className="space-y-2">
+              <Label className="text-slate-200">Response Outcome *</Label>
+              <Select value={responseData.outcome} onValueChange={(v) => setResponseData({ ...responseData, outcome: v })}>
+                <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+                  <SelectValue placeholder="What was the result?" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-800 border-slate-700">
+                  <SelectItem value="DELETED">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-400" />
+                      <span>Deleted - Items removed from report</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="VERIFIED">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-red-400" />
+                      <span>Verified - CRA claims item is accurate</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="UPDATED">
+                    <div className="flex items-center gap-2">
+                      <Edit3 className="w-4 h-4 text-amber-400" />
+                      <span>Updated - Changes made but not deleted</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="NO_RESPONSE">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-purple-400" />
+                      <span>No Response - 30+ days without response (FCRA violation)</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="STALL_LETTER">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-orange-400" />
+                      <span>Stall Letter - Request for more info or frivolous claim</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Response Date & Method */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-slate-200">Response Date</Label>
+                <input
+                  type="date"
+                  value={responseData.responseDate}
+                  onChange={(e) => setResponseData({ ...responseData, responseDate: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-md text-white"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-slate-200">Response Method</Label>
+                <Select value={responseData.responseMethod} onValueChange={(v) => setResponseData({ ...responseData, responseMethod: v })}>
+                  <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-700">
+                    <SelectItem value="MAIL">Mail</SelectItem>
+                    <SelectItem value="ONLINE">Online Portal</SelectItem>
+                    <SelectItem value="EMAIL">Email</SelectItem>
+                    <SelectItem value="PHONE">Phone</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Stall Tactic Fields - Show when STALL_LETTER selected */}
+            {responseData.outcome === "STALL_LETTER" && (
+              <div className="space-y-4 p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg">
+                <p className="text-sm text-orange-400 font-medium">Stall Tactic Details</p>
+                <div className="space-y-2">
+                  <Label className="text-slate-200">Stall Tactic Type</Label>
+                  <Select value={responseData.stallTactic} onValueChange={(v) => setResponseData({ ...responseData, stallTactic: v })}>
+                    <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+                      <SelectValue placeholder="What tactic did they use?" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-800 border-slate-700">
+                      <SelectItem value="FRIVOLOUS_CLAIM">Frivolous Claim - "Your dispute is frivolous"</SelectItem>
+                      <SelectItem value="ID_VERIFICATION">ID Verification - "Please send identification"</SelectItem>
+                      <SelectItem value="MORE_INFO_NEEDED">More Info Needed - "We need more information"</SelectItem>
+                      <SelectItem value="ALREADY_VERIFIED">Already Verified - "This was already verified"</SelectItem>
+                      <SelectItem value="NOT_ENOUGH_DETAIL">Not Enough Detail - "Dispute lacks sufficient detail"</SelectItem>
+                      <SelectItem value="DUPLICATE_DISPUTE">Duplicate Dispute - "This appears to be a duplicate"</SelectItem>
+                      <SelectItem value="STANDARD_FORM">Standard Form Letter - Generic response with no action</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-slate-200">Stall Details</Label>
+                  <Textarea
+                    placeholder="Quote exact language from the letter..."
+                    value={responseData.stallDetails}
+                    onChange={(e) => setResponseData({ ...responseData, stallDetails: e.target.value })}
+                    className="bg-slate-700/50 border-slate-600 text-white"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Update Fields - Show when UPDATED selected */}
+            {responseData.outcome === "UPDATED" && (
+              <div className="space-y-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                <p className="text-sm text-amber-400 font-medium">Update Details</p>
+                <div className="space-y-2">
+                  <Label className="text-slate-200">Type of Update</Label>
+                  <Select value={responseData.updateType} onValueChange={(v) => setResponseData({ ...responseData, updateType: v })}>
+                    <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+                      <SelectValue placeholder="What was updated?" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-800 border-slate-700">
+                      <SelectItem value="BALANCE_UPDATED">Balance Updated</SelectItem>
+                      <SelectItem value="STATUS_UPDATED">Account Status Changed</SelectItem>
+                      <SelectItem value="DATE_CORRECTED">Date Information Corrected</SelectItem>
+                      <SelectItem value="CREDITOR_UPDATED">Creditor Name/Info Updated</SelectItem>
+                      <SelectItem value="PAYMENT_HISTORY">Payment History Modified</SelectItem>
+                      <SelectItem value="COMMENT_ADDED">Consumer Statement Added</SelectItem>
+                      <SelectItem value="PARTIAL_CORRECTION">Partial Correction</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-slate-200">Previous Value</Label>
+                    <input
+                      type="text"
+                      placeholder="What it was before"
+                      value={responseData.previousValue}
+                      onChange={(e) => setResponseData({ ...responseData, previousValue: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-md text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-slate-200">New Value</Label>
+                    <input
+                      type="text"
+                      placeholder="What it is now"
+                      value={responseData.newValue}
+                      onChange={(e) => setResponseData({ ...responseData, newValue: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-md text-white"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Verification Fields - Show when VERIFIED selected */}
+            {responseData.outcome === "VERIFIED" && (
+              <div className="space-y-4 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+                <p className="text-sm text-red-400 font-medium">Verification Details</p>
+                <div className="space-y-2">
+                  <Label className="text-slate-200">Verification Method</Label>
+                  <input
+                    type="text"
+                    placeholder='e.g., "Electronic verification", "Direct contact with furnisher"'
+                    value={responseData.verificationMethod}
+                    onChange={(e) => setResponseData({ ...responseData, verificationMethod: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-md text-white"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-slate-200">Furnisher Response</Label>
+                  <Textarea
+                    placeholder="What did the creditor/furnisher say?"
+                    value={responseData.furnisherResponse}
+                    onChange={(e) => setResponseData({ ...responseData, furnisherResponse: e.target.value })}
+                    className="bg-slate-700/50 border-slate-600 text-white"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Notes */}
+            <div className="space-y-2">
+              <Label className="text-slate-200">Additional Notes</Label>
+              <Textarea
+                placeholder="Any other relevant details about the response..."
+                value={responseData.notes}
+                onChange={(e) => setResponseData({ ...responseData, notes: e.target.value })}
+                className="bg-slate-700/50 border-slate-600 text-white min-h-[80px]"
+              />
+            </div>
+
+            {/* FCRA Deadline Info */}
+            {selectedDispute?.sentAt && (
+              <div className="p-3 bg-slate-700/30 rounded-lg">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-400">FCRA 30-Day Deadline:</span>
+                  <span className="text-white font-medium">
+                    {new Date(new Date(selectedDispute.sentAt).getTime() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}
+                  </span>
+                </div>
+                {responseData.responseDate && (
+                  <div className="flex items-center justify-between text-sm mt-1">
+                    <span className="text-slate-400">Days to Respond:</span>
+                    <span className={`font-medium ${
+                      Math.ceil((new Date(responseData.responseDate).getTime() - new Date(selectedDispute.sentAt).getTime()) / (1000 * 60 * 60 * 24)) > 30
+                        ? "text-red-400"
+                        : "text-green-400"
+                    }`}>
+                      {Math.ceil((new Date(responseData.responseDate).getTime() - new Date(selectedDispute.sentAt).getTime()) / (1000 * 60 * 60 * 24))} days
+                      {Math.ceil((new Date(responseData.responseDate).getTime() - new Date(selectedDispute.sentAt).getTime()) / (1000 * 60 * 60 * 24)) > 30 && " (LATE!)"}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex justify-between pt-4 border-t border-slate-700">
+              <Button variant="ghost" onClick={() => setResponseDialogOpen(false)}>
+                Cancel
+              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleRecordResponse}
+                  disabled={recordingResponse || !responseData.outcome}
+                >
+                  {recordingResponse ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                  )}
+                  Record Response
+                </Button>
+              </div>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
