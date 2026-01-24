@@ -320,12 +320,10 @@ export default function SettingsPage() {
             <CreditCard className="w-4 h-4 mr-2" />
             Billing
           </TabsTrigger>
-          {session?.user?.role === "ADMIN" && (
-            <TabsTrigger value="archived" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-              <Archive className="w-4 h-4 mr-2" />
-              Archived
-            </TabsTrigger>
-          )}
+          <TabsTrigger value="archived" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+            <Archive className="w-4 h-4 mr-2" />
+            Archived
+          </TabsTrigger>
           {session?.user?.role === "ADMIN" && (
             <TabsTrigger value="danger" className="data-[state=active]:bg-red-600 data-[state=active]:text-white text-red-400">
               <AlertTriangle className="w-4 h-4 mr-2" />
@@ -500,13 +498,11 @@ export default function SettingsPage() {
           </motion.div>
         </TabsContent>
 
-        {session?.user?.role === "ADMIN" && (
-          <TabsContent value="archived" asChild>
-            <motion.div variants={tabContentVariants} initial="hidden" animate="visible">
-              <ArchivedClientsList />
-            </motion.div>
-          </TabsContent>
-        )}
+        <TabsContent value="archived" asChild>
+          <motion.div variants={tabContentVariants} initial="hidden" animate="visible">
+            <ArchivedClientsList />
+          </motion.div>
+        </TabsContent>
 
         {session?.user?.role === "ADMIN" && (
           <TabsContent value="danger" asChild>
