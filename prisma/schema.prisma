@@ -252,14 +252,112 @@ model DisputeItem {
   disputeReason String?
   suggestedFlow String?     // AI-recommended flow for this item
   priorityScore Int?        // AI priority score (1-100)
-  outcome       String?
+  outcome       String?     // DELETED, VERIFIED, UPDATED, NO_RESPONSE, STALL_LETTER, PENDING
   outcomeNotes  String?
   createdAt     DateTime    @default(now())
   accountItem   AccountItem @relation(fields: [accountItemId], references: [id])
   dispute       Dispute     @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  responses     DisputeResponse[]
 
   @@unique([disputeId, accountItemId])
   @@index([disputeId])
+}
+
+// =============================================================================
+// DISPUTE RESPONSE TRACKING - Track CRA responses and outcomes
+// =============================================================================
+
+model DisputeResponse {
+  id              String   @id @default(uuid())
+  disputeItemId   String
+  disputeId       String   // Denormalized for easier querying
+
+  // Response details
+  outcome         String   // DELETED, VERIFIED, UPDATED, NO_RESPONSE, STALL_LETTER
+  responseDate    DateTime
+  responseMethod  String   @default("MAIL") // MAIL, ONLINE, PHONE, EMAIL
+
+  // For STALL_LETTER outcomes
+  stallTactic     String?  // FRIVOLOUS_CLAIM, ID_VERIFICATION, MORE_INFO_NEEDED, etc.
+  stallDetails    String?
+
+  // For UPDATED outcomes
+  updateType      String?  // BALANCE_UPDATED, STATUS_UPDATED, DATE_CORRECTED, etc.
+  previousValue   String?
+  newValue        String?
+
+  // For VERIFIED outcomes
+  verificationMethod String?  // How they claim to have verified
+  furnisherResponse  String?  // What the furnisher reported
+
+  // Documentation
+  responseLetterFileId String?  // Uploaded response letter
+  notes           String?
+
+  // Timing analysis
+  daysToRespond   Int      @default(0)  // Days from dispute sent to response
+  fcraDeadlineDate DateTime?            // 30-day deadline
+  wasLate         Boolean  @default(false)  // Did they miss the deadline?
+
+  // Audit trail
+  recordedById    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  disputeItem     DisputeItem @relation(fields: [disputeItemId], references: [id], onDelete: Cascade)
+
+  @@index([disputeItemId])
+  @@index([disputeId])
+  @@index([outcome])
+  @@index([responseDate])
+}
+
+// =============================================================================
+// DISPUTE ROUND HISTORY - Track progression through rounds
+// =============================================================================
+
+model DisputeRoundHistory {
+  id              String   @id @default(uuid())
+  disputeId       String
+  clientId        String
+  organizationId  String
+
+  // Round details
+  round           Int
+  flow            String   // ACCURACY, COLLECTION, CONSENT, COMBO
+  cra             String   // TRANSUNION, EXPERIAN, EQUIFAX
+
+  // Letter info
+  letterSentDate  DateTime?
+  letterContent   String?   // Snapshot of the letter sent
+  letterHash      String?   // For tracking uniqueness
+
+  // Response tracking
+  responseReceivedDate DateTime?
+  overallOutcome  String?   // Aggregate outcome for this round
+
+  // Item-level summary (JSON for flexibility)
+  itemOutcomes    String    @default("{}") // JSON: {itemId: outcome}
+
+  // Context for next round (used by AMELIA)
+  nextRoundContext String   @default("{}") // JSON: NextRoundContext
+
+  // Metrics
+  itemsDisputed   Int       @default(0)
+  itemsDeleted    Int       @default(0)
+  itemsVerified   Int       @default(0)
+  itemsUpdated    Int       @default(0)
+  itemsNoResponse Int       @default(0)
+  itemsStalled    Int       @default(0)
+
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([disputeId])
+  @@index([clientId])
+  @@index([organizationId])
+  @@index([round, cra])
 }
 
 model Document {

@@ -45,6 +45,7 @@ import {
   humanizeText,
 } from "./amelia-stories";
 import type { CRA } from "@/types";
+import type { NextRoundContext } from "./dispute-intelligence/types";
 
 // =============================================================================
 // TYPES
@@ -60,6 +61,8 @@ export interface LetterGenerationInput {
   lastDisputeDate?: string;
   debtCollectorNames?: string[];
   creditorNames?: string[];
+  // For rounds 2+, include context from previous round responses
+  previousRoundContext?: NextRoundContext;
 }
 
 export interface GeneratedLetter {
@@ -280,6 +283,164 @@ function generateScreenshotsReference(): string {
 }
 
 // =============================================================================
+// ADAPTIVE CONTENT GENERATION (FOR ROUNDS 2+)
+// =============================================================================
+
+/**
+ * Generate an adaptive opening paragraph based on previous round context
+ */
+function generateAdaptiveOpening(
+  context: NextRoundContext,
+  clientFirstName: string,
+  vars: TemplateVariables
+): string {
+  const { suggestedTone, previousLetterDate, responseSummary } = context;
+
+  const dateStr = previousLetterDate
+    ? formatLetterDate(previousLetterDate)
+    : "[DATE OF PREVIOUS LETTER]";
+
+  // Different openings based on aggregate outcome
+  if (responseSummary.fcraViolations > 0) {
+    return `I am writing to formally notify you of your violations of the Fair Credit Reporting Act. ` +
+      `On ${dateStr}, I submitted a dispute regarding inaccurate items on my credit report. ` +
+      `Your agency has failed to comply with the statutory requirements of the FCRA, and I am now ` +
+      `prepared to pursue all available legal remedies.`;
+  }
+
+  if (responseSummary.responseBreakdown.noResponse > 0) {
+    return `This is a follow-up to my dispute dated ${dateStr}. The FCRA-mandated 30-day response ` +
+      `period has expired for ${responseSummary.responseBreakdown.noResponse} item(s) without any ` +
+      `response from your agency. Under 15 U.S.C. § 1681i(a)(1), you are required to delete these ` +
+      `items immediately.`;
+  }
+
+  if (responseSummary.responseBreakdown.verified > 0) {
+    return `I am disputing your response to my previous dispute dated ${dateStr}. Your claim that ` +
+      `${responseSummary.responseBreakdown.verified} item(s) have been "verified" is insufficient and ` +
+      `fails to meet the requirements of 15 U.S.C. § 1681i(a)(6). I demand documentation of your ` +
+      `verification procedures.`;
+  }
+
+  if (responseSummary.responseBreakdown.stallLetter > 0) {
+    return `I reject your response to my dispute dated ${dateStr}. Your attempt to characterize my ` +
+      `legitimate dispute as frivolous or to request additional information is a transparent attempt ` +
+      `to avoid your obligations under the Fair Credit Reporting Act.`;
+  }
+
+  // Default escalated opening based on tone
+  const toneOpenings: Record<string, string> = {
+    CONCERNED: `I am following up on my previous dispute dated ${dateStr}. I remain concerned about ` +
+      `inaccurate information on my credit report and request your prompt attention to this matter.`,
+
+    FRUSTRATED: `Despite my previous dispute dated ${dateStr}, inaccurate information remains on my ` +
+      `credit report. I am frustrated by the lack of proper investigation and demand immediate action.`,
+
+    DEMANDING: `This is my continued dispute following my letter dated ${dateStr}. Your failure to ` +
+      `properly investigate and correct the inaccurate information is unacceptable. I demand ` +
+      `immediate resolution.`,
+
+    FINAL_WARNING: `This letter serves as a final warning before I pursue formal complaints and legal ` +
+      `action. Since my original dispute on ${dateStr}, you have failed to fulfill your obligations ` +
+      `under the FCRA.`,
+
+    LITIGATION_READY: `Consider this notice of my intent to pursue all legal remedies available under ` +
+      `the Fair Credit Reporting Act. Your continued failure to address my disputes, which began on ` +
+      `${dateStr}, constitutes willful noncompliance.`,
+  };
+
+  return toneOpenings[suggestedTone] || toneOpenings.DEMANDING;
+}
+
+/**
+ * Generate an escalation section based on previous round context
+ */
+function generateEscalationSection(context: NextRoundContext): string {
+  const { escalationReasons, legalThreats, regulatoryMentions } = context;
+
+  if (escalationReasons.length === 0) {
+    return "";
+  }
+
+  let section = "The following issues require your immediate attention:\n\n";
+
+  for (const reason of escalationReasons) {
+    section += `• ${reason}\n`;
+  }
+
+  section += "\n";
+
+  if (legalThreats.length > 0) {
+    section += "If these issues are not resolved promptly, I will:\n\n";
+    for (const threat of legalThreats) {
+      section += `• ${threat}\n`;
+    }
+    section += "\n";
+  }
+
+  if (regulatoryMentions.length > 0) {
+    section += `I am prepared to file formal complaints with the ${regulatoryMentions.join(", ")}.\n`;
+  }
+
+  return section;
+}
+
+/**
+ * Generate account list with item-specific context from previous responses
+ */
+function generateAccountListWithContext(
+  accounts: DisputeAccount[],
+  craName: string,
+  flow: FlowType,
+  context?: NextRoundContext
+): string {
+  let section = `Here is the exact information furnishing inaccurate on my ${craName} credit report:\n\n`;
+
+  accounts.forEach((account, index) => {
+    const categories = determineInaccurateCategories(account);
+    const categoryStr = categories.length > 0
+      ? categories.join(", ")
+      : "ACCOUNT TYPE, PAYMENT STATUS, DATE OPENED, PAYMENT HISTORY PROFILE";
+
+    section += `${index + 1}. Account Name: ${account.creditorName}, Account Number: ${account.accountNumber}\n`;
+    section += `   Inaccurate Categories: ${categoryStr}\n`;
+
+    // Add item-specific context from previous round if available
+    if (context?.itemContexts) {
+      const itemContext = context.itemContexts.find(
+        ic => ic.creditorName === account.creditorName
+      );
+
+      if (itemContext) {
+        // Add previous outcome reference
+        if (itemContext.previousOutcome === "VERIFIED") {
+          section += `   Previous Dispute: Claimed "verified" without proper documentation\n`;
+          section += `   Current Demand: Provide method of verification per 15 U.S.C. § 1681i(a)(6)\n`;
+        } else if (itemContext.previousOutcome === "NO_RESPONSE") {
+          section += `   Previous Dispute: NO RESPONSE RECEIVED - FCRA VIOLATION\n`;
+          section += `   Current Demand: IMMEDIATE DELETION required by law\n`;
+        } else if (itemContext.previousOutcome === "STALL_LETTER") {
+          section += `   Previous Dispute: Stall tactics received - ${itemContext.stallTactic || "frivolous claim"}\n`;
+          section += `   Current Demand: Conduct proper investigation as required by FCRA\n`;
+        } else if (itemContext.previousOutcome === "UPDATED") {
+          section += `   Previous Dispute: Partial update made - errors remain\n`;
+          section += `   Current Demand: Complete correction or deletion\n`;
+        }
+
+        // Add violations to cite
+        if (itemContext.citeViolations.length > 0) {
+          section += `   Violations: ${itemContext.citeViolations.join("; ")}\n`;
+        }
+      }
+    }
+
+    section += "\n";
+  });
+
+  return section;
+}
+
+// =============================================================================
 // MAIN GENERATOR
 // =============================================================================
 
@@ -297,6 +458,7 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
     lastDisputeDate,
     debtCollectorNames,
     creditorNames,
+    previousRoundContext,
   } = input;
 
   const craInfo = CRA_ADDRESSES[cra];
@@ -313,8 +475,19 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
   // Calculate letter date (30-day backdate for R1)
   const { letterDate, isBackdated, backdatedDays } = calculateLetterDate(round);
 
-  // Determine tone
-  const tone = determineTone(round);
+  // Determine tone - may be escalated based on previous responses
+  let tone = determineTone(round);
+  if (previousRoundContext?.suggestedTone) {
+    // Map adaptive strategy tones to AMELIA doctrine tones
+    const toneMapping: Record<string, typeof tone> = {
+      "CONCERNED": "CONCERNED",
+      "FRUSTRATED": "WORRIED",
+      "DEMANDING": "FED_UP",
+      "FINAL_WARNING": "WARNING",
+      "LITIGATION_READY": "PISSED",
+    };
+    tone = toneMapping[previousRoundContext.suggestedTone] || tone;
+  }
 
   // Build template variables
   const vars: TemplateVariables = {
@@ -330,7 +503,9 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
     bureauName: craInfo.name,
     bureauAddress: craInfo.lines.join("\n"),
     currentDate: formatLetterDate(letterDate),
-    lastDisputeDate,
+    lastDisputeDate: lastDisputeDate || (previousRoundContext?.previousLetterDate
+      ? formatLetterDate(previousRoundContext.previousLetterDate)
+      : undefined),
     debtCollectorNames,
     creditorNames: creditorNames || accounts.map(a => a.creditorName),
     disputeItemsAndExplanation: "", // Handled separately
@@ -340,7 +515,7 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
   const header = generateHeader(client, cra, letterDate);
   const headline = interpolateVariables(template.headline, vars);
 
-  // Opening paragraph (DAMAGES)
+  // Opening paragraph (DAMAGES) - adapt based on previous round context
   let openingParagraph = interpolateVariables(template.openingParagraph, vars);
 
   // For Round 1, inject a unique story into the DAMAGES section
@@ -349,15 +524,31 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
     usedContentHashes.add(story.hash);
     // The templates already have story elements, so we humanize the existing text
     openingParagraph = humanizeText(openingParagraph);
+  } else if (previousRoundContext) {
+    // For rounds 2+, use adaptive opening based on previous responses
+    openingParagraph = generateAdaptiveOpening(previousRoundContext, client.firstName, vars);
   }
 
   // Body paragraphs (STORY/FACTS)
-  const bodyParagraphs = template.bodyParagraphs.map(p =>
+  let bodyParagraphs = template.bodyParagraphs.map(p =>
     humanizeText(interpolateVariables(p, vars))
   );
 
-  // Account list
-  const accountList = generateAccountList(accounts, craInfo.name, effectiveFlow);
+  // For rounds 2+, inject escalation paragraph if needed
+  if (round >= 2 && previousRoundContext) {
+    const escalationParagraph = generateEscalationSection(previousRoundContext);
+    if (escalationParagraph) {
+      bodyParagraphs = [...bodyParagraphs, escalationParagraph];
+    }
+  }
+
+  // Account list - may include item-specific context for R2+
+  const accountList = generateAccountListWithContext(
+    accounts,
+    craInfo.name,
+    effectiveFlow,
+    previousRoundContext
+  );
 
   // Account list intro (if present in template)
   const accountListIntro = template.accountListIntro
