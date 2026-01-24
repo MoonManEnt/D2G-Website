@@ -33,9 +33,27 @@ import {
   ShieldAlert,
   CheckCircle,
   TrendingUp,
+  Dna,
+  Activity,
+  Target,
+  Zap,
+  RefreshCw,
+  ChevronRight,
+  BarChart3,
+  Shield,
+  Clock,
+  Lightbulb,
 } from "lucide-react";
 import { ScoreChart, AddScoreModal } from "@/components/credit-scores";
 import { useToast } from "@/lib/use-toast";
+import {
+  getDNAClassificationLabel,
+  getDNAClassificationDescription,
+  getDNARecommendedStrategy,
+  type CreditDNAProfile,
+  type DNAClassification,
+} from "@/lib/credit-dna";
+import { Progress } from "@/components/ui/progress";
 
 interface ClientData {
   id: string;
@@ -127,6 +145,135 @@ interface ChartDataPoint {
   EQUIFAX?: number;
 }
 
+// DNA Color Helper Functions
+function getDNABorderColor(classification: DNAClassification): string {
+  const colors: Record<DNAClassification, string> = {
+    THIN_FILE_REBUILDER: "border-amber-500/50",
+    THICK_FILE_DEROG: "border-red-500/50",
+    CLEAN_THIN: "border-green-500/50",
+    COLLECTION_HEAVY: "border-red-500/50",
+    LATE_PAYMENT_PATTERN: "border-orange-500/50",
+    MIXED_FILE: "border-blue-500/50",
+    INQUIRY_DAMAGED: "border-purple-500/50",
+    CHARGE_OFF_HEAVY: "border-red-500/50",
+    IDENTITY_ISSUES: "border-yellow-500/50",
+    HIGH_UTILIZATION: "border-orange-500/50",
+    RECOVERING: "border-emerald-500/50",
+    NEAR_PRIME: "border-teal-500/50",
+  };
+  return colors[classification];
+}
+
+function getDNABgColor(classification: DNAClassification): string {
+  const colors: Record<DNAClassification, string> = {
+    THIN_FILE_REBUILDER: "bg-amber-500/20",
+    THICK_FILE_DEROG: "bg-red-500/20",
+    CLEAN_THIN: "bg-green-500/20",
+    COLLECTION_HEAVY: "bg-red-500/20",
+    LATE_PAYMENT_PATTERN: "bg-orange-500/20",
+    MIXED_FILE: "bg-blue-500/20",
+    INQUIRY_DAMAGED: "bg-purple-500/20",
+    CHARGE_OFF_HEAVY: "bg-red-500/20",
+    IDENTITY_ISSUES: "bg-yellow-500/20",
+    HIGH_UTILIZATION: "bg-orange-500/20",
+    RECOVERING: "bg-emerald-500/20",
+    NEAR_PRIME: "bg-teal-500/20",
+  };
+  return colors[classification];
+}
+
+function getDNAIconColor(classification: DNAClassification): string {
+  const colors: Record<DNAClassification, string> = {
+    THIN_FILE_REBUILDER: "text-amber-400",
+    THICK_FILE_DEROG: "text-red-400",
+    CLEAN_THIN: "text-green-400",
+    COLLECTION_HEAVY: "text-red-400",
+    LATE_PAYMENT_PATTERN: "text-orange-400",
+    MIXED_FILE: "text-blue-400",
+    INQUIRY_DAMAGED: "text-purple-400",
+    CHARGE_OFF_HEAVY: "text-red-400",
+    IDENTITY_ISSUES: "text-yellow-400",
+    HIGH_UTILIZATION: "text-orange-400",
+    RECOVERING: "text-emerald-400",
+    NEAR_PRIME: "text-teal-400",
+  };
+  return colors[classification];
+}
+
+function getDNABadgeColor(level: "LOW" | "MEDIUM" | "HIGH"): string {
+  const colors = {
+    LOW: "bg-red-500/20 text-red-400",
+    MEDIUM: "bg-amber-500/20 text-amber-400",
+    HIGH: "bg-green-500/20 text-green-400",
+  };
+  return colors[level];
+}
+
+function getThicknessBadgeColor(thickness: string): string {
+  const colors: Record<string, string> = {
+    ULTRA_THIN: "bg-red-500/20 text-red-400",
+    THIN: "bg-amber-500/20 text-amber-400",
+    MODERATE: "bg-blue-500/20 text-blue-400",
+    THICK: "bg-green-500/20 text-green-400",
+    VERY_THICK: "bg-emerald-500/20 text-emerald-400",
+  };
+  return colors[thickness] || "bg-slate-500/20 text-slate-400";
+}
+
+function getSeverityBadgeColor(severity: string): string {
+  const colors: Record<string, string> = {
+    NONE: "bg-green-500/20 text-green-400",
+    LIGHT: "bg-blue-500/20 text-blue-400",
+    MODERATE: "bg-amber-500/20 text-amber-400",
+    HEAVY: "bg-orange-500/20 text-orange-400",
+    SEVERE: "bg-red-500/20 text-red-400",
+  };
+  return colors[severity] || "bg-slate-500/20 text-slate-400";
+}
+
+function getUtilBadgeColor(status: string): string {
+  const colors: Record<string, string> = {
+    EXCELLENT: "bg-green-500/20 text-green-400",
+    GOOD: "bg-emerald-500/20 text-emerald-400",
+    FAIR: "bg-amber-500/20 text-amber-400",
+    POOR: "bg-orange-500/20 text-orange-400",
+    CRITICAL: "bg-red-500/20 text-red-400",
+  };
+  return colors[status] || "bg-slate-500/20 text-slate-400";
+}
+
+function getInquiryBadgeColor(status: string): string {
+  const colors: Record<string, string> = {
+    MINIMAL: "bg-green-500/20 text-green-400",
+    LIGHT: "bg-blue-500/20 text-blue-400",
+    MODERATE: "bg-amber-500/20 text-amber-400",
+    HEAVY: "bg-orange-500/20 text-orange-400",
+    EXCESSIVE: "bg-red-500/20 text-red-400",
+  };
+  return colors[status] || "bg-slate-500/20 text-slate-400";
+}
+
+function getStrengthBadgeColor(strength: string): string {
+  const colors: Record<string, string> = {
+    WEAK: "bg-red-500/20 text-red-400",
+    FAIR: "bg-amber-500/20 text-amber-400",
+    MODERATE: "bg-blue-500/20 text-blue-400",
+    STRONG: "bg-green-500/20 text-green-400",
+    EXCELLENT: "bg-emerald-500/20 text-emerald-400",
+  };
+  return colors[strength] || "bg-slate-500/20 text-slate-400";
+}
+
+function getComplexityBadgeColor(complexity: string): string {
+  const colors: Record<string, string> = {
+    SIMPLE: "bg-green-500/20 text-green-400",
+    MODERATE: "bg-blue-500/20 text-blue-400",
+    COMPLEX: "bg-amber-500/20 text-amber-400",
+    VERY_COMPLEX: "bg-red-500/20 text-red-400",
+  };
+  return colors[complexity] || "bg-slate-500/20 text-slate-400";
+}
+
 export default function ClientDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -142,6 +289,8 @@ export default function ClientDetailPage() {
   const [creditScores, setCreditScores] = useState<CreditScore[]>([]);
   const [scoreStats, setScoreStats] = useState<ScoreStats | null>(null);
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
+  const [dnaProfile, setDnaProfile] = useState<CreditDNAProfile | null>(null);
+  const [dnaLoading, setDnaLoading] = useState(false);
   const [editForm, setEditForm] = useState({
     firstName: "",
     lastName: "",
@@ -191,10 +340,58 @@ export default function ClientDetailPage() {
     }
   }, [clientId]);
 
+  const fetchDNA = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/clients/${clientId}/dna`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.hasDNA) {
+          setDnaProfile(data.dna);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch DNA profile:", error);
+    }
+  }, [clientId]);
+
+  const generateDNA = async () => {
+    setDnaLoading(true);
+    try {
+      const res = await fetch(`/api/clients/${clientId}/dna`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDnaProfile(data.dna);
+        toast({
+          title: "DNA Analysis Complete",
+          description: `Profile classified as ${getDNAClassificationLabel(data.dna.classification)}`,
+        });
+      } else {
+        const error = await res.json();
+        toast({
+          title: "Analysis Failed",
+          description: error.error || "Could not generate DNA profile",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to generate DNA:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setDnaLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchClient();
     fetchCreditScores();
-  }, [fetchClient, fetchCreditScores]);
+    fetchDNA();
+  }, [fetchClient, fetchCreditScores, fetchDNA]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -474,6 +671,10 @@ export default function ClientDetailPage() {
             <TrendingUp className="w-4 h-4 mr-2" />
             Credit Scores
           </TabsTrigger>
+          <TabsTrigger value="dna" className="data-[state=active]:bg-slate-700">
+            <Dna className="w-4 h-4 mr-2" />
+            Credit DNA
+          </TabsTrigger>
         </TabsList>
 
         {/* Negative Items Tab */}
@@ -663,6 +864,412 @@ export default function ClientDetailPage() {
                 <p className="text-slate-400 mt-2">Track credit score changes over time</p>
                 <Button className="mt-4" onClick={() => setAddScoreModalOpen(true)}>
                   Add First Score
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Credit DNA Tab */}
+        <TabsContent value="dna" className="mt-4">
+          {dnaProfile ? (
+            <div className="space-y-6">
+              {/* DNA Classification Header */}
+              <Card className={`border-2 ${getDNABorderColor(dnaProfile.classification)}`}>
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-4">
+                      <div className={`w-16 h-16 rounded-xl flex items-center justify-center ${getDNABgColor(dnaProfile.classification)}`}>
+                        <Dna className={`w-8 h-8 ${getDNAIconColor(dnaProfile.classification)}`} />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h2 className="text-2xl font-bold text-white">
+                            {getDNAClassificationLabel(dnaProfile.classification)}
+                          </h2>
+                          <Badge className={getDNABadgeColor(dnaProfile.confidenceLevel)}>
+                            {dnaProfile.confidenceLevel} Confidence
+                          </Badge>
+                        </div>
+                        <p className="text-slate-400 max-w-2xl">
+                          {getDNAClassificationDescription(dnaProfile.classification)}
+                        </p>
+                        {dnaProfile.subClassifications.length > 0 && (
+                          <div className="flex gap-2 mt-2">
+                            {dnaProfile.subClassifications.map((sub) => (
+                              <Badge key={sub} variant="outline" className="text-slate-300 border-slate-600">
+                                {sub.replace(/_/g, " ")}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={generateDNA}
+                      disabled={dnaLoading}
+                    >
+                      {dnaLoading ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                      )}
+                      Refresh Analysis
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Score Gauges */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="bg-slate-800/50 border-slate-700">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-blue-400" />
+                        <span className="text-sm text-slate-400">Health Score</span>
+                      </div>
+                      <span className="text-2xl font-bold text-white">{dnaProfile.overallHealthScore}</span>
+                    </div>
+                    <Progress value={dnaProfile.overallHealthScore} className="h-2" />
+                    <p className="text-xs text-slate-500 mt-2">Overall credit health assessment</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-slate-800/50 border-slate-700">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Target className="w-4 h-4 text-green-400" />
+                        <span className="text-sm text-slate-400">Improvement Potential</span>
+                      </div>
+                      <span className="text-2xl font-bold text-white">{dnaProfile.improvementPotential}</span>
+                    </div>
+                    <Progress value={dnaProfile.improvementPotential} className="h-2 [&>div]:bg-green-500" />
+                    <p className="text-xs text-slate-500 mt-2">Estimated room for score improvement</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-slate-800/50 border-slate-700">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Zap className="w-4 h-4 text-amber-400" />
+                        <span className="text-sm text-slate-400">Urgency Score</span>
+                      </div>
+                      <span className="text-2xl font-bold text-white">{dnaProfile.urgencyScore}</span>
+                    </div>
+                    <Progress value={dnaProfile.urgencyScore} className="h-2 [&>div]:bg-amber-500" />
+                    <p className="text-xs text-slate-500 mt-2">Priority for immediate action</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Key Insights & Immediate Actions */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card className="bg-slate-800/50 border-slate-700">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-white text-lg flex items-center gap-2">
+                      <Lightbulb className="w-5 h-5 text-yellow-400" />
+                      Key Insights
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2">
+                      {dnaProfile.keyInsights.map((insight, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <ChevronRight className="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" />
+                          <span className="text-sm text-slate-300">{insight}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-slate-800/50 border-slate-700">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-white text-lg flex items-center gap-2">
+                      <Target className="w-5 h-5 text-green-400" />
+                      Immediate Actions
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2">
+                      {dnaProfile.immediateActions.map((action, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <span className="text-xs text-green-400 font-medium">{idx + 1}</span>
+                          </div>
+                          <span className="text-sm text-slate-300">{action}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Recommended Strategy */}
+              <Card className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border-blue-500/30">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-white text-lg flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-blue-400" />
+                    Recommended Strategy
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-slate-300">{getDNARecommendedStrategy(dnaProfile.classification)}</p>
+                  <div className="flex gap-4 mt-4">
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-blue-500/20 text-blue-400">
+                        {dnaProfile.disputeReadiness.recommendedFlow}
+                      </Badge>
+                      <span className="text-sm text-slate-400">Recommended Flow</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-purple-500/20 text-purple-400">
+                        {dnaProfile.disputeReadiness.recommendedFirstBureau}
+                      </Badge>
+                      <span className="text-sm text-slate-400">Start With</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-amber-500/20 text-amber-400">
+                        ~{dnaProfile.disputeReadiness.estimatedRounds} Rounds
+                      </Badge>
+                      <span className="text-sm text-slate-400">Estimated</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Component Metrics Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* File Thickness */}
+                <Card className="bg-slate-800/50 border-slate-700">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-white text-sm flex items-center gap-2">
+                      <BarChart3 className="w-4 h-4 text-slate-400" />
+                      File Thickness
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Badge className={getThicknessBadgeColor(dnaProfile.fileThickness.thickness)}>
+                      {dnaProfile.fileThickness.thickness.replace("_", " ")}
+                    </Badge>
+                    <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
+                      <div>
+                        <span className="text-slate-500">Total:</span>
+                        <span className="text-white ml-1">{dnaProfile.fileThickness.totalAccounts}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Open:</span>
+                        <span className="text-white ml-1">{dnaProfile.fileThickness.openAccounts}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Avg Age:</span>
+                        <span className="text-white ml-1">{Math.round(dnaProfile.fileThickness.averageAccountAge / 12)}yr</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Oldest:</span>
+                        <span className="text-white ml-1">{Math.round(dnaProfile.fileThickness.oldestAccountAge / 12)}yr</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Derogatory Profile */}
+                <Card className="bg-slate-800/50 border-slate-700">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-white text-sm flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-red-400" />
+                      Derogatory Profile
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Badge className={getSeverityBadgeColor(dnaProfile.derogatoryProfile.severity)}>
+                      {dnaProfile.derogatoryProfile.severity}
+                    </Badge>
+                    <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
+                      <div>
+                        <span className="text-slate-500">Collections:</span>
+                        <span className="text-red-400 ml-1">{dnaProfile.derogatoryProfile.collectionCount}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Charge-offs:</span>
+                        <span className="text-red-400 ml-1">{dnaProfile.derogatoryProfile.chargeOffCount}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Late Pays:</span>
+                        <span className="text-amber-400 ml-1">{dnaProfile.derogatoryProfile.latePaymentAccounts}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Total:</span>
+                        <span className="text-white ml-1">{dnaProfile.derogatoryProfile.totalDerogatoryItems}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Utilization */}
+                <Card className="bg-slate-800/50 border-slate-700">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-white text-sm flex items-center gap-2">
+                      <Activity className="w-4 h-4 text-blue-400" />
+                      Utilization
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Badge className={getUtilBadgeColor(dnaProfile.utilization.status)}>
+                      {dnaProfile.utilization.status}
+                    </Badge>
+                    <div className="mt-3">
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-slate-400">Overall</span>
+                        <span className={dnaProfile.utilization.overallUtilization > 30 ? "text-red-400" : "text-green-400"}>
+                          {Math.round(dnaProfile.utilization.overallUtilization)}%
+                        </span>
+                      </div>
+                      <Progress
+                        value={Math.min(dnaProfile.utilization.overallUtilization, 100)}
+                        className="h-2"
+                      />
+                      <p className="text-xs text-slate-500 mt-2">
+                        {dnaProfile.utilization.accountsMaxedOut} maxed, {dnaProfile.utilization.accountsUnder30Percent} under 30%
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Inquiry Analysis */}
+                <Card className="bg-slate-800/50 border-slate-700">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-white text-sm flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-purple-400" />
+                      Hard Inquiries
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Badge className={getInquiryBadgeColor(dnaProfile.inquiryAnalysis.status)}>
+                      {dnaProfile.inquiryAnalysis.status}
+                    </Badge>
+                    <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
+                      <div>
+                        <span className="text-slate-500">Total:</span>
+                        <span className="text-white ml-1">{dnaProfile.inquiryAnalysis.totalHardInquiries}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Last 6mo:</span>
+                        <span className="text-white ml-1">{dnaProfile.inquiryAnalysis.inquiriesLast6Months}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Impact:</span>
+                        <span className="text-amber-400 ml-1">-{dnaProfile.inquiryAnalysis.estimatedScoreImpact}pts</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Disputable:</span>
+                        <span className="text-green-400 ml-1">{dnaProfile.inquiryAnalysis.inquiriesDisputable}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Positive Factors */}
+                <Card className="bg-slate-800/50 border-slate-700">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-white text-sm flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-400" />
+                      Positive Factors
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Badge className={getStrengthBadgeColor(dnaProfile.positiveFactors.strength)}>
+                      {dnaProfile.positiveFactors.strength}
+                    </Badge>
+                    <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
+                      <div>
+                        <span className="text-slate-500">On-Time:</span>
+                        <span className="text-green-400 ml-1">{Math.round(dnaProfile.positiveFactors.onTimePaymentPercentage)}%</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Perfect:</span>
+                        <span className="text-white ml-1">{dnaProfile.positiveFactors.perfectPaymentAccounts}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Mix Score:</span>
+                        <span className="text-white ml-1">{dnaProfile.positiveFactors.creditMixScore}/100</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Well Managed:</span>
+                        <span className="text-white ml-1">{dnaProfile.positiveFactors.wellManagedAccounts}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Dispute Readiness */}
+                <Card className="bg-slate-800/50 border-slate-700">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-white text-sm flex items-center gap-2">
+                      <Scale className="w-4 h-4 text-amber-400" />
+                      Dispute Readiness
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Badge className={getComplexityBadgeColor(dnaProfile.disputeReadiness.complexity)}>
+                      {dnaProfile.disputeReadiness.complexity}
+                    </Badge>
+                    <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
+                      <div>
+                        <span className="text-slate-500">High Priority:</span>
+                        <span className="text-red-400 ml-1">{dnaProfile.disputeReadiness.highPriorityItems}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Medium:</span>
+                        <span className="text-amber-400 ml-1">{dnaProfile.disputeReadiness.mediumPriorityItems}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Est. Removal:</span>
+                        <span className="text-green-400 ml-1">{dnaProfile.disputeReadiness.estimatedRemovalRate}%</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Est. Improve:</span>
+                        <span className="text-green-400 ml-1">+{dnaProfile.disputeReadiness.estimatedScoreImprovement}pts</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Summary */}
+              <Card className="bg-slate-800/50 border-slate-700">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-white text-lg">Analysis Summary</CardTitle>
+                  <CardDescription className="text-slate-400">
+                    Generated {new Date(dnaProfile.analyzedAt).toLocaleDateString()} at{" "}
+                    {new Date(dnaProfile.analyzedAt).toLocaleTimeString()}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-slate-300 leading-relaxed">{dnaProfile.summary}</p>
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardContent className="py-12 text-center">
+                <Dna className="w-12 h-12 mx-auto text-slate-600" />
+                <h3 className="text-lg font-medium text-white mt-4">No DNA Profile</h3>
+                <p className="text-slate-400 mt-2 max-w-md mx-auto">
+                  Generate a Credit DNA profile to understand this client&apos;s credit characteristics
+                  and get personalized dispute strategy recommendations.
+                </p>
+                <Button className="mt-4" onClick={generateDNA} disabled={dnaLoading}>
+                  {dnaLoading ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Dna className="w-4 h-4 mr-2" />
+                  )}
+                  Generate DNA Profile
                 </Button>
               </CardContent>
             </Card>
