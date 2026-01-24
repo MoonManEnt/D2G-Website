@@ -35,10 +35,12 @@ import {
   Users,
   FileText,
   Scale,
+  Archive,
 } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
 import { BrandingSettings } from "@/components/branding";
 import { ProfilePictureUpload } from "@/components/profile";
+import { ArchivedClientsList } from "@/components/archive";
 import { motion } from "framer-motion";
 
 export default function SettingsPage() {
@@ -319,6 +321,12 @@ export default function SettingsPage() {
             Billing
           </TabsTrigger>
           {session?.user?.role === "ADMIN" && (
+            <TabsTrigger value="archived" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+              <Archive className="w-4 h-4 mr-2" />
+              Archived
+            </TabsTrigger>
+          )}
+          {session?.user?.role === "ADMIN" && (
             <TabsTrigger value="danger" className="data-[state=active]:bg-red-600 data-[state=active]:text-white text-red-400">
               <AlertTriangle className="w-4 h-4 mr-2" />
               Danger Zone
@@ -491,6 +499,14 @@ export default function SettingsPage() {
             </Card>
           </motion.div>
         </TabsContent>
+
+        {session?.user?.role === "ADMIN" && (
+          <TabsContent value="archived" asChild>
+            <motion.div variants={tabContentVariants} initial="hidden" animate="visible">
+              <ArchivedClientsList />
+            </motion.div>
+          </TabsContent>
+        )}
 
         {session?.user?.role === "ADMIN" && (
           <TabsContent value="danger" asChild>

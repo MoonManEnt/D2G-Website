@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { ArchiveService } from "@/lib/archive";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -347,60 +348,21 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     // SOFT DELETE (Archive) - default behavior
-    const disputeSnapshot = {
-      snapshotDate: new Date().toISOString(),
-      lastDisputes: existingClient.disputes.map(d => ({
-        id: d.id,
-        cra: d.cra,
-        flow: d.flow,
-        round: d.round,
-        status: d.status,
-        createdAt: d.createdAt,
-        responseOutcome: d.responseOutcome,
-        items: d.items.map(item => ({
-          creditorName: item.accountItem.creditorName,
-          cra: item.accountItem.cra,
-          disputeReason: item.disputeReason,
-          outcome: item.outcome,
-          suggestedFlow: item.suggestedFlow,
-        }))
-      })),
-      pendingAccounts: existingClient.accounts.map(a => ({
-        id: a.id,
-        creditorName: a.creditorName,
-        cra: a.cra,
-        issueCount: a.issueCount,
-        suggestedFlow: a.suggestedFlow,
-        detectedIssues: a.detectedIssues,
-      })),
-      summary: {
-        totalDisputes: existingClient._count.disputes,
-        totalReports: existingClient._count.reports,
-        pendingDisputableAccounts: existingClient.accounts.length,
-        lastActiveDate: existingClient.disputes[0]?.createdAt || existingClient.createdAt,
-      },
-      ameliaContext: {
-        recommendedAction: existingClient.disputes.length === 0
-          ? "START_FRESH"
-          : existingClient.disputes.some(d => d.status === "SENT" || d.status === "RESPONDED")
-            ? "CONTINUE_EXISTING"
-            : "REVIEW_OUTCOMES",
-        lastFlow: existingClient.disputes[0]?.flow || null,
-        lastRound: existingClient.disputes[0]?.round || 0,
-        unresolvedCras: [...new Set(existingClient.accounts.map(a => a.cra))],
-      }
-    };
+    // Create comprehensive snapshot of all client data for AMELIA and compliance
+    const comprehensiveSnapshot = await ArchiveService.createComprehensiveSnapshot(
+      clientId,
+      session.user.organizationId,
+      "manual_archive"
+    );
 
-    await prisma.client.update({
-      where: { id: clientId },
-      data: {
-        isActive: false,
-        archivedAt: new Date(),
-        archiveReason: "manual_archive",
-        lastDisputeSnapshot: JSON.stringify(disputeSnapshot),
-      },
-    });
+    // Save the snapshot and update client archive status
+    await ArchiveService.saveArchiveSnapshot(
+      clientId,
+      session.user.organizationId,
+      comprehensiveSnapshot
+    );
 
+    // Log the archive event
     await prisma.eventLog.create({
       data: {
         eventType: "CLIENT_ARCHIVED",
@@ -411,12 +373,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         eventData: JSON.stringify({
           clientName: `${existingClient.firstName} ${existingClient.lastName}`,
           retentionDays: 90,
-          counts: {
-            reports: existingClient._count.reports,
-            disputes: existingClient._count.disputes,
-            accounts: existingClient._count.accounts,
-          },
-          ameliaRecommendation: disputeSnapshot.ameliaContext.recommendedAction,
+          counts: comprehensiveSnapshot.metadata.recordCounts,
+          ameliaRecommendation: comprehensiveSnapshot.ameliaContext.recommendedAction,
+          snapshotSizeBytes: comprehensiveSnapshot.metadata.snapshotSizeBytes,
         }),
         organizationId: session.user.organizationId,
       },
@@ -428,9 +387,12 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       retentionDays: 90,
       willPermanentlyDeleteAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
       snapshot: {
-        totalDisputes: existingClient._count.disputes,
-        totalReports: existingClient._count.reports,
-        ameliaRecommendation: disputeSnapshot.ameliaContext.recommendedAction,
+        totalDisputes: comprehensiveSnapshot.metadata.recordCounts.disputes,
+        totalReports: comprehensiveSnapshot.metadata.recordCounts.creditScores,
+        totalCommunications: comprehensiveSnapshot.metadata.recordCounts.communications,
+        totalAccounts: comprehensiveSnapshot.metadata.recordCounts.accounts,
+        ameliaRecommendation: comprehensiveSnapshot.ameliaContext.recommendedAction,
+        ameliaMessage: comprehensiveSnapshot.ameliaContext.personalizedMessage,
       }
     });
   } catch (error) {

@@ -32,6 +32,7 @@ model Organization {
   statuteContents      StatuteContent[]
   files                StoredFile[]
   users                User[]
+  archiveSnapshots     ClientArchiveSnapshot[]
 
   @@index([slug])
   @@index([stripeCustomerId])
@@ -105,6 +106,7 @@ model Client {
   reminders               Reminder[]
   communications          Communication[]
   clientDocuments         ClientDocument[]
+  archiveSnapshot         ClientArchiveSnapshot?
 
   @@index([organizationId])
   @@index([lastName, firstName])
@@ -869,4 +871,46 @@ model CreditDNA {
   @@index([organizationId])
   @@index([classification])
   @@index([analyzedAt])
+}
+
+// =============================================================================
+// CLIENT ARCHIVE SNAPSHOT - Comprehensive archive for 90-day retention
+// =============================================================================
+
+model ClientArchiveSnapshot {
+  id                String   @id @default(uuid())
+  clientId          String   @unique
+  organizationId    String
+
+  // Metadata
+  snapshotVersion   String   @default("1.0.0")
+  snapshotDate      DateTime @default(now())
+  archiveReason     String   // manual, inactive, compliance_hold
+
+  // Comprehensive JSON snapshots (using @db.Text for large payloads)
+  clientProfile     String   @db.Text  // Client basic info at time of archive
+  creditDNA         String   @db.Text  // Full Credit DNA profile
+  creditScores      String   @db.Text  // All credit score history
+  disputes          String   @db.Text  // All disputes with items, letters, outcomes
+  disputeResponses  String   @db.Text  // All CRA responses with FCRA tracking
+  roundHistory      String   @db.Text  // DisputeRoundHistory records
+  communications    String   @db.Text  // All communications
+  accounts          String   @db.Text  // AccountItems with detected issues
+  evidenceRefs      String   @db.Text  // Evidence metadata (not binary)
+  documents         String   @db.Text  // Document metadata
+  eventLogs         String   @db.Text  // Client-specific event logs
+  ameliaContext     String   @db.Text  // Optimized AMELIA re-engagement context
+
+  // Tracking
+  snapshotSizeBytes Int      @default(0)
+  expiresAt         DateTime // 90 days from archive date
+  createdAt         DateTime @default(now())
+
+  // Relationships
+  client            Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([expiresAt])
+  @@index([organizationId, expiresAt])
 }
