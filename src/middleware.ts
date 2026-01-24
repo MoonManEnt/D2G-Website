@@ -1,19 +1,18 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
+import { createClient } from "@vercel/kv";
 
-// Simple in-memory rate limiting for middleware
-// Note: This is per-instance. For multi-instance deployments, use Redis.
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+// In-memory fallback for local development or if KV is not configured
+const localRateLimitMap = new Map<string, { count: number; resetTime: number }>();
 
-function rateLimit(ip: string, limit: number, windowMs: number): boolean {
+function localRateLimit(ip: string, limit: number, windowMs: number): boolean {
   const now = Date.now();
   const key = ip;
-
-  const entry = rateLimitMap.get(key);
+  const entry = localRateLimitMap.get(key);
 
   if (!entry || now > entry.resetTime) {
-    rateLimitMap.set(key, { count: 1, resetTime: now + windowMs });
+    localRateLimitMap.set(key, { count: 1, resetTime: now + windowMs });
     return true;
   }
 
@@ -25,16 +24,48 @@ function rateLimit(ip: string, limit: number, windowMs: number): boolean {
   return true;
 }
 
-// Cleanup old entries every minute
+// Cleanup local map
 if (typeof setInterval !== "undefined") {
   setInterval(() => {
     const now = Date.now();
-    for (const [key, entry] of rateLimitMap.entries()) {
+    for (const [key, entry] of localRateLimitMap.entries()) {
       if (now > entry.resetTime) {
-        rateLimitMap.delete(key);
+        localRateLimitMap.delete(key);
       }
     }
   }, 60000);
+}
+
+/**
+ * Rate limit using Vercel KV with local fallback
+ */
+async function rateLimit(ip: string, limit: number, windowMs: number): Promise<boolean> {
+  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  // Use Vercel KV / Upstash if configured (Production/Preview)
+  if (url && token) {
+    const kv = createClient({
+      url,
+      token,
+    });
+
+    const key = `rate_limit:${ip}`;
+    try {
+      const count = await kv.incr(key);
+      if (count === 1) {
+        await kv.expire(key, Math.ceil(windowMs / 1000));
+      }
+      return count <= limit;
+    } catch (error) {
+      console.error("Rate limit error:", error);
+      // Fail open (allow request) if Redis fails
+      return true;
+    }
+  }
+
+  // Fallback to local memory (Development)
+  return localRateLimit(ip, limit, windowMs);
 }
 
 // Security headers to add to all responses
@@ -71,14 +102,16 @@ const cspDirectives = [
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
-             request.headers.get("x-real-ip") ||
-             "unknown";
+    request.headers.get("x-real-ip") ||
+    "unknown";
 
   // Apply rate limiting to API routes
   if (pathname.startsWith("/api/")) {
-    // Stricter limits for auth endpoints
-    if (pathname.includes("/auth/") || pathname.includes("/forgot-password") || pathname.includes("/reset-password")) {
-      if (!rateLimit(ip, 10, 15 * 60 * 1000)) { // 10 requests per 15 minutes
+    // Stricter limits for auth endpoints (only for mutation requests like login/reset)
+    // We deny this only for POST requests to allow session polling/CSRF/provider checks (GETs)
+    if ((pathname.includes("/auth/") || pathname.includes("/forgot-password") || pathname.includes("/reset-password")) && request.method === "POST") {
+      const isAllowed = await rateLimit(ip, 10, 15 * 60 * 1000); // 10 failed attempts per 15 minutes
+      if (!isAllowed) {
         return new NextResponse(
           JSON.stringify({ error: "Too many authentication attempts. Please try again later." }),
           {
@@ -93,7 +126,8 @@ export async function middleware(request: NextRequest) {
     }
     // Standard API rate limit
     else if (!pathname.includes("/billing/webhook")) { // Skip webhooks
-      if (!rateLimit(ip, 100, 60 * 1000)) { // 100 requests per minute
+      const isAllowed = await rateLimit(ip, 100, 60 * 1000); // 100 requests per minute
+      if (!isAllowed) {
         return new NextResponse(
           JSON.stringify({ error: "Too many requests. Please slow down." }),
           {

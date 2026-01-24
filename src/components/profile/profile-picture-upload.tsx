@@ -29,12 +29,14 @@ interface ProfilePictureUploadProps {
   currentImage?: string | null;
   name?: string;
   onSave: (imageDataUrl: string | null) => Promise<void>;
+  size?: "sm" | "md" | "lg" | "xl";
 }
 
 export function ProfilePictureUpload({
   currentImage,
   name,
   onSave,
+  size = "lg",
 }: ProfilePictureUploadProps) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
@@ -190,7 +192,7 @@ export function ProfilePictureUpload({
       <Avatar
         src={currentImage}
         name={name}
-        size="xl"
+        size={size}
         editable
         onEdit={() => setIsOpen(true)}
       />
@@ -207,11 +209,10 @@ export function ProfilePictureUpload({
           <div className="space-y-4 py-4">
             {/* Preview area */}
             <motion.div
-              className={`relative aspect-square max-w-[240px] mx-auto rounded-full overflow-hidden border-2 transition-colors ${
-                isDragging
-                  ? "border-brand-500 bg-brand-500/10"
-                  : "border-slate-600 bg-slate-700/50"
-              }`}
+              className={`relative aspect-square max-w-[240px] mx-auto rounded-full overflow-hidden border-2 transition-colors ${isDragging
+                ? "border-brand-500 bg-brand-500/10"
+                : "border-slate-600 bg-slate-700/50"
+                }`}
               onDragOver={(e) => {
                 e.preventDefault();
                 setIsDragging(true);

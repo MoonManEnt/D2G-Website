@@ -20,6 +20,7 @@ import {
   AlertTriangle,
   BarChart3,
   Sparkles,
+  Inbox,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ import { Avatar } from "@/components/profile";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Workbench", href: "/workbench", icon: Inbox },
   { name: "Clients", href: "/clients", icon: Users },
   { name: "Ledger", href: "/ledger", icon: FileStack },
   { name: "Reports", href: "/reports", icon: FileText },
@@ -120,10 +122,10 @@ export function Sidebar({ user }: SidebarProps) {
   // Dynamic styles based on branding
   const sidebarStyle = branding
     ? {
-        backgroundColor: branding.sidebarBgColor,
-        "--sidebar-text": branding.sidebarTextColor,
-        "--sidebar-active": branding.sidebarActiveColor,
-      } as React.CSSProperties
+      backgroundColor: branding.sidebarBgColor,
+      "--sidebar-text": branding.sidebarTextColor,
+      "--sidebar-active": branding.sidebarActiveColor,
+    } as React.CSSProperties
     : {};
 
   const logoStyle = branding?.primaryColor
@@ -255,12 +257,12 @@ export function Sidebar({ user }: SidebarProps) {
                       style={
                         isActive
                           ? {
-                              backgroundColor: `${activeColor}20`,
-                              color: activeColor,
-                            }
+                            backgroundColor: `${activeColor}20`,
+                            color: activeColor,
+                          }
                           : {
-                              color: textColor,
-                            }
+                            color: textColor,
+                          }
                       }
                     >
                       <item.icon className="h-5 w-5" />
@@ -327,12 +329,12 @@ export function Sidebar({ user }: SidebarProps) {
                   style={
                     isActive
                       ? {
-                          backgroundColor: `${activeColor}20`,
-                          color: activeColor,
-                        }
+                        backgroundColor: `${activeColor}20`,
+                        color: activeColor,
+                      }
                       : {
-                          color: textColor,
-                        }
+                        color: textColor,
+                      }
                   }
                 >
                   <motion.div

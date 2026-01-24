@@ -44,8 +44,8 @@ export function PDFViewer({
     const loadPdfJs = async () => {
       try {
         const pdfjs = await import("pdfjs-dist");
-        // Set worker source to CDN for better compatibility
-        pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
+        // Set worker source to local file in public folder (verified to exist)
+        pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
         setPdfjsLib(pdfjs);
       } catch (err) {
         console.error("Error loading pdfjs:", err);

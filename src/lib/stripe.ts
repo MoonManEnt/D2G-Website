@@ -3,9 +3,9 @@ import Stripe from "stripe";
 // Initialize Stripe client
 export const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: "2023-10-16",
-      typescript: true,
-    })
+    apiVersion: "2023-10-16",
+    typescript: true,
+  })
   : null;
 
 // Price IDs from environment
@@ -24,7 +24,6 @@ export const PLAN_FEATURES = {
       "1 client",
       "View credit reports",
       "Basic dispute tracking",
-      "Community support",
     ],
     limits: {
       clients: 1,
@@ -34,7 +33,7 @@ export const PLAN_FEATURES = {
   },
   PRO: {
     name: "Pro",
-    price: 149,
+    price: Number(process.env.NEXT_PUBLIC_PRO_PRICE) || 149,
     interval: "month",
     features: [
       "Unlimited clients",
@@ -44,7 +43,6 @@ export const PLAN_FEATURES = {
       "CFPB complaint generator",
       "Evidence capture & gallery",
       "Priority support",
-      "Analytics dashboard",
     ],
     limits: {
       clients: Infinity,

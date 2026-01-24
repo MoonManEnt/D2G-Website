@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -7,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -15,10 +17,23 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { User, Building, Shield, Save, Loader2, Check, Eye, EyeOff, Sparkles } from "lucide-react";
+import {
+  User,
+  Building,
+  Shield,
+  Save,
+  Loader2,
+  Check,
+  Eye,
+  EyeOff,
+  Sparkles,
+  CreditCard,
+  Settings,
+} from "lucide-react";
 import { useToast } from "@/lib/use-toast";
 import { BrandingSettings } from "@/components/branding";
 import { ProfilePictureUpload } from "@/components/profile";
+import { motion } from "framer-motion";
 
 export default function SettingsPage() {
   const { data: session, update: updateSession } = useSession();
@@ -177,216 +192,217 @@ export default function SettingsPage() {
     }
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+  };
+
+  const tabContentVariants = {
+    hidden: { opacity: 0, x: -10 },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.3 } },
+  };
+
   return (
-    <div className="space-y-6 lg:ml-64 pt-16 lg:pt-0 p-6">
+    <motion.div
+      className="space-y-6 lg:ml-64 pt-16 lg:pt-0 p-6"
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
       <div>
-        <h1 className="text-2xl font-bold text-white">Settings</h1>
-        <p className="text-slate-400 mt-1">Manage your account and organization settings</p>
+        <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+          <Settings className="w-8 h-8 text-blue-500" />
+          Settings
+        </h1>
+        <p className="text-slate-400 mt-2 text-lg">Manage your account and preferences</p>
       </div>
 
-      {/* Profile Settings */}
-      <Card className="bg-slate-800/50 border-slate-700">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <User className="w-5 h-5" />
+      <Tabs defaultValue="profile" className="w-full">
+        <TabsList className="bg-slate-800/50 border-slate-700 p-1 rounded-lg mb-6">
+          <TabsTrigger value="profile" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+            <User className="w-4 h-4 mr-2" />
             Profile
-          </CardTitle>
-          <CardDescription className="text-slate-400">
-            Your personal account information
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Profile Picture */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <ProfilePictureUpload
-              currentImage={profilePicture}
-              name={session?.user?.name}
-              onSave={handleProfilePictureSave}
-            />
-            <div>
-              <Label className="text-slate-200">Profile Picture</Label>
-              <p className="text-sm text-slate-400 mt-1">
-                Click on the image to upload a new profile picture.
-                <br />
-                <span className="text-xs text-slate-500">Supported: JPEG, PNG, GIF, WebP (max 5MB)</span>
-              </p>
-            </div>
-          </div>
-
-          <div className="border-t border-slate-700 pt-4" />
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-slate-200">Name</Label>
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="bg-slate-700/50 border-slate-600 text-white focus:border-blue-500"
-                placeholder="Your name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-slate-200">Email</Label>
-              <Input
-                value={session?.user?.email || ""}
-                className="bg-slate-700/50 border-slate-600 text-slate-400"
-                disabled
-              />
-              <p className="text-xs text-slate-500">Email cannot be changed</p>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-slate-200">Role</Label>
-            <div>
-              <Badge
-                variant="outline"
-                className={
-                  session?.user?.role === "ADMIN"
-                    ? "border-amber-500/50 text-amber-400"
-                    : "border-blue-500/50 text-blue-400"
-                }
-              >
-                {session?.user?.role || "SPECIALIST"}
-              </Badge>
-            </div>
-          </div>
-          <div className="pt-4 border-t border-slate-700">
-            <Button
-              onClick={handleSaveProfile}
-              disabled={!profileChanged || isSavingProfile}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
-            >
-              {isSavingProfile ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : profileChanged ? (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  Save Changes
-                </>
-              ) : (
-                <>
-                  <Check className="w-4 h-4 mr-2" />
-                  Saved
-                </>
-              )}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Organization Settings */}
-      <Card className="bg-slate-800/50 border-slate-700">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <Building className="w-5 h-5" />
+          </TabsTrigger>
+          <TabsTrigger value="organization" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+            <Building className="w-4 h-4 mr-2" />
             Organization
-          </CardTitle>
-          <CardDescription className="text-slate-400">
-            Your organization details and subscription
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label className="text-slate-200">Organization Name</Label>
-            <Input
-              value={session?.user?.organizationName || ""}
-              className="bg-slate-700/50 border-slate-600 text-slate-400"
-              disabled
-            />
-            <p className="text-xs text-slate-500">Contact support to change organization name</p>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-slate-200">Subscription</Label>
-            <div className="flex items-center gap-3">
-              <Badge
-                className={
-                  session?.user?.subscriptionTier === "PRO"
-                    ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0"
-                    : "bg-slate-600 text-slate-200"
-                }
-              >
-                {session?.user?.subscriptionTier === "PRO" && (
-                  <Sparkles className="w-3 h-3 mr-1" />
-                )}
-                {session?.user?.subscriptionTier || "FREE"}
-              </Badge>
-              <span className="text-sm text-slate-400">
-                Status:{" "}
-                <span className={
-                  session?.user?.subscriptionStatus === "ACTIVE"
-                    ? "text-emerald-400"
-                    : "text-amber-400"
-                }>
-                  {session?.user?.subscriptionStatus || "ACTIVE"}
-                </span>
-              </span>
-            </div>
-            {session?.user?.subscriptionTier !== "PRO" && (
-              <Button
-                variant="outline"
-                className="mt-3 border-amber-500/50 text-amber-400 hover:bg-amber-500/10"
-                onClick={() => window.location.href = "/billing"}
-              >
-                <Sparkles className="w-4 h-4 mr-2" />
-                Upgrade to PRO
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Security Settings */}
-      <Card className="bg-slate-800/50 border-slate-700">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <Shield className="w-5 h-5" />
+          </TabsTrigger>
+          <TabsTrigger value="security" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+            <Shield className="w-4 h-4 mr-2" />
             Security
-          </CardTitle>
-          <CardDescription className="text-slate-400">
-            Password and security settings
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label className="text-slate-200">Password</Label>
-            <div className="flex items-center gap-3">
-              <Input
-                type="password"
-                value="••••••••••••"
-                className="bg-slate-700/50 border-slate-600 text-slate-400 max-w-xs"
-                disabled
-              />
-              <Button
-                variant="outline"
-                onClick={() => setShowPasswordDialog(true)}
-                className="border-slate-600 text-slate-300 hover:bg-slate-700"
-              >
-                Change Password
-              </Button>
-            </div>
-          </div>
+          </TabsTrigger>
+          <TabsTrigger value="billing" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+            <CreditCard className="w-4 h-4 mr-2" />
+            Billing
+          </TabsTrigger>
+        </TabsList>
 
-          <div className="pt-4 border-t border-slate-700 space-y-2">
-            <Label className="text-slate-200">Two-Factor Authentication</Label>
-            <p className="text-sm text-slate-400">
-              Two-factor authentication adds an extra layer of security to your account.
-            </p>
-            <Button
-              variant="outline"
-              disabled
-              className="border-slate-600 text-slate-500"
-            >
-              Coming Soon
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+        <TabsContent value="profile" asChild>
+          <motion.div variants={tabContentVariants} initial="hidden" animate="visible">
+            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-white">Profile Information</CardTitle>
+                <CardDescription className="text-slate-400">Update your personal details</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-8">
+                <div className="flex flex-col sm:flex-row items-center gap-6">
+                  <ProfilePictureUpload
+                    currentImage={profilePicture}
+                    name={session?.user?.name}
+                    onSave={handleProfilePictureSave}
+                    size="xl"
+                  />
+                  <div className="space-y-1 text-center sm:text-left">
+                    <Label className="text-slate-200 text-lg">Profile Picture</Label>
+                    <p className="text-sm text-slate-400">
+                      Supports JPG, PNG, GIF (max 5MB)
+                    </p>
+                  </div>
+                </div>
 
-      {/* Branding Settings - Admin Only */}
-      {session?.user?.role === "ADMIN" && <BrandingSettings />}
+                <div className="border-t border-slate-700/50" />
+
+                <div className="grid gap-6 max-w-2xl">
+                  <div className="space-y-2">
+                    <Label className="text-slate-200">Full Name</Label>
+                    <Input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="bg-slate-900/50 border-slate-600 text-white focus:border-blue-500 h-11"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-slate-200">Email Address</Label>
+                    <Input
+                      value={session?.user?.email || ""}
+                      className="bg-slate-900/50 border-slate-600 text-slate-400 h-11"
+                      disabled
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-slate-200">Role</Label>
+                    <div>
+                      <Badge variant="outline" className="text-blue-400 border-blue-500/30 px-3 py-1">
+                        {session?.user?.role || "SPECIALIST"}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-6 border-t border-slate-700/50 flex justify-end">
+                  <Button
+                    onClick={handleSaveProfile}
+                    disabled={!profileChanged || isSavingProfile}
+                    className="bg-blue-600 hover:bg-blue-700 min-w-[140px]"
+                  >
+                    {isSavingProfile ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
+                    ) : profileChanged ? (
+                      <><Save className="w-4 h-4 mr-2" /> Save Changes</>
+                    ) : (
+                      "Saved"
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </TabsContent>
+
+        <TabsContent value="organization" asChild>
+          <motion.div variants={tabContentVariants} initial="hidden" animate="visible" className="space-y-6">
+            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-white">Organization Details</CardTitle>
+                <CardDescription className="text-slate-400">Manage your workspace settings</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6 max-w-2xl">
+                <div className="space-y-2">
+                  <Label className="text-slate-200">Organization Name</Label>
+                  <Input
+                    value={session?.user?.organizationName || ""}
+                    className="bg-slate-900/50 border-slate-600 text-slate-400 h-11"
+                    disabled
+                  />
+                  <p className="text-sm text-slate-500">Contact support to rename your organization.</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Admin Only Branding */}
+            {session?.user?.role === "ADMIN" && <BrandingSettings />}
+          </motion.div>
+        </TabsContent>
+
+        <TabsContent value="security" asChild>
+          <motion.div variants={tabContentVariants} initial="hidden" animate="visible">
+            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-white">Security Settings</CardTitle>
+                <CardDescription className="text-slate-400">Protect your account</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6 max-w-2xl">
+                <div className="flex items-center justify-between p-4 border border-slate-700/50 rounded-lg bg-slate-900/30">
+                  <div className="space-y-1">
+                    <Label className="text-slate-200 text-base">Password</Label>
+                    <p className="text-sm text-slate-400">Secure your account with a strong password</p>
+                  </div>
+                  <Button variant="outline" onClick={() => setShowPasswordDialog(true)} className="border-slate-600 hover:bg-slate-800">
+                    Change Password
+                  </Button>
+                </div>
+
+                <div className="flex items-center justify-between p-4 border border-slate-700/50 rounded-lg bg-slate-900/30 opacity-75">
+                  <div className="space-y-1">
+                    <Label className="text-slate-200 text-base">Two-Factor Authentication</Label>
+                    <p className="text-sm text-slate-400">Add an extra layer of security</p>
+                  </div>
+                  <Button variant="ghost" disabled className="text-slate-500">
+                    Coming Soon
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </TabsContent>
+
+        <TabsContent value="billing" asChild>
+          <motion.div variants={tabContentVariants} initial="hidden" animate="visible">
+            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-white">Subscription & Billing</CardTitle>
+                <CardDescription className="text-slate-400">Manage your plan</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between p-6 border border-slate-700 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800">
+                  <div>
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-xl font-bold text-white">Current Plan</h3>
+                      <Badge className={
+                        session?.user?.subscriptionTier === "PRO"
+                          ? "bg-gradient-to-r from-amber-500 to-orange-500 border-0"
+                          : "bg-slate-600"
+                      }>
+                        {session?.user?.subscriptionTier || "FREE"}
+                      </Badge>
+                    </div>
+                    <p className="text-slate-400">
+                      Status: <span className="text-emerald-400">{session?.user?.subscriptionStatus || "Active"}</span>
+                    </p>
+                  </div>
+
+                  {session?.user?.subscriptionTier !== "PRO" && (
+                    <Button className="bg-amber-600 hover:bg-amber-700 text-white" onClick={() => window.location.href = "/billing"}>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Upgrade to PRO
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </TabsContent>
+      </Tabs>
 
       {/* Password Change Dialog */}
       <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
@@ -453,11 +469,10 @@ export default function SettingsPage() {
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className={`bg-slate-700/50 border-slate-600 text-white ${
-                  confirmPassword && confirmPassword !== newPassword
-                    ? "border-red-500"
-                    : ""
-                }`}
+                className={`bg-slate-700/50 border-slate-600 text-white ${confirmPassword && confirmPassword !== newPassword
+                  ? "border-red-500"
+                  : ""
+                  }`}
                 placeholder="Confirm new password"
               />
               {confirmPassword && confirmPassword !== newPassword && (
@@ -502,6 +517,6 @@ export default function SettingsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </motion.div>
   );
 }

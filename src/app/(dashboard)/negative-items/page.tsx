@@ -5,12 +5,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from "@/components/ui/sheet";
 import {
   Select,
   SelectContent,
@@ -31,11 +35,14 @@ import {
   CheckCircle,
   XCircle,
   Image as ImageIcon,
-  Send
+  Send,
+  Lock,
+  ExternalLink,
 } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { EvidenceCaptureModal } from "@/components/evidence/capture-modal";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface AccountIssue {
   code: string;
@@ -76,11 +83,20 @@ interface NegativeAccount {
     description: string;
     createdAt: string;
   }>;
+  activeDispute: {
+    id: string;
+    status: string;
+    round: number;
+    date: string;
+    cra: string;
+  } | null;
 }
 
 export default function NegativeItemsPage() {
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const clientId = searchParams.get("clientId");
   const [accounts, setAccounts] = useState<NegativeAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAccount, setSelectedAccount] = useState<NegativeAccount | null>(null);
@@ -93,17 +109,33 @@ export default function NegativeItemsPage() {
 
   const fetchNegativeAccounts = useCallback(async () => {
     try {
-      const res = await fetch("/api/accounts/negative");
-      if (res.ok) {
-        const data = await res.json();
+      setLoading(true);
+      const url = clientId
+        ? `/api/accounts/negative?clientId=${clientId}`
+        : "/api/accounts/negative";
+
+      const response = await fetch(url);
+      if (response.ok) {
+        const data = await response.json();
         setAccounts(data.accounts || []);
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to fetch negative accounts",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Failed to fetch negative accounts:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load accounts",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [toast, clientId]);
 
   useEffect(() => {
     fetchNegativeAccounts();
@@ -322,34 +354,6 @@ export default function NegativeItemsPage() {
           <h1 className="text-2xl font-bold text-white">Negative Items</h1>
           <p className="text-slate-400 mt-1">Accounts negatively impacting credit - ready for dispute</p>
         </div>
-        {selectedAccountIds.size > 0 && (
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-slate-400">
-              {selectedAccountIds.size} account{selectedAccountIds.size !== 1 ? "s" : ""} selected
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={clearSelection}
-              className="border-slate-600 text-slate-300"
-            >
-              Clear
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleCreateDispute}
-              disabled={creatingDispute}
-              className="bg-primary hover:bg-primary/90"
-            >
-              {creatingDispute ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4 mr-2" />
-              )}
-              Create Dispute
-            </Button>
-          </div>
-        )}
       </div>
 
       {/* Summary Stats */}
@@ -485,85 +489,115 @@ export default function NegativeItemsPage() {
                 const issues = parseIssues(account.detectedIssues);
                 const hasEvidence = account.evidences && account.evidences.length > 0;
                 const isSelected = selectedAccountIds.has(account.id);
+
+                // Smart Selection Logic
+                // If any items are selected, we must match their CRA and Client
+                const firstSelectedId = Array.from(selectedAccountIds)[0];
+                const firstSelectedAccount = accounts.find(a => a.id === firstSelectedId);
+                const isLocked = !!account.activeDispute;
+
+                const isDisabled = isLocked || (firstSelectedAccount
+                  ? (account.cra !== firstSelectedAccount.cra || account.client.id !== firstSelectedAccount.client.id)
+                  : false);
+
                 return (
                   <div
                     key={account.id}
-                    className={`p-4 rounded-lg border ${
-                      isSelected
-                        ? "bg-primary/10 border-primary/50"
+                    className={`p-4 rounded-lg border transition-all ${isSelected
+                      ? "bg-primary/10 border-primary/50"
+                      : isDisabled
+                        ? "bg-slate-800/30 border-slate-700/50 opacity-60"
                         : "bg-red-900/10 border-red-500/30"
-                    }`}
+                      }`}
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start gap-3">
-                        <Checkbox
-                          checked={isSelected}
-                          onCheckedChange={() => toggleAccountSelection(account.id)}
-                          className="mt-1 border-slate-500"
-                        />
+                        {isLocked ? (
+                          <div className="mt-1 w-4 h-4 flex items-center justify-center">
+                            <Lock className="w-3 h-3 text-slate-500" />
+                          </div>
+                        ) : (
+                          <Checkbox
+                            checked={isSelected}
+                            disabled={isDisabled}
+                            onCheckedChange={() => toggleAccountSelection(account.id)}
+                            className="mt-1 border-slate-500 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                          />
+                        )}
+
                         <div className="flex-1 min-w-0">
-                        {/* Header */}
-                        <div className="flex items-center gap-2 flex-wrap mb-2">
-                          <span className="text-xs text-slate-500">
-                            {account.client.firstName} {account.client.lastName}
-                          </span>
-                          <span className="text-slate-600">•</span>
-                          <span className="font-semibold text-white">{account.creditorName}</span>
-                          {getCRABadge(account.cra)}
-                          {getFlowBadge(account.suggestedFlow)}
-                          <Badge className="bg-brand-error/20 text-brand-error">
-                            {account.issueCount} Issue{account.issueCount !== 1 ? "s" : ""}
-                          </Badge>
-                          {hasEvidence && (
-                            <Badge className="bg-brand-success/20 text-brand-success">
-                              <ImageIcon className="w-3 h-3 mr-1" />
-                              Evidence
-                            </Badge>
-                          )}
-                        </div>
-
-                        {/* Account Details */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm mb-3">
-                          <div>
-                            <span className="text-slate-500">Account:</span>
-                            <span className="text-white ml-1">{account.maskedAccountId}</span>
-                          </div>
-                          <div>
-                            <span className="text-slate-500">Balance:</span>
-                            <span className="text-white ml-1">{formatCurrency(account.balance)}</span>
-                          </div>
-                          <div>
-                            <span className="text-slate-500">Status:</span>
-                            <span className={`ml-1 ${account.accountStatus === "OPEN" ? "text-brand-success" : "text-brand-error"}`}>
-                              {account.accountStatus}
+                          {/* Header */}
+                          <div className="flex items-center gap-2 flex-wrap mb-2">
+                            <span className="text-xs text-slate-500">
+                              {account.client.firstName} {account.client.lastName}
                             </span>
-                          </div>
-                          {account.pastDue && account.pastDue > 0 && (
-                            <div>
-                              <span className="text-slate-500">Past Due:</span>
-                              <span className="text-brand-error font-medium ml-1">{formatCurrency(account.pastDue)}</span>
-                            </div>
-                          )}
-                        </div>
+                            <span className="text-slate-600">•</span>
+                            <span className="font-semibold text-white">{account.creditorName}</span>
+                            {getCRABadge(account.cra)}
 
-                        {/* Issues */}
-                        <div className="space-y-1">
-                          {issues.slice(0, 3).map((issue, idx) => (
-                            <div
-                              key={idx}
-                              className="flex items-start gap-2 text-xs"
-                            >
-                              {getSeverityIcon(issue.severity)}
-                              <span className="text-slate-300">{issue.description}</span>
-                              {issue.fcraSection && (
-                                <span className="text-slate-500">({issue.fcraSection})</span>
-                              )}
+                            {/* Status Badges */}
+                            {isLocked ? (
+                              <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20 flex items-center gap-1">
+                                <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                                In Dispute (R{account.activeDispute?.round})
+                              </Badge>
+                            ) : (
+                              getFlowBadge(account.suggestedFlow)
+                            )}
+
+                            <Badge className="bg-brand-error/20 text-brand-error">
+                              {account.issueCount} Issue{account.issueCount !== 1 ? "s" : ""}
+                            </Badge>
+                            {hasEvidence && (
+                              <Badge className="bg-brand-success/20 text-brand-success">
+                                <ImageIcon className="w-3 h-3 mr-1" />
+                                Evidence
+                              </Badge>
+                            )}
+                          </div>
+
+                          {/* Account Details */}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm mb-3">
+                            <div>
+                              <span className="text-slate-500">Account:</span>
+                              <span className="text-white ml-1">{account.maskedAccountId}</span>
                             </div>
-                          ))}
-                          {issues.length > 3 && (
-                            <span className="text-xs text-slate-500">+{issues.length - 3} more issues</span>
-                          )}
-                        </div>
+                            <div>
+                              <span className="text-slate-500">Balance:</span>
+                              <span className="text-white ml-1">{formatCurrency(account.balance)}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-500">Status:</span>
+                              <span className={`ml-1 ${account.accountStatus === "OPEN" ? "text-brand-success" : "text-brand-error"}`}>
+                                {account.accountStatus}
+                              </span>
+                            </div>
+                            {account.pastDue && account.pastDue > 0 && (
+                              <div>
+                                <span className="text-slate-500">Past Due:</span>
+                                <span className="text-brand-error font-medium ml-1">{formatCurrency(account.pastDue)}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Issues */}
+                          <div className="space-y-1">
+                            {issues.slice(0, 3).map((issue, idx) => (
+                              <div
+                                key={idx}
+                                className="flex items-start gap-2 text-xs"
+                              >
+                                {getSeverityIcon(issue.severity)}
+                                <span className="text-slate-300">{issue.description}</span>
+                                {issue.fcraSection && (
+                                  <span className="text-slate-500">({issue.fcraSection})</span>
+                                )}
+                              </div>
+                            ))}
+                            {issues.length > 3 && (
+                              <span className="text-xs text-slate-500">+{issues.length - 3} more issues</span>
+                            )}
+                          </div>
                         </div>
                       </div>
 
@@ -578,14 +612,16 @@ export default function NegativeItemsPage() {
                           <Eye className="w-4 h-4 mr-1" />
                           Details
                         </Button>
-                        <Button
-                          size="sm"
-                          className="bg-red-600 hover:bg-red-700"
-                          onClick={() => handleCaptureEvidence(account)}
-                        >
-                          <Camera className="w-4 h-4 mr-1" />
-                          Capture
-                        </Button>
+                        {!isLocked && (
+                          <Button
+                            size="sm"
+                            className="bg-red-600 hover:bg-red-700"
+                            onClick={() => handleCaptureEvidence(account)}
+                          >
+                            <Camera className="w-4 h-4 mr-1" />
+                            Capture
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -596,26 +632,46 @@ export default function NegativeItemsPage() {
         </CardContent>
       </Card>
 
-      {/* Account Detail Dialog */}
-      <Dialog open={!!selectedAccount} onOpenChange={(open) => !open && setSelectedAccount(null)}>
-        <DialogContent className="bg-slate-800 border-slate-700 max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-white">
+      {/* Account Detail Sheet */}
+      <Sheet open={!!selectedAccount} onOpenChange={(open) => !open && setSelectedAccount(null)}>
+        <SheetContent className="bg-slate-900 border-slate-800 text-white w-full sm:max-w-xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="text-white text-xl">
               {selectedAccount?.creditorName}
-            </DialogTitle>
-            <DialogDescription className="text-slate-400">
+            </SheetTitle>
+            <SheetDescription className="text-slate-400">
               {selectedAccount?.client.firstName} {selectedAccount?.client.lastName} • {selectedAccount?.cra}
-            </DialogDescription>
-          </DialogHeader>
+            </SheetDescription>
+          </SheetHeader>
 
           {selectedAccount && (
-            <div className="space-y-4 pt-4">
+            <div className="space-y-6 pt-6">
+              {/* Active Dispute Warning */}
+              {selectedAccount.activeDispute && (
+                <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertTriangle className="w-5 h-5 text-amber-500" />
+                    <h3 className="font-medium text-amber-500">Active Dispute in Progress</h3>
+                  </div>
+                  <p className="text-sm text-slate-300">
+                    This item is currently included in an active dispute (Round {selectedAccount.activeDispute.round}) initiated on {new Date(selectedAccount.activeDispute.date).toLocaleDateString()}.
+                  </p>
+                  <Button
+                    variant="link"
+                    className="text-amber-400 p-0 h-auto mt-2"
+                    onClick={() => router.push(`/disputes?id=${selectedAccount.activeDispute?.id}`)}
+                  >
+                    View Dispute →
+                  </Button>
+                </div>
+              )}
+
               {/* Account Info */}
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-2 gap-4 text-sm bg-slate-800/50 p-4 rounded-lg">
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-slate-400">Account Number:</span>
-                    <span className="text-white">{selectedAccount.maskedAccountId}</span>
+                    <span className="text-white font-mono">{selectedAccount.maskedAccountId}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Account Type:</span>
@@ -637,7 +693,7 @@ export default function NegativeItemsPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-slate-400">Balance:</span>
-                    <span className="text-white">{formatCurrency(selectedAccount.balance)}</span>
+                    <span className="text-white font-mono">{formatCurrency(selectedAccount.balance)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Past Due:</span>
@@ -659,45 +715,37 @@ export default function NegativeItemsPage() {
               </div>
 
               {/* All Issues */}
-              <div className="border-t border-slate-700 pt-4">
+              <div>
                 <h3 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
-                  <Scale className="w-4 h-4" />
-                  All Identified Issues ({selectedAccount.issueCount})
+                  <Scale className="w-4 h-4 text-brand-400" />
+                  Identified Issues ({selectedAccount.issueCount})
                 </h3>
                 <div className="space-y-2">
                   {parseIssues(selectedAccount.detectedIssues).map((issue, idx) => (
                     <div
                       key={idx}
-                      className={`p-3 rounded border ${
-                        issue.severity === "HIGH"
-                          ? "bg-brand-error/10 border-brand-error/30"
-                          : issue.severity === "MEDIUM"
+                      className={`p-3 rounded-lg border ${issue.severity === "HIGH"
+                        ? "bg-brand-error/10 border-brand-error/30"
+                        : issue.severity === "MEDIUM"
                           ? "bg-brand-warning/10 border-brand-warning/30"
                           : "bg-brand-info/10 border-brand-info/30"
-                      }`}
+                        }`}
                     >
-                      <div className="flex items-start gap-2">
+                      <div className="flex items-start gap-3">
                         {getSeverityIcon(issue.severity)}
-                        <div className="flex-1">
-                          <p className="text-sm text-white">{issue.description}</p>
-                          <div className="flex items-center gap-4 mt-1 text-xs">
+                        <div className="flex-1 space-y-1">
+                          <p className="text-sm text-white font-medium">{issue.description}</p>
+                          <div className="flex items-center gap-4 text-xs">
                             {issue.fcraSection && (
                               <span className="text-slate-400">
-                                Cite: <span className="text-slate-300">{issue.fcraSection}</span>
+                                FCRA: <span className="text-slate-300 font-mono">{issue.fcraSection}</span>
                               </span>
                             )}
                             <span className="text-slate-400">
-                              Flow: <span className="text-slate-300">{issue.suggestedFlow}</span>
+                              Suggested Flow: <span className="text-slate-300">{issue.suggestedFlow}</span>
                             </span>
                           </div>
                         </div>
-                        <Badge className={
-                          issue.severity === "HIGH" ? "bg-brand-error/20 text-brand-error" :
-                          issue.severity === "MEDIUM" ? "bg-brand-warning/20 text-brand-warning" :
-                          "bg-brand-info/20 text-brand-info"
-                        }>
-                          {issue.severity}
-                        </Badge>
                       </div>
                     </div>
                   ))}
@@ -706,20 +754,23 @@ export default function NegativeItemsPage() {
 
               {/* Evidence Section */}
               {selectedAccount.evidences && selectedAccount.evidences.length > 0 && (
-                <div className="border-t border-slate-700 pt-4">
+                <div>
                   <h3 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
-                    <ImageIcon className="w-4 h-4" />
+                    <ImageIcon className="w-4 h-4 text-brand-success" />
                     Captured Evidence ({selectedAccount.evidences.length})
                   </h3>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-3">
                     {selectedAccount.evidences.map((evidence) => (
                       <div
                         key={evidence.id}
-                        className="p-2 bg-slate-700/50 rounded border border-slate-600 text-xs"
+                        className="p-3 bg-slate-800/50 rounded-lg border border-slate-700 text-xs hover:border-slate-600 transition-colors cursor-pointer group"
                       >
-                        <p className="text-white">{evidence.evidenceType}</p>
-                        <p className="text-slate-400">{evidence.description}</p>
-                        <p className="text-slate-500 mt-1">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-brand-success font-medium">{evidence.evidenceType}</span>
+                          <ExternalLink className="w-3 h-3 text-slate-500 opacity-0 group-hover:opacity-100" />
+                        </div>
+                        <p className="text-slate-400 line-clamp-2">{evidence.description}</p>
+                        <p className="text-slate-600 mt-2">
                           {new Date(evidence.createdAt).toLocaleDateString()}
                         </p>
                       </div>
@@ -728,26 +779,25 @@ export default function NegativeItemsPage() {
                 </div>
               )}
 
-              {/* Actions */}
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-700">
-                <Button variant="ghost" onClick={() => setSelectedAccount(null)}>
-                  Close
-                </Button>
-                <Button
-                  className="bg-red-600 hover:bg-red-700"
-                  onClick={() => {
-                    setSelectedAccount(null);
-                    handleCaptureEvidence(selectedAccount);
-                  }}
-                >
-                  <Camera className="w-4 h-4 mr-2" />
-                  Capture Evidence
-                </Button>
-              </div>
+              {/* Action Buttons */}
+              {!selectedAccount.activeDispute && (
+                <div className="pt-6 mt-6 border-t border-slate-800 flex flex-col gap-3">
+                  <Button
+                    className="w-full bg-red-600 hover:bg-red-700 py-6 text-lg"
+                    onClick={() => {
+                      setSelectedAccount(null);
+                      handleCaptureEvidence(selectedAccount);
+                    }}
+                  >
+                    <Camera className="w-5 h-5 mr-2" />
+                    Capture Additional Evidence
+                  </Button>
+                </div>
+              )}
             </div>
           )}
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
 
       {/* Visual Evidence Capture Modal */}
       {captureAccount && (
@@ -769,6 +819,51 @@ export default function NegativeItemsPage() {
           onEvidenceCaptured={handleEvidenceCaptured}
         />
       )}
+
+      {/* Sticky Action Bar */}
+      <AnimatePresence>
+        {selectedAccountIds.size > 0 && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-2xl bg-slate-900/95 backdrop-blur-md border border-slate-700/50 rounded-2xl shadow-2xl p-4 flex items-center justify-between z-50 ring-1 ring-white/10"
+          >
+            <div className="flex items-center gap-4">
+              <div className="bg-brand-500/20 p-2 rounded-full">
+                <Send className="w-5 h-5 text-brand-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-white">
+                  {selectedAccountIds.size} item{selectedAccountIds.size !== 1 ? "s" : ""} selected
+                </p>
+                <p className="text-xs text-slate-400">
+                  Ready to create a dispute letter
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                onClick={clearSelection}
+                className="text-slate-400 hover:text-white"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCreateDispute}
+                disabled={creatingDispute}
+                className="bg-brand-600 hover:bg-brand-700 shadow-lg shadow-brand-500/20"
+              >
+                {creatingDispute && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Create Dispute
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

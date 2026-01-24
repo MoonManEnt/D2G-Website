@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { FileText, Upload, AlertCircle, Loader2, CheckCircle, XCircle, Eye, AlertTriangle, Scale, ShieldAlert } from "lucide-react";
+import { FileText, Upload, AlertCircle, Loader2, CheckCircle, XCircle, Eye, AlertTriangle, Scale, ShieldAlert, Trash2 } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
 
 interface Client {
@@ -112,6 +112,19 @@ export default function ReportsPage() {
     fetchData();
   }, []);
 
+  // Poll for updates if any report is processing
+  useEffect(() => {
+    const hasProcessing = reports.some(r => r.parseStatus === "PROCESSING" || r.parseStatus === "PENDING");
+
+    if (!hasProcessing) return;
+
+    const interval = setInterval(() => {
+      fetchData();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [reports]);
+
   const fetchReportAccounts = async (reportId: string) => {
     setLoadingAccounts(true);
     try {
@@ -124,6 +137,39 @@ export default function ReportsPage() {
       console.error("Failed to fetch accounts:", error);
     } finally {
       setLoadingAccounts(false);
+    }
+  };
+
+  const handleDeleteReport = async (reportId: string, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent opening the report view
+
+    if (!window.confirm("Are you sure you want to delete this report? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/reports/${reportId}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        toast({
+          title: "Report Deleted",
+          description: "The credit report has been successfully deleted.",
+        });
+        // Remove from local state immediately
+        setReports(reports.filter(r => r.id !== reportId));
+      } else {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to delete report");
+      }
+    } catch (error) {
+      console.error("Delete error:", error);
+      toast({
+        title: "Delete Failed",
+        description: error instanceof Error ? error.message : "Could not delete report",
+        variant: "destructive",
+      });
     }
   };
 
@@ -173,30 +219,56 @@ export default function ReportsPage() {
     setUploading(true);
 
     try {
-      // Use Vercel Blob client for direct upload (bypasses server size limits)
-      const { upload } = await import("@vercel/blob/client");
+      let finalUrl = "";
 
-      // Use simple alphanumeric pathname to avoid validation issues
-      const timestamp = Date.now();
-      const randomNum = Math.floor(Math.random() * 100000);
-      const safePath = `reports/report${timestamp}${randomNum}.pdf`;
+      // Check if we are in development and should use local storage
+      // Or if we encounter the error seen in the user's screenshot
+      try {
+        // Try Vercel Blob first
+        const { upload } = await import("@vercel/blob/client");
+        const timestamp = Date.now();
+        const randomNum = Math.floor(Math.random() * 100000);
+        const safePath = `reports/report${timestamp}${randomNum}.pdf`;
 
-      console.log("Starting upload with path:", safePath);
+        console.log("Starting Vercel Blob upload...");
 
-      const blob = await upload(safePath, selectedFile, {
-        access: "public",
-        handleUploadUrl: "/api/upload",
-      });
+        const blob = await upload(safePath, selectedFile, {
+          access: "public",
+          handleUploadUrl: "/api/reports/upload-token",
+        });
 
-      console.log("Upload complete:", blob.url);
+        finalUrl = blob.url;
+        console.log("Vercel Blob upload complete:", finalUrl);
+      } catch (blobError: any) {
+        console.warn("Vercel Blob upload failed, falling back to local:", blobError.message);
 
-      // Now process the report with the blob URL
+        // Local Fallback
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+        formData.append("type", "reports");
+
+        const localRes = await fetch("/api/upload/local", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!localRes.ok) {
+          const errorData = await localRes.json();
+          throw new Error(errorData.error || "Local upload failed");
+        }
+
+        const localData = await localRes.json();
+        finalUrl = localData.url;
+        console.log("Local upload complete:", finalUrl);
+      }
+
+      // Now process the report with the final URL (could be blob or local)
       const res = await fetch("/api/reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           clientId: selectedClient,
-          blobUrl: blob.url,
+          blobUrl: finalUrl,
           fileName: selectedFile.name,
           reportDate: new Date().toISOString(),
         }),
@@ -212,10 +284,24 @@ export default function ReportsPage() {
         setSelectedClient("");
         fetchData();
       } else {
-        const error = await res.json();
+        let errorMessage = "Failed to upload report";
+        try {
+          const contentType = res.headers.get("content-type");
+          if (contentType && contentType.indexOf("application/json") !== -1) {
+            const error = await res.json();
+            errorMessage = error.error || errorMessage;
+          } else {
+            const textText = await res.text();
+            console.error("Non-JSON error response:", textText);
+            errorMessage = `Upload failed (${res.status}): ${res.statusText}`;
+          }
+        } catch (e) {
+          console.error("Error parsing error response:", e);
+        }
+
         toast({
           title: "Upload Failed",
-          description: error.error || "Failed to upload report",
+          description: errorMessage,
           variant: "destructive",
         });
       }
@@ -447,9 +533,22 @@ export default function ReportsPage() {
                     </div>
                     <div className="flex items-center gap-3">
                       {getStatusBadge(report.parseStatus)}
+                      {report.parseStatus === "FAILED" && (
+                        <div className="hidden group-hover:block absolute right-24 top-0 bg-red-900/90 text-white text-xs p-2 rounded max-w-xs z-10 shadow-lg border border-red-500/50">
+                          {report.parseError || "Unknown error"}
+                        </div>
+                      )}
                       <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">
                         <Eye className="w-4 h-4 mr-1" />
                         View
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-slate-400 hover:text-red-400"
+                        onClick={(e) => handleDeleteReport(report.id, e)}
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
@@ -519,11 +618,10 @@ export default function ReportsPage() {
                       return (
                         <div
                           key={account.id}
-                          className={`p-4 rounded-lg border ${
-                            account.isDisputable
-                              ? "bg-red-900/10 border-red-500/30"
-                              : "bg-slate-700/30 border-slate-700/50"
-                          }`}
+                          className={`p-4 rounded-lg border ${account.isDisputable
+                            ? "bg-red-900/10 border-red-500/30"
+                            : "bg-slate-700/30 border-slate-700/50"
+                            }`}
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">

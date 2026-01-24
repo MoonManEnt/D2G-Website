@@ -34,15 +34,47 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Read the PDF file
-    const pdfBuffer = await readFile(report.originalFile.storagePath);
+    let pdfBuffer: Buffer;
+    const storagePath = report.originalFile.storagePath;
+
+    console.log(`fetching PDF from: ${storagePath}`);
+
+    if (storagePath.startsWith("http")) {
+      const response = await fetch(storagePath);
+      if (!response.ok) {
+        console.error(`Fetch failed: ${response.status} ${response.statusText}`);
+        throw new Error(`Failed to fetch PDF from storage: ${response.statusText}`);
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      pdfBuffer = Buffer.from(arrayBuffer);
+    } else {
+      // Handle legacy paths or local files (unlikely to work in serverless unless bundled)
+      console.warn(`Attempting to read local file: ${storagePath}`);
+
+      // Check for broken blob:// paths (zombie reports)
+      if (storagePath.startsWith("blob:")) {
+        console.error("Attempted to access non-persisted blob path:", storagePath);
+        return NextResponse.json(
+          { error: "PDF file was not permanently saved. Please re-upload this report." },
+          { status: 404 }
+        );
+      }
+
+      try {
+        pdfBuffer = await readFile(storagePath);
+      } catch (err) {
+        console.error("Local file read failed:", err);
+        return NextResponse.json({ error: `File not found at path: ${storagePath}` }, { status: 404 });
+      }
+    }
 
     // Return the PDF with proper headers
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(new Blob([new Uint8Array(pdfBuffer)]), {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `inline; filename="${report.originalFile.filename}"`,
-        "Cache-Control": "private, max-age=3600",
+        // "Cache-Control": "private, max-age=3600", // Commented out to prevent caching issues during debug
       },
     });
 

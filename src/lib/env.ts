@@ -54,9 +54,27 @@ const envSchema = z.object({
   // Redis for background jobs (optional)
   REDIS_URL: z.string().optional(),
 
+  // Vercel KV / Upstash (Rate Limiting)
+  KV_REST_API_URL: z.string().optional(),
+  KV_REST_API_TOKEN: z.string().optional(),
+  UPSTASH_REDIS_REST_URL: z.string().optional(),
+  UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
+
+  // Vercel Blob (optional)
+  BLOB_READ_WRITE_TOKEN: z.string().optional(),
+
+  // Physical Mail (Lob)
+  LOB_API_KEY: z.string().optional(),
+  LOB_TEST_MODE: z.string().optional(), // "true" or "false"
+  FEATURE_PHYSICAL_MAIL_ENABLED: z.string().default("false"),
+
   // App config
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   UPLOAD_DIR: z.string().optional(),
+
+  // AI Config
+  AI_ENABLE_AB_TESTING: z.string().default("false"),
+  AI_FALLBACK_ENABLED: z.string().default("false"),
 });
 
 // Type for validated environment
