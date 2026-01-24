@@ -4,8 +4,6 @@ import { ReactNode } from "react";
 import {
   OnboardingProvider,
   WelcomeModal,
-  OnboardingChecklist,
-  OnboardingComplete,
 } from "@/components/onboarding";
 import { motion, AnimatePresence } from "framer-motion";
 import { BrandingProvider } from "@/components/branding";
@@ -46,8 +44,6 @@ export function DashboardWrapper({ children, user }: DashboardWrapperProps) {
           </main>
         </div>
         <WelcomeModal />
-        <OnboardingChecklist />
-        <OnboardingComplete />
         <BetaFeedback />
       </OnboardingProvider>
     </BrandingProvider>

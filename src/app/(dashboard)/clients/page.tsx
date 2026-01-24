@@ -55,7 +55,6 @@ import {
 } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Spotlight, useOnboarding } from "@/components/onboarding";
 import { formatDistanceToNow, format } from "date-fns";
 
 interface Client {
@@ -749,7 +748,6 @@ export default function ClientsPage() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { steps, currentStep } = useOnboarding();
 
   const [clients, setClients] = useState<Client[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -884,17 +882,12 @@ export default function ClientsPage() {
           <p className="text-slate-400 mt-1">Manage and track your client portfolio</p>
         </div>
         <ResponsiveDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <Spotlight
-            active={!steps.find(s => s.id === "add-client")?.completed && steps[currentStep]?.id === "add-client"}
-            message="Start here by adding your first client."
-          >
-            <ResponsiveDialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Client
-              </Button>
-            </ResponsiveDialogTrigger>
-          </Spotlight>
+          <ResponsiveDialogTrigger asChild>
+            <Button className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Client
+            </Button>
+          </ResponsiveDialogTrigger>
           <ResponsiveDialogContent size="sm">
             <ResponsiveDialogHeader>
               <ResponsiveDialogTitle>Add New Client</ResponsiveDialogTitle>

@@ -3,41 +3,10 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useOnboarding } from "./onboarding-provider";
-import {
-  Shield,
-  FileText,
-  Scale,
-  CheckCircle2,
-  Sparkles,
-  ArrowRight,
-} from "lucide-react";
+import { Shield, ArrowRight, Quote } from "lucide-react";
 
 export function WelcomeModal() {
-  const { showWelcome, dismissWelcome, skipOnboarding } = useOnboarding();
-
-  const features = [
-    {
-      icon: FileText,
-      title: "Smart Report Parsing",
-      description: "Upload credit reports and we'll automatically extract negative items",
-      color: "text-emerald-400",
-      bgColor: "bg-emerald-500/20",
-    },
-    {
-      icon: Scale,
-      title: "AI Dispute Generation",
-      description: "Generate professional dispute letters with legally-backed arguments",
-      color: "text-purple-400",
-      bgColor: "bg-purple-500/20",
-    },
-    {
-      icon: CheckCircle2,
-      title: "Track Progress",
-      description: "Monitor dispute status and track resolution outcomes",
-      color: "text-blue-400",
-      bgColor: "bg-blue-500/20",
-    },
-  ];
+  const { showWelcome, dismissWelcome } = useOnboarding();
 
   return (
     <AnimatePresence>
@@ -50,16 +19,15 @@ export function WelcomeModal() {
         >
           {/* Backdrop */}
           <motion.div
-            className="absolute inset-0 bg-black/60 backdrop-blur-md"
+            className="absolute inset-0 bg-black/70 backdrop-blur-md"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={dismissWelcome}
           />
 
           {/* Modal */}
           <motion.div
-            className="relative bg-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl shadow-black/50 ring-1 ring-white/10 max-w-2xl w-full overflow-hidden"
+            className="relative bg-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl shadow-black/50 ring-1 ring-white/10 max-w-xl w-full overflow-hidden"
             initial={{ scale: 0.95, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 20 }}
@@ -101,73 +69,60 @@ export function WelcomeModal() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                Welcome to Dispute2Go!
+                Welcome to Dispute2Go
               </motion.h1>
-
-              <motion.p
-                className="text-white/80 text-lg"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                Your credit dispute operating system
-              </motion.p>
             </div>
 
             {/* Content */}
             <div className="p-8">
-              <motion.p
-                className="text-slate-400 text-center mb-8"
+              <motion.div
+                className="space-y-4 mb-8"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.4 }}
+                transition={{ delay: 0.3 }}
               >
-                Let's get you set up with everything you need to manage credit disputes effectively.
-              </motion.p>
+                <p className="text-slate-300 text-base leading-relaxed">
+                  The credit dispute operating system built for professionals. Import any IdentityIQ report and watch it transform into a complete, actionable dispute workflow—automatically sequenced by FCRA statute, legally compliant, and ready to send.
+                </p>
+                <p className="text-slate-300 text-base leading-relaxed">
+                  No more manual letter drafting. No more guessing which violations to cite. Just powerful, precise disputes that get results.
+                </p>
+                <p className="text-slate-400 text-base font-medium mt-6">
+                  Good luck out there.
+                </p>
+              </motion.div>
 
-              {/* Features */}
-              <div className="space-y-4 mb-8">
-                {features.map((feature, index) => (
-                  <motion.div
-                    key={feature.title}
-                    className="flex items-start gap-4 p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.5 + index * 0.1 }}
-                  >
-                    <div className={`p-2 rounded-lg ${feature.bgColor}`}>
-                      <feature.icon className={`w-5 h-5 ${feature.color}`} />
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-white">{feature.title}</h3>
-                      <p className="text-sm text-slate-400">{feature.description}</p>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-
-              {/* Actions */}
+              {/* Quote */}
               <motion.div
-                className="flex flex-col sm:flex-row gap-3"
+                className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 mb-8"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8 }}
+                transition={{ delay: 0.5 }}
+              >
+                <div className="flex items-start gap-3">
+                  <Quote className="w-5 h-5 text-brand-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-slate-300 italic">
+                      "Willing is not enough; we must do."
+                    </p>
+                    <p className="text-slate-500 text-sm mt-1">— Robert F. Smith</p>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Action */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
               >
                 <Button
                   onClick={dismissWelcome}
                   size="lg"
-                  className="flex-1 bg-gradient-to-r from-brand-600 to-purple-600 hover:from-brand-500 hover:to-purple-500 shadow-lg shadow-brand-500/25 transition-all hover:scale-[1.02]"
+                  className="w-full bg-gradient-to-r from-brand-600 to-purple-600 hover:from-brand-500 hover:to-purple-500 shadow-lg shadow-brand-500/25 transition-all hover:scale-[1.02]"
                 >
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Get Started
+                  Let's Get to Work
                   <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={skipOnboarding}
-                  className="text-slate-400"
-                >
-                  I know my way around
                 </Button>
               </motion.div>
             </div>
