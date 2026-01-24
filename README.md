@@ -185,9 +185,9 @@ Print Letter → Mark Sent → Log Response → Advance Round → Repeat
 
 ### Flow & Round Doctrine
 
-The system enforces statute sequencing per flow:
+The system enforces statute sequencing per flow. Each round cites specific FCRA/FDCPA statutes with escalating severity.
 
-**Accuracy Flow (12 rounds)**
+**Accuracy Flow (12 rounds)** - FCRA-based escalation for inaccurate reporting
 1. Factual Dispute (no statute)
 2. 1681e(b) - Maximum Accuracy
 3. 1681i(a)(5) - Reinvestigation Results
@@ -200,6 +200,39 @@ The system enforces statute sequencing per flow:
 10. 1681c(e) - Information Update
 11. 1681e(b) - Discharged Debt Accuracy
 12. Litigation Marker
+
+**Collection Flow (10 rounds)** - FDCPA-based dispute for debt collection accounts
+1. 1692g - Validation Notice
+2. 1692g(b) - Validation Request
+3. 1692j - Unfair Practices
+4. 1681a(m) - Medical Information
+5. 1681(b) - Permissible Purposes
+6. 1692e(10) - False Representation
+7. 1681q - False Information
+8. 1692c(c) - Cease Communication
+9. 1681b(a)(3)(A) - Collection Purpose
+10. Litigation Marker
+
+**Consent Flow (4 rounds)** - Privacy/permissible purpose violations
+1. 1681b(a)(2) - Written Consent
+2. 1681(a)(4) - Consumer Privacy
+3. 1681a(d)(2)(B) - Consumer Report Definition
+4. Flow Switch (returns to Accuracy or Collection)
+
+**Combo Flow** - Uses both Accuracy and Collection statutes for complex cases with mixed account types
+
+### Letter Structure
+
+Every generated letter follows the AMELIA doctrine structure:
+- **Header** - Client info, date, CRA address
+- **Headline** - Attention-grabbing statement
+- **Opening** - Context and intent
+- **Body** - Statute citations, facts, demands
+- **Account List** - Specific disputed items
+- **Demand** - Legal requirements
+- **Corrections** - Requested changes
+- **Consumer Statement** - Emotional closing (included in ALL rounds, ALL flows)
+- **Closing** - Signature block
 
 ## Development
 
