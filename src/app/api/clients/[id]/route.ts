@@ -169,11 +169,14 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// DELETE /api/clients/[id] - Archive client for 90 days (soft delete with snapshot)
+// DELETE /api/clients/[id] - Delete client (soft or permanent)
+// Use ?permanent=true for hard delete, otherwise soft deletes (archives)
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await getServerSession(authOptions);
     const { id: clientId } = await params;
+    const { searchParams } = new URL(request.url);
+    const permanent = searchParams.get("permanent") === "true";
 
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -230,7 +233,120 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Client not found" }, { status: 404 });
     }
 
-    // Create a snapshot of the client's dispute state for AMELIA to use on return
+    // PERMANENT DELETE - removes all client data
+    if (permanent) {
+      const clientName = `${existingClient.firstName} ${existingClient.lastName}`;
+      const counts = {
+        reports: existingClient._count.reports,
+        disputes: existingClient._count.disputes,
+        accounts: existingClient._count.accounts,
+      };
+
+      // Delete in order to handle foreign key constraints
+      // 1. Delete dispute items first
+      await prisma.disputeItem.deleteMany({
+        where: { dispute: { clientId } }
+      });
+
+      // 2. Delete disputes
+      await prisma.dispute.deleteMany({
+        where: { clientId }
+      });
+
+      // 3. Delete evidence
+      await prisma.evidence.deleteMany({
+        where: { accountItem: { clientId } }
+      });
+
+      // 4. Delete account items
+      await prisma.accountItem.deleteMany({
+        where: { clientId }
+      });
+
+      // 5. Get report IDs to delete stored files
+      const reports = await prisma.creditReport.findMany({
+        where: { clientId },
+        select: { id: true, originalFileId: true }
+      });
+      const fileIds = reports.map(r => r.originalFileId).filter(Boolean) as string[];
+
+      // 6. Delete diff results
+      const reportIds = reports.map(r => r.id);
+      if (reportIds.length > 0) {
+        await prisma.diffResult.deleteMany({
+          where: {
+            OR: [
+              { newReportId: { in: reportIds } },
+              { priorReportId: { in: reportIds } }
+            ]
+          }
+        });
+      }
+
+      // 7. Delete credit reports
+      await prisma.creditReport.deleteMany({
+        where: { clientId }
+      });
+
+      // 8. Delete stored files
+      if (fileIds.length > 0) {
+        await prisma.storedFile.deleteMany({
+          where: { id: { in: fileIds } }
+        });
+      }
+
+      // 9. Delete client documents
+      await prisma.clientDocument.deleteMany({
+        where: { clientId }
+      });
+
+      // 10. Delete credit DNA
+      await prisma.creditDNA.deleteMany({
+        where: { clientId }
+      });
+
+      // 11. Delete credit scores
+      await prisma.creditScore.deleteMany({
+        where: { clientId }
+      });
+
+      // 12. Delete communications
+      await prisma.communication.deleteMany({
+        where: { clientId }
+      });
+
+      // 13. Finally delete the client
+      await prisma.client.delete({
+        where: { id: clientId }
+      });
+
+      // Log permanent deletion
+      await prisma.eventLog.create({
+        data: {
+          eventType: "CLIENT_PERMANENTLY_DELETED",
+          actorId: session.user.id,
+          actorEmail: session.user.email,
+          targetType: "Client",
+          targetId: clientId,
+          eventData: JSON.stringify({
+            clientName,
+            deletedCounts: counts,
+          }),
+          organizationId: session.user.organizationId,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        permanent: true,
+        deleted: {
+          clientName,
+          ...counts,
+        }
+      });
+    }
+
+    // SOFT DELETE (Archive) - default behavior
     const disputeSnapshot = {
       snapshotDate: new Date().toISOString(),
       lastDisputes: existingClient.disputes.map(d => ({
@@ -263,7 +379,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         pendingDisputableAccounts: existingClient.accounts.length,
         lastActiveDate: existingClient.disputes[0]?.createdAt || existingClient.createdAt,
       },
-      // AMELIA recommendation data
       ameliaContext: {
         recommendedAction: existingClient.disputes.length === 0
           ? "START_FRESH"
@@ -276,7 +391,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       }
     };
 
-    // Archive the client (soft delete with snapshot)
     await prisma.client.update({
       where: { id: clientId },
       data: {
@@ -287,7 +401,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       },
     });
 
-    // Log event
     await prisma.eventLog.create({
       data: {
         eventType: "CLIENT_ARCHIVED",
@@ -321,9 +434,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       }
     });
   } catch (error) {
-    console.error("Error archiving client:", error);
+    console.error("Error deleting client:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to archive client" },
+      { error: error instanceof Error ? error.message : "Failed to delete client" },
       { status: 500 }
     );
   }

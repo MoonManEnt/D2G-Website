@@ -51,6 +51,7 @@ import {
   AlertOctagon,
   Save,
   Loader2,
+  Trash2,
 } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -296,6 +297,8 @@ function ClientQuickViewModal({
   const [detail, setDetail] = useState<ClientDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [editForm, setEditForm] = useState({
     email: "",
     phone: "",
@@ -384,14 +387,34 @@ function ClientQuickViewModal({
     }
   };
 
-  const formatAddress = () => {
-    if (!editForm.addressLine1) return null;
-    const parts = [
-      editForm.addressLine1,
-      editForm.addressLine2,
-      [editForm.city, editForm.state, editForm.zipCode].filter(Boolean).join(", "),
-    ].filter(Boolean);
-    return parts.join(", ");
+  const handleDelete = async (permanent: boolean) => {
+    if (!client) return;
+    setDeleting(true);
+    try {
+      const url = permanent
+        ? `/api/clients/${client.id}?permanent=true`
+        : `/api/clients/${client.id}`;
+      const res = await fetch(url, { method: "DELETE" });
+
+      if (res.ok) {
+        toast({
+          title: permanent ? "Client Deleted" : "Client Archived",
+          description: permanent
+            ? "Client and all data permanently deleted."
+            : "Client archived. Can be restored within 90 days.",
+        });
+        onClose();
+        onUpdate();
+      } else {
+        const error = await res.json();
+        toast({ title: "Error", description: error.error || "Failed to delete", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "An unexpected error occurred", variant: "destructive" });
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+    }
   };
 
   if (!client) return null;
@@ -646,22 +669,72 @@ function ClientQuickViewModal({
               </div>
 
               {/* Footer */}
-              <div className="relative p-4 border-t border-slate-700/50 flex justify-end gap-3">
-                <Button variant="ghost" onClick={onClose}>
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  {saving ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Save className="w-4 h-4 mr-2" />
-                  )}
-                  Save Changes
-                </Button>
+              <div className="relative p-4 border-t border-slate-700/50">
+                {showDeleteConfirm ? (
+                  <div className="space-y-3">
+                    <p className="text-sm text-slate-300">
+                      How do you want to remove this client?
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDelete(false)}
+                        disabled={deleting}
+                        className="border-amber-500/50 text-amber-400 hover:bg-amber-500/10"
+                      >
+                        {deleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                        Archive (90 days)
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDelete(true)}
+                        disabled={deleting}
+                        className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+                      >
+                        {deleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                        Delete Permanently
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowDeleteConfirm(false)}
+                        disabled={deleting}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex justify-between">
+                    <Button
+                      variant="ghost"
+                      onClick={() => setShowDeleteConfirm(true)}
+                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete
+                    </Button>
+                    <div className="flex gap-3">
+                      <Button variant="ghost" onClick={onClose}>
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={handleSave}
+                        disabled={saving}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        {saving ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Save className="w-4 h-4 mr-2" />
+                        )}
+                        Save Changes
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>

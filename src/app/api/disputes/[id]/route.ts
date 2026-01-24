@@ -162,20 +162,27 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 }
 
 // DELETE /api/disputes/[id] - Delete dispute
+// By default only DRAFT can be deleted. Use ?force=true to delete any status.
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await getServerSession(authOptions);
     const { id: disputeId } = await params;
+    const { searchParams } = new URL(request.url);
+    const force = searchParams.get("force") === "true";
 
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Verify dispute belongs to organization and is in DRAFT status
+    // Verify dispute belongs to organization
     const existingDispute = await prisma.dispute.findFirst({
       where: {
         id: disputeId,
         organizationId: session.user.organizationId,
+      },
+      include: {
+        client: { select: { firstName: true, lastName: true } },
+        _count: { select: { items: true } },
       },
     });
 
@@ -183,18 +190,57 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Dispute not found" }, { status: 404 });
     }
 
-    if (existingDispute.status !== "DRAFT") {
+    // Check if force delete is needed
+    if (!force && existingDispute.status !== "DRAFT") {
       return NextResponse.json(
-        { error: "Only draft disputes can be deleted" },
+        {
+          error: "Only draft disputes can be deleted without force flag",
+          hint: "Add ?force=true to delete disputes that have been sent or processed",
+          disputeStatus: existingDispute.status,
+        },
         { status: 400 }
       );
     }
 
+    // Delete dispute items first
+    await prisma.disputeItem.deleteMany({
+      where: { disputeId },
+    });
+
+    // Delete the dispute
     await prisma.dispute.delete({
       where: { id: disputeId },
     });
 
-    return NextResponse.json({ success: true });
+    // Log the deletion
+    await prisma.eventLog.create({
+      data: {
+        eventType: "DISPUTE_DELETED",
+        actorId: session.user.id,
+        actorEmail: session.user.email,
+        targetType: "Dispute",
+        targetId: disputeId,
+        eventData: JSON.stringify({
+          clientName: `${existingDispute.client.firstName} ${existingDispute.client.lastName}`,
+          cra: existingDispute.cra,
+          flow: existingDispute.flow,
+          round: existingDispute.round,
+          status: existingDispute.status,
+          itemCount: existingDispute._count.items,
+          forceDeleted: force,
+        }),
+        organizationId: session.user.organizationId,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      deleted: {
+        disputeId,
+        status: existingDispute.status,
+        itemCount: existingDispute._count.items,
+      },
+    });
   } catch (error) {
     console.error("Error deleting dispute:", error);
     return NextResponse.json(

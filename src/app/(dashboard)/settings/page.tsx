@@ -30,6 +30,11 @@ import {
   Sparkles,
   CreditCard,
   Settings,
+  AlertTriangle,
+  Trash2,
+  Users,
+  FileText,
+  Scale,
 } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
 import { BrandingSettings } from "@/components/branding";
@@ -54,6 +59,20 @@ export default function SettingsPage() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  // Reset data state
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const [resetConfirmPhrase, setResetConfirmPhrase] = useState("");
+  const [isResetting, setIsResetting] = useState(false);
+  const [dataCounts, setDataCounts] = useState<{
+    clients: number;
+    reports: number;
+    disputes: number;
+    accounts: number;
+    evidence: number;
+    documents: number;
+  } | null>(null);
+  const [isLoadingCounts, setIsLoadingCounts] = useState(false);
 
   // Initialize form with session data
   useEffect(() => {
@@ -193,6 +212,69 @@ export default function SettingsPage() {
     }
   };
 
+  // Fetch data counts for reset preview
+  const fetchDataCounts = async () => {
+    setIsLoadingCounts(true);
+    try {
+      const response = await fetch("/api/organization/reset");
+      if (response.ok) {
+        const data = await response.json();
+        setDataCounts(data.counts);
+      }
+    } catch (error) {
+      console.error("Failed to fetch data counts:", error);
+    } finally {
+      setIsLoadingCounts(false);
+    }
+  };
+
+  // Handle reset all data
+  const handleResetAllData = async () => {
+    if (resetConfirmPhrase !== "DELETE ALL MY DATA") {
+      toast({
+        title: "Invalid Confirmation",
+        description: "Please type 'DELETE ALL MY DATA' exactly to confirm.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsResetting(true);
+    try {
+      const response = await fetch("/api/organization/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmationPhrase: resetConfirmPhrase }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to reset data");
+      }
+
+      toast({
+        title: "Data Reset Complete",
+        description: `Deleted ${data.deleted.clients} clients, ${data.deleted.reports} reports, and ${data.deleted.disputes} disputes.`,
+      });
+
+      setShowResetDialog(false);
+      setResetConfirmPhrase("");
+      setDataCounts(null);
+
+      // Refresh the page to reflect changes
+      window.location.reload();
+    } catch (error) {
+      toast({
+        title: "Reset Failed",
+        description: error instanceof Error ? error.message : "Failed to reset data",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   const containerVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
@@ -236,6 +318,12 @@ export default function SettingsPage() {
             <CreditCard className="w-4 h-4 mr-2" />
             Billing
           </TabsTrigger>
+          {session?.user?.role === "ADMIN" && (
+            <TabsTrigger value="danger" className="data-[state=active]:bg-red-600 data-[state=active]:text-white text-red-400">
+              <AlertTriangle className="w-4 h-4 mr-2" />
+              Danger Zone
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="profile" asChild>
@@ -403,6 +491,59 @@ export default function SettingsPage() {
             </Card>
           </motion.div>
         </TabsContent>
+
+        {session?.user?.role === "ADMIN" && (
+          <TabsContent value="danger" asChild>
+            <motion.div variants={tabContentVariants} initial="hidden" animate="visible">
+              <Card className="bg-slate-800/50 border-red-900/50 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="text-red-400 flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5" />
+                    Danger Zone
+                  </CardTitle>
+                  <CardDescription className="text-slate-400">
+                    Irreversible actions that affect all organization data
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="p-6 border border-red-900/50 rounded-lg bg-red-950/20">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="space-y-2">
+                        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                          <Trash2 className="w-5 h-5 text-red-400" />
+                          Reset All Data
+                        </h3>
+                        <p className="text-sm text-slate-400 max-w-md">
+                          Permanently delete ALL client data, reports, disputes, and evidence.
+                          This action cannot be undone. Use this to start fresh with a clean slate.
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        className="border-red-600 text-red-400 hover:bg-red-950/50 hover:text-red-300 shrink-0"
+                        onClick={() => {
+                          setShowResetDialog(true);
+                          fetchDataCounts();
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Reset All Data
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="p-4 border border-slate-700/50 rounded-lg bg-slate-900/30">
+                    <p className="text-sm text-slate-400">
+                      <strong className="text-slate-300">Note:</strong> This will delete all clients, credit reports,
+                      disputes, account items, evidence, documents, and related data. Your organization settings,
+                      user accounts, and billing information will remain intact.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Password Change Dialog */}
@@ -511,6 +652,123 @@ export default function SettingsPage() {
                 </>
               ) : (
                 "Change Password"
+              )}
+            </Button>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
+
+      {/* Reset All Data Dialog */}
+      <ResponsiveDialog open={showResetDialog} onOpenChange={(open) => {
+        setShowResetDialog(open);
+        if (!open) {
+          setResetConfirmPhrase("");
+        }
+      }}>
+        <ResponsiveDialogContent size="md">
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle className="text-red-400 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5" />
+              Reset All Organization Data
+            </ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
+              This will permanently delete ALL data. This action cannot be undone.
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
+          <ResponsiveDialogBody className="space-y-6">
+            {/* Data counts preview */}
+            <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
+              <h4 className="text-sm font-medium text-slate-300 mb-3">Data to be deleted:</h4>
+              {isLoadingCounts ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                </div>
+              ) : dataCounts ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Users className="w-4 h-4 text-blue-400" />
+                    <span className="text-slate-400">Clients:</span>
+                    <span className="text-white font-medium">{dataCounts.clients}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <FileText className="w-4 h-4 text-emerald-400" />
+                    <span className="text-slate-400">Reports:</span>
+                    <span className="text-white font-medium">{dataCounts.reports}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Scale className="w-4 h-4 text-amber-400" />
+                    <span className="text-slate-400">Disputes:</span>
+                    <span className="text-white font-medium">{dataCounts.disputes}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <CreditCard className="w-4 h-4 text-purple-400" />
+                    <span className="text-slate-400">Accounts:</span>
+                    <span className="text-white font-medium">{dataCounts.accounts}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <FileText className="w-4 h-4 text-rose-400" />
+                    <span className="text-slate-400">Evidence:</span>
+                    <span className="text-white font-medium">{dataCounts.evidence}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <FileText className="w-4 h-4 text-cyan-400" />
+                    <span className="text-slate-400">Documents:</span>
+                    <span className="text-white font-medium">{dataCounts.documents}</span>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500">Unable to load data counts</p>
+              )}
+            </div>
+
+            {/* Warning */}
+            <div className="bg-red-950/30 border border-red-900/50 rounded-lg p-4">
+              <p className="text-sm text-red-300">
+                <strong>Warning:</strong> This will permanently delete all client data, credit reports,
+                disputes, account items, evidence, and documents. Your organization settings and
+                user accounts will remain intact.
+              </p>
+            </div>
+
+            {/* Confirmation input */}
+            <div className="space-y-2">
+              <Label className="text-slate-200">
+                Type <code className="bg-slate-800 px-2 py-0.5 rounded text-red-400">DELETE ALL MY DATA</code> to confirm
+              </Label>
+              <Input
+                value={resetConfirmPhrase}
+                onChange={(e) => setResetConfirmPhrase(e.target.value)}
+                className="bg-slate-700/50 border-slate-600 text-white font-mono"
+                placeholder="Type confirmation phrase..."
+              />
+            </div>
+          </ResponsiveDialogBody>
+          <ResponsiveDialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowResetDialog(false);
+                setResetConfirmPhrase("");
+              }}
+              className="border-slate-600 text-slate-300 hover:bg-slate-700"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleResetAllData}
+              disabled={isResetting || resetConfirmPhrase !== "DELETE ALL MY DATA"}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isResetting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete All Data
+                </>
               )}
             </Button>
           </ResponsiveDialogFooter>
