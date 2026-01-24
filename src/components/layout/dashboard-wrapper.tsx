@@ -10,6 +10,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { BrandingProvider } from "@/components/branding";
 import { Sidebar } from "@/components/layout/sidebar";
+import { BetaFeedback } from "@/components/feedback/beta-feedback";
 
 interface DashboardWrapperProps {
   children: ReactNode;
@@ -47,6 +48,7 @@ export function DashboardWrapper({ children, user }: DashboardWrapperProps) {
         <WelcomeModal />
         <OnboardingChecklist />
         <OnboardingComplete />
+        <BetaFeedback />
       </OnboardingProvider>
     </BrandingProvider>
   );

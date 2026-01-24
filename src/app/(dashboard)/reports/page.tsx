@@ -6,13 +6,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogBody,
+  ResponsiveDialogFooter,
+  ResponsiveDialogTitle,
+  ResponsiveDialogDescription,
+  ResponsiveDialogTrigger,
+} from "@/components/ui/responsive-dialog";
 import {
   Select,
   SelectContent,
@@ -404,21 +406,21 @@ export default function ReportsPage() {
           <h1 className="text-2xl font-bold text-white">Credit Reports</h1>
           <p className="text-slate-400 mt-1">Upload and manage IdentityIQ credit reports</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
+        <ResponsiveDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <ResponsiveDialogTrigger asChild>
             <Button>
               <Upload className="w-4 h-4 mr-2" />
               Upload Report
             </Button>
-          </DialogTrigger>
-          <DialogContent className="bg-slate-800 border-slate-700">
-            <DialogHeader>
-              <DialogTitle className="text-white">Upload Credit Report</DialogTitle>
-              <DialogDescription className="text-slate-400">
+          </ResponsiveDialogTrigger>
+          <ResponsiveDialogContent size="md">
+            <ResponsiveDialogHeader>
+              <ResponsiveDialogTitle>Upload Credit Report</ResponsiveDialogTitle>
+              <ResponsiveDialogDescription>
                 Upload a full-color IdentityIQ PDF to parse account data
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 pt-4">
+              </ResponsiveDialogDescription>
+            </ResponsiveDialogHeader>
+            <ResponsiveDialogBody className="space-y-4">
               {session?.user?.subscriptionTier === "FREE" && (
                 <div className="flex items-center gap-2 p-3 text-amber-400 bg-amber-400/10 rounded-md border border-amber-400/20">
                   <AlertCircle className="w-4 h-4" />
@@ -471,28 +473,27 @@ export default function ReportsPage() {
                   className="w-full text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-slate-700 file:text-white hover:file:bg-slate-600"
                 />
               </div>
-
-              <div className="flex justify-end gap-3 pt-4">
-                <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleUpload}
-                  disabled={uploading || !selectedFile || !selectedClient || session?.user?.subscriptionTier === "FREE"}
-                >
-                  {uploading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Uploading...
-                    </>
-                  ) : (
-                    "Upload Report"
-                  )}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </ResponsiveDialogBody>
+            <ResponsiveDialogFooter>
+              <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleUpload}
+                disabled={uploading || !selectedFile || !selectedClient || session?.user?.subscriptionTier === "FREE"}
+              >
+                {uploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  "Upload Report"
+                )}
+              </Button>
+            </ResponsiveDialogFooter>
+          </ResponsiveDialogContent>
+        </ResponsiveDialog>
       </div>
 
       {/* Reports List */}
@@ -560,18 +561,17 @@ export default function ReportsPage() {
       </Card>
 
       {/* Report Details Dialog */}
-      <Dialog open={!!viewingReport} onOpenChange={(open) => !open && setViewingReport(null)}>
-        <DialogContent className="bg-slate-800 border-slate-700 max-w-4xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-white">
+      <ResponsiveDialog open={!!viewingReport} onOpenChange={(open) => !open && setViewingReport(null)}>
+        <ResponsiveDialogContent size="xl">
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>
               Report Details - {viewingReport?.client.firstName} {viewingReport?.client.lastName}
-            </DialogTitle>
-            <DialogDescription className="text-slate-400">
+            </ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
               Uploaded {viewingReport && new Date(viewingReport.uploadedAt).toLocaleDateString()}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 pt-4">
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
+          <ResponsiveDialogBody className="space-y-4">
             {/* Status Section */}
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
@@ -700,14 +700,14 @@ export default function ReportsPage() {
               </div>
             )}
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-slate-700">
-              <Button variant="ghost" onClick={() => setViewingReport(null)}>
-                Close
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </ResponsiveDialogBody>
+          <ResponsiveDialogFooter>
+            <Button variant="ghost" onClick={() => setViewingReport(null)}>
+              Close
+            </Button>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
     </div>
   );
 }

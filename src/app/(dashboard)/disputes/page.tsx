@@ -5,12 +5,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogBody,
+  ResponsiveDialogFooter,
+  ResponsiveDialogTitle,
+  ResponsiveDialogDescription,
+} from "@/components/ui/responsive-dialog";
+import { CreateDisputeWizard } from "@/components/disputes/create-dispute-wizard";
 import {
   Select,
   SelectContent,
@@ -611,241 +614,28 @@ export default function DisputesPage() {
         ))}
       </Tabs>
 
-      {/* Create Dialog */}
-      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="bg-slate-800 border-slate-700 max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-white">Create New Dispute</DialogTitle>
-            <DialogDescription className="text-slate-400">Generate a dispute letter with AI-powered recommendations</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <Label className="text-slate-200">Client</Label>
-              <Select value={selectedClient} onValueChange={(v) => { setSelectedClient(v); setSelectedFlow(""); }}>
-                <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white"><SelectValue placeholder="Select client" /></SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
-                  {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.firstName} {c.lastName}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* DNA Profile Card - Shows when client is selected */}
-            {selectedClient && (
-              <div className={`p-4 rounded-lg border ${clientDNA ? getDNAColors(clientDNA.classification).border : "border-slate-600"} ${clientDNA ? getDNAColors(clientDNA.classification).bg : "bg-slate-700/30"}`}>
-                {dnaLoading ? (
-                  <div className="flex items-center gap-2 text-slate-400">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm">Loading credit DNA...</span>
-                  </div>
-                ) : clientDNA ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Dna className={`w-5 h-5 ${getDNAColors(clientDNA.classification).text}`} />
-                        <span className={`font-medium ${getDNAColors(clientDNA.classification).text}`}>
-                          {getDNAClassificationLabel(clientDNA.classification)}
-                        </span>
-                      </div>
-                      <Badge className={`${getDNAColors(clientDNA.classification).bg} ${getDNAColors(clientDNA.classification).text}`}>
-                        {clientDNA.confidenceLevel} Confidence
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-slate-400">{getDNAClassificationDescription(clientDNA.classification)}</p>
-
-                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-600/50">
-                      <div className="text-center">
-                        <p className="text-lg font-bold text-white">{clientDNA.overallHealthScore}</p>
-                        <p className="text-xs text-slate-400">Health</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-lg font-bold text-green-400">{clientDNA.improvementPotential}</p>
-                        <p className="text-xs text-slate-400">Potential</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-lg font-bold text-amber-400">{clientDNA.urgencyScore}</p>
-                        <p className="text-xs text-slate-400">Urgency</p>
-                      </div>
-                    </div>
-
-                    {clientDNA.disputeReadiness && (
-                      <div className="flex items-center gap-2 pt-2 border-t border-slate-600/50">
-                        <Sparkles className="w-4 h-4 text-amber-400" />
-                        <span className="text-xs text-slate-300">
-                          Recommended: <strong className="text-white">{clientDNA.disputeReadiness.recommendedFlow}</strong> flow,
-                          start with <strong className="text-white">{clientDNA.disputeReadiness.recommendedFirstBureau}</strong>,
-                          ~{clientDNA.disputeReadiness.estimatedRounds} rounds
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 text-slate-400">
-                    <Info className="w-4 h-4" />
-                    <span className="text-sm">No DNA profile. Upload a credit report to generate one.</span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label className="text-slate-200">Credit Bureau</Label>
-              <Select value={selectedCRA} onValueChange={setSelectedCRA}>
-                <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white"><SelectValue placeholder="Select bureau" /></SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
-                  <SelectItem value="TRANSUNION">
-                    <div className="flex items-center gap-2">
-                      TransUnion
-                      {clientDNA?.disputeReadiness?.recommendedFirstBureau === "TRANSUNION" && (
-                        <Badge className="bg-green-500/20 text-green-400 text-[10px]">Recommended</Badge>
-                      )}
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="EXPERIAN">
-                    <div className="flex items-center gap-2">
-                      Experian
-                      {clientDNA?.disputeReadiness?.recommendedFirstBureau === "EXPERIAN" && (
-                        <Badge className="bg-green-500/20 text-green-400 text-[10px]">Recommended</Badge>
-                      )}
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="EQUIFAX">
-                    <div className="flex items-center gap-2">
-                      Equifax
-                      {clientDNA?.disputeReadiness?.recommendedFirstBureau === "EQUIFAX" && (
-                        <Badge className="bg-green-500/20 text-green-400 text-[10px]">Recommended</Badge>
-                      )}
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-slate-200">Dispute Type</Label>
-              <Select value={selectedFlow} onValueChange={setSelectedFlow}>
-                <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white"><SelectValue placeholder="Select type" /></SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
-                  <SelectItem value="ACCURACY">
-                    <div className="flex items-center gap-2">
-                      Accuracy - Challenge inaccurate info
-                      {clientDNA?.disputeReadiness?.recommendedFlow === "ACCURACY" && (
-                        <Badge className="bg-green-500/20 text-green-400 text-[10px]">Recommended</Badge>
-                      )}
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="COLLECTION">
-                    <div className="flex items-center gap-2">
-                      Collection - Debt validation
-                      {clientDNA?.disputeReadiness?.recommendedFlow === "COLLECTION" && (
-                        <Badge className="bg-green-500/20 text-green-400 text-[10px]">Recommended</Badge>
-                      )}
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="CONSENT">
-                    <div className="flex items-center gap-2">
-                      Consent - Unauthorized access
-                      {clientDNA?.disputeReadiness?.recommendedFlow === "CONSENT" && (
-                        <Badge className="bg-green-500/20 text-green-400 text-[10px]">Recommended</Badge>
-                      )}
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="COMBO">
-                    <div className="flex items-center gap-2">
-                      Combo - Multiple issue types
-                      {clientDNA?.disputeReadiness?.recommendedFlow === "COMBO" && (
-                        <Badge className="bg-green-500/20 text-green-400 text-[10px]">Recommended</Badge>
-                      )}
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              {selectedFlow && (
-                <p className="text-xs text-slate-400 mt-1">
-                  {FLOW_DESCRIPTIONS[selectedFlow as DisputeFlow]?.description}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-slate-200">Accounts ({selectedAccounts.length})</Label>
-                {filteredAccounts.length > 0 && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-xs h-6"
-                    onClick={() => setSelectedAccounts(
-                      selectedAccounts.length === filteredAccounts.length
-                        ? []
-                        : filteredAccounts.map((a) => a.id)
-                    )}
-                  >
-                    {selectedAccounts.length === filteredAccounts.length ? "Deselect All" : "Select All"}
-                  </Button>
-                )}
-              </div>
-              <div className="max-h-48 overflow-y-auto space-y-2 p-2 bg-slate-700/30 rounded border border-slate-600">
-                {filteredAccounts.length === 0 ? (
-                  <p className="text-sm text-slate-400 text-center py-4">Select client and bureau first</p>
-                ) : filteredAccounts.map((a) => (
-                  <label key={a.id} className="flex items-center gap-3 p-2 rounded hover:bg-slate-700/50 cursor-pointer">
-                    <input type="checkbox" checked={selectedAccounts.includes(a.id)} onChange={(e) => setSelectedAccounts(e.target.checked ? [...selectedAccounts, a.id] : selectedAccounts.filter((id) => id !== a.id))} className="rounded" />
-                    <div className="flex-1">
-                      <p className="text-sm text-white">{a.creditorName}</p>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-slate-400">{a.issueCount} issues</span>
-                        {a.suggestedFlow && (
-                          <Badge variant="outline" className="text-[10px] h-4">{a.suggestedFlow}</Badge>
-                        )}
-                      </div>
-                    </div>
-                    {a.balance && (
-                      <span className="text-xs text-slate-400">${a.balance.toLocaleString()}</span>
-                    )}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Summary before generate */}
-            {selectedAccounts.length > 0 && selectedFlow && selectedCRA && (
-              <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                <div className="flex items-center gap-2 text-blue-400 text-sm">
-                  <Target className="w-4 h-4" />
-                  <span>
-                    Ready to generate <strong>{selectedFlow}</strong> dispute for{" "}
-                    <strong>{selectedAccounts.length}</strong> account(s) to{" "}
-                    <strong>{selectedCRA}</strong>
-                  </span>
-                </div>
-              </div>
-            )}
-
-            <div className="flex justify-end gap-3 pt-4">
-              <Button variant="ghost" onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleCreateDispute} disabled={creating}>
-                {creating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
-                Generate Letter
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Create Dispute Wizard */}
+      <CreateDisputeWizard
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        clients={clients}
+        onSuccess={fetchDisputes}
+      />
 
       {/* Detail Dialog */}
-      <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
-        <DialogContent className="bg-slate-800 border-slate-700 max-w-3xl max-h-[85vh] overflow-y-auto">
+      <ResponsiveDialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
+        <ResponsiveDialogContent size="lg">
           {selectedDispute && (
             <>
-              <DialogHeader>
-                <DialogTitle className="text-white flex items-center gap-2">
+              <ResponsiveDialogHeader>
+                <ResponsiveDialogTitle className="flex items-center gap-2">
                   <Scale className="w-5 h-5" />{selectedDispute.cra} Dispute - Round {selectedDispute.round}
-                </DialogTitle>
-                <DialogDescription className="text-slate-400">
+                </ResponsiveDialogTitle>
+                <ResponsiveDialogDescription>
                   {selectedDispute.client.firstName} {selectedDispute.client.lastName} • {selectedDispute.flow}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 pt-4">
+                </ResponsiveDialogDescription>
+              </ResponsiveDialogHeader>
+              <ResponsiveDialogBody className="space-y-4">
                 <div className="flex items-center justify-between p-4 bg-slate-700/30 rounded-lg">
                   <div className="flex items-center gap-4">
                     {getStatusBadge(selectedDispute.status)}
@@ -1030,11 +820,11 @@ export default function DisputesPage() {
                     </div>
                   </div>
                 )}
-              </div>
+              </ResponsiveDialogBody>
             </>
           )}
-        </DialogContent>
-      </Dialog>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
 
       {/* Letter Editor */}
       {currentDocument && selectedDispute && (
@@ -1051,18 +841,18 @@ export default function DisputesPage() {
       )}
 
       {/* CFPB Complaint Dialog */}
-      <Dialog open={cfpbDialogOpen} onOpenChange={setCfpbDialogOpen}>
-        <DialogContent className="bg-slate-800 border-slate-700 max-w-3xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
+      <ResponsiveDialog open={cfpbDialogOpen} onOpenChange={setCfpbDialogOpen}>
+        <ResponsiveDialogContent size="lg">
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-amber-400" />
               CFPB Complaint Generator
-            </DialogTitle>
-            <DialogDescription className="text-slate-400">
+            </ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
               File a complaint with the Consumer Financial Protection Bureau
-            </DialogDescription>
-          </DialogHeader>
-
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
+          <ResponsiveDialogBody>
           {cfpbLoading ? (
             <div className="py-12 text-center">
               <Loader2 className="w-8 h-8 animate-spin mx-auto text-slate-400" />
@@ -1130,23 +920,23 @@ export default function DisputesPage() {
               </p>
             </div>
           ) : null}
-        </DialogContent>
-      </Dialog>
+          </ResponsiveDialogBody>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
 
       {/* Detailed Response Recording Modal */}
-      <Dialog open={responseDialogOpen} onOpenChange={setResponseDialogOpen}>
-        <DialogContent className="bg-slate-800 border-slate-700 max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
+      <ResponsiveDialog open={responseDialogOpen} onOpenChange={setResponseDialogOpen}>
+        <ResponsiveDialogContent size="md">
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle className="flex items-center gap-2">
               <FileText className="w-5 h-5 text-blue-400" />
               Record CRA Response
-            </DialogTitle>
-            <DialogDescription className="text-slate-400">
+            </ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
               Document the response from {selectedDispute?.cra} for this dispute
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 pt-4">
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
+          <ResponsiveDialogBody className="space-y-4">
             {/* Response Outcome */}
             <div className="space-y-2">
               <Label className="text-slate-200">Response Outcome *</Label>
@@ -1357,28 +1147,25 @@ export default function DisputesPage() {
               </div>
             )}
 
-            {/* Actions */}
-            <div className="flex justify-between pt-4 border-t border-slate-700">
-              <Button variant="ghost" onClick={() => setResponseDialogOpen(false)}>
-                Cancel
-              </Button>
-              <div className="flex gap-2">
-                <Button
-                  onClick={handleRecordResponse}
-                  disabled={recordingResponse || !responseData.outcome}
-                >
-                  {recordingResponse ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                  )}
-                  Record Response
-                </Button>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </ResponsiveDialogBody>
+          <ResponsiveDialogFooter>
+            <Button variant="ghost" onClick={() => setResponseDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleRecordResponse}
+              disabled={recordingResponse || !responseData.outcome}
+            >
+              {recordingResponse ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <CheckCircle className="w-4 h-4 mr-2" />
+              )}
+              Record Response
+            </Button>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
     </div>
   );
 }

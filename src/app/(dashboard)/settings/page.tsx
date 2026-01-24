@@ -10,13 +10,14 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogBody,
+  ResponsiveDialogFooter,
+  ResponsiveDialogTitle,
+  ResponsiveDialogDescription,
+} from "@/components/ui/responsive-dialog";
 import {
   User,
   Building,
@@ -405,16 +406,15 @@ export default function SettingsPage() {
       </Tabs>
 
       {/* Password Change Dialog */}
-      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
-        <DialogContent className="bg-slate-800 border-slate-700">
-          <DialogHeader>
-            <DialogTitle className="text-white">Change Password</DialogTitle>
-            <DialogDescription className="text-slate-400">
+      <ResponsiveDialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+        <ResponsiveDialogContent size="sm">
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>Change Password</ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
               Enter your current password and choose a new one.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
+          <ResponsiveDialogBody className="space-y-4">
             <div className="space-y-2">
               <Label className="text-slate-200">Current Password</Label>
               <div className="relative">
@@ -479,9 +479,8 @@ export default function SettingsPage() {
                 <p className="text-xs text-red-400">Passwords do not match</p>
               )}
             </div>
-          </div>
-
-          <DialogFooter>
+          </ResponsiveDialogBody>
+          <ResponsiveDialogFooter>
             <Button
               variant="outline"
               onClick={() => {
@@ -514,9 +513,9 @@ export default function SettingsPage() {
                 "Change Password"
               )}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
     </motion.div>
   );
 }

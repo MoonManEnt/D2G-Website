@@ -7,13 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogBody,
+  ResponsiveDialogFooter,
+  ResponsiveDialogTitle,
+  ResponsiveDialogDescription,
+  ResponsiveDialogTrigger,
+} from "@/components/ui/responsive-dialog";
 import { Label } from "@/components/ui/label";
 import { Plus, Search, User, FileText, ChevronRight } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
@@ -124,77 +126,79 @@ export default function ClientsPage() {
           <h1 className="text-2xl font-bold text-white">Clients</h1>
           <p className="text-slate-400 mt-1">Manage your client portfolio</p>
         </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <ResponsiveDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <Spotlight
             active={!steps.find(s => s.id === "add-client")?.completed && steps[currentStep]?.id === "add-client"}
             message="Start here by adding your first client."
           >
-            <DialogTrigger asChild>
+            <ResponsiveDialogTrigger asChild>
               <Button>
                 <Plus className="w-4 h-4 mr-2" />
                 Add Client
               </Button>
-            </DialogTrigger>
+            </ResponsiveDialogTrigger>
           </Spotlight>
-          <DialogContent className="bg-slate-800 border-slate-700">
-            <DialogHeader>
-              <DialogTitle className="text-white">Add New Client</DialogTitle>
-              <DialogDescription className="text-slate-400">
+          <ResponsiveDialogContent size="sm">
+            <ResponsiveDialogHeader>
+              <ResponsiveDialogTitle>Add New Client</ResponsiveDialogTitle>
+              <ResponsiveDialogDescription>
                 Enter the client&apos;s information to create their profile.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleAddClient} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              </ResponsiveDialogDescription>
+            </ResponsiveDialogHeader>
+            <form onSubmit={handleAddClient}>
+              <ResponsiveDialogBody className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName" className="text-slate-200">First Name</Label>
+                    <Input
+                      id="firstName"
+                      value={newClient.firstName}
+                      onChange={(e) => setNewClient({ ...newClient, firstName: e.target.value })}
+                      required
+                      className="bg-slate-700/50 border-slate-600 text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName" className="text-slate-200">Last Name</Label>
+                    <Input
+                      id="lastName"
+                      value={newClient.lastName}
+                      onChange={(e) => setNewClient({ ...newClient, lastName: e.target.value })}
+                      required
+                      className="bg-slate-700/50 border-slate-600 text-white"
+                    />
+                  </div>
+                </div>
                 <div className="space-y-2">
-                  <Label htmlFor="firstName" className="text-slate-200">First Name</Label>
+                  <Label htmlFor="email" className="text-slate-200">Email</Label>
                   <Input
-                    id="firstName"
-                    value={newClient.firstName}
-                    onChange={(e) => setNewClient({ ...newClient, firstName: e.target.value })}
-                    required
+                    id="email"
+                    type="email"
+                    value={newClient.email}
+                    onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
                     className="bg-slate-700/50 border-slate-600 text-white"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastName" className="text-slate-200">Last Name</Label>
+                  <Label htmlFor="phone" className="text-slate-200">Phone</Label>
                   <Input
-                    id="lastName"
-                    value={newClient.lastName}
-                    onChange={(e) => setNewClient({ ...newClient, lastName: e.target.value })}
-                    required
+                    id="phone"
+                    type="tel"
+                    value={newClient.phone}
+                    onChange={(e) => setNewClient({ ...newClient, phone: e.target.value })}
                     className="bg-slate-700/50 border-slate-600 text-white"
                   />
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-slate-200">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={newClient.email}
-                  onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
-                  className="bg-slate-700/50 border-slate-600 text-white"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="text-slate-200">Phone</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={newClient.phone}
-                  onChange={(e) => setNewClient({ ...newClient, phone: e.target.value })}
-                  className="bg-slate-700/50 border-slate-600 text-white"
-                />
-              </div>
-              <div className="flex justify-end gap-3">
+              </ResponsiveDialogBody>
+              <ResponsiveDialogFooter>
                 <Button type="button" variant="ghost" onClick={() => setIsAddDialogOpen(false)}>
                   Cancel
                 </Button>
                 <Button type="submit">Add Client</Button>
-              </div>
+              </ResponsiveDialogFooter>
             </form>
-          </DialogContent>
-        </Dialog>
+          </ResponsiveDialogContent>
+        </ResponsiveDialog>
       </div>
 
       {/* Search */}
