@@ -8,7 +8,6 @@ import {
   LayoutDashboard,
   Users,
   FileText,
-  FileStack,
   Scale,
   Image,
   Settings,
@@ -17,10 +16,8 @@ import {
   Menu,
   X,
   ChevronRight,
-  AlertTriangle,
   BarChart3,
   Sparkles,
-  Inbox,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -31,11 +28,8 @@ import { Avatar } from "@/components/profile";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Workbench", href: "/workbench", icon: Inbox },
   { name: "Clients", href: "/clients", icon: Users },
-  { name: "Ledger", href: "/ledger", icon: FileStack },
   { name: "Reports", href: "/reports", icon: FileText },
-  { name: "Negative Items", href: "/negative-items", icon: AlertTriangle },
   { name: "Disputes", href: "/disputes", icon: Scale },
   { name: "Evidence", href: "/evidence", icon: Image },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },

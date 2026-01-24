@@ -169,7 +169,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// DELETE /api/clients/[id] - Soft delete client
+// DELETE /api/clients/[id] - Archive client for 90 days (soft delete with snapshot)
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await getServerSession(authOptions);
@@ -185,35 +185,236 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         id: clientId,
         organizationId: session.user.organizationId,
       },
+      include: {
+        disputes: {
+          orderBy: { createdAt: "desc" },
+          take: 10,
+          include: {
+            items: {
+              include: {
+                accountItem: {
+                  select: {
+                    creditorName: true,
+                    maskedAccountId: true,
+                    cra: true,
+                    detectedIssues: true,
+                    suggestedFlow: true,
+                  }
+                }
+              }
+            }
+          }
+        },
+        accounts: {
+          where: { isDisputable: true },
+          select: {
+            id: true,
+            creditorName: true,
+            cra: true,
+            detectedIssues: true,
+            suggestedFlow: true,
+            issueCount: true,
+          }
+        },
+        _count: {
+          select: {
+            reports: true,
+            disputes: true,
+            accounts: true,
+          }
+        }
+      }
     });
 
     if (!existingClient) {
       return NextResponse.json({ error: "Client not found" }, { status: 404 });
     }
 
-    // Soft delete
+    // Create a snapshot of the client's dispute state for AMELIA to use on return
+    const disputeSnapshot = {
+      snapshotDate: new Date().toISOString(),
+      lastDisputes: existingClient.disputes.map(d => ({
+        id: d.id,
+        cra: d.cra,
+        flow: d.flow,
+        round: d.round,
+        status: d.status,
+        createdAt: d.createdAt,
+        responseOutcome: d.responseOutcome,
+        items: d.items.map(item => ({
+          creditorName: item.accountItem.creditorName,
+          cra: item.accountItem.cra,
+          disputeReason: item.disputeReason,
+          outcome: item.outcome,
+          suggestedFlow: item.suggestedFlow,
+        }))
+      })),
+      pendingAccounts: existingClient.accounts.map(a => ({
+        id: a.id,
+        creditorName: a.creditorName,
+        cra: a.cra,
+        issueCount: a.issueCount,
+        suggestedFlow: a.suggestedFlow,
+        detectedIssues: a.detectedIssues,
+      })),
+      summary: {
+        totalDisputes: existingClient._count.disputes,
+        totalReports: existingClient._count.reports,
+        pendingDisputableAccounts: existingClient.accounts.length,
+        lastActiveDate: existingClient.disputes[0]?.createdAt || existingClient.createdAt,
+      },
+      // AMELIA recommendation data
+      ameliaContext: {
+        recommendedAction: existingClient.disputes.length === 0
+          ? "START_FRESH"
+          : existingClient.disputes.some(d => d.status === "SENT" || d.status === "RESPONDED")
+            ? "CONTINUE_EXISTING"
+            : "REVIEW_OUTCOMES",
+        lastFlow: existingClient.disputes[0]?.flow || null,
+        lastRound: existingClient.disputes[0]?.round || 0,
+        unresolvedCras: [...new Set(existingClient.accounts.map(a => a.cra))],
+      }
+    };
+
+    // Archive the client (soft delete with snapshot)
     await prisma.client.update({
       where: { id: clientId },
-      data: { isActive: false },
+      data: {
+        isActive: false,
+        archivedAt: new Date(),
+        archiveReason: "manual_archive",
+        lastDisputeSnapshot: JSON.stringify(disputeSnapshot),
+      },
     });
 
     // Log event
     await prisma.eventLog.create({
       data: {
-        eventType: "CLIENT_DELETED",
+        eventType: "CLIENT_ARCHIVED",
         actorId: session.user.id,
         actorEmail: session.user.email,
         targetType: "Client",
         targetId: clientId,
+        eventData: JSON.stringify({
+          clientName: `${existingClient.firstName} ${existingClient.lastName}`,
+          retentionDays: 90,
+          counts: {
+            reports: existingClient._count.reports,
+            disputes: existingClient._count.disputes,
+            accounts: existingClient._count.accounts,
+          },
+          ameliaRecommendation: disputeSnapshot.ameliaContext.recommendedAction,
+        }),
         organizationId: session.user.organizationId,
       },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      archived: true,
+      retentionDays: 90,
+      willPermanentlyDeleteAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+      snapshot: {
+        totalDisputes: existingClient._count.disputes,
+        totalReports: existingClient._count.reports,
+        ameliaRecommendation: disputeSnapshot.ameliaContext.recommendedAction,
+      }
+    });
   } catch (error) {
-    console.error("Error deleting client:", error);
+    console.error("Error archiving client:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to delete client" },
+      { error: error instanceof Error ? error.message : "Failed to archive client" },
+      { status: 500 }
+    );
+  }
+}
+
+// POST /api/clients/[id] - Restore archived client
+export async function POST(request: NextRequest, { params }: RouteParams) {
+  try {
+    const session = await getServerSession(authOptions);
+    const { id: clientId } = await params;
+    const body = await request.json();
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Only handle restore action
+    if (body.action !== "restore") {
+      return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+    }
+
+    // Find archived client
+    const archivedClient = await prisma.client.findFirst({
+      where: {
+        id: clientId,
+        organizationId: session.user.organizationId,
+        archivedAt: { not: null },
+      },
+    });
+
+    if (!archivedClient) {
+      return NextResponse.json({ error: "Archived client not found" }, { status: 404 });
+    }
+
+    // Parse the snapshot for AMELIA context
+    let ameliaContext = null;
+    if (archivedClient.lastDisputeSnapshot) {
+      try {
+        const snapshot = JSON.parse(archivedClient.lastDisputeSnapshot);
+        ameliaContext = snapshot.ameliaContext;
+      } catch {
+        // Snapshot parsing failed, continue without it
+      }
+    }
+
+    // Restore the client
+    const restoredClient = await prisma.client.update({
+      where: { id: clientId },
+      data: {
+        isActive: true,
+        archivedAt: null,
+        archiveReason: null,
+        // Keep the snapshot for AMELIA to reference
+      },
+    });
+
+    // Log event
+    await prisma.eventLog.create({
+      data: {
+        eventType: "CLIENT_RESTORED",
+        actorId: session.user.id,
+        actorEmail: session.user.email,
+        targetType: "Client",
+        targetId: clientId,
+        eventData: JSON.stringify({
+          clientName: `${restoredClient.firstName} ${restoredClient.lastName}`,
+          ameliaRecommendation: ameliaContext?.recommendedAction || "START_FRESH",
+        }),
+        organizationId: session.user.organizationId,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      client: restoredClient,
+      ameliaRecommendation: ameliaContext ? {
+        action: ameliaContext.recommendedAction,
+        lastFlow: ameliaContext.lastFlow,
+        lastRound: ameliaContext.lastRound,
+        unresolvedCras: ameliaContext.unresolvedCras,
+        message: ameliaContext.recommendedAction === "CONTINUE_EXISTING"
+          ? `Welcome back! You have active disputes in progress. AMELIA recommends continuing with your ${ameliaContext.lastFlow} flow at round ${ameliaContext.lastRound}.`
+          : ameliaContext.recommendedAction === "REVIEW_OUTCOMES"
+            ? "Welcome back! Let's review your previous dispute outcomes and determine the best next steps."
+            : "Welcome back! Let's start fresh with a new credit analysis.",
+      } : null,
+    });
+  } catch (error) {
+    console.error("Error restoring client:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to restore client" },
       { status: 500 }
     );
   }

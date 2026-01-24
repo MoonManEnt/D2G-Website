@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,7 +20,8 @@ import {
   Smile,
   ThumbsUp,
   Zap,
-  Camera,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 
@@ -56,12 +57,27 @@ const ratingEmojis: { rating: Rating; icon: React.ReactNode; label: string }[] =
 export function BetaFeedback() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [step, setStep] = useState<"type" | "rating" | "comment" | "success">("type");
   const [feedbackType, setFeedbackType] = useState<FeedbackType | null>(null);
   const [rating, setRating] = useState<Rating | null>(null);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [hoveredRating, setHoveredRating] = useState<Rating | null>(null);
+
+  // Load collapsed state from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem("betaFeedbackCollapsed");
+    if (stored === "true") {
+      setIsCollapsed(true);
+    }
+  }, []);
+
+  const toggleCollapsed = () => {
+    const newState = !isCollapsed;
+    setIsCollapsed(newState);
+    localStorage.setItem("betaFeedbackCollapsed", String(newState));
+  };
 
   const resetForm = useCallback(() => {
     setStep("type");
@@ -123,21 +139,67 @@ export function BetaFeedback() {
 
   return (
     <>
-      {/* Floating Trigger Button */}
-      <motion.button
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 1, type: "spring", stiffness: 200 }}
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-full shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 hover:scale-105 transition-all group"
-      >
-        <MessageSquarePlus className="w-5 h-5" />
-        <span className="font-medium">Beta Feedback</span>
-        <Badge className="bg-white/20 text-white text-[10px] px-1.5 py-0">
-          <Zap className="w-3 h-3 mr-0.5" />
-          NEW
-        </Badge>
-      </motion.button>
+      {/* Floating Trigger Button - Collapsible */}
+      <AnimatePresence mode="wait">
+        {isCollapsed ? (
+          // Collapsed state - small icon only
+          <motion.div
+            key="collapsed"
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 300 }}
+            className="fixed bottom-6 right-6 z-50 flex flex-col items-center gap-1"
+          >
+            <motion.button
+              onClick={() => setIsOpen(true)}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              className="w-12 h-12 rounded-full bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 flex items-center justify-center"
+            >
+              <MessageSquarePlus className="w-5 h-5" />
+            </motion.button>
+            <button
+              onClick={toggleCollapsed}
+              className="text-[10px] text-slate-500 hover:text-slate-300 flex items-center gap-0.5"
+            >
+              <ChevronUp className="w-3 h-3" />
+              Expand
+            </button>
+          </motion.div>
+        ) : (
+          // Expanded state - full button
+          <motion.div
+            key="expanded"
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ delay: 0.5, type: "spring", stiffness: 200 }}
+            className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-1"
+          >
+            <motion.button
+              onClick={() => setIsOpen(true)}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-full shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 transition-all"
+            >
+              <MessageSquarePlus className="w-5 h-5" />
+              <span className="font-medium">Beta Feedback</span>
+              <Badge className="bg-white/20 text-white text-[10px] px-1.5 py-0">
+                <Zap className="w-3 h-3 mr-0.5" />
+                NEW
+              </Badge>
+            </motion.button>
+            <button
+              onClick={toggleCollapsed}
+              className="text-[10px] text-slate-500 hover:text-slate-300 flex items-center gap-0.5 mr-2"
+            >
+              <ChevronDown className="w-3 h-3" />
+              Minimize
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Feedback Modal */}
       <AnimatePresence>

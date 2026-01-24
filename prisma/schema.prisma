@@ -76,6 +76,10 @@ model Client {
   creditMonitoringId      String?             // External enrollment ID
   creditMonitoringStatus  String?             // PENDING, ACTIVE, SUSPENDED
   creditMonitoringProvider String?            // identityiq, array
+  // Archive fields for 90-day retention
+  archivedAt              DateTime?           // When client was archived (null = active)
+  archiveReason           String?             // Why archived (manual, inactive, etc.)
+  lastDisputeSnapshot     String?             // JSON snapshot of last dispute state for AMELIA
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt
   organizationId          String
