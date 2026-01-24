@@ -99,6 +99,12 @@ model CreditReport {
   parseError      String?
   pageCount       Int           @default(0)
   renderedPageIds String        @default("[]")
+
+  // Personal Information parsed from report (for Round 1 disputes)
+  previousNames     String        @default("[]") // JSON array of name variations found
+  previousAddresses String        @default("[]") // JSON array of non-current addresses
+  hardInquiries     String        @default("[]") // JSON array of {creditorName, inquiryDate, cra}
+
   organizationId  String
   clientId        String
   uploadedById    String

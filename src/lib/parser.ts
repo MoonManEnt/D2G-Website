@@ -601,4 +601,220 @@ function parseDate(dateStr: string): Date | null {
   return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
 }
 
-export { FIELD_PATTERNS };
+// =============================================================================
+// PERSONAL INFORMATION EXTRACTION
+// Required for Round 1 disputes per AMELIA Doctrine
+// =============================================================================
+
+export interface PersonalInfoExtraction {
+  previousNames: string[];
+  previousAddresses: string[];
+  hardInquiries: ParsedInquiry[];
+}
+
+export interface ParsedInquiry {
+  creditorName: string;
+  inquiryDate: string;
+  cra: CRA;
+}
+
+/**
+ * Extract all personal information from IdentityIQ report for Round 1 disputes.
+ * This includes: previous names, previous addresses, and hard inquiries.
+ */
+export function extractPersonalInfo(
+  fullText: string,
+  currentName: string,
+  currentAddress: string
+): PersonalInfoExtraction {
+  return {
+    previousNames: extractPreviousNamesFromReport(fullText, currentName),
+    previousAddresses: extractPreviousAddressesFromReport(fullText, currentAddress),
+    hardInquiries: extractHardInquiriesFromReport(fullText),
+  };
+}
+
+/**
+ * Extract previous name variations from IdentityIQ report.
+ * IdentityIQ format: "Also Known As: NAME1, NAME2, NAME3"
+ */
+function extractPreviousNamesFromReport(fullText: string, currentName: string): string[] {
+  const names: string[] = [];
+  const normalizedCurrent = currentName.toUpperCase().replace(/\s+/g, " ").trim();
+
+  // Pattern 1: "Also Known As" section
+  const akaPatterns = [
+    /Also\s+Known\s+As:?\s*([^\n]+)/gi,
+    /AKA:?\s*([^\n]+)/gi,
+    /Aliases?:?\s*([^\n]+)/gi,
+    /Other\s+Names?:?\s*([^\n]+)/gi,
+  ];
+
+  for (const pattern of akaPatterns) {
+    const matches = fullText.matchAll(pattern);
+    for (const match of matches) {
+      const nameList = match[1]
+        .split(/[,;]/)
+        .map(n => n.trim().toUpperCase())
+        .filter(n => n.length > 2 && n !== normalizedCurrent);
+      names.push(...nameList);
+    }
+  }
+
+  // Pattern 2: Name variations in personal section
+  const personalPattern = /Personal\s+(?:Information|Info|Data)[\s\S]*?Names?:?\s*([A-Z][A-Za-z\s,]+)/gi;
+  const personalMatches = fullText.matchAll(personalPattern);
+  for (const match of personalMatches) {
+    const nameList = match[1]
+      .split(/[,;]/)
+      .map(n => n.trim().toUpperCase())
+      .filter(n => n.length > 2 && n !== normalizedCurrent);
+    names.push(...nameList);
+  }
+
+  // Deduplicate and clean
+  const uniqueNames = [...new Set(names)];
+  return uniqueNames.filter(n => {
+    // Filter out obvious non-names
+    if (/^\d+$/.test(n)) return false;
+    if (n.length < 3) return false;
+    if (n === normalizedCurrent) return false;
+    return true;
+  });
+}
+
+/**
+ * Extract previous addresses from IdentityIQ report.
+ */
+function extractPreviousAddressesFromReport(fullText: string, currentAddress: string): string[] {
+  const addresses: string[] = [];
+  const normalizedCurrent = currentAddress.toUpperCase().replace(/\s+/g, " ").trim();
+
+  // Pattern: Full address with street, city, state, zip
+  const addressPatterns = [
+    // Standard format: 123 Main St, City, ST 12345
+    /(\d+\s+[A-Za-z0-9\s.,]+(?:ST|STREET|AVE|AVENUE|RD|ROAD|DR|DRIVE|LN|LANE|CT|COURT|BLVD|BOULEVARD|WAY|CIR|CIRCLE|PL|PLACE|TRL|TRAIL)[A-Za-z.,]*\s*(?:#?\s*\d+)?[,\s]+[A-Za-z\s]+[,\s]+[A-Z]{2}\s*\d{5}(?:-\d{4})?)/gi,
+    // Simplified: Street City ST ZIP
+    /(\d+\s+\w+\s+\w+[,\s]+[A-Za-z\s]+[,\s]+[A-Z]{2}\s+\d{5})/gi,
+  ];
+
+  for (const pattern of addressPatterns) {
+    const matches = fullText.matchAll(pattern);
+    for (const match of matches) {
+      const addr = match[1].trim().toUpperCase().replace(/\s+/g, " ");
+      if (addr.length > 15 && !addr.includes(normalizedCurrent.substring(0, 20))) {
+        addresses.push(addr);
+      }
+    }
+  }
+
+  // Pattern for address history section
+  const historyPattern = /(?:Address(?:es)?|Residence)\s+(?:History|Information)[\s\S]*?((?:\d+\s+[^\n]+\n?)+)/gi;
+  const historyMatches = fullText.matchAll(historyPattern);
+  for (const match of historyMatches) {
+    const block = match[1];
+    const lines = block.split("\n");
+    for (const line of lines) {
+      const normalized = line.trim().toUpperCase();
+      // Must have numbers (street number or zip)
+      if (/\d{5}/.test(normalized) && normalized.length > 15) {
+        if (!normalized.includes(normalizedCurrent.substring(0, 20))) {
+          addresses.push(normalized);
+        }
+      }
+    }
+  }
+
+  // Deduplicate
+  return [...new Set(addresses)].slice(0, 10); // Max 10 addresses
+}
+
+/**
+ * Extract hard inquiries from IdentityIQ report.
+ */
+function extractHardInquiriesFromReport(fullText: string): ParsedInquiry[] {
+  const inquiries: ParsedInquiry[] = [];
+  const cras: CRA[] = [CRA.TRANSUNION, CRA.EXPERIAN, CRA.EQUIFAX];
+
+  // Find inquiry sections for each CRA
+  for (const cra of cras) {
+    const craName = cra.charAt(0) + cra.slice(1).toLowerCase();
+
+    // Pattern: Look for inquiries section per CRA
+    const sectionPatterns = [
+      new RegExp(`${craName}[\\s\\S]*?(?:Hard\\s+)?Inquir(?:y|ies)[:\\s]*([\\s\\S]*?)(?=(?:Experian|Equifax|TransUnion|Soft|Public|Accounts|$))`, "gi"),
+      new RegExp(`Inquir(?:y|ies)[\\s\\S]*?${craName}[:\\s]*([\\s\\S]*?)(?=(?:Experian|Equifax|TransUnion|Soft|Public|$))`, "gi"),
+    ];
+
+    for (const pattern of sectionPatterns) {
+      const sectionMatches = fullText.matchAll(pattern);
+
+      for (const section of sectionMatches) {
+        const sectionText = section[1];
+
+        // Extract individual inquiries: "CREDITOR NAME MM/DD/YYYY"
+        const inquiryPattern = /([A-Z][A-Z0-9\s\/&'.,-]{2,40})\s+(\d{2}\/\d{2}\/\d{4})/g;
+        const lineMatches = sectionText.matchAll(inquiryPattern);
+
+        for (const match of lineMatches) {
+          const creditorName = match[1].trim().toUpperCase();
+          const inquiryDate = match[2];
+
+          // Filter out false positives
+          if (
+            creditorName.length > 2 &&
+            !creditorName.includes("TRANSUNION") &&
+            !creditorName.includes("EXPERIAN") &&
+            !creditorName.includes("EQUIFAX") &&
+            !creditorName.includes("BALANCE") &&
+            !creditorName.includes("ACCOUNT")
+          ) {
+            inquiries.push({
+              creditorName,
+              inquiryDate,
+              cra,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // Also look for general inquiry section
+  const generalPattern = /(?:Hard\s+)?Inquir(?:y|ies)[\s\S]*?TransUnion\s+Experian\s+Equifax[\s\S]*?((?:[A-Z].*?\d{2}\/\d{2}\/\d{4}[\s\S]*?)+?)(?=(?:Soft|Public|$))/gi;
+  const generalMatches = fullText.matchAll(generalPattern);
+
+  for (const match of generalMatches) {
+    const block = match[1];
+    // Parse triple-column inquiries
+    const linePattern = /([A-Z][A-Z0-9\s\/&'.,-]+?)\s+(\d{2}\/\d{2}\/\d{4})\s+(\d{2}\/\d{2}\/\d{4})?\s*(\d{2}\/\d{2}\/\d{4})?/g;
+    const lines = block.matchAll(linePattern);
+
+    for (const line of lines) {
+      const creditorName = line[1].trim().toUpperCase();
+      const dates = [line[2], line[3], line[4]].filter(d => d);
+
+      // Assign to CRAs based on column position
+      if (dates[0]) {
+        inquiries.push({ creditorName, inquiryDate: dates[0], cra: CRA.TRANSUNION });
+      }
+      if (dates[1]) {
+        inquiries.push({ creditorName, inquiryDate: dates[1], cra: CRA.EXPERIAN });
+      }
+      if (dates[2]) {
+        inquiries.push({ creditorName, inquiryDate: dates[2], cra: CRA.EQUIFAX });
+      }
+    }
+  }
+
+  // Deduplicate by creditor+date+cra
+  const seen = new Set<string>();
+  return inquiries.filter(inq => {
+    const key = `${inq.creditorName}|${inq.inquiryDate}|${inq.cra}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+export { FIELD_PATTERNS, extractPreviousNamesFromReport, extractPreviousAddressesFromReport, extractHardInquiriesFromReport };
