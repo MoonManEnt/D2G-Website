@@ -1,13 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { v4 as uuid } from "uuid";
-import { extractTextFromBuffer } from "@/lib/pdf-extract";
-import { parseIdentityIQReport, analyzeAccountsForIssues, getIssuesSummary } from "@/lib/parser";
-import { computeConfidenceLevel } from "@/types";
 import { withAuth } from "@/lib/api-middleware";
 import { z } from "zod";
 import path from "path";
 import fs from "fs";
+import { parseAndAnalyzeReport } from "@/lib/report-parser";
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // Allow up to 60 seconds for PDF processing
@@ -22,12 +20,14 @@ const uploadReportSchema = z.object({
 
 type UploadReportBody = z.infer<typeof uploadReportSchema>;
 
-// GET /api/reports - List reports
+/**
+ * GET /api/reports - List reports
+ */
 export const GET = withAuth(async (req, { organizationId }) => {
   const { searchParams } = new URL(req.url);
   const clientId = searchParams.get('clientId');
 
-  const where: any = {
+  const where: Record<string, unknown> = {
     organizationId,
   };
 
@@ -52,7 +52,18 @@ export const GET = withAuth(async (req, { organizationId }) => {
   return NextResponse.json(reports);
 });
 
-// POST /api/reports - Upload new report
+/**
+ * POST /api/reports - Upload new report
+ *
+ * This route:
+ * 1. Validates subscription tier
+ * 2. Fetches PDF from storage (cloud or local)
+ * 3. Creates file and report records in a transaction
+ * 4. Triggers parsing using the shared parseAndAnalyzeReport utility
+ *
+ * The parsing logic is centralized in lib/report-parser.ts to ensure
+ * consistency with manual re-parse operations.
+ */
 export const POST = withAuth<UploadReportBody>(async (req, { session, body, organizationId }) => {
   // Check subscription
   if (session.user.subscriptionTier === "FREE") {
@@ -128,173 +139,66 @@ export const POST = withAuth<UploadReportBody>(async (req, { session, body, orga
     );
   }
 
-  // Create file record
+  // Use transaction to create file and report records atomically
   const fileId = uuid();
-  const storedFile = await prisma.storedFile.create({
-    data: {
-      id: fileId,
-      filename: fileName,
-      mimeType: "application/pdf",
-      sizeBytes: fileSize,
-      storagePath: blobUrl,
-      storageType: blobUrl.startsWith('http') ? "BLOB" : "LOCAL",
-      organizationId,
-    },
-  });
 
-  // Create report record
-  const report = await prisma.creditReport.create({
-    data: {
-      reportDate: reportDate ? new Date(reportDate) : new Date(),
-      sourceType: "IDENTITYIQ",
-      originalFileId: storedFile.id,
-      parseStatus: "PENDING",
-      organizationId,
-      clientId,
-      uploadedById: session.user.id,
-    },
-  });
-
-  // Log upload event
-  await prisma.eventLog.create({
-    data: {
-      eventType: "REPORT_UPLOADED",
-      actorId: session.user.id,
-      actorEmail: session.user.email,
-      targetType: "CreditReport",
-      targetId: report.id,
-      eventData: JSON.stringify({
-        clientId,
-        fileName,
-        fileSize,
-      }),
-      organizationId,
-    },
-  });
-
-  // Auto-trigger parsing
-  let accountsParsed = 0;
-
-  try {
-    // Update status to processing
-    await prisma.creditReport.update({
-      where: { id: report.id },
-      data: { parseStatus: "PROCESSING" },
-    });
-
-    // Extract text from PDF buffer (in-memory processing)
-    const extractionResult = await extractTextFromBuffer(pdfBuffer);
-
-    if (extractionResult.success) {
-      // Parse the extracted text
-      const parseResult = await parseIdentityIQReport(extractionResult.text);
-
-      if (parseResult.success) {
-        // Analyze accounts for potential FCRA violations and issues
-        const analyzedAccounts = analyzeAccountsForIssues(parseResult.accounts);
-        const issuesSummary = getIssuesSummary(analyzedAccounts);
-
-        console.log(`Analysis complete: ${issuesSummary.disputableAccounts} disputable accounts, ${issuesSummary.highSeverityIssues} high severity issues`);
-
-        // Create AccountItem records with issues
-        for (const account of analyzedAccounts) {
-          const confidenceLevel = computeConfidenceLevel(account.confidenceScore);
-
-          await prisma.accountItem.create({
-            data: {
-              creditorName: account.creditorName,
-              maskedAccountId: account.maskedAccountId,
-              fingerprint: account.fingerprint || `${account.creditorName}:${account.maskedAccountId}`,
-              cra: account.cra,
-              accountType: account.accountType,
-              accountStatus: account.accountStatus,
-              balance: account.balance,
-              pastDue: account.pastDue,
-              creditLimit: account.creditLimit,
-              highBalance: account.highBalance,
-              monthlyPayment: account.monthlyPayment,
-              dateOpened: account.dateOpened ? new Date(account.dateOpened) : null,
-              dateReported: account.dateReported ? new Date(account.dateReported) : null,
-              lastActivityDate: account.lastActivityDate ? new Date(account.lastActivityDate) : null,
-              paymentStatus: account.paymentStatus,
-              disputeComment: account.disputeComment,
-              confidenceScore: account.confidenceScore,
-              confidenceLevel: confidenceLevel,
-              suggestedFlow: account.suggestedFlow,
-              isDisputable: account.isDisputable,
-              issueCount: account.issues.length,
-              detectedIssues: account.issues.length > 0 ? JSON.stringify(account.issues) : null,
-              rawExtractedData: account.rawExtractedData ? JSON.stringify(account.rawExtractedData) : null,
-              reportId: report.id,
-              organizationId,
-              clientId,
-            },
-          });
-
-          accountsParsed++;
-        }
-
-        // Update report status to completed
-        await prisma.creditReport.update({
-          where: { id: report.id },
-          data: {
-            parseStatus: "COMPLETED",
-            pageCount: extractionResult.pageCount,
-            parseError: null,
-          },
-        });
-
-        // Log parse success
-        await prisma.eventLog.create({
-          data: {
-            eventType: "REPORT_PARSED",
-            actorId: session.user.id,
-            actorEmail: session.user.email,
-            targetType: "CreditReport",
-            targetId: report.id,
-            eventData: JSON.stringify({
-              accountsParsed,
-              pageCount: extractionResult.pageCount,
-              warnings: parseResult.warnings.length,
-            }),
-            organizationId,
-          },
-        });
-      } else {
-        // Parse failed
-        const errorMessage = parseResult.errors[0]?.message || "Failed to parse report";
-        await prisma.creditReport.update({
-          where: { id: report.id },
-          data: {
-            parseStatus: "FAILED",
-            parseError: errorMessage,
-          },
-        });
-      }
-    } else {
-      // Extraction failed
-      await prisma.creditReport.update({
-        where: { id: report.id },
-        data: {
-          parseStatus: "FAILED",
-          parseError: extractionResult.error || "Failed to extract text from PDF",
-        },
-      });
-    }
-  } catch (parseError) {
-    console.error("Auto-parse trigger error:", parseError);
-
-    const errorMessage = parseError instanceof Error ? parseError.message : "Unknown parsing error during trigger";
-
-    // Update the report status to FAILED with the specific error
-    await prisma.creditReport.update({
-      where: { id: report.id },
+  const { storedFile, report } = await prisma.$transaction(async (tx) => {
+    // Create file record
+    const storedFile = await tx.storedFile.create({
       data: {
-        parseStatus: "FAILED",
-        parseError: `Auto-parse failed: ${errorMessage}`,
+        id: fileId,
+        filename: fileName,
+        mimeType: "application/pdf",
+        sizeBytes: fileSize,
+        storagePath: blobUrl,
+        storageType: blobUrl.startsWith('http') ? "BLOB" : "LOCAL",
+        organizationId,
       },
     });
-  }
+
+    // Create report record
+    const report = await tx.creditReport.create({
+      data: {
+        reportDate: reportDate ? new Date(reportDate) : new Date(),
+        sourceType: "IDENTITYIQ",
+        originalFileId: storedFile.id,
+        parseStatus: "PENDING",
+        organizationId,
+        clientId,
+        uploadedById: session.user.id,
+      },
+    });
+
+    // Log upload event
+    await tx.eventLog.create({
+      data: {
+        eventType: "REPORT_UPLOADED",
+        actorId: session.user.id,
+        actorEmail: session.user.email,
+        targetType: "CreditReport",
+        targetId: report.id,
+        eventData: JSON.stringify({
+          clientId,
+          fileName,
+          fileSize,
+        }),
+        organizationId,
+      },
+    });
+
+    return { storedFile, report };
+  });
+
+  // Auto-trigger parsing using the shared utility
+  // This runs outside the transaction since it can be retried independently
+  const parseResult = await parseAndAnalyzeReport({
+    reportId: report.id,
+    organizationId,
+    clientId,
+    actorId: session.user.id,
+    actorEmail: session.user.email,
+    pdfBuffer, // Use in-memory buffer for efficiency
+  });
 
   // Fetch final report state
   const finalReport = await prisma.creditReport.findUnique({
@@ -311,12 +215,11 @@ export const POST = withAuth<UploadReportBody>(async (req, { session, body, orga
   return NextResponse.json({
     id: report.id,
     status: finalReport?.parseStatus || "PENDING",
-    message: finalReport?.parseStatus === "COMPLETED"
-      ? `Report uploaded and parsed successfully. ${accountsParsed} accounts found.`
-      : finalReport?.parseStatus === "FAILED"
-        ? `Report uploaded but parsing failed: ${finalReport.parseError}`
-        : "Report uploaded successfully.",
-    accountsParsed: finalReport?._count?.accounts || 0,
-    pageCount: finalReport?.pageCount || 0,
+    message: parseResult.success
+      ? `Report uploaded and parsed successfully. ${parseResult.accountsParsed} accounts found.`
+      : `Report uploaded but parsing failed: ${parseResult.error}`,
+    accountsParsed: parseResult.accountsParsed,
+    pageCount: parseResult.pageCount,
+    issuesSummary: parseResult.issuesSummary,
   }, { status: 201 });
 }, { schema: uploadReportSchema });

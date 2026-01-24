@@ -13,7 +13,28 @@ GlobalWorkerOptions.workerSrc = workerPath;
 
 const EVIDENCE_DIR = process.env.EVIDENCE_DIR || "./public/evidence";
 
-// POST /api/evidence/capture - Capture PDF pages as evidence screenshots
+/**
+ * POST /api/evidence/capture - SERVER-SIDE PDF page extraction as evidence
+ *
+ * USE THIS ROUTE WHEN:
+ * - You need to automatically extract relevant pages from a credit report PDF
+ * - You want to capture pages that contain a specific account/creditor
+ * - You need bulk evidence generation for an account
+ *
+ * DO NOT USE THIS ROUTE FOR:
+ * - Client-side screenshot uploads (use /api/evidence/upload instead)
+ * - Custom UI captures
+ *
+ * This route:
+ * 1. Reads the original PDF from storage
+ * 2. Searches for pages containing the creditor name
+ * 3. Extracts text snippets from those pages
+ * 4. Creates evidence records with the extracted content
+ *
+ * Note: Full image rendering would require canvas (not available in Node.js),
+ * so this extracts text instead. For visual evidence, use /api/evidence/upload
+ * with client-rendered screenshots.
+ */
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);

@@ -409,26 +409,54 @@ export default function ClientDetailPage() {
     setUploading(true);
 
     try {
-      // Use Vercel Blob client for direct upload
-      const { upload } = await import("@vercel/blob/client");
+      let finalUrl = "";
 
-      // Use simple alphanumeric pathname
-      const timestamp = Date.now();
-      const randomNum = Math.floor(Math.random() * 100000);
-      const safePath = `reports/report${timestamp}${randomNum}.pdf`;
+      // Try Vercel Blob first, fall back to local upload
+      try {
+        const { upload } = await import("@vercel/blob/client");
+        const timestamp = Date.now();
+        const randomNum = Math.floor(Math.random() * 100000);
+        const safePath = `reports/report${timestamp}${randomNum}.pdf`;
 
-      const blob = await upload(safePath, file, {
-        access: "public",
-        handleUploadUrl: "/api/upload",
-      });
+        console.log("Starting Vercel Blob upload...");
 
-      // Now process the report with the blob URL
+        const blob = await upload(safePath, file, {
+          access: "public",
+          handleUploadUrl: "/api/reports/upload-token",
+        });
+
+        finalUrl = blob.url;
+        console.log("Vercel Blob upload complete:", finalUrl);
+      } catch (blobError) {
+        console.warn("Vercel Blob upload failed, falling back to local:", blobError);
+
+        // Local Fallback
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("type", "reports");
+
+        const localRes = await fetch("/api/upload/local", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!localRes.ok) {
+          const errorData = await localRes.json();
+          throw new Error(errorData.error || "Local upload failed");
+        }
+
+        const localData = await localRes.json();
+        finalUrl = localData.url;
+        console.log("Local upload complete:", finalUrl);
+      }
+
+      // Now process the report with the final URL (could be blob or local)
       const res = await fetch("/api/reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           clientId,
-          blobUrl: blob.url,
+          blobUrl: finalUrl,
           fileName: file.name,
         }),
       });
@@ -440,10 +468,16 @@ export default function ClientDetailPage() {
         });
         fetchClient();
       } else {
-        const error = await res.json();
+        let errorMessage = "Failed to process report";
+        try {
+          const error = await res.json();
+          errorMessage = error.error || errorMessage;
+        } catch {
+          // Ignore JSON parse errors
+        }
         toast({
           title: "Upload Failed",
-          description: error.error || "Failed to process report",
+          description: errorMessage,
           variant: "destructive",
         });
       }

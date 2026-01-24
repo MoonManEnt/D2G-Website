@@ -5,10 +5,25 @@ import prisma from "@/lib/prisma";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { v4 as uuid } from "uuid";
+import { validateBase64Image } from "@/lib/upload-validation";
 
 const EVIDENCE_DIR = process.env.EVIDENCE_DIR || "./public/evidence";
 
-// POST /api/evidence/upload - Upload a captured screenshot as evidence
+/**
+ * POST /api/evidence/upload - Upload a CLIENT-CAPTURED screenshot as evidence
+ *
+ * USE THIS ROUTE WHEN:
+ * - User has captured a screenshot in the browser (e.g., using html2canvas)
+ * - Image is already rendered as base64
+ * - You want to upload a specific visual capture from the UI
+ *
+ * DO NOT USE THIS ROUTE FOR:
+ * - Server-side PDF page extraction (use /api/evidence/capture instead)
+ * - Bulk evidence generation
+ *
+ * This is complementary to /api/evidence/capture, which extracts pages
+ * from PDFs server-side. Use the right tool for the job.
+ */
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -27,10 +42,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate base64 image data
-    if (!imageData.startsWith("data:image/")) {
+    // Validate base64 image data using unified validation
+    const validation = validateBase64Image(imageData);
+    if (!validation.valid) {
       return NextResponse.json(
-        { error: "Invalid image data format" },
+        { error: validation.error },
         { status: 400 }
       );
     }
