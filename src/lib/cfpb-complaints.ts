@@ -37,6 +37,40 @@ function parseBalance(balanceStr?: string): number | undefined {
   return isNaN(num) ? undefined : num;
 }
 
+/**
+ * CFPB PLAIN LANGUAGE CONVERTER
+ *
+ * CFPB complaints must be in plain language only - no legal USC codes.
+ * This function strips all legal citations and converts them to consumer-friendly language.
+ */
+function convertToPlainLanguage(text: string): string {
+  return text
+    // Remove full citations like "15 USC 1681e(b)" or "15 U.S.C. § 1681i(a)(5)"
+    .replace(/\b15 U\.?S\.?C\.? ?§? ?\d+[a-z]?(?:\([^)]+\))?/gi, "federal law")
+    // Remove "Under 15 USC..." → "Under federal law..."
+    .replace(/under federal law federal law/gi, "under federal law")
+    // Remove FDCPA citations
+    .replace(/\b15 U\.?S\.?C\.? ?§? ?1692[a-z]?(?:\([^)]+\))?/gi, "federal debt collection law")
+    // Remove standalone section references like "1681e(b)" or "1692g"
+    .replace(/\b1681[a-z]?(?:\([^)]+\))?/g, "the Fair Credit Reporting Act")
+    .replace(/\b1692[a-z]?(?:\([^)]+\))?/g, "the Fair Debt Collection Practices Act")
+    // Remove court case citations
+    .replace(/(?:as (?:ruled|proven|held) in )?[A-Z][a-z]+ v\. [A-Z][^,]+,? ?\d*\s*(?:F\.\s*(?:Supp\.\s*)?(?:2d|3d)?\s*)?\d*/g, "")
+    // Remove U.C.C. references
+    .replace(/U\.C\.C\. \d+-\d+/gi, "commercial law")
+    // Clean up "federal law federal law" duplicates
+    .replace(/federal law federal law/gi, "federal law")
+    // Clean up "the law (federal law)" patterns
+    .replace(/the law \(federal law\)/gi, "the law")
+    // Clean up double spaces
+    .replace(/\s{2,}/g, " ")
+    // Clean up empty parentheses
+    .replace(/\(\s*\)/g, "")
+    // Clean up trailing dashes and colons from removed citations
+    .replace(/\s*[-–]\s*$/gm, "")
+    .trim();
+}
+
 // ============================================================================
 // MAIN GENERATOR FUNCTION (Dynamic / Amelia Powered)
 // ============================================================================
@@ -115,8 +149,13 @@ export async function generateCFPBComplaint(data: CFPBComplaintData): Promise<{
   // 6. Assemble Narrative
   // CFPB Narrative = Story (Damages) + Account List + Legal Arguments (Facts)
   // We want to weave them together.
+  // IMPORTANT: Apply plain language conversion - CFPB complaints should NOT include legal USC codes
 
-  const narrative = `${damagesSection}\n\nI am disputing the following accounts:\n\n${accountListText}\n\n${factsSection}`;
+  const rawNarrative = `${damagesSection}\n\nI am disputing the following accounts:\n\n${accountListText}\n\n${factsSection}`;
+  const narrative = convertToPlainLanguage(rawNarrative);
+
+  // Also convert the penalty/resolution section to plain language
+  const desiredResolution = convertToPlainLanguage(penaltySection);
 
   // 7. Select Issue/Sub-issue category (Static for now based on Flow, or map dynamically)
   let issue = "Incorrect information on your report";
@@ -137,7 +176,7 @@ export async function generateCFPBComplaint(data: CFPBComplaintData): Promise<{
     subIssue,
     companyName: craName,
     narrative: narrative,
-    desiredResolution: penaltySection,
+    desiredResolution: desiredResolution,
   };
 }
 

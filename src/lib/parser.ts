@@ -55,16 +55,59 @@ const FIELD_PATTERNS = {
   lastReported: /Last\s+Reported:\s*(\d{2}\/\d{2}\/\d{4})\s+(\d{2}\/\d{2}\/\d{4})\s+(\d{2}\/\d{2}\/\d{4})/,
 };
 
-// Status mapping
+// Status mapping - Expanded to capture ALL negative/derogatory accounts
 const STATUS_MAP: Record<string, AccountStatus> = {
+  // Positive statuses
   "open": AccountStatus.OPEN,
   "current": AccountStatus.OPEN,
+  "active": AccountStatus.OPEN,
   "paid": AccountStatus.PAID,
+  "paid in full": AccountStatus.PAID,
   "closed": AccountStatus.CLOSED,
+  "closed/paid": AccountStatus.PAID,
+
+  // CHARGEOFF variations - ALL map to CHARGED_OFF
   "charged off": AccountStatus.CHARGED_OFF,
   "chargeoff": AccountStatus.CHARGED_OFF,
+  "charge off": AccountStatus.CHARGED_OFF,
+  "charge-off": AccountStatus.CHARGED_OFF,
+  "chargedoff": AccountStatus.CHARGED_OFF,
+  "charged-off": AccountStatus.CHARGED_OFF,
+  "chargeoff/collection": AccountStatus.CHARGED_OFF,
+  "charged off/collection": AccountStatus.CHARGED_OFF,
+  "profit and loss writeoff": AccountStatus.CHARGED_OFF,
+  "profit and loss": AccountStatus.CHARGED_OFF,
+  "write off": AccountStatus.CHARGED_OFF,
+  "writeoff": AccountStatus.CHARGED_OFF,
+  "written off": AccountStatus.CHARGED_OFF,
+
+  // Collection variations
   "collection": AccountStatus.COLLECTION,
   "collections": AccountStatus.COLLECTION,
+  "in collection": AccountStatus.COLLECTION,
+  "placed for collection": AccountStatus.COLLECTION,
+  "transferred to collection": AccountStatus.COLLECTION,
+  "sold to collection": AccountStatus.COLLECTION,
+
+  // Derogatory statuses (treated as CHARGED_OFF for COLLECTION flow)
+  "derogatory": AccountStatus.CHARGED_OFF,
+  "delinquent": AccountStatus.CHARGED_OFF,
+  "seriously delinquent": AccountStatus.CHARGED_OFF,
+  "seriously past due": AccountStatus.CHARGED_OFF,
+  "past due": AccountStatus.CHARGED_OFF,
+  "overdue": AccountStatus.CHARGED_OFF,
+  "late": AccountStatus.CHARGED_OFF,
+  "default": AccountStatus.CHARGED_OFF,
+  "defaulted": AccountStatus.CHARGED_OFF,
+  "bad debt": AccountStatus.CHARGED_OFF,
+  "unpaid": AccountStatus.CHARGED_OFF,
+  "settled": AccountStatus.CHARGED_OFF,
+  "settled for less": AccountStatus.CHARGED_OFF,
+  "repo": AccountStatus.CHARGED_OFF,
+  "repossession": AccountStatus.CHARGED_OFF,
+  "foreclosure": AccountStatus.CHARGED_OFF,
+  "bankruptcy": AccountStatus.CHARGED_OFF,
+  "included in bankruptcy": AccountStatus.CHARGED_OFF,
 };
 
 // Credit score extraction result
@@ -458,13 +501,15 @@ export function analyzeAccountsForIssues(accounts: ParsedAccountItem[]): ParsedA
     const creditorAccounts = groupedByCreditor.get(account.creditorName.toUpperCase()) || [];
 
     // 1. Check for derogatory status
+    // AMELIA DOCTRINE: CHARGEOFF = COLLECTION FLOW (not Accuracy)
+    // Chargeoffs are essentially collection accounts and should be disputed under FDCPA/Collection flow
     if (account.accountStatus === AccountStatus.CHARGED_OFF) {
       issues.push({
         code: "DEROGATORY_CHARGEOFF",
         severity: "HIGH",
-        description: "Account shows charge-off status - verify accuracy and date",
-        suggestedFlow: FlowType.ACCURACY,
-        fcraSection: "15 U.S.C. § 1681e(b)",
+        description: "Account shows charge-off status - request debt validation and verify reporting accuracy",
+        suggestedFlow: FlowType.COLLECTION,
+        fcraSection: "15 U.S.C. § 1692g",
       });
     }
 

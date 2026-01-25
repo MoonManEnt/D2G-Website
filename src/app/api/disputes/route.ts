@@ -133,6 +133,26 @@ export const POST = withAuth(async (req, ctx) => {
       orderBy: { round: "desc" },
     });
 
+    // WORKFLOW ENFORCEMENT: Previous round must be SENT or RESPONDED before creating new round
+    // This ensures proper tracking: DRAFT -> SENT -> RESPONSE_RECEIVED -> next round
+    if (lastDispute) {
+      const validStatusesForNextRound = ["SENT", "RESPONSE_RECEIVED", "RESOLVED", "ESCALATED"];
+      if (!validStatusesForNextRound.includes(lastDispute.status)) {
+        return NextResponse.json(
+          {
+            error: `Cannot create Round ${lastDispute.round + 1} - Round ${lastDispute.round} has not been sent yet`,
+            details: {
+              currentRound: lastDispute.round,
+              currentStatus: lastDispute.status,
+              requiredStatus: "SENT, RESPONSE_RECEIVED, or RESOLVED",
+              message: `Please send Round ${lastDispute.round} letter first, then log responses before creating the next round.`
+            }
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     const round = (lastDispute?.round || 0) + 1;
 
     // Create the dispute

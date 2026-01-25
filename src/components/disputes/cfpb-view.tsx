@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,61 @@ import {
 } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
 import { CRA_COLORS, type ParsedAccountWithIssues, type CFPBComplaint } from "./types";
+
+// Reusable field component with copy button
+interface CopyableFieldProps {
+  label: string;
+  value: string;
+  isLarge?: boolean;
+  onCopy: (text: string, label: string) => void;
+}
+
+function CopyableField({ label, value, isLarge, onCopy }: CopyableFieldProps) {
+  const [justCopied, setJustCopied] = useState(false);
+
+  const handleCopy = () => {
+    onCopy(value, label);
+    setJustCopied(true);
+    setTimeout(() => setJustCopied(false), 1500);
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <label className="text-xs text-slate-500 uppercase tracking-wide">{label}</label>
+        <button
+          onClick={handleCopy}
+          className={cn(
+            "flex items-center gap-1 px-2 py-0.5 rounded text-xs transition-all",
+            justCopied
+              ? "bg-emerald-500/20 text-emerald-400"
+              : "bg-slate-700/50 text-slate-400 hover:bg-slate-700 hover:text-white"
+          )}
+        >
+          {justCopied ? (
+            <>
+              <CheckCircle className="w-3 h-3" />
+              Copied
+            </>
+          ) : (
+            <>
+              <Copy className="w-3 h-3" />
+              Copy
+            </>
+          )}
+        </button>
+      </div>
+      <div
+        className={cn(
+          "p-3 rounded-lg bg-slate-700/30 text-sm text-white",
+          isLarge && "whitespace-pre-wrap max-h-[200px] overflow-y-auto leading-relaxed"
+        )}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
 
 interface CFPBViewProps {
   accounts: ParsedAccountWithIssues[];
@@ -70,8 +125,8 @@ I submitted a formal dispute letter via certified mail regarding the following a
 ${accountList}
 
 Despite my detailed dispute with supporting documentation, ${companyName} has:
-- Failed to conduct a reasonable investigation as required under 15 U.S.C. § 1681i(a)(1)
-- Not provided the method of verification as required under 15 U.S.C. § 1681i(a)(6)
+- Failed to conduct a reasonable investigation as required by federal law
+- Not provided proof of how they verified this information
 - Continued to report information they cannot verify
 
 This inaccurate reporting has caused me significant harm including denial of credit applications and higher interest rates on approved credit.`,
@@ -120,6 +175,16 @@ ${complaint.desiredResolution}`;
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   };
+
+  // Handler for copying individual fields
+  const handleFieldCopy = useCallback(async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({ title: "Copied!", description: `${label} copied to clipboard` });
+    } catch {
+      toast({ title: "Error", description: "Failed to copy to clipboard", variant: "destructive" });
+    }
+  }, [toast]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-6 min-h-[600px]">
@@ -283,56 +348,51 @@ ${complaint.desiredResolution}`;
               </Button>
             </div>
 
-            {/* Fields */}
+            {/* Fields - Each with individual copy button */}
             <div className="space-y-4">
-              <div>
-                <label className="text-xs text-slate-500 uppercase tracking-wide">Product</label>
-                <div className="mt-1 p-3 rounded-lg bg-slate-700/30 text-sm text-white">
-                  {complaint.product}
-                </div>
-              </div>
+              <CopyableField
+                label="Product"
+                value={complaint.product}
+                onCopy={handleFieldCopy}
+              />
 
-              <div>
-                <label className="text-xs text-slate-500 uppercase tracking-wide">Sub-product</label>
-                <div className="mt-1 p-3 rounded-lg bg-slate-700/30 text-sm text-white">
-                  {complaint.subProduct}
-                </div>
-              </div>
+              <CopyableField
+                label="Sub-product"
+                value={complaint.subProduct}
+                onCopy={handleFieldCopy}
+              />
 
-              <div>
-                <label className="text-xs text-slate-500 uppercase tracking-wide">Issue</label>
-                <div className="mt-1 p-3 rounded-lg bg-slate-700/30 text-sm text-white">
-                  {complaint.issue}
-                </div>
-              </div>
+              <CopyableField
+                label="Issue"
+                value={complaint.issue}
+                onCopy={handleFieldCopy}
+              />
 
-              <div>
-                <label className="text-xs text-slate-500 uppercase tracking-wide">Sub-issue</label>
-                <div className="mt-1 p-3 rounded-lg bg-slate-700/30 text-sm text-white">
-                  {complaint.subIssue}
-                </div>
-              </div>
+              <CopyableField
+                label="Sub-issue"
+                value={complaint.subIssue}
+                onCopy={handleFieldCopy}
+              />
 
-              <div>
-                <label className="text-xs text-slate-500 uppercase tracking-wide">Company</label>
-                <div className="mt-1 p-3 rounded-lg bg-slate-700/30 text-sm text-white">
-                  {complaint.companyName}
-                </div>
-              </div>
+              <CopyableField
+                label="Company"
+                value={complaint.companyName}
+                onCopy={handleFieldCopy}
+              />
 
-              <div>
-                <label className="text-xs text-slate-500 uppercase tracking-wide">What Happened (Narrative)</label>
-                <div className="mt-1 p-3 rounded-lg bg-slate-700/30 text-sm text-white whitespace-pre-wrap max-h-[200px] overflow-y-auto leading-relaxed">
-                  {complaint.narrative}
-                </div>
-              </div>
+              <CopyableField
+                label="What Happened (Narrative)"
+                value={complaint.narrative}
+                isLarge
+                onCopy={handleFieldCopy}
+              />
 
-              <div>
-                <label className="text-xs text-slate-500 uppercase tracking-wide">Desired Resolution</label>
-                <div className="mt-1 p-3 rounded-lg bg-slate-700/30 text-sm text-white whitespace-pre-wrap leading-relaxed">
-                  {complaint.desiredResolution}
-                </div>
-              </div>
+              <CopyableField
+                label="Desired Resolution"
+                value={complaint.desiredResolution}
+                isLarge
+                onCopy={handleFieldCopy}
+              />
             </div>
 
             {/* Actions */}
