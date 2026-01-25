@@ -109,9 +109,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const flow = dispute.flow as DisputeFlow;
     const round = dispute.round;
 
+    // Check if dispute has AMELIA-generated content
+    const hasAmeliaContent = !!dispute.letterContent;
+
     if (format === "text") {
-      // Return text preview
-      const textContent = generateLetterText(cra, letterData, flow, round);
+      // Return text preview - prefer AMELIA content if available
+      const textContent = hasAmeliaContent
+        ? dispute.letterContent!
+        : generateLetterText(cra, letterData, flow, round);
       return new NextResponse(textContent, {
         headers: {
           "Content-Type": "text/plain",
@@ -120,7 +125,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       });
     }
 
-    // Generate DOCX
+    // Generate DOCX - for now, use template-based generation
+    // TODO: Create DOCX from AMELIA content for full fidelity
     try {
       const docxBuffer = generateDisputeDocx(cra, letterData, flow, round);
 
@@ -137,8 +143,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       });
     } catch (error) {
       console.error("DOCX generation error:", error);
-      // Fall back to text format if DOCX generation fails
-      const textContent = generateLetterText(cra, letterData, flow, round);
+      // Fall back to text format if DOCX generation fails - use AMELIA content if available
+      const textContent = hasAmeliaContent
+        ? dispute.letterContent!
+        : generateLetterText(cra, letterData, flow, round);
       return new NextResponse(textContent, {
         headers: {
           "Content-Type": "text/plain",

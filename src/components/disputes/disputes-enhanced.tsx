@@ -96,9 +96,26 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
     cra: string;
     flow: string;
     round: number;
+    // AMELIA metadata
+    ameliaMetadata?: {
+      letterDate: string;
+      isBackdated: boolean;
+      backdatedDays: number;
+      tone: string;
+      effectiveFlow: string;
+      statute: string;
+      includesScreenshots: boolean;
+      personalInfoDisputed: {
+        previousNames: number;
+        previousAddresses: number;
+        hardInquiries: number;
+      };
+      ameliaVersion: string;
+    };
   } | null>(null);
   const [letterCopied, setLetterCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [generatingAmelia, setGeneratingAmelia] = useState(false);
 
   // Fetch clients on mount
   useEffect(() => {
@@ -236,31 +253,64 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
       if (res.ok) {
         const data = await res.json();
 
-        // Fetch the generated letter content (returns plain text)
-        const letterRes = await fetch(`/api/disputes/${data.dispute.id}/docx?format=text`);
-        let letterContent = "";
-        if (letterRes.ok) {
-          letterContent = await letterRes.text();
+        // Generate the letter using AMELIA brain (unique stories, backdating, tone escalation)
+        setGeneratingAmelia(true);
+        try {
+          const ameliaRes = await fetch(`/api/disputes/${data.dispute.id}/amelia`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ regenerate: false }),
+          });
+
+          if (ameliaRes.ok) {
+            const ameliaData = await ameliaRes.json();
+
+            // Set the AMELIA-generated letter for preview
+            setGeneratedLetter({
+              disputeId: data.dispute.id,
+              documentId: data.document.id,
+              documentTitle: data.document.title,
+              content: ameliaData.letterContent,
+              cra: data.dispute.cra,
+              flow: data.dispute.flow,
+              round: data.dispute.round,
+              ameliaMetadata: ameliaData.metadata,
+            });
+
+            // Open the letter preview modal
+            setLetterModalOpen(true);
+
+            toast({
+              title: "AMELIA Letter Generated",
+              description: `${data.dispute.cra} Round ${data.dispute.round} - ${ameliaData.metadata?.tone || "PROFESSIONAL"} tone${ameliaData.metadata?.isBackdated ? " (backdated 30 days)" : ""}`
+            });
+          } else {
+            // Fallback to basic template if AMELIA fails
+            const letterRes = await fetch(`/api/disputes/${data.dispute.id}/docx?format=text`);
+            let letterContent = "";
+            if (letterRes.ok) {
+              letterContent = await letterRes.text();
+            }
+
+            setGeneratedLetter({
+              disputeId: data.dispute.id,
+              documentId: data.document.id,
+              documentTitle: data.document.title,
+              content: letterContent,
+              cra: data.dispute.cra,
+              flow: data.dispute.flow,
+              round: data.dispute.round,
+            });
+
+            setLetterModalOpen(true);
+            toast({
+              title: "Letter Generated",
+              description: `${data.dispute.cra} Round ${data.dispute.round} - ${selectedAccounts.length} items (basic template)`
+            });
+          }
+        } finally {
+          setGeneratingAmelia(false);
         }
-
-        // Set the generated letter for preview
-        setGeneratedLetter({
-          disputeId: data.dispute.id,
-          documentId: data.document.id,
-          documentTitle: data.document.title,
-          content: letterContent,
-          cra: data.dispute.cra,
-          flow: data.dispute.flow,
-          round: data.dispute.round,
-        });
-
-        // Open the letter preview modal
-        setLetterModalOpen(true);
-
-        toast({
-          title: "Dispute Letter Generated",
-          description: `${data.dispute.cra} Round ${data.dispute.round} - ${selectedAccounts.length} items`
-        });
 
         // Refresh disputes list in background
         fetch("/api/disputes")
@@ -677,15 +727,25 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
                 </Button>
                 <Button
                   className="flex-1 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400"
-                  disabled={selectedAccounts.length === 0 || creating}
+                  disabled={selectedAccounts.length === 0 || creating || generatingAmelia}
                   onClick={handleCreateDispute}
                 >
-                  {creating ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {creating && !generatingAmelia ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Creating Dispute...
+                    </>
+                  ) : generatingAmelia ? (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2 animate-pulse" />
+                      AMELIA Generating...
+                    </>
                   ) : (
-                    <Plus className="w-4 h-4 mr-2" />
+                    <>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create Dispute
+                    </>
                   )}
-                  Create Dispute
                 </Button>
               </div>
             </div>
@@ -831,19 +891,92 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
 
           {/* Letter metadata */}
           {generatedLetter && (
-            <div className="flex items-center gap-3 flex-wrap pb-3 border-b border-slate-700">
-              <Badge className={CRA_COLORS[generatedLetter.cra]?.tailwind || "bg-slate-500/20 text-slate-400"}>
-                {generatedLetter.cra}
-              </Badge>
-              <Badge className="bg-purple-500/20 text-purple-400">
-                Round {generatedLetter.round}
-              </Badge>
-              <Badge className="bg-blue-500/20 text-blue-400">
-                {generatedLetter.flow}
-              </Badge>
-              <span className="text-xs text-slate-500 ml-auto">
-                Generated {new Date().toLocaleDateString()}
-              </span>
+            <div className="space-y-3 pb-3 border-b border-slate-700">
+              {/* AMELIA badge row */}
+              <div className="flex items-center gap-3 flex-wrap">
+                {generatedLetter.ameliaMetadata && (
+                  <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs">
+                    <Sparkles className="w-3 h-3 mr-1" />
+                    AMELIA v{generatedLetter.ameliaMetadata.ameliaVersion}
+                  </Badge>
+                )}
+                <Badge className={CRA_COLORS[generatedLetter.cra]?.tailwind || "bg-slate-500/20 text-slate-400"}>
+                  {generatedLetter.cra}
+                </Badge>
+                <Badge className="bg-purple-500/20 text-purple-400">
+                  Round {generatedLetter.round}
+                </Badge>
+                <Badge className="bg-blue-500/20 text-blue-400">
+                  {generatedLetter.flow}
+                  {generatedLetter.ameliaMetadata?.effectiveFlow && generatedLetter.ameliaMetadata.effectiveFlow !== generatedLetter.flow && (
+                    <span className="ml-1 opacity-60">→ {generatedLetter.ameliaMetadata.effectiveFlow}</span>
+                  )}
+                </Badge>
+              </div>
+
+              {/* AMELIA metadata details */}
+              {generatedLetter.ameliaMetadata && (
+                <div className="flex items-center gap-4 text-xs flex-wrap">
+                  {/* Tone indicator */}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-500">Tone:</span>
+                    <span className={cn(
+                      "font-medium",
+                      generatedLetter.ameliaMetadata.tone === "CONCERNED" && "text-blue-400",
+                      generatedLetter.ameliaMetadata.tone === "WORRIED" && "text-amber-400",
+                      generatedLetter.ameliaMetadata.tone === "FED_UP" && "text-orange-400",
+                      generatedLetter.ameliaMetadata.tone === "WARNING" && "text-red-400",
+                      generatedLetter.ameliaMetadata.tone === "PISSED" && "text-red-500"
+                    )}>
+                      {generatedLetter.ameliaMetadata.tone}
+                    </span>
+                  </div>
+
+                  {/* Backdating indicator */}
+                  {generatedLetter.ameliaMetadata.isBackdated && (
+                    <div className="flex items-center gap-1.5 text-amber-400">
+                      <AlertTriangle className="w-3 h-3" />
+                      <span>Backdated {generatedLetter.ameliaMetadata.backdatedDays} days</span>
+                    </div>
+                  )}
+
+                  {/* Statute */}
+                  <div className="flex items-center gap-1.5">
+                    <Scale className="w-3 h-3 text-slate-500" />
+                    <span className="text-slate-400">{generatedLetter.ameliaMetadata.statute}</span>
+                  </div>
+
+                  {/* Personal info disputed */}
+                  {(generatedLetter.ameliaMetadata.personalInfoDisputed.previousNames > 0 ||
+                    generatedLetter.ameliaMetadata.personalInfoDisputed.previousAddresses > 0 ||
+                    generatedLetter.ameliaMetadata.personalInfoDisputed.hardInquiries > 0) && (
+                    <div className="flex items-center gap-1.5 text-emerald-400">
+                      <CheckCircle className="w-3 h-3" />
+                      <span>
+                        Personal info disputed ({generatedLetter.ameliaMetadata.personalInfoDisputed.previousNames} names,{" "}
+                        {generatedLetter.ameliaMetadata.personalInfoDisputed.previousAddresses} addresses,{" "}
+                        {generatedLetter.ameliaMetadata.personalInfoDisputed.hardInquiries} inquiries)
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Letter date */}
+                  <span className="text-slate-500 ml-auto">
+                    Letter Date: {new Date(generatedLetter.ameliaMetadata.letterDate).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric"
+                    })}
+                  </span>
+                </div>
+              )}
+
+              {/* Fallback for non-AMELIA letters */}
+              {!generatedLetter.ameliaMetadata && (
+                <span className="text-xs text-slate-500">
+                  Generated {new Date().toLocaleDateString()} (Basic Template)
+                </span>
+              )}
             </div>
           )}
 
