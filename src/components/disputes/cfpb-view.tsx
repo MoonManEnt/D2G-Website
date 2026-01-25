@@ -54,7 +54,7 @@ export function CFPBView({ accounts, selectedCRA, onSelectCRA, clientName }: CFP
                          selectedCRA === "EXPERIAN" ? "Experian" : "Equifax Information Services LLC";
 
       const accountList = selectedAccountDetails.map((acc, i) =>
-        `${i + 1}. ${acc.creditorName} - Account #${acc.maskedAccountId || "N/A"}\n   Issue: ${acc.detectedIssues[0]?.description || "Inaccurate information"}`
+        `${i + 1}. ${acc.creditorName} - Account #${acc.maskedAccountId || "N/A"}\n   Issue: ${acc.detectedIssues?.[0]?.description || "Inaccurate information"}`
       ).join("\n\n");
 
       setComplaint({
@@ -216,7 +216,7 @@ ${complaint.desiredResolution}`;
                     {acc.creditorName}
                   </span>
                   <span className="block text-xs text-slate-500 truncate">
-                    {acc.detectedIssues[0]?.description || "No issues detected"}
+                    {acc.detectedIssues?.[0]?.description || "No issues detected"}
                   </span>
                 </div>
               </label>

@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
   Users,
-  FileText,
   Scale,
   Image,
   Settings,
@@ -29,7 +28,6 @@ import { Avatar } from "@/components/profile";
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Clients", href: "/clients", icon: Users },
-  { name: "Reports", href: "/reports", icon: FileText },
   { name: "Disputes", href: "/disputes", icon: Scale },
   { name: "Evidence", href: "/evidence", icon: Image },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },

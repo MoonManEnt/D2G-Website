@@ -16,7 +16,8 @@ interface AccountCardProps {
 
 export function AccountCard({ account, isSelected, onToggle, selectedCRA }: AccountCardProps) {
   const [expanded, setExpanded] = useState(false);
-  const highSeverityCount = account.detectedIssues.filter((i) => i.severity === "HIGH").length;
+  const issues = account.detectedIssues || [];
+  const highSeverityCount = issues.filter((i) => i.severity === "HIGH").length;
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -79,44 +80,46 @@ export function AccountCard({ account, isSelected, onToggle, selectedCRA }: Acco
       </div>
 
       {/* Issues List */}
-      <div className="px-3.5 pb-2">
-        <div className="space-y-1.5">
-          {account.detectedIssues.slice(0, expanded ? undefined : 2).map((issue, i) => (
-            <div key={i} className="flex items-start gap-2 text-xs">
-              <span
-                className={cn(
-                  "w-4 h-4 rounded flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0",
-                  getSeverityColor(issue.severity)
-                )}
+      {issues.length > 0 && (
+        <div className="px-3.5 pb-2">
+          <div className="space-y-1.5">
+            {issues.slice(0, expanded ? undefined : 2).map((issue, i) => (
+              <div key={i} className="flex items-start gap-2 text-xs">
+                <span
+                  className={cn(
+                    "w-4 h-4 rounded flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0",
+                    getSeverityColor(issue.severity)
+                  )}
+                >
+                  {issue.severity[0]}
+                </span>
+                <span className="text-slate-400 leading-snug">{issue.description}</span>
+              </div>
+            ))}
+            {issues.length > 2 && (
+              <button
+                className="text-purple-400 text-xs hover:text-purple-300 transition flex items-center gap-1"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExpanded(!expanded);
+                }}
               >
-                {issue.severity[0]}
-              </span>
-              <span className="text-slate-400 leading-snug">{issue.description}</span>
-            </div>
-          ))}
-          {account.detectedIssues.length > 2 && (
-            <button
-              className="text-purple-400 text-xs hover:text-purple-300 transition flex items-center gap-1"
-              onClick={(e) => {
-                e.stopPropagation();
-                setExpanded(!expanded);
-              }}
-            >
-              {expanded ? (
-                <>
-                  <ChevronUp className="w-3 h-3" />
-                  Show less
-                </>
-              ) : (
-                <>
-                  <ChevronDown className="w-3 h-3" />
-                  +{account.detectedIssues.length - 2} more issues
-                </>
-              )}
-            </button>
-          )}
+                {expanded ? (
+                  <>
+                    <ChevronUp className="w-3 h-3" />
+                    Show less
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="w-3 h-3" />
+                    +{issues.length - 2} more issues
+                  </>
+                )}
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Bureau Divergence */}
       <div className="flex gap-2 px-3.5 py-2.5 border-t border-slate-600/30">

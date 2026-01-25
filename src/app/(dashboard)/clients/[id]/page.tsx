@@ -43,6 +43,7 @@ import {
   Shield,
   Clock,
   Lightbulb,
+  Trash2,
 } from "lucide-react";
 import { ScoreChart, AddScoreModal } from "@/components/credit-scores";
 import { useToast } from "@/lib/use-toast";
@@ -297,6 +298,9 @@ export default function ClientDetailPage() {
     email: "",
     phone: "",
   });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   const fetchClient = useCallback(async () => {
     try {
@@ -523,6 +527,49 @@ export default function ClientDetailPage() {
     }
   };
 
+  const handleDeleteClient = async () => {
+    if (deleteConfirmText !== "DELETE") {
+      toast({
+        title: "Confirmation Required",
+        description: "Please type DELETE to confirm",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/clients/${clientId}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        toast({
+          title: "Client Archived",
+          description: "Client has been moved to archive. You can restore within 90 days from Settings.",
+        });
+        router.push("/clients");
+      } else {
+        const data = await res.json();
+        toast({
+          title: "Delete Failed",
+          description: data.error || "Could not delete client",
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleting(false);
+      setDeleteDialogOpen(false);
+      setDeleteConfirmText("");
+    }
+  };
+
   const formatCurrency = (amount: number | null) => {
     if (amount === null) return "—";
     return new Intl.NumberFormat("en-US", {
@@ -600,6 +647,14 @@ export default function ClientDetailPage() {
               </span>
             </Button>
           </label>
+          <Button
+            variant="outline"
+            className="text-red-400 border-red-500/30 hover:bg-red-500/10 hover:text-red-300"
+            onClick={() => setDeleteDialogOpen(true)}
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Delete
+          </Button>
         </div>
       </div>
 
@@ -1373,6 +1428,78 @@ export default function ClientDetailPage() {
               <Button type="submit">Save Changes</Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={(open) => {
+        setDeleteDialogOpen(open);
+        if (!open) setDeleteConfirmText("");
+      }}>
+        <DialogContent className="bg-slate-800 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-red-400" />
+              Delete Client
+            </DialogTitle>
+            <DialogDescription className="text-slate-400">
+              This will archive the client and all their data. You can restore the client within 90 days from the Settings page.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+              <p className="text-red-400 text-sm">
+                <strong>Warning:</strong> This will archive:
+              </p>
+              <ul className="text-red-400/80 text-sm mt-2 list-disc list-inside space-y-1">
+                <li>{summary?.totalReports || 0} credit reports</li>
+                <li>{summary?.totalAccounts || 0} accounts</li>
+                <li>{summary?.totalDisputes || 0} disputes</li>
+                <li>All evidence and documents</li>
+              </ul>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-slate-200">
+                Type <span className="font-mono text-red-400">DELETE</span> to confirm
+              </Label>
+              <Input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value.toUpperCase())}
+                placeholder="Type DELETE"
+                className="bg-slate-700/50 border-slate-600 text-white font-mono"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setDeleteConfirmText("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteClient}
+              disabled={deleteConfirmText !== "DELETE" || deleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Client
+                </>
+              )}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

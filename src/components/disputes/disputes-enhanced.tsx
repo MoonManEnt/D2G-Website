@@ -217,7 +217,7 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
   // Calculate stats
   const stats = {
     totalAccounts: parsedAccounts.length,
-    highPriority: parsedAccounts.filter((a) => a.detectedIssues?.some((i) => i.severity === "HIGH")).length,
+    highPriority: parsedAccounts.filter((a) => Array.isArray(a.detectedIssues) && a.detectedIssues.some((i) => i.severity === "HIGH")).length,
     collections: parsedAccounts.filter((a) => a.accountStatus === "Collection" || a.accountStatus === "COLLECTION").length,
     totalBalance: parsedAccounts.reduce((sum, a) => sum + (a.balance || 0), 0),
   };
