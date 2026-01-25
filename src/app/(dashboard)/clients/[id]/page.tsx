@@ -49,6 +49,8 @@ import {
   Download,
   ExternalLink,
   History,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { ScoreChart, AddScoreModal } from "@/components/credit-scores";
 import { useToast } from "@/lib/use-toast";
@@ -438,6 +440,7 @@ export default function ClientDetailPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [showSSN, setShowSSN] = useState(false);
 
   const fetchClient = useCallback(async () => {
     try {
@@ -894,9 +897,28 @@ export default function ClientDetailPage() {
               <Shield className="w-4 h-4 text-slate-500 mt-1" />
               <div>
                 <p className="text-xs text-slate-500 mb-0.5">SSN Last 4</p>
-                <p className="text-white font-mono">
-                  {client.ssnLast4 ? `***-***-${client.ssnLast4}` : "Not provided"}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-white font-mono">
+                    {client.ssnLast4
+                      ? showSSN
+                        ? `***-**-${client.ssnLast4}`
+                        : "***-**-****"
+                      : "Not provided"}
+                  </p>
+                  {client.ssnLast4 && (
+                    <button
+                      onClick={() => setShowSSN(!showSSN)}
+                      className="p-1 rounded hover:bg-slate-700/50 transition-colors"
+                      title={showSSN ? "Hide SSN" : "Show SSN"}
+                    >
+                      {showSSN ? (
+                        <EyeOff className="w-4 h-4 text-slate-400" />
+                      ) : (
+                        <Eye className="w-4 h-4 text-slate-400" />
+                      )}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -1197,7 +1219,7 @@ export default function ClientDetailPage() {
                       variant="outline"
                       onClick={generateDNA}
                       disabled={dnaLoading}
-                      className="bg-transparent border-slate-600"
+                      className="bg-slate-700/50 border-slate-500 text-white hover:bg-slate-600/50 hover:border-slate-400"
                     >
                       {dnaLoading ? (
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />

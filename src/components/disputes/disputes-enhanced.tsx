@@ -700,21 +700,21 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="bg-slate-800/40 border-slate-700 p-1.5 w-fit">
-          <TabsTrigger value="create" className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-400">
-            <Sparkles className="w-4 h-4 mr-2" />
+        <TabsList className="bg-slate-800/50 border border-slate-700/50 p-1 w-fit">
+          <TabsTrigger value="create" className="gap-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
+            <Sparkles className="w-4 h-4" />
             Create Dispute
           </TabsTrigger>
-          <TabsTrigger value="rounds" className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-400">
-            <BarChart3 className="w-4 h-4 mr-2" />
+          <TabsTrigger value="rounds" className="gap-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
+            <BarChart3 className="w-4 h-4" />
             Round Flow
           </TabsTrigger>
-          <TabsTrigger value="cfpb" className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-400">
-            <Building className="w-4 h-4 mr-2" />
+          <TabsTrigger value="cfpb" className="gap-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
+            <Building className="w-4 h-4" />
             CFPB Complaints
           </TabsTrigger>
-          <TabsTrigger value="history" className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-400">
-            <History className="w-4 h-4 mr-2" />
+          <TabsTrigger value="history" className="gap-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
+            <History className="w-4 h-4" />
             History
           </TabsTrigger>
         </TabsList>
