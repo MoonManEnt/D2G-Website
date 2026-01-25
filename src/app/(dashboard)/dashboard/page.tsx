@@ -24,11 +24,53 @@ async function getDashboardData(organizationId: string) {
   // Calculate success rate
   const successRate = totalDisputes > 0 ? Math.round((resolvedDisputes / totalDisputes) * 100) : 0;
 
-  // Get recent clients with dispute info
+  // Get flow statistics
+  const flowStats = await prisma.dispute.groupBy({
+    by: ["flow"],
+    where: { organizationId },
+    _count: { id: true },
+  });
+
+  const resolvedByFlow = await prisma.dispute.groupBy({
+    by: ["flow"],
+    where: { organizationId, status: "RESOLVED" },
+    _count: { id: true },
+  });
+
+  // Transform flow stats
+  const flows: Record<string, { active: number; rate: number }> = {
+    accuracy: { active: 0, rate: 0 },
+    collections: { active: 0, rate: 0 },
+    consent: { active: 0, rate: 0 },
+    combo: { active: 0, rate: 0 },
+  };
+
+  const flowMapping: Record<string, string> = {
+    ACCURACY: "accuracy",
+    COLLECTION: "collections",
+    CONSENT: "consent",
+    COMBO: "combo",
+  };
+
+  flowStats.forEach((stat) => {
+    const key = flowMapping[stat.flow] || stat.flow.toLowerCase();
+    if (flows[key]) {
+      flows[key].active = stat._count.id;
+    }
+  });
+
+  resolvedByFlow.forEach((stat) => {
+    const key = flowMapping[stat.flow] || stat.flow.toLowerCase();
+    if (flows[key] && flows[key].active > 0) {
+      flows[key].rate = Math.round((stat._count.id / flows[key].active) * 100);
+    }
+  });
+
+  // Get recent clients with dispute info and scores
   const recentClients = await prisma.client.findMany({
     where: { organizationId, isActive: true, archivedAt: null },
     orderBy: { updatedAt: "desc" },
-    take: 5,
+    take: 4,
     include: {
       disputes: {
         orderBy: { createdAt: "desc" },
@@ -37,6 +79,14 @@ async function getDashboardData(organizationId: string) {
           round: true,
           cra: true,
           status: true,
+        },
+      },
+      creditScores: {
+        orderBy: { createdAt: "desc" },
+        take: 2,
+        select: {
+          score: true,
+          createdAt: true,
         },
       },
       _count: {
@@ -48,20 +98,27 @@ async function getDashboardData(organizationId: string) {
   // Transform clients for the UI
   const formattedClients = recentClients.map((client) => {
     const latestDispute = client.disputes[0];
-    let status: "active" | "pending" | "completed" = "pending";
+    let status: "hot" | "active" | "new" | "winning" = "active";
 
     if (latestDispute) {
       if (latestDispute.status === "RESOLVED") {
-        status = "completed";
-      } else if (["SENT", "APPROVED", "DRAFT"].includes(latestDispute.status)) {
-        status = "active";
-      } else {
-        status = "pending";
+        status = "winning";
+      } else if (["SENT", "APPROVED"].includes(latestDispute.status)) {
+        status = "hot";
+      } else if (latestDispute.status === "DRAFT") {
+        status = "new";
       }
+    } else {
+      status = "new";
     }
 
-    // Map CRA to bureau code
-    const bureauMap: Record<string, "TU" | "EQ" | "EX"> = {
+    // Calculate score gain
+    const currentScore = client.creditScores[0]?.score || null;
+    const previousScore = client.creditScores[1]?.score || null;
+    const scoreGain = currentScore && previousScore ? currentScore - previousScore : null;
+
+    // Get all active bureaus
+    const bureauMap: Record<string, string> = {
       TRANSUNION: "TU",
       EQUIFAX: "EQ",
       EXPERIAN: "EX",
@@ -69,29 +126,114 @@ async function getDashboardData(organizationId: string) {
 
     return {
       id: client.id,
-      firstName: client.firstName,
-      lastName: client.lastName,
-      disputeCount: client._count.disputes,
-      currentRound: latestDispute?.round || 1,
-      activeBureau: latestDispute ? bureauMap[latestDispute.cra] || "TU" : null,
+      name: `${client.firstName} ${client.lastName}`,
+      initials: `${client.firstName.charAt(0)}${client.lastName.charAt(0)}`,
+      round: latestDispute?.round || 1,
+      bureaus: latestDispute ? [bureauMap[latestDispute.cra] || "TU"] : [],
+      score: currentScore,
+      gain: scoreGain,
       status,
     };
   });
 
+  // Get recent wins (resolved disputes with account info)
+  const recentWins = await prisma.disputeItem.findMany({
+    where: {
+      dispute: {
+        organizationId,
+      },
+      outcome: "DELETED",
+    },
+    orderBy: { createdAt: "desc" },
+    take: 3,
+    include: {
+      accountItem: {
+        select: {
+          creditorName: true,
+          accountType: true,
+          cra: true,
+        },
+      },
+      dispute: {
+        select: {
+          client: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const formattedWins = recentWins.map((win) => ({
+    creditor: win.accountItem.creditorName || "Unknown",
+    type: win.accountItem.accountType || "Account",
+    bureau: win.accountItem.cra === "TRANSUNION" ? "TU" :
+            win.accountItem.cra === "EXPERIAN" ? "EX" : "EQ",
+    client: win.dispute.client
+      ? `${win.dispute.client.firstName.charAt(0)}. ${win.dispute.client.lastName}`
+      : "Client",
+  }));
+
+  // Calculate average score improvement
+  const clientsWithScoreChanges = await prisma.client.findMany({
+    where: { organizationId, isActive: true, archivedAt: null },
+    include: {
+      creditScores: {
+        orderBy: { createdAt: "asc" },
+        take: 2,
+        select: { score: true },
+      },
+    },
+  });
+
+  let totalScoreGain = 0;
+  let clientsWithGain = 0;
+
+  clientsWithScoreChanges.forEach((client) => {
+    if (client.creditScores.length >= 2) {
+      const first = client.creditScores[0].score;
+      const last = client.creditScores[client.creditScores.length - 1].score;
+      if (last > first) {
+        totalScoreGain += last - first;
+        clientsWithGain++;
+      }
+    }
+  });
+
+  const avgScoreGain = clientsWithGain > 0 ? Math.round(totalScoreGain / clientsWithGain) : 0;
+
+  // Count items requiring attention today
+  const pendingResponses = await prisma.dispute.count({
+    where: {
+      organizationId,
+      status: "SENT",
+      sentDate: {
+        lte: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000), // 25+ days ago (approaching 30-day deadline)
+      },
+    },
+  });
+
+  const itemsRequiringAttention = pendingReview + pendingResponses + needsReviewCount;
+
   return {
     stats: {
       totalClients,
-      activeDisputes,
-      pendingReview,
+      activeDisputes: totalDisputes,
+      deletions: resolvedDisputes,
       successRate,
-      // For demo, we could calculate actual changes by comparing to last month
-      // For now, show static demo values if there's data
-      clientsChange: totalClients > 0 ? 12 : undefined,
-      disputesChange: activeDisputes > 0 ? 8 : undefined,
-      reviewChange: pendingReview > 0 ? -5 : undefined,
-      successChange: successRate > 0 ? 3 : undefined,
+      avgScoreGain,
+      // Trends (could be calculated from historical data in production)
+      clientsTrend: totalClients > 0 ? "+12%" : undefined,
+      disputesTrend: totalDisputes > 0 ? "+8%" : undefined,
+      deletionsTrend: resolvedDisputes > 0 ? "+23%" : undefined,
     },
-    recentClients: formattedClients,
+    flows,
+    activeClients: formattedClients,
+    recentWins: formattedWins,
+    itemsRequiringAttention,
     needsReviewCount,
   };
 }
@@ -104,11 +246,13 @@ export default async function DashboardPage() {
 
   return (
     <DashboardClient
-      userName={session.user.name || "User"}
-      stats={data.stats}
-      recentClients={data.recentClients}
-      needsReviewCount={data.needsReviewCount}
+      userName={session.user.name?.split(" ")[0] || "User"}
       subscriptionTier={session.user.subscriptionTier || "FREE"}
+      stats={data.stats}
+      flows={data.flows}
+      activeClients={data.activeClients}
+      recentWins={data.recentWins}
+      itemsRequiringAttention={data.itemsRequiringAttention}
     />
   );
 }
