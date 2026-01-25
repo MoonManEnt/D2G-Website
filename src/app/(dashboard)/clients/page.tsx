@@ -351,17 +351,19 @@ function ClientQuickViewModal({
       const res = await fetch(`/api/clients/${client.id}`);
       if (res.ok) {
         const data = await res.json();
-        setDetail(data);
+        // API returns { client, summary } structure
+        const clientData = data.client || data;
+        setDetail(clientData);
         setEditForm({
-          email: data.email || "",
-          phone: data.phone || "",
-          addressLine1: data.addressLine1 || "",
-          addressLine2: data.addressLine2 || "",
-          city: data.city || "",
-          state: data.state || "",
-          zipCode: data.zipCode || "",
-          dateOfBirth: data.dateOfBirth ? data.dateOfBirth.split("T")[0] : "",
-          ssnLast4: data.ssnLast4 || "",
+          email: clientData.email || "",
+          phone: clientData.phone || "",
+          addressLine1: clientData.addressLine1 || "",
+          addressLine2: clientData.addressLine2 || "",
+          city: clientData.city || "",
+          state: clientData.state || "",
+          zipCode: clientData.zipCode || "",
+          dateOfBirth: clientData.dateOfBirth ? clientData.dateOfBirth.split("T")[0] : "",
+          ssnLast4: clientData.ssnLast4 || "",
         });
 
         // Fetch account stats
