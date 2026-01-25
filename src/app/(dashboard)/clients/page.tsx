@@ -163,17 +163,15 @@ const itemVariants = {
 };
 
 const modalVariants = {
-  hidden: { opacity: 0, scale: 0.95, y: 20 },
+  hidden: { opacity: 0, scale: 0.95 },
   visible: {
     opacity: 1,
     scale: 1,
-    y: 0,
     transition: { type: "spring" as const, damping: 25, stiffness: 300 }
   },
   exit: {
     opacity: 0,
     scale: 0.95,
-    y: 20,
     transition: { duration: 0.2 }
   },
 };
@@ -463,15 +461,16 @@ function ClientQuickViewModal({
             onClick={onClose}
           />
 
-          {/* Modal */}
-          <motion.div
-            variants={modalVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-5xl max-h-[90vh] z-50 overflow-hidden"
-          >
-            <div className="h-full rounded-2xl bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 shadow-2xl shadow-black/50 overflow-hidden flex flex-col">
+          {/* Modal Container - uses flex centering */}
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              variants={modalVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="w-full max-w-5xl max-h-[90vh] overflow-hidden"
+            >
+              <div className="h-full rounded-2xl bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 shadow-2xl shadow-black/50 overflow-hidden flex flex-col">
               {/* Glassmorphic gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none" />
               <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent" />
@@ -815,6 +814,7 @@ function ClientQuickViewModal({
               </div>
             </div>
           </motion.div>
+          </div>
 
           {/* Report Comparison Modal */}
           <ReportComparisonModal
