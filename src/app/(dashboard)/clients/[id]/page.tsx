@@ -1163,7 +1163,7 @@ export default function ClientDetailPage() {
           {dnaProfile ? (
             <div className="space-y-6">
               {/* DNA Classification Header */}
-              <Card className={`border-2 ${getDNABorderColor(dnaProfile.classification)}`}>
+              <Card className={`bg-slate-800/50 border-2 ${getDNABorderColor(dnaProfile.classification)}`}>
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4">
@@ -1299,7 +1299,7 @@ export default function ClientDetailPage() {
               </div>
 
               {/* Recommended Strategy */}
-              <Card className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border-blue-500/30">
+              <Card className="bg-slate-800/50 border border-indigo-500/30">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-white text-lg flex items-center gap-2">
                     <Shield className="w-5 h-5 text-blue-400" />
