@@ -7,13 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   Loader2,
   Plus,
   Scale,
@@ -23,13 +16,6 @@ import {
   Building,
   Eye,
   BarChart3,
-  AlertTriangle,
-  CheckCircle,
-  Download,
-  Edit3,
-  Copy,
-  Check,
-  Printer,
 } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
 
@@ -41,6 +27,7 @@ import { SmartAccountCard } from "./smart-account-card";
 import { RoundFlowView } from "./round-flow-view";
 import { CFPBView } from "./cfpb-view";
 import { AmeliaInsightsPanel } from "./amelia-insights-panel";
+import { LetterEditorModal } from "./letter-editor-modal";
 import type { AmeliaInsight } from "./amelia-insights-panel";
 
 // Types
@@ -114,7 +101,6 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
       ameliaVersion: string;
     };
   } | null>(null);
-  const [letterCopied, setLetterCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [generatingAmelia, setGeneratingAmelia] = useState(false);
   const [launching, setLaunching] = useState(false);
@@ -526,27 +512,6 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
     } finally {
       setDownloading(false);
     }
-  };
-
-  // Copy letter to clipboard
-  const handleCopyLetter = async () => {
-    if (!generatedLetter?.content) return;
-
-    try {
-      await navigator.clipboard.writeText(generatedLetter.content);
-      setLetterCopied(true);
-      setTimeout(() => setLetterCopied(false), 2000);
-      toast({ title: "Copied", description: "Letter copied to clipboard" });
-    } catch {
-      toast({ title: "Failed", description: "Could not copy to clipboard", variant: "destructive" });
-    }
-  };
-
-  // Close letter modal and reset
-  const handleCloseLetterModal = () => {
-    setLetterModalOpen(false);
-    // Don't reset selection - let user continue editing if they want
-    setAmeliaInsights(null);
   };
 
   // Launch dispute - marks as SENT and starts 30-day FCRA tracking
@@ -1176,195 +1141,22 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
         </TabsContent>
       </Tabs>
 
-      {/* Letter Preview Modal */}
-      <Dialog open={letterModalOpen} onOpenChange={setLetterModalOpen}>
-        <DialogContent className="bg-slate-800 border-slate-700 max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-          <DialogHeader className="flex-shrink-0">
-            <DialogTitle className="text-white flex items-center gap-2">
-              <FileText className="w-5 h-5 text-purple-400" />
-              {generatedLetter?.documentTitle || "Dispute Letter"}
-            </DialogTitle>
-            <DialogDescription className="text-slate-400">
-              Review the generated dispute letter before downloading or sending
-            </DialogDescription>
-          </DialogHeader>
-
-          {/* Letter metadata */}
-          {generatedLetter && (
-            <div className="space-y-3 pb-3 border-b border-slate-700">
-              {/* AMELIA badge row */}
-              <div className="flex items-center gap-3 flex-wrap">
-                {generatedLetter.ameliaMetadata && (
-                  <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs">
-                    <Sparkles className="w-3 h-3 mr-1" />
-                    AMELIA v{generatedLetter.ameliaMetadata.ameliaVersion}
-                  </Badge>
-                )}
-                <Badge className={CRA_COLORS[generatedLetter.cra]?.tailwind || "bg-slate-500/20 text-slate-400"}>
-                  {generatedLetter.cra}
-                </Badge>
-                <Badge className="bg-purple-500/20 text-purple-400">
-                  Round {generatedLetter.round}
-                </Badge>
-                <Badge className="bg-blue-500/20 text-blue-400">
-                  {generatedLetter.flow}
-                  {generatedLetter.ameliaMetadata?.effectiveFlow && generatedLetter.ameliaMetadata.effectiveFlow !== generatedLetter.flow && (
-                    <span className="ml-1 opacity-60">→ {generatedLetter.ameliaMetadata.effectiveFlow}</span>
-                  )}
-                </Badge>
-              </div>
-
-              {/* AMELIA metadata details */}
-              {generatedLetter.ameliaMetadata && (
-                <div className="flex items-center gap-4 text-xs flex-wrap">
-                  {/* Tone indicator */}
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-slate-500">Tone:</span>
-                    <span className={cn(
-                      "font-medium",
-                      generatedLetter.ameliaMetadata.tone === "CONCERNED" && "text-blue-400",
-                      generatedLetter.ameliaMetadata.tone === "WORRIED" && "text-amber-400",
-                      generatedLetter.ameliaMetadata.tone === "FED_UP" && "text-orange-400",
-                      generatedLetter.ameliaMetadata.tone === "WARNING" && "text-red-400",
-                      generatedLetter.ameliaMetadata.tone === "PISSED" && "text-red-500"
-                    )}>
-                      {generatedLetter.ameliaMetadata.tone}
-                    </span>
-                  </div>
-
-                  {/* Backdating indicator */}
-                  {generatedLetter.ameliaMetadata.isBackdated && (
-                    <div className="flex items-center gap-1.5 text-amber-400">
-                      <AlertTriangle className="w-3 h-3" />
-                      <span>Backdated {generatedLetter.ameliaMetadata.backdatedDays} days</span>
-                    </div>
-                  )}
-
-                  {/* Statute */}
-                  <div className="flex items-center gap-1.5">
-                    <Scale className="w-3 h-3 text-slate-500" />
-                    <span className="text-slate-400">{generatedLetter.ameliaMetadata.statute}</span>
-                  </div>
-
-                  {/* Personal info disputed */}
-                  {(generatedLetter.ameliaMetadata.personalInfoDisputed.previousNames > 0 ||
-                    generatedLetter.ameliaMetadata.personalInfoDisputed.previousAddresses > 0 ||
-                    generatedLetter.ameliaMetadata.personalInfoDisputed.hardInquiries > 0) && (
-                    <div className="flex items-center gap-1.5 text-emerald-400">
-                      <CheckCircle className="w-3 h-3" />
-                      <span>
-                        Personal info disputed ({generatedLetter.ameliaMetadata.personalInfoDisputed.previousNames} names,{" "}
-                        {generatedLetter.ameliaMetadata.personalInfoDisputed.previousAddresses} addresses,{" "}
-                        {generatedLetter.ameliaMetadata.personalInfoDisputed.hardInquiries} inquiries)
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Letter date */}
-                  <span className="text-slate-500 ml-auto">
-                    Letter Date: {new Date(generatedLetter.ameliaMetadata.letterDate).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric"
-                    })}
-                  </span>
-                </div>
-              )}
-
-              {/* Fallback for non-AMELIA letters */}
-              {!generatedLetter.ameliaMetadata && (
-                <span className="text-xs text-slate-500">
-                  Generated {new Date().toLocaleDateString()} (Basic Template)
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* Letter content */}
-          <div className="flex-1 overflow-y-auto my-4">
-            <div className="bg-white rounded-lg p-8 text-black font-serif text-sm leading-relaxed shadow-lg">
-              {generatedLetter?.content ? (
-                <div className="whitespace-pre-wrap">{generatedLetter.content}</div>
-              ) : (
-                <div className="text-center text-slate-400 py-12">
-                  <Loader2 className="w-8 h-8 mx-auto animate-spin mb-4" />
-                  Loading letter content...
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center justify-between pt-4 border-t border-slate-700 flex-shrink-0">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCopyLetter}
-                className="gap-2"
-              >
-                {letterCopied ? (
-                  <>
-                    <Check className="w-4 h-4 text-green-400" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4" />
-                    Copy Text
-                  </>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.print()}
-                className="gap-2"
-              >
-                <Printer className="w-4 h-4" />
-                Print
-              </Button>
-              <Button
-                onClick={handleDownloadLetter}
-                disabled={downloading}
-                variant="outline"
-                size="sm"
-                className="gap-2"
-              >
-                {downloading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Download className="w-4 h-4" />
-                )}
-                Download DOCX
-              </Button>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" onClick={handleCloseLetterModal}>
-                Save Draft
-              </Button>
-              {/* LAUNCH BUTTON - Approves letter and starts 30-day tracking */}
-              <Button
-                onClick={handleLaunchDispute}
-                disabled={launching}
-                className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 gap-2 font-semibold"
-              >
-                {launching ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Launching...
-                  </>
-                ) : (
-                  <>
-                    🚀 Launch Round {generatedLetter?.round || 1}
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Letter Editor Modal - Full featured editor with AMELIA AI */}
+      <LetterEditorModal
+        open={letterModalOpen}
+        onOpenChange={(open) => {
+          setLetterModalOpen(open);
+          if (!open) {
+            // Reset state when modal closes
+            setAmeliaInsights(null);
+          }
+        }}
+        generatedLetter={generatedLetter}
+        onLaunch={handleLaunchDispute}
+        launching={launching}
+        onDownload={handleDownloadLetter}
+        downloading={downloading}
+      />
     </div>
   );
 }

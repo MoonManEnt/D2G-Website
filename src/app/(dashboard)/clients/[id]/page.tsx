@@ -39,6 +39,8 @@ import {
   Zap,
   RefreshCw,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   BarChart3,
   Shield,
   Clock,
@@ -147,6 +149,16 @@ interface ChartDataPoint {
   TRANSUNION?: number;
   EXPERIAN?: number;
   EQUIFAX?: number;
+}
+
+// CRA Badge Colors
+function getCRABadgeStyle(cra: string): string {
+  const styles: Record<string, string> = {
+    TRANSUNION: "bg-sky-500/20 text-sky-400 border-sky-500/30",
+    EXPERIAN: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+    EQUIFAX: "bg-red-500/20 text-red-400 border-red-500/30",
+  };
+  return styles[cra] || "bg-slate-500/20 text-slate-400 border-slate-500/30";
 }
 
 // DNA Color Helper Functions
@@ -276,6 +288,122 @@ function getComplexityBadgeColor(complexity: string): string {
     VERY_COMPLEX: "bg-red-500/20 text-red-400",
   };
   return colors[complexity] || "bg-slate-500/20 text-slate-400";
+}
+
+// Negative Item Card Component
+function NegativeItemCard({ account, onViewDetails }: {
+  account: ClientData["accounts"][0];
+  onViewDetails: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const issues = account.detectedIssues ? JSON.parse(account.detectedIssues) : [];
+  const visibleIssues = expanded ? issues : issues.slice(0, 2);
+  const hiddenCount = issues.length - 2;
+
+  const formatCurrency = (amount: number | null) => {
+    if (amount === null || amount === undefined) return "—";
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  return (
+    <Card className="bg-slate-800/60 border-slate-700/50 hover:border-slate-600/50 transition-colors">
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            {/* Header Row */}
+            <div className="flex items-center gap-2 flex-wrap mb-3">
+              <span className="font-semibold text-white text-lg">{account.creditorName}</span>
+              <Badge variant="outline" className={getCRABadgeStyle(account.cra)}>
+                {account.cra}
+              </Badge>
+              {account.issueCount > 0 && (
+                <Badge className="bg-red-500/20 text-red-400 border-red-500/30">
+                  {account.issueCount} Issues
+                </Badge>
+              )}
+            </div>
+
+            {/* Account Details Row */}
+            <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm mb-3">
+              <div>
+                <span className="text-slate-500">Account: </span>
+                <span className="text-slate-300 font-mono">{account.maskedAccountId || "N/A"}</span>
+              </div>
+              <div>
+                <span className="text-slate-500">Status: </span>
+                <span className="text-red-400 font-medium">{account.accountStatus}</span>
+              </div>
+              <div>
+                <span className="text-slate-500">Balance: </span>
+                <span className="text-slate-300">{formatCurrency(account.balance)}</span>
+              </div>
+              <div>
+                <span className="text-slate-500">Past Due: </span>
+                <span className={account.pastDue && account.pastDue > 0 ? "text-red-400" : "text-slate-300"}>
+                  {formatCurrency(account.pastDue)}
+                </span>
+              </div>
+            </div>
+
+            {/* Issues List */}
+            {issues.length > 0 && (
+              <div className="space-y-1.5">
+                {visibleIssues.map((issue: { severity: string; description: string; code?: string }, idx: number) => (
+                  <div key={idx} className="flex items-start gap-2">
+                    <Badge
+                      className={`text-[10px] px-1.5 py-0.5 flex-shrink-0 ${
+                        issue.severity === "HIGH"
+                          ? "bg-red-500/20 text-red-400"
+                          : issue.severity === "MEDIUM"
+                          ? "bg-amber-500/20 text-amber-400"
+                          : "bg-slate-500/20 text-slate-400"
+                      }`}
+                    >
+                      {issue.severity}
+                    </Badge>
+                    <span className="text-sm text-slate-400 leading-tight">{issue.description}</span>
+                  </div>
+                ))}
+                {!expanded && hiddenCount > 0 && (
+                  <button
+                    onClick={() => setExpanded(true)}
+                    className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 mt-1"
+                  >
+                    +{hiddenCount} more
+                    <ChevronDown className="w-3 h-3" />
+                  </button>
+                )}
+                {expanded && issues.length > 2 && (
+                  <button
+                    onClick={() => setExpanded(false)}
+                    className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 mt-1"
+                  >
+                    Show less
+                    <ChevronUp className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* View Details Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onViewDetails}
+            className="flex-shrink-0 bg-slate-800 border-slate-600 hover:bg-slate-700 text-slate-200"
+          >
+            View Details
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function ClientDetailPage() {
@@ -430,14 +558,11 @@ export default function ClientDetailPage() {
     try {
       let finalUrl = "";
 
-      // Try Vercel Blob first, fall back to local upload
       try {
         const { upload } = await import("@vercel/blob/client");
         const timestamp = Date.now();
         const randomNum = Math.floor(Math.random() * 100000);
         const safePath = `reports/report${timestamp}${randomNum}.pdf`;
-
-        console.log("Starting Vercel Blob upload...");
 
         const blob = await upload(safePath, file, {
           access: "public",
@@ -445,11 +570,9 @@ export default function ClientDetailPage() {
         });
 
         finalUrl = blob.url;
-        console.log("Vercel Blob upload complete:", finalUrl);
       } catch (blobError) {
         console.warn("Vercel Blob upload failed, falling back to local:", blobError);
 
-        // Local Fallback
         const formData = new FormData();
         formData.append("file", file);
         formData.append("type", "reports");
@@ -466,10 +589,8 @@ export default function ClientDetailPage() {
 
         const localData = await localRes.json();
         finalUrl = localData.url;
-        console.log("Local upload complete:", finalUrl);
       }
 
-      // Now process the report with the final URL (could be blob or local)
       const res = await fetch("/api/reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -585,23 +706,6 @@ export default function ClientDetailPage() {
     }
   };
 
-  const formatCurrency = (amount: number | null) => {
-    if (amount === null) return "—";
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
-
-  const parseIssues = (detectedIssues: string | null) => {
-    if (!detectedIssues) return [];
-    try {
-      return JSON.parse(detectedIssues);
-    } catch {
-      return [];
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96 lg:ml-64">
@@ -619,12 +723,15 @@ export default function ClientDetailPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.push("/clients")}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
+          <button
+            onClick={() => router.push("/clients")}
+            className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 text-slate-400" />
+          </button>
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-              <span className="text-primary font-bold text-lg">
+            <div className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center">
+              <span className="text-white font-semibold text-lg">
                 {client.firstName.charAt(0)}{client.lastName.charAt(0)}
               </span>
             </div>
@@ -632,15 +739,19 @@ export default function ClientDetailPage() {
               <h1 className="text-2xl font-bold text-white">
                 {client.firstName} {client.lastName}
               </h1>
-              <p className="text-slate-400 text-sm">
+              <p className="text-slate-500 text-sm">
                 Client since {new Date(client.createdAt).toLocaleDateString()}
               </p>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setEditDialogOpen(true)}>
-            <Edit className="w-4 h-4 mr-2" />
+          <Button
+            variant="outline"
+            onClick={() => setEditDialogOpen(true)}
+            className="gap-2 bg-transparent border-slate-600 hover:bg-slate-800 text-slate-200"
+          >
+            <Edit className="w-4 h-4" />
             Edit
           </Button>
           <label>
@@ -651,12 +762,12 @@ export default function ClientDetailPage() {
               className="hidden"
               disabled={uploading}
             />
-            <Button asChild disabled={uploading}>
+            <Button asChild disabled={uploading} className="gap-2 bg-purple-600 hover:bg-purple-700">
               <span>
                 {uploading ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <Upload className="w-4 h-4 mr-2" />
+                  <Upload className="w-4 h-4" />
                 )}
                 Upload Report
               </span>
@@ -664,10 +775,10 @@ export default function ClientDetailPage() {
           </label>
           <Button
             variant="outline"
-            className="text-red-400 border-red-500/30 hover:bg-red-500/10 hover:text-red-300"
+            className="gap-2 text-red-400 border-red-500/30 hover:bg-red-500/10 hover:text-red-300 bg-transparent"
             onClick={() => setDeleteDialogOpen(true)}
           >
-            <Trash2 className="w-4 h-4 mr-2" />
+            <Trash2 className="w-4 h-4" />
             Delete
           </Button>
         </div>
@@ -676,86 +787,87 @@ export default function ClientDetailPage() {
       {/* Summary Stats */}
       {summary && (
         <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-slate-800/50 border-slate-700/50">
             <CardContent className="p-4 text-center">
-              <FileText className="w-6 h-6 mx-auto text-blue-400" />
+              <FileText className="w-6 h-6 mx-auto text-slate-400" />
               <p className="text-2xl font-bold text-white mt-2">{summary.totalReports}</p>
-              <p className="text-xs text-slate-400">Reports</p>
+              <p className="text-xs text-slate-500">Reports</p>
             </CardContent>
           </Card>
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-slate-800/50 border-slate-700/50">
             <CardContent className="p-4 text-center">
-              <User className="w-6 h-6 mx-auto text-green-400" />
+              <User className="w-6 h-6 mx-auto text-slate-400" />
               <p className="text-2xl font-bold text-white mt-2">{summary.totalAccounts}</p>
-              <p className="text-xs text-slate-400">Accounts</p>
+              <p className="text-xs text-slate-500">Accounts</p>
             </CardContent>
           </Card>
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-slate-800/50 border-slate-700/50">
             <CardContent className="p-4 text-center">
-              <AlertTriangle className="w-6 h-6 mx-auto text-red-400" />
-              <p className="text-2xl font-bold text-red-400 mt-2">{summary.negativeItems}</p>
-              <p className="text-xs text-slate-400">Negative Items</p>
+              <AlertTriangle className="w-6 h-6 mx-auto text-amber-400" />
+              <p className="text-2xl font-bold text-amber-400 mt-2">{summary.negativeItems}</p>
+              <p className="text-xs text-slate-500">Negative Items</p>
             </CardContent>
           </Card>
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-slate-800/50 border-slate-700/50">
             <CardContent className="p-4 text-center">
-              <ShieldAlert className="w-6 h-6 mx-auto text-amber-400" />
-              <p className="text-2xl font-bold text-amber-400 mt-2">{summary.highSeverityIssues}</p>
-              <p className="text-xs text-slate-400">High Severity</p>
+              <ShieldAlert className="w-6 h-6 mx-auto text-red-400" />
+              <p className="text-2xl font-bold text-red-400 mt-2">{summary.highSeverityIssues}</p>
+              <p className="text-xs text-slate-500">High Severity</p>
             </CardContent>
           </Card>
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-slate-800/50 border-slate-700/50">
             <CardContent className="p-4 text-center">
-              <Scale className="w-6 h-6 mx-auto text-purple-400" />
+              <Scale className="w-6 h-6 mx-auto text-slate-400" />
               <p className="text-2xl font-bold text-white mt-2">{summary.totalDisputes}</p>
-              <p className="text-xs text-slate-400">Disputes</p>
+              <p className="text-xs text-slate-500">Disputes</p>
             </CardContent>
           </Card>
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-slate-800/50 border-slate-700/50">
             <CardContent className="p-4 text-center">
-              <ImageIcon className="w-6 h-6 mx-auto text-teal-400" />
+              <ImageIcon className="w-6 h-6 mx-auto text-slate-400" />
               <p className="text-2xl font-bold text-white mt-2">{summary.totalEvidence}</p>
-              <p className="text-xs text-slate-400">Evidence</p>
+              <p className="text-xs text-slate-500">Evidence</p>
             </CardContent>
           </Card>
         </div>
       )}
 
-      {/* Contact Info */}
-      <Card className="bg-slate-800/50 border-slate-700">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-white text-lg">Contact Information</CardTitle>
-            <Button variant="ghost" size="sm" onClick={() => setEditDialogOpen(true)}>
-              <Edit className="w-4 h-4" />
-            </Button>
+      {/* Contact Information */}
+      <Card className="bg-slate-800/50 border-slate-700/50">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-white">Contact Information</h2>
+            <button
+              onClick={() => setEditDialogOpen(true)}
+              className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+            >
+              <ExternalLink className="w-4 h-4 text-slate-400" />
+            </button>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
-            <div className="flex items-start gap-2">
-              <Mail className="w-4 h-4 text-slate-400 mt-0.5" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="flex items-start gap-3">
+              <Mail className="w-4 h-4 text-slate-500 mt-1" />
               <div>
-                <p className="text-slate-500 text-xs">Email</p>
-                <span className="text-white">{client.email || "Not provided"}</span>
+                <p className="text-xs text-slate-500 mb-0.5">Email</p>
+                <p className="text-white">{client.email || "Not provided"}</p>
               </div>
             </div>
-            <div className="flex items-start gap-2">
-              <Phone className="w-4 h-4 text-slate-400 mt-0.5" />
+            <div className="flex items-start gap-3">
+              <Phone className="w-4 h-4 text-slate-500 mt-1" />
               <div>
-                <p className="text-slate-500 text-xs">Phone</p>
-                <span className="text-white">{client.phone || "Not provided"}</span>
+                <p className="text-xs text-slate-500 mb-0.5">Phone</p>
+                <p className="text-white">{client.phone || "Not provided"}</p>
               </div>
             </div>
-            <div className="flex items-start gap-2">
-              <MapPin className="w-4 h-4 text-slate-400 mt-0.5" />
+            <div className="flex items-start gap-3">
+              <MapPin className="w-4 h-4 text-slate-500 mt-1" />
               <div>
-                <p className="text-slate-500 text-xs">Address</p>
-                <span className="text-white">
+                <p className="text-xs text-slate-500 mb-0.5">Address</p>
+                <p className="text-white">
                   {client.addressLine1 ? (
                     <>
                       {client.addressLine1}
-                      {client.addressLine2 && <>, {client.addressLine2}</>}
+                      {client.addressLine2 && <><br />{client.addressLine2}</>}
                       <br />
                       {client.city && `${client.city}, `}
                       {client.state && `${client.state} `}
@@ -764,27 +876,27 @@ export default function ClientDetailPage() {
                   ) : (
                     "Not provided"
                   )}
-                </span>
+                </p>
               </div>
             </div>
-            <div className="flex items-start gap-2">
-              <Calendar className="w-4 h-4 text-slate-400 mt-0.5" />
+            <div className="flex items-start gap-3">
+              <Calendar className="w-4 h-4 text-slate-500 mt-1" />
               <div>
-                <p className="text-slate-500 text-xs">Date of Birth</p>
-                <span className="text-white">
+                <p className="text-xs text-slate-500 mb-0.5">Date of Birth</p>
+                <p className="text-white">
                   {client.dateOfBirth
                     ? new Date(client.dateOfBirth).toLocaleDateString()
                     : "Not provided"}
-                </span>
+                </p>
               </div>
             </div>
-            <div className="flex items-start gap-2">
-              <ShieldAlert className="w-4 h-4 text-slate-400 mt-0.5" />
+            <div className="flex items-start gap-3">
+              <Shield className="w-4 h-4 text-slate-500 mt-1" />
               <div>
-                <p className="text-slate-500 text-xs">SSN Last 4</p>
-                <span className="text-white">
-                  {client.ssnLast4 ? `***-**-${client.ssnLast4}` : "Not provided"}
-                </span>
+                <p className="text-xs text-slate-500 mb-0.5">SSN Last 4</p>
+                <p className="text-white font-mono">
+                  {client.ssnLast4 ? `***-***-${client.ssnLast4}` : "Not provided"}
+                </p>
               </div>
             </div>
           </div>
@@ -793,33 +905,33 @@ export default function ClientDetailPage() {
 
       {/* Tabs */}
       <Tabs defaultValue="negative" className="w-full">
-        <TabsList className="bg-slate-800 border-slate-700">
-          <TabsTrigger value="negative" className="data-[state=active]:bg-slate-700">
-            <AlertTriangle className="w-4 h-4 mr-2" />
-            Negative Items ({client.accounts.length})
+        <TabsList className="bg-slate-800/50 border border-slate-700/50 p-1">
+          <TabsTrigger value="negative" className="gap-2 data-[state=active]:bg-slate-700">
+            <AlertTriangle className="w-4 h-4" />
+            Negative Items ({summary?.negativeItems || 0})
           </TabsTrigger>
-          <TabsTrigger value="reports" className="data-[state=active]:bg-slate-700">
-            <FileText className="w-4 h-4 mr-2" />
+          <TabsTrigger value="reports" className="gap-2 data-[state=active]:bg-slate-700">
+            <FileText className="w-4 h-4" />
             Reports ({client.reports.length})
           </TabsTrigger>
-          <TabsTrigger value="disputes" className="data-[state=active]:bg-slate-700">
-            <Scale className="w-4 h-4 mr-2" />
+          <TabsTrigger value="disputes" className="gap-2 data-[state=active]:bg-slate-700">
+            <Scale className="w-4 h-4" />
             Disputes ({client.disputes.length})
           </TabsTrigger>
-          <TabsTrigger value="scores" className="data-[state=active]:bg-slate-700">
-            <TrendingUp className="w-4 h-4 mr-2" />
+          <TabsTrigger value="scores" className="gap-2 data-[state=active]:bg-slate-700">
+            <TrendingUp className="w-4 h-4" />
             Credit Scores
           </TabsTrigger>
-          <TabsTrigger value="dna" className="data-[state=active]:bg-slate-700">
-            <Dna className="w-4 h-4 mr-2" />
+          <TabsTrigger value="dna" className="gap-2 data-[state=active]:bg-slate-700">
+            <Dna className="w-4 h-4" />
             Credit DNA
           </TabsTrigger>
         </TabsList>
 
         {/* Negative Items Tab */}
         <TabsContent value="negative" className="mt-4">
-          {client.accounts.length === 0 ? (
-            <Card className="bg-slate-800/50 border-slate-700">
+          {client.accounts.filter(a => a.issueCount > 0 || a.accountStatus === "COLLECTION" || a.accountStatus === "CHARGED_OFF").length === 0 ? (
+            <Card className="bg-slate-800/50 border-slate-700/50">
               <CardContent className="py-12 text-center">
                 <CheckCircle className="w-12 h-12 mx-auto text-green-500" />
                 <h3 className="text-lg font-medium text-white mt-4">No Negative Items</h3>
@@ -828,77 +940,23 @@ export default function ClientDetailPage() {
             </Card>
           ) : (
             <div className="space-y-3">
-              {client.accounts.map((account) => {
-                const issues = parseIssues(account.detectedIssues);
-                return (
-                  <Card key={account.id} className="bg-red-900/10 border-red-500/30">
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="font-semibold text-white">{account.creditorName}</span>
-                            <Badge className="bg-slate-600">{account.cra}</Badge>
-                            <Badge variant="destructive">{account.issueCount} Issues</Badge>
-                            {account.evidences.length > 0 && (
-                              <Badge className="bg-green-500/20 text-green-400">
-                                <ImageIcon className="w-3 h-3 mr-1" />
-                                {account.evidences.length} Evidence
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="grid grid-cols-4 gap-4 text-sm mb-2">
-                            <div>
-                              <span className="text-slate-500">Account:</span>
-                              <span className="text-white ml-1">{account.maskedAccountId || "N/A"}</span>
-                            </div>
-                            <div>
-                              <span className="text-slate-500">Status:</span>
-                              <span className="text-red-400 ml-1">{account.accountStatus}</span>
-                            </div>
-                            <div>
-                              <span className="text-slate-500">Balance:</span>
-                              <span className="text-white ml-1">{formatCurrency(account.balance)}</span>
-                            </div>
-                            <div>
-                              <span className="text-slate-500">Past Due:</span>
-                              <span className="text-red-400 ml-1">{formatCurrency(account.pastDue)}</span>
-                            </div>
-                          </div>
-                          <div className="space-y-1">
-                            {issues.slice(0, 2).map((issue: { severity: string; description: string }, idx: number) => (
-                              <div key={idx} className="flex items-center gap-2 text-xs">
-                                <Badge
-                                  variant={issue.severity === "HIGH" ? "destructive" : "secondary"}
-                                  className="text-[10px] px-1.5"
-                                >
-                                  {issue.severity}
-                                </Badge>
-                                <span className="text-slate-300">{issue.description}</span>
-                              </div>
-                            ))}
-                            {issues.length > 2 && (
-                              <span className="text-xs text-slate-500">+{issues.length - 2} more</span>
-                            )}
-                          </div>
-                        </div>
-                        <Link href={`/negative-items?account=${account.id}`}>
-                          <Button size="sm" variant="outline">
-                            View Details
-                          </Button>
-                        </Link>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+              {client.accounts
+                .filter(a => a.issueCount > 0 || a.accountStatus === "COLLECTION" || a.accountStatus === "CHARGED_OFF")
+                .map((account) => (
+                  <NegativeItemCard
+                    key={account.id}
+                    account={account}
+                    onViewDetails={() => router.push(`/negative-items?account=${account.id}`)}
+                  />
+                ))}
             </div>
           )}
         </TabsContent>
 
-        {/* Reports Tab - Timeline View */}
+        {/* Reports Tab */}
         <TabsContent value="reports" className="mt-4">
           {client.reports.length === 0 ? (
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-slate-800/50 border-slate-700/50">
               <CardContent className="py-12 text-center">
                 <FileText className="w-12 h-12 mx-auto text-slate-600" />
                 <h3 className="text-lg font-medium text-white mt-4">No Reports</h3>
@@ -907,18 +965,12 @@ export default function ClientDetailPage() {
             </Card>
           ) : (
             <div className="space-y-4">
-              {/* Timeline Header */}
               <div className="flex items-center gap-2 mb-2">
                 <History className="w-5 h-5 text-slate-400" />
                 <h3 className="text-lg font-medium text-white">Report History</h3>
-                <Badge className="bg-blue-500/20 text-blue-400 ml-2">
-                  {client.reports.length} {client.reports.length === 1 ? "report" : "reports"}
-                </Badge>
               </div>
 
-              {/* Timeline */}
               <div className="relative">
-                {/* Timeline line */}
                 <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-slate-700" />
 
                 {client.reports.map((report, index) => {
@@ -940,7 +992,6 @@ export default function ClientDetailPage() {
 
                   return (
                     <div key={report.id} className="relative pl-12 pb-6 last:pb-0">
-                      {/* Timeline dot */}
                       <div
                         className={`absolute left-3 w-5 h-5 rounded-full border-2 flex items-center justify-center ${
                           isLatest
@@ -955,8 +1006,7 @@ export default function ClientDetailPage() {
                         {isLatest && <div className="w-2 h-2 bg-white rounded-full" />}
                       </div>
 
-                      {/* Report Card */}
-                      <Card className={`bg-slate-800/50 border-slate-700 ${isLatest ? "ring-1 ring-blue-500/30" : ""}`}>
+                      <Card className={`bg-slate-800/50 border-slate-700/50 ${isLatest ? "ring-1 ring-blue-500/30" : ""}`}>
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex items-start gap-4 flex-1">
@@ -998,17 +1048,6 @@ export default function ClientDetailPage() {
                                     <span className="text-slate-500">Accounts parsed:</span>{" "}
                                     <span className="font-medium">{report._count.accounts}</span>
                                   </span>
-                                  {report.reportDate && (
-                                    <>
-                                      <span className="text-slate-500">•</span>
-                                      <span className="text-slate-300">
-                                        <span className="text-slate-500">Report date:</span>{" "}
-                                        <span className="font-medium">
-                                          {new Date(report.reportDate).toLocaleDateString()}
-                                        </span>
-                                      </span>
-                                    </>
-                                  )}
                                 </div>
                               </div>
                             </div>
@@ -1017,7 +1056,7 @@ export default function ClientDetailPage() {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="gap-1.5"
+                                  className="gap-1.5 bg-transparent border-slate-600"
                                   onClick={async () => {
                                     try {
                                       const res = await fetch(`/api/files/${report.originalFile!.id}/download`);
@@ -1054,26 +1093,6 @@ export default function ClientDetailPage() {
                   );
                 })}
               </div>
-
-              {/* Summary footer */}
-              {client.reports.length > 1 && (
-                <div className="mt-4 p-3 bg-slate-800/30 rounded-lg border border-slate-700/50">
-                  <p className="text-sm text-slate-400 text-center">
-                    First report uploaded on{" "}
-                    <span className="text-white">
-                      {new Date(client.reports[client.reports.length - 1].createdAt).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </span>
-                    {" "}• Total accounts tracked:{" "}
-                    <span className="text-white">
-                      {client.reports.reduce((sum, r) => sum + r._count.accounts, 0)}
-                    </span>
-                  </p>
-                </div>
-              )}
             </div>
           )}
         </TabsContent>
@@ -1081,7 +1100,7 @@ export default function ClientDetailPage() {
         {/* Disputes Tab */}
         <TabsContent value="disputes" className="mt-4">
           {client.disputes.length === 0 ? (
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-slate-800/50 border-slate-700/50">
               <CardContent className="py-12 text-center">
                 <Scale className="w-12 h-12 mx-auto text-slate-600" />
                 <h3 className="text-lg font-medium text-white mt-4">No Disputes</h3>
@@ -1091,7 +1110,7 @@ export default function ClientDetailPage() {
           ) : (
             <div className="space-y-3">
               {client.disputes.map((dispute) => (
-                <Card key={dispute.id} className="bg-slate-800/50 border-slate-700">
+                <Card key={dispute.id} className="bg-slate-800/50 border-slate-700/50">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
@@ -1124,7 +1143,7 @@ export default function ClientDetailPage() {
               onAddScore={() => setAddScoreModalOpen(true)}
             />
           ) : (
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-slate-800/50 border-slate-700/50">
               <CardContent className="py-12 text-center">
                 <TrendingUp className="w-12 h-12 mx-auto text-slate-600" />
                 <h3 className="text-lg font-medium text-white mt-4">No Credit Scores</h3>
@@ -1176,6 +1195,7 @@ export default function ClientDetailPage() {
                       variant="outline"
                       onClick={generateDNA}
                       disabled={dnaLoading}
+                      className="bg-transparent border-slate-600"
                     >
                       {dnaLoading ? (
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -1190,7 +1210,7 @@ export default function ClientDetailPage() {
 
               {/* Score Gauges */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-slate-800/50 border-slate-700/50">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
@@ -1204,7 +1224,7 @@ export default function ClientDetailPage() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-slate-800/50 border-slate-700/50">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
@@ -1218,7 +1238,7 @@ export default function ClientDetailPage() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-slate-800/50 border-slate-700/50">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
@@ -1235,7 +1255,7 @@ export default function ClientDetailPage() {
 
               {/* Key Insights & Immediate Actions */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-slate-800/50 border-slate-700/50">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-white text-lg flex items-center gap-2">
                       <Lightbulb className="w-5 h-5 text-yellow-400" />
@@ -1254,7 +1274,7 @@ export default function ClientDetailPage() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-slate-800/50 border-slate-700/50">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-white text-lg flex items-center gap-2">
                       <Target className="w-5 h-5 text-green-400" />
@@ -1286,7 +1306,7 @@ export default function ClientDetailPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-slate-300">{getDNARecommendedStrategy(dnaProfile.classification)}</p>
-                  <div className="flex gap-4 mt-4">
+                  <div className="flex gap-4 mt-4 flex-wrap">
                     <div className="flex items-center gap-2">
                       <Badge className="bg-blue-500/20 text-blue-400">
                         {dnaProfile.disputeReadiness.recommendedFlow}
@@ -1312,7 +1332,7 @@ export default function ClientDetailPage() {
               {/* Component Metrics Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* File Thickness */}
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-slate-800/50 border-slate-700/50">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-white text-sm flex items-center gap-2">
                       <BarChart3 className="w-4 h-4 text-slate-400" />
@@ -1345,7 +1365,7 @@ export default function ClientDetailPage() {
                 </Card>
 
                 {/* Derogatory Profile */}
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-slate-800/50 border-slate-700/50">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-white text-sm flex items-center gap-2">
                       <AlertTriangle className="w-4 h-4 text-red-400" />
@@ -1378,7 +1398,7 @@ export default function ClientDetailPage() {
                 </Card>
 
                 {/* Utilization */}
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-slate-800/50 border-slate-700/50">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-white text-sm flex items-center gap-2">
                       <Activity className="w-4 h-4 text-blue-400" />
@@ -1408,7 +1428,7 @@ export default function ClientDetailPage() {
                 </Card>
 
                 {/* Inquiry Analysis */}
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-slate-800/50 border-slate-700/50">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-white text-sm flex items-center gap-2">
                       <Clock className="w-4 h-4 text-purple-400" />
@@ -1441,7 +1461,7 @@ export default function ClientDetailPage() {
                 </Card>
 
                 {/* Positive Factors */}
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-slate-800/50 border-slate-700/50">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-white text-sm flex items-center gap-2">
                       <CheckCircle className="w-4 h-4 text-green-400" />
@@ -1474,7 +1494,7 @@ export default function ClientDetailPage() {
                 </Card>
 
                 {/* Dispute Readiness */}
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="bg-slate-800/50 border-slate-700/50">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-white text-sm flex items-center gap-2">
                       <Scale className="w-4 h-4 text-amber-400" />
@@ -1508,7 +1528,7 @@ export default function ClientDetailPage() {
               </div>
 
               {/* Summary */}
-              <Card className="bg-slate-800/50 border-slate-700">
+              <Card className="bg-slate-800/50 border-slate-700/50">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-white text-lg">Analysis Summary</CardTitle>
                   <CardDescription className="text-slate-400">
@@ -1522,7 +1542,7 @@ export default function ClientDetailPage() {
               </Card>
             </div>
           ) : (
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-slate-800/50 border-slate-700/50">
               <CardContent className="py-12 text-center">
                 <Dna className="w-12 h-12 mx-auto text-slate-600" />
                 <h3 className="text-lg font-medium text-white mt-4">No DNA Profile</h3>
