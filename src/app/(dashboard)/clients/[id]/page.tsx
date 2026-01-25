@@ -719,7 +719,7 @@ export default function ClientDetailPage() {
   }
 
   return (
-    <div className="space-y-6 lg:ml-64 pt-16 lg:pt-0">
+    <div className="flex flex-col h-full min-h-0 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -904,8 +904,8 @@ export default function ClientDetailPage() {
       </Card>
 
       {/* Tabs */}
-      <Tabs defaultValue="negative" className="w-full">
-        <TabsList className="bg-slate-800/50 border border-slate-700/50 p-1">
+      <Tabs defaultValue="negative" className="flex-1 flex flex-col min-h-0">
+        <TabsList className="bg-slate-800/50 border border-slate-700/50 p-1 flex-shrink-0">
           <TabsTrigger value="negative" className="gap-2 data-[state=active]:bg-slate-700">
             <AlertTriangle className="w-4 h-4" />
             Negative Items ({summary?.negativeItems || 0})
@@ -929,32 +929,34 @@ export default function ClientDetailPage() {
         </TabsList>
 
         {/* Negative Items Tab */}
-        <TabsContent value="negative" className="mt-4">
-          {client.accounts.filter(a => a.issueCount > 0 || a.accountStatus === "COLLECTION" || a.accountStatus === "CHARGED_OFF").length === 0 ? (
-            <Card className="bg-slate-800/50 border-slate-700/50">
+        <TabsContent value="negative" className="mt-4 flex-1 overflow-auto">
+          {client.accounts.length === 0 ? (
+            <Card className="bg-slate-800/50 border-slate-700/50 h-full flex items-center justify-center">
               <CardContent className="py-12 text-center">
                 <CheckCircle className="w-12 h-12 mx-auto text-green-500" />
-                <h3 className="text-lg font-medium text-white mt-4">No Negative Items</h3>
-                <p className="text-slate-400 mt-2">Upload a credit report to analyze for issues</p>
+                <h3 className="text-lg font-medium text-white mt-4">No Negative Items Found</h3>
+                <p className="text-slate-400 mt-2">
+                  {client.reports.length === 0
+                    ? "Upload a credit report to analyze for issues"
+                    : "No derogatory or disputable accounts detected in the parsed reports"}
+                </p>
               </CardContent>
             </Card>
           ) : (
             <div className="space-y-3">
-              {client.accounts
-                .filter(a => a.issueCount > 0 || a.accountStatus === "COLLECTION" || a.accountStatus === "CHARGED_OFF")
-                .map((account) => (
-                  <NegativeItemCard
-                    key={account.id}
-                    account={account}
-                    onViewDetails={() => router.push(`/negative-items?account=${account.id}`)}
-                  />
-                ))}
+              {client.accounts.map((account) => (
+                <NegativeItemCard
+                  key={account.id}
+                  account={account}
+                  onViewDetails={() => router.push(`/disputes?account=${account.id}`)}
+                />
+              ))}
             </div>
           )}
         </TabsContent>
 
         {/* Reports Tab */}
-        <TabsContent value="reports" className="mt-4">
+        <TabsContent value="reports" className="mt-4 flex-1 overflow-auto">
           {client.reports.length === 0 ? (
             <Card className="bg-slate-800/50 border-slate-700/50">
               <CardContent className="py-12 text-center">
@@ -1098,7 +1100,7 @@ export default function ClientDetailPage() {
         </TabsContent>
 
         {/* Disputes Tab */}
-        <TabsContent value="disputes" className="mt-4">
+        <TabsContent value="disputes" className="mt-4 flex-1 overflow-auto">
           {client.disputes.length === 0 ? (
             <Card className="bg-slate-800/50 border-slate-700/50">
               <CardContent className="py-12 text-center">
@@ -1134,7 +1136,7 @@ export default function ClientDetailPage() {
         </TabsContent>
 
         {/* Credit Scores Tab */}
-        <TabsContent value="scores" className="mt-4">
+        <TabsContent value="scores" className="mt-4 flex-1 overflow-auto">
           {scoreStats ? (
             <ScoreChart
               scores={creditScores}
@@ -1157,7 +1159,7 @@ export default function ClientDetailPage() {
         </TabsContent>
 
         {/* Credit DNA Tab */}
-        <TabsContent value="dna" className="mt-4">
+        <TabsContent value="dna" className="mt-4 flex-1 overflow-auto">
           {dnaProfile ? (
             <div className="space-y-6">
               {/* DNA Classification Header */}

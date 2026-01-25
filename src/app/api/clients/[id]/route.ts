@@ -44,10 +44,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           where: {
             OR: [
               { confidenceLevel: "LOW" },
-              { accountStatus: { in: ["COLLECTION", "CHARGED_OFF"] } },
+              { accountStatus: { in: ["COLLECTION", "CHARGED_OFF", "LATE", "DELINQUENT"] } },
+              { issueCount: { gt: 0 } },
+              { isDisputable: true },
+              { pastDue: { gt: 0 } },
             ],
           },
-          orderBy: { confidenceScore: "asc" },
+          orderBy: [
+            { issueCount: "desc" },
+            { confidenceScore: "asc" },
+          ],
           include: {
             evidences: {
               select: {
