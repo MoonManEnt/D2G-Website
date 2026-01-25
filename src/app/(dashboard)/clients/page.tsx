@@ -59,6 +59,29 @@ import { useToast } from "@/lib/use-toast";
 import { useRouter, useSearchParams } from "next/navigation";
 import { formatDistanceToNow, format } from "date-fns";
 
+// Safe date formatting helpers
+const safeFormat = (dateStr: string | Date | null | undefined, formatStr: string) => {
+  if (!dateStr) return "Unknown";
+  try {
+    const date = typeof dateStr === "string" ? new Date(dateStr) : dateStr;
+    if (isNaN(date.getTime())) return "Unknown";
+    return format(date, formatStr);
+  } catch {
+    return "Unknown";
+  }
+};
+
+const safeFormatDistance = (dateStr: string | Date | null | undefined) => {
+  if (!dateStr) return "Never";
+  try {
+    const date = typeof dateStr === "string" ? new Date(dateStr) : dateStr;
+    if (isNaN(date.getTime())) return "Never";
+    return formatDistanceToNow(date, { addSuffix: true });
+  } catch {
+    return "Never";
+  }
+};
+
 interface Client {
   id: string;
   firstName: string;
@@ -471,7 +494,7 @@ function ClientQuickViewModal({
                       {client.firstName} {client.lastName}
                     </h2>
                     <p className="text-slate-400 text-sm">
-                      Client since {detail ? format(new Date(detail.createdAt), "M/d/yyyy") : "..."}
+                      Client since {detail ? safeFormat(detail.createdAt, "M/d/yyyy") : "..."}
                     </p>
                   </div>
                 </div>
@@ -700,7 +723,7 @@ function ClientQuickViewModal({
                           <span>
                             Last active:{" "}
                             {client.lastActivity
-                              ? formatDistanceToNow(new Date(client.lastActivity), { addSuffix: true })
+                              ? safeFormatDistance(client.lastActivity)
                               : "Never"}
                           </span>
                         </div>
@@ -1222,7 +1245,7 @@ export default function ClientsPage() {
                 <div className="col-span-2">
                   <span className="text-sm text-slate-400">
                     {client.lastActivity
-                      ? formatDistanceToNow(new Date(client.lastActivity), { addSuffix: true })
+                      ? safeFormatDistance(client.lastActivity)
                       : "Never"}
                   </span>
                 </div>
@@ -1330,7 +1353,7 @@ export default function ClientsPage() {
                 <BureauBadges bureaus={client.activeBureaus} />
                 <span className="text-xs text-slate-500">
                   {client.lastActivity
-                    ? formatDistanceToNow(new Date(client.lastActivity), { addSuffix: true })
+                    ? safeFormatDistance(client.lastActivity)
                     : "Never"}
                 </span>
               </div>

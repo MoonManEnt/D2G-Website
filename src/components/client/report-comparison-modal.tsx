@@ -19,6 +19,18 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 
+// Safe date formatting helper
+const safeFormat = (dateStr: string | null | undefined, formatStr: string) => {
+  if (!dateStr) return "Unknown";
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "Unknown";
+    return format(date, formatStr);
+  } catch {
+    return "Unknown";
+  }
+};
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -178,7 +190,7 @@ const ScoreChart = ({ reports }: { reports: CreditReportData[] }) => {
               fill="#71717a"
               fontSize={10}
             >
-              {format(new Date(report.reportDate), "MMM")}
+              {safeFormat(report.reportDate, "MMM")}
             </text>
           ))}
 
@@ -271,13 +283,13 @@ const ComparisonTable = ({ reports }: { reports: CreditReportData[] }) => {
             <tr className="border-b border-zinc-800">
               <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500">Metric</th>
               <th className="px-4 py-3 text-center text-xs font-medium text-zinc-500">
-                {format(new Date(oldest.reportDate), "MMM d, yyyy")}
+                {safeFormat(oldest.reportDate, "MMM d, yyyy")}
               </th>
               <th className="px-4 py-3 text-center text-xs font-medium text-zinc-500">
                 <ArrowRight size={12} className="inline" />
               </th>
               <th className="px-4 py-3 text-center text-xs font-medium text-zinc-500">
-                {format(new Date(latest.reportDate), "MMM d, yyyy")}
+                {safeFormat(latest.reportDate, "MMM d, yyyy")}
               </th>
               <th className="px-4 py-3 text-center text-xs font-medium text-zinc-500">Change</th>
             </tr>

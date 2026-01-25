@@ -36,6 +36,29 @@ import {
 import { useToast } from "@/lib/use-toast";
 import { format, formatDistanceToNow } from "date-fns";
 
+// Safe date formatting helpers (module-level for reuse)
+const safeFormatDate = (dateStr: string | null | undefined, formatStr: string = "MMM d, yyyy") => {
+  if (!dateStr) return "Unknown";
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "Unknown";
+    return format(date, formatStr);
+  } catch {
+    return "Unknown";
+  }
+};
+
+const safeFormatRelativeDate = (dateStr: string | null | undefined) => {
+  if (!dateStr) return "Unknown";
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "Unknown";
+    return formatDistanceToNow(date, { addSuffix: true });
+  } catch {
+    return "Unknown";
+  }
+};
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -435,11 +458,6 @@ const ReportCard = ({
 }) => {
   const [showMenu, setShowMenu] = useState(false);
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return format(date, "MMM d, yyyy");
-  };
-
   const avgScore =
     report.bureaus.transunion.score && report.bureaus.equifax.score && report.bureaus.experian.score
       ? Math.round(
@@ -480,7 +498,7 @@ const ReportCard = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <p className="font-medium text-white text-sm">{formatDate(report.reportDate)}</p>
+                <p className="font-medium text-white text-sm">{safeFormatDate(report.reportDate)}</p>
                 {isLatest && (
                   <span className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 text-[9px] font-medium rounded-full">
                     LATEST
@@ -488,7 +506,7 @@ const ReportCard = ({
                 )}
               </div>
               <p className="text-[10px] text-zinc-500 mt-0.5">
-                Uploaded {formatDistanceToNow(new Date(report.uploadDate), { addSuffix: true })}
+                Uploaded {safeFormatRelativeDate(report.uploadDate)}
               </p>
             </div>
           </div>
@@ -1046,7 +1064,7 @@ export function CreditReportsPanel({
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-white text-sm">
-                            {format(new Date(report.reportDate), "MMM d, yyyy")}
+                            {safeFormatDate(report.reportDate)}
                           </span>
                           {index === 0 && (
                             <span className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 text-[9px] font-medium rounded-full">
