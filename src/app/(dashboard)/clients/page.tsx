@@ -851,6 +851,11 @@ export default function ClientsPage() {
     lastName: "",
     email: "",
     phone: "",
+    addressLine1: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    ssnLast4: "",
     priority: "STANDARD",
     segment: "NEW",
   });
@@ -917,7 +922,7 @@ export default function ClientsPage() {
           description: `${newClient.firstName} ${newClient.lastName} has been added.`,
         });
         setIsAddDialogOpen(false);
-        setNewClient({ firstName: "", lastName: "", email: "", phone: "", priority: "STANDARD", segment: "NEW" });
+        setNewClient({ firstName: "", lastName: "", email: "", phone: "", addressLine1: "", city: "", state: "", zipCode: "", ssnLast4: "", priority: "STANDARD", segment: "NEW" });
         fetchClients();
         fetchStats();
       } else {
@@ -1025,6 +1030,66 @@ export default function ClientsPage() {
                     onChange={(e) => setNewClient({ ...newClient, phone: e.target.value })}
                     className="bg-slate-700/50 border-slate-600 text-white"
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="addressLine1" className="text-slate-200">Street Address</Label>
+                  <Input
+                    id="addressLine1"
+                    value={newClient.addressLine1}
+                    onChange={(e) => setNewClient({ ...newClient, addressLine1: e.target.value })}
+                    placeholder="123 Main Street"
+                    className="bg-slate-700/50 border-slate-600 text-white"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="city" className="text-slate-200">City</Label>
+                    <Input
+                      id="city"
+                      value={newClient.city}
+                      onChange={(e) => setNewClient({ ...newClient, city: e.target.value })}
+                      className="bg-slate-700/50 border-slate-600 text-white"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="state" className="text-slate-200">State</Label>
+                      <Input
+                        id="state"
+                        value={newClient.state}
+                        onChange={(e) => setNewClient({ ...newClient, state: e.target.value.toUpperCase() })}
+                        placeholder="TX"
+                        maxLength={2}
+                        className="bg-slate-700/50 border-slate-600 text-white uppercase"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="zipCode" className="text-slate-200">ZIP</Label>
+                      <Input
+                        id="zipCode"
+                        value={newClient.zipCode}
+                        onChange={(e) => setNewClient({ ...newClient, zipCode: e.target.value })}
+                        placeholder="12345"
+                        maxLength={10}
+                        className="bg-slate-700/50 border-slate-600 text-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="ssnLast4" className="text-slate-200">Last 4 of SSN</Label>
+                  <Input
+                    id="ssnLast4"
+                    value={newClient.ssnLast4}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, "").slice(0, 4);
+                      setNewClient({ ...newClient, ssnLast4: val });
+                    }}
+                    placeholder="••••"
+                    maxLength={4}
+                    className="bg-slate-700/50 border-slate-600 text-white font-mono"
+                  />
+                  <p className="text-xs text-slate-500">Required for CRA identification on dispute letters</p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
