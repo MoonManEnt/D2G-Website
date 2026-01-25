@@ -85,30 +85,33 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
       .finally(() => setLoading(false));
   }, []);
 
-  // Fetch disputes history
+  // Fetch disputes history - only show properly created disputes (with items)
   useEffect(() => {
     fetch("/api/disputes")
       .then((r) => r.ok ? r.json() : [])
       .then((data) => {
-        const mapped = (Array.isArray(data) ? data : []).map((d: {
-          id: string;
-          client: { firstName: string; lastName: string };
-          cra: string;
-          flow: string;
-          round: number;
-          status: string;
-          createdAt: string;
-          _count?: { items: number };
-        }) => ({
-          id: d.id,
-          client: d.client,
-          cra: d.cra,
-          flow: d.flow,
-          round: d.round,
-          status: d.status,
-          createdAt: d.createdAt,
-          itemCount: d._count?.items || 0,
-        }));
+        const mapped = (Array.isArray(data) ? data : [])
+          .filter((d: { _count?: { items: number } }) => (d._count?.items || 0) > 0) // Only show disputes with items
+          .map((d: {
+            id: string;
+            client: { id: string; firstName: string; lastName: string };
+            cra: string;
+            flow: string;
+            round: number;
+            disputeStatus: string;
+            createdAt: string;
+            _count?: { items: number };
+          }) => ({
+            id: d.id,
+            clientId: d.client?.id,
+            client: d.client,
+            cra: d.cra,
+            flow: d.flow,
+            round: d.round,
+            status: d.disputeStatus || "DRAFT",
+            createdAt: d.createdAt,
+            itemCount: d._count?.items || 0,
+          }));
         setDisputes(mapped);
       });
   }, []);
@@ -599,67 +602,96 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
         <TabsContent value="history" className="mt-6">
           <Card className="bg-slate-800/60 border-slate-700/50 p-6">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold text-white">Dispute History</h2>
+              <div>
+                <h2 className="text-lg font-bold text-white">Dispute History</h2>
+                <p className="text-sm text-slate-400 mt-1">
+                  {selectedClientId ? "Showing disputes for selected client" : "Showing all active dispute campaigns"}
+                </p>
+              </div>
               <div className="flex gap-2">
                 <select className="bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-1.5 text-sm text-white">
-                  <option>All Statuses</option>
-                  <option>Draft</option>
-                  <option>Sent</option>
-                  <option>Responded</option>
+                  <option value="">All Statuses</option>
+                  <option value="DRAFT">Draft</option>
+                  <option value="SENT">Sent</option>
+                  <option value="RESPONDED">Responded</option>
+                  <option value="APPROVED">Approved</option>
                 </select>
                 <select className="bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-1.5 text-sm text-white">
-                  <option>All Bureaus</option>
-                  <option>TransUnion</option>
-                  <option>Experian</option>
-                  <option>Equifax</option>
+                  <option value="">All Bureaus</option>
+                  <option value="TRANSUNION">TransUnion</option>
+                  <option value="EXPERIAN">Experian</option>
+                  <option value="EQUIFAX">Equifax</option>
                 </select>
               </div>
             </div>
 
-            {disputes.length === 0 ? (
-              <div className="py-12 text-center">
-                <History className="w-12 h-12 mx-auto text-slate-600 mb-4" />
-                <p className="text-slate-400">No disputes found</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {disputes.map((dispute) => (
-                  <div
-                    key={dispute.id}
-                    className="flex items-center gap-4 p-4 bg-slate-700/30 rounded-xl border border-slate-600/50 hover:border-slate-500/50 transition-all"
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-slate-600/30 flex items-center justify-center text-lg">
-                      📄
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-white">
-                        {dispute.client.firstName} {dispute.client.lastName}
-                      </div>
-                      <div className="flex items-center gap-2 flex-wrap mt-1">
-                        <Badge className={CRA_COLORS[dispute.cra]?.tailwind || "bg-slate-500/20 text-slate-400"}>
-                          {dispute.cra}
-                        </Badge>
-                        <span className="text-xs text-slate-400">R{dispute.round}</span>
-                        <span className="text-xs text-slate-500">{dispute.flow}</span>
-                        <span className="text-xs text-slate-500">{dispute.itemCount} items</span>
-                        <span className="text-xs text-slate-500">
-                          {new Date(dispute.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Badge className={STATUS_COLORS[dispute.status] || "bg-slate-500/20 text-slate-400"}>
-                        {dispute.status}
-                      </Badge>
-                      <Button size="sm" variant="ghost" className="text-slate-400 hover:text-white">
-                        <Eye className="w-4 h-4 mr-1" />
-                        View
-                      </Button>
-                    </div>
+            {(() => {
+              // Filter disputes - show only for selected client if one is selected
+              const filteredDisputes = selectedClientId
+                ? disputes.filter((d) => d.clientId === selectedClientId || d.client?.id === selectedClientId)
+                : disputes;
+
+              if (filteredDisputes.length === 0) {
+                return (
+                  <div className="py-12 text-center">
+                    <History className="w-12 h-12 mx-auto text-slate-600 mb-4" />
+                    <h3 className="text-lg font-medium text-white mb-2">No Dispute Campaigns</h3>
+                    <p className="text-slate-400 max-w-md mx-auto">
+                      {selectedClientId
+                        ? "No disputes have been created for this client yet. Start by selecting accounts and creating a dispute."
+                        : "Create your first dispute campaign by selecting a client and choosing accounts to dispute."}
+                    </p>
+                    <Button
+                      className="mt-4"
+                      onClick={() => setActiveTab("create")}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create Dispute
+                    </Button>
                   </div>
-                ))}
-              </div>
-            )}
+                );
+              }
+
+              return (
+                <div className="space-y-3">
+                  {filteredDisputes.map((dispute) => (
+                    <div
+                      key={dispute.id}
+                      className="flex items-center gap-4 p-4 bg-slate-700/30 rounded-xl border border-slate-600/50 hover:border-slate-500/50 transition-all"
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-slate-600/30 flex items-center justify-center">
+                        <Scale className="w-5 h-5 text-purple-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-white">
+                          {dispute.client?.firstName || "Unknown"} {dispute.client?.lastName || "Client"}
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap mt-1">
+                          <Badge className={CRA_COLORS[dispute.cra]?.tailwind || "bg-slate-500/20 text-slate-400"}>
+                            {dispute.cra}
+                          </Badge>
+                          <span className="text-xs text-slate-400 font-medium">Round {dispute.round}</span>
+                          <span className="text-xs text-slate-500">{dispute.flow}</span>
+                          <span className="text-xs text-slate-400 font-medium">{dispute.itemCount} items</span>
+                          <span className="text-xs text-slate-500">
+                            {new Date(dispute.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Badge className={STATUS_COLORS[dispute.status] || "bg-slate-500/20 text-slate-400"}>
+                          {dispute.status}
+                        </Badge>
+                        <Button size="sm" variant="ghost" className="text-slate-400 hover:text-white">
+                          <Eye className="w-4 h-4 mr-1" />
+                          View
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </Card>
         </TabsContent>
       </Tabs>

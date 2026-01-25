@@ -85,7 +85,9 @@ export interface EOSCARScore {
 
 export interface DisputeHistoryItem {
   id: string;
+  clientId?: string;
   client: {
+    id?: string;
     firstName: string;
     lastName: string;
   };
