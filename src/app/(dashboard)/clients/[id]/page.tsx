@@ -44,6 +44,9 @@ import {
   Clock,
   Lightbulb,
   Trash2,
+  Download,
+  ExternalLink,
+  History,
 } from "lucide-react";
 import { ScoreChart, AddScoreModal } from "@/components/credit-scores";
 import { useToast } from "@/lib/use-toast";
@@ -892,7 +895,7 @@ export default function ClientDetailPage() {
           )}
         </TabsContent>
 
-        {/* Reports Tab */}
+        {/* Reports Tab - Timeline View */}
         <TabsContent value="reports" className="mt-4">
           {client.reports.length === 0 ? (
             <Card className="bg-slate-800/50 border-slate-700">
@@ -903,53 +906,174 @@ export default function ClientDetailPage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-3">
-              {client.reports.map((report) => (
-                <Card key={report.id} className="bg-slate-800/50 border-slate-700">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded bg-blue-500/20 flex items-center justify-center">
-                          <FileText className="w-5 h-5 text-blue-400" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-white">
-                            {report.originalFile?.filename || "Credit Report"}
-                          </p>
-                          <p className="text-sm text-slate-400">
-                            {new Date(report.createdAt).toLocaleDateString()} • {report._count.accounts} accounts
-                          </p>
-                        </div>
+            <div className="space-y-4">
+              {/* Timeline Header */}
+              <div className="flex items-center gap-2 mb-2">
+                <History className="w-5 h-5 text-slate-400" />
+                <h3 className="text-lg font-medium text-white">Report History</h3>
+                <Badge className="bg-blue-500/20 text-blue-400 ml-2">
+                  {client.reports.length} {client.reports.length === 1 ? "report" : "reports"}
+                </Badge>
+              </div>
+
+              {/* Timeline */}
+              <div className="relative">
+                {/* Timeline line */}
+                <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-slate-700" />
+
+                {client.reports.map((report, index) => {
+                  const isLatest = index === 0;
+                  const uploadDate = new Date(report.createdAt);
+                  const formattedDate = uploadDate.toLocaleDateString("en-US", {
+                    weekday: "short",
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  });
+                  const formattedTime = uploadDate.toLocaleTimeString("en-US", {
+                    hour: "numeric",
+                    minute: "2-digit",
+                  });
+                  const fileSize = report.originalFile?.sizeBytes
+                    ? (report.originalFile.sizeBytes / (1024 * 1024)).toFixed(2) + " MB"
+                    : "Unknown size";
+
+                  return (
+                    <div key={report.id} className="relative pl-12 pb-6 last:pb-0">
+                      {/* Timeline dot */}
+                      <div
+                        className={`absolute left-3 w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                          isLatest
+                            ? "bg-blue-500 border-blue-400"
+                            : report.parseStatus === "COMPLETED"
+                            ? "bg-green-500/20 border-green-500"
+                            : report.parseStatus === "FAILED"
+                            ? "bg-red-500/20 border-red-500"
+                            : "bg-amber-500/20 border-amber-500"
+                        }`}
+                      >
+                        {isLatest && <div className="w-2 h-2 bg-white rounded-full" />}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          className={
-                            report.parseStatus === "COMPLETED"
-                              ? "bg-green-500/20 text-green-400"
-                              : report.parseStatus === "FAILED"
-                              ? "bg-red-500/20 text-red-400"
-                              : "bg-amber-500/20 text-amber-400"
-                          }
-                        >
-                          {report.parseStatus}
-                        </Badge>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            toast({
-                              title: "Report Details",
-                              description: `${report.originalFile?.filename || "Report"} - ${report._count.accounts} accounts parsed`,
-                            });
-                          }}
-                        >
-                          View
-                        </Button>
-                      </div>
+
+                      {/* Report Card */}
+                      <Card className={`bg-slate-800/50 border-slate-700 ${isLatest ? "ring-1 ring-blue-500/30" : ""}`}>
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex items-start gap-4 flex-1">
+                              <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                                isLatest ? "bg-blue-500/20" : "bg-slate-700/50"
+                              }`}>
+                                <FileText className={`w-6 h-6 ${isLatest ? "text-blue-400" : "text-slate-400"}`} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <p className="font-medium text-white truncate">
+                                    {report.originalFile?.filename || "Credit Report"}
+                                  </p>
+                                  {isLatest && (
+                                    <Badge className="bg-blue-500/20 text-blue-400 text-xs">Latest</Badge>
+                                  )}
+                                  <Badge
+                                    className={
+                                      report.parseStatus === "COMPLETED"
+                                        ? "bg-green-500/20 text-green-400"
+                                        : report.parseStatus === "FAILED"
+                                        ? "bg-red-500/20 text-red-400"
+                                        : "bg-amber-500/20 text-amber-400"
+                                    }
+                                  >
+                                    {report.parseStatus}
+                                  </Badge>
+                                </div>
+                                <div className="flex items-center gap-4 mt-1 text-sm text-slate-400">
+                                  <span className="flex items-center gap-1">
+                                    <Calendar className="w-3.5 h-3.5" />
+                                    {formattedDate} at {formattedTime}
+                                  </span>
+                                  <span>•</span>
+                                  <span>{fileSize}</span>
+                                </div>
+                                <div className="flex items-center gap-4 mt-2 text-sm">
+                                  <span className="text-slate-300">
+                                    <span className="text-slate-500">Accounts parsed:</span>{" "}
+                                    <span className="font-medium">{report._count.accounts}</span>
+                                  </span>
+                                  {report.reportDate && (
+                                    <>
+                                      <span className="text-slate-500">•</span>
+                                      <span className="text-slate-300">
+                                        <span className="text-slate-500">Report date:</span>{" "}
+                                        <span className="font-medium">
+                                          {new Date(report.reportDate).toLocaleDateString()}
+                                        </span>
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              {report.originalFile && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="gap-1.5"
+                                  onClick={async () => {
+                                    try {
+                                      const res = await fetch(`/api/files/${report.originalFile!.id}/download`);
+                                      if (res.ok) {
+                                        const data = await res.json();
+                                        if (data.url) {
+                                          window.open(data.url, "_blank");
+                                        }
+                                      } else {
+                                        toast({
+                                          title: "Download Unavailable",
+                                          description: "The original file could not be retrieved.",
+                                          variant: "destructive",
+                                        });
+                                      }
+                                    } catch {
+                                      toast({
+                                        title: "Download Failed",
+                                        description: "An error occurred while downloading.",
+                                        variant: "destructive",
+                                      });
+                                    }
+                                  }}
+                                >
+                                  <Download className="w-4 h-4" />
+                                  Download
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                  );
+                })}
+              </div>
+
+              {/* Summary footer */}
+              {client.reports.length > 1 && (
+                <div className="mt-4 p-3 bg-slate-800/30 rounded-lg border border-slate-700/50">
+                  <p className="text-sm text-slate-400 text-center">
+                    First report uploaded on{" "}
+                    <span className="text-white">
+                      {new Date(client.reports[client.reports.length - 1].createdAt).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </span>
+                    {" "}• Total accounts tracked:{" "}
+                    <span className="text-white">
+                      {client.reports.reduce((sum, r) => sum + r._count.accounts, 0)}
+                    </span>
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </TabsContent>

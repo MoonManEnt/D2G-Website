@@ -155,7 +155,7 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
     fetch(`/api/clients/${selectedClientId}`)
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
-        if (data) setClient(data);
+        if (data?.client) setClient(data.client);
       });
   }, [selectedClientId]);
 
@@ -248,10 +248,10 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
                 </option>
               ))}
             </select>
-            {client && (
+            {client && client.firstName && (
               <div className="flex items-center gap-2 px-3 py-2 bg-slate-700/50 rounded-lg">
                 <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center text-purple-400 text-sm font-bold">
-                  {client.firstName[0]}{client.lastName[0]}
+                  {client.firstName?.[0] || ""}{client.lastName?.[0] || ""}
                 </div>
                 <div>
                   <span className="text-sm font-medium text-white block">
