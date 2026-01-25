@@ -16,7 +16,22 @@ interface AccountCardProps {
 
 export function AccountCard({ account, isSelected, onToggle, selectedCRA }: AccountCardProps) {
   const [expanded, setExpanded] = useState(false);
-  const issues = account.detectedIssues || [];
+
+  // Ensure issues is always an array (may come as JSON string from API)
+  const parseIssues = () => {
+    if (Array.isArray(account.detectedIssues)) return account.detectedIssues;
+    if (typeof account.detectedIssues === "string") {
+      try {
+        const parsed = JSON.parse(account.detectedIssues);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  };
+
+  const issues = parseIssues();
   const highSeverityCount = issues.filter((i) => i.severity === "HIGH").length;
 
   const getSeverityColor = (severity: string) => {

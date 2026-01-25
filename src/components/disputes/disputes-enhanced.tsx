@@ -113,6 +113,20 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
       });
   }, []);
 
+  // Helper to parse detectedIssues (may be JSON string or array)
+  const parseDetectedIssues = (issues: unknown): Array<{ severity: string; description: string }> => {
+    if (Array.isArray(issues)) return issues;
+    if (typeof issues === "string") {
+      try {
+        const parsed = JSON.parse(issues);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  };
+
   // Fetch accounts when client and CRA change
   useEffect(() => {
     if (!selectedClientId) return;
@@ -125,7 +139,7 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
           .filter((a: ParsedAccountWithIssues) => a.cra === selectedCRA || !a.cra)
           .map((a: ParsedAccountWithIssues) => ({
             ...a,
-            detectedIssues: a.detectedIssues || [],
+            detectedIssues: parseDetectedIssues(a.detectedIssues),
             bureauData: a.bureauData || {
               TRANSUNION: { balance: a.balance, status: a.accountStatus },
               EXPERIAN: { balance: a.balance, status: a.accountStatus },
