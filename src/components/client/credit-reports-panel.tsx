@@ -887,7 +887,7 @@ export function CreditReportsPanel({
             if (reportsRes.ok) {
               const data = await reportsRes.json();
               const latestReport = data[0];
-              if (latestReport?.status === "parsed") {
+              if (latestReport?.status === "completed") {
                 clearInterval(checkParsing);
                 setIsParsing(false);
                 setParsingFile(null);
