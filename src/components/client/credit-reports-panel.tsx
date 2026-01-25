@@ -864,14 +864,16 @@ export function CreditReportsPanel({
             }
           }, 60000);
         } else {
-          throw new Error("Upload failed");
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error || `Upload failed (${res.status})`);
         }
       } catch (error) {
         clearInterval(progressInterval);
         setIsUploading(false);
+        const errorMessage = error instanceof Error ? error.message : "Failed to upload credit report";
         toast({
           title: "Upload Failed",
-          description: "Failed to upload credit report",
+          description: errorMessage,
           variant: "destructive",
         });
       }
