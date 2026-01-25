@@ -476,59 +476,58 @@ function ClientQuickViewModal({
               <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent" />
 
               {/* Header */}
-              <div className="relative p-6 border-b border-slate-700/50">
+              <div className="relative px-4 py-3 border-b border-slate-700/50">
                 <button
                   onClick={onClose}
-                  className="absolute top-4 right-4 p-2 rounded-lg hover:bg-slate-700/50 transition-colors"
+                  className="absolute top-3 right-3 p-1.5 rounded-lg hover:bg-slate-700/50 transition-colors"
                 >
-                  <X className="w-5 h-5 text-slate-400" />
+                  <X className="w-4 h-4 text-slate-400" />
                 </button>
 
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500/30 to-purple-500/30 flex items-center justify-center border-2 border-blue-500/30">
-                    <span className="text-xl font-bold text-white">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500/30 to-purple-500/30 flex items-center justify-center border-2 border-blue-500/30">
+                    <span className="text-sm font-bold text-white">
                       {client.firstName.charAt(0)}{client.lastName.charAt(0)}
                     </span>
                   </div>
-                  <div>
-                    <h2 className="text-2xl font-bold text-white">
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-lg font-bold text-white">
                       {client.firstName} {client.lastName}
                     </h2>
-                    <p className="text-slate-400 text-sm">
+                    <p className="text-slate-400 text-xs">
                       Client since {detail ? safeFormat(detail.createdAt, "M/d/yyyy") : "..."}
                     </p>
                   </div>
-                </div>
-
-                {/* Tab Navigation */}
-                <div className="flex items-center gap-1 bg-slate-800/50 rounded-lg p-1">
-                  <button
-                    onClick={() => setActiveTab("reports")}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                      activeTab === "reports"
-                        ? "bg-blue-600 text-white"
-                        : "text-slate-400 hover:text-white hover:bg-slate-700/50"
-                    }`}
-                  >
-                    <CreditCard className="w-4 h-4" />
-                    Credit Reports
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("profile")}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                      activeTab === "profile"
-                        ? "bg-blue-600 text-white"
-                        : "text-slate-400 hover:text-white hover:bg-slate-700/50"
-                    }`}
-                  >
-                    <User className="w-4 h-4" />
-                    Profile
-                  </button>
+                  {/* Tab Navigation - inline with header */}
+                  <div className="flex items-center gap-0.5 bg-slate-800/50 rounded-lg p-0.5">
+                    <button
+                      onClick={() => setActiveTab("reports")}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                        activeTab === "reports"
+                          ? "bg-blue-600 text-white"
+                          : "text-slate-400 hover:text-white hover:bg-slate-700/50"
+                      }`}
+                    >
+                      <CreditCard className="w-3.5 h-3.5" />
+                      Credit Reports
+                    </button>
+                    <button
+                      onClick={() => setActiveTab("profile")}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                        activeTab === "profile"
+                          ? "bg-blue-600 text-white"
+                          : "text-slate-400 hover:text-white hover:bg-slate-700/50"
+                      }`}
+                    >
+                      <User className="w-3.5 h-3.5" />
+                      Profile
+                    </button>
+                  </div>
                 </div>
               </div>
 
               {/* Content */}
-              <div className="relative flex-1 overflow-y-auto p-6 space-y-6">
+              <div className="relative flex-1 overflow-y-auto p-4 space-y-4">
                 {activeTab === "reports" ? (
                   <>
                     <CreditReportsPanel
@@ -739,10 +738,10 @@ function ClientQuickViewModal({
               </div>
 
               {/* Footer */}
-              <div className="relative p-4 border-t border-slate-700/50">
+              <div className="relative px-4 py-2.5 border-t border-slate-700/50">
                 {activeTab === "reports" ? (
-                  <div className="flex justify-end gap-3">
-                    <Button variant="ghost" onClick={onClose}>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="ghost" size="sm" onClick={onClose}>
                       Close
                     </Button>
                   </div>
@@ -786,25 +785,27 @@ function ClientQuickViewModal({
                   <div className="flex justify-between">
                     <Button
                       variant="ghost"
+                      size="sm"
                       onClick={() => setShowDeleteConfirm(true)}
                       className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
                     >
-                      <Trash2 className="w-4 h-4 mr-2" />
+                      <Trash2 className="w-3.5 h-3.5 mr-1.5" />
                       Delete
                     </Button>
-                    <div className="flex gap-3">
-                      <Button variant="ghost" onClick={onClose}>
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="sm" onClick={onClose}>
                         Cancel
                       </Button>
                       <Button
+                        size="sm"
                         onClick={handleSave}
                         disabled={saving}
                         className="bg-blue-600 hover:bg-blue-700"
                       >
                         {saving ? (
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
                         ) : (
-                          <Save className="w-4 h-4 mr-2" />
+                          <Save className="w-3.5 h-3.5 mr-1.5" />
                         )}
                         Save Changes
                       </Button>
