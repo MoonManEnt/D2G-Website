@@ -297,6 +297,12 @@ export default function ClientDetailPage() {
     lastName: "",
     email: "",
     phone: "",
+    addressLine1: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    ssnLast4: "",
+    dateOfBirth: "",
   });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -314,6 +320,12 @@ export default function ClientDetailPage() {
           lastName: data.client.lastName,
           email: data.client.email || "",
           phone: data.client.phone || "",
+          addressLine1: data.client.addressLine1 || "",
+          city: data.client.city || "",
+          state: data.client.state || "",
+          zipCode: data.client.zipCode || "",
+          ssnLast4: data.client.ssnLast4 || "",
+          dateOfBirth: data.client.dateOfBirth ? data.client.dateOfBirth.split("T")[0] : "",
         });
       } else {
         toast({
@@ -709,33 +721,68 @@ export default function ClientDetailPage() {
       {/* Contact Info */}
       <Card className="bg-slate-800/50 border-slate-700">
         <CardHeader className="pb-3">
-          <CardTitle className="text-white text-lg">Contact Information</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-white text-lg">Contact Information</CardTitle>
+            <Button variant="ghost" size="sm" onClick={() => setEditDialogOpen(true)}>
+              <Edit className="w-4 h-4" />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <Mail className="w-4 h-4 text-slate-400" />
-              <span className="text-white">{client.email || "No email"}</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+            <div className="flex items-start gap-2">
+              <Mail className="w-4 h-4 text-slate-400 mt-0.5" />
+              <div>
+                <p className="text-slate-500 text-xs">Email</p>
+                <span className="text-white">{client.email || "Not provided"}</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Phone className="w-4 h-4 text-slate-400" />
-              <span className="text-white">{client.phone || "No phone"}</span>
+            <div className="flex items-start gap-2">
+              <Phone className="w-4 h-4 text-slate-400 mt-0.5" />
+              <div>
+                <p className="text-slate-500 text-xs">Phone</p>
+                <span className="text-white">{client.phone || "Not provided"}</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-slate-400" />
-              <span className="text-white">
-                {client.city && client.state
-                  ? `${client.city}, ${client.state}`
-                  : "No address"}
-              </span>
+            <div className="flex items-start gap-2">
+              <MapPin className="w-4 h-4 text-slate-400 mt-0.5" />
+              <div>
+                <p className="text-slate-500 text-xs">Address</p>
+                <span className="text-white">
+                  {client.addressLine1 ? (
+                    <>
+                      {client.addressLine1}
+                      {client.addressLine2 && <>, {client.addressLine2}</>}
+                      <br />
+                      {client.city && `${client.city}, `}
+                      {client.state && `${client.state} `}
+                      {client.zipCode}
+                    </>
+                  ) : (
+                    "Not provided"
+                  )}
+                </span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-slate-400" />
-              <span className="text-white">
-                {client.dateOfBirth
-                  ? new Date(client.dateOfBirth).toLocaleDateString()
-                  : "No DOB"}
-              </span>
+            <div className="flex items-start gap-2">
+              <Calendar className="w-4 h-4 text-slate-400 mt-0.5" />
+              <div>
+                <p className="text-slate-500 text-xs">Date of Birth</p>
+                <span className="text-white">
+                  {client.dateOfBirth
+                    ? new Date(client.dateOfBirth).toLocaleDateString()
+                    : "Not provided"}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <ShieldAlert className="w-4 h-4 text-slate-400 mt-0.5" />
+              <div>
+                <p className="text-slate-500 text-xs">SSN Last 4</p>
+                <span className="text-white">
+                  {client.ssnLast4 ? `***-**-${client.ssnLast4}` : "Not provided"}
+                </span>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -990,9 +1037,9 @@ export default function ClientDetailPage() {
                         <p className="text-slate-400 max-w-2xl">
                           {getDNAClassificationDescription(dnaProfile.classification)}
                         </p>
-                        {dnaProfile.subClassifications.length > 0 && (
+                        {dnaProfile.subClassifications && dnaProfile.subClassifications.length > 0 && (
                           <div className="flex gap-2 mt-2">
-                            {dnaProfile.subClassifications.map((sub) => (
+                            {dnaProfile.subClassifications.map((sub: string) => (
                               <Badge key={sub} variant="outline" className="text-slate-300 border-slate-600">
                                 {sub.replace(/_/g, " ")}
                               </Badge>
@@ -1383,7 +1430,7 @@ export default function ClientDetailPage() {
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="bg-slate-800 border-slate-700">
+        <DialogContent className="bg-slate-800 border-slate-700 max-w-2xl">
           <DialogHeader>
             <DialogTitle className="text-white">Edit Client</DialogTitle>
             <DialogDescription className="text-slate-400">
@@ -1411,24 +1458,88 @@ export default function ClientDetailPage() {
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label className="text-slate-200">Email</Label>
-              <Input
-                type="email"
-                value={editForm.email}
-                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                className="bg-slate-700/50 border-slate-600 text-white"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-slate-200">Email</Label>
+                <Input
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                  className="bg-slate-700/50 border-slate-600 text-white"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-slate-200">Phone</Label>
+                <Input
+                  value={editForm.phone}
+                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                  className="bg-slate-700/50 border-slate-600 text-white"
+                />
+              </div>
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-200">Phone</Label>
+              <Label className="text-slate-200">Address</Label>
               <Input
-                value={editForm.phone}
-                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                value={editForm.addressLine1}
+                onChange={(e) => setEditForm({ ...editForm, addressLine1: e.target.value })}
                 className="bg-slate-700/50 border-slate-600 text-white"
+                placeholder="Street address"
               />
             </div>
-            <div className="flex justify-end gap-3">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label className="text-slate-200">City</Label>
+                <Input
+                  value={editForm.city}
+                  onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+                  className="bg-slate-700/50 border-slate-600 text-white"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-slate-200">State</Label>
+                <Input
+                  value={editForm.state}
+                  onChange={(e) => setEditForm({ ...editForm, state: e.target.value })}
+                  className="bg-slate-700/50 border-slate-600 text-white"
+                  placeholder="e.g., CA"
+                  maxLength={2}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-slate-200">ZIP Code</Label>
+                <Input
+                  value={editForm.zipCode}
+                  onChange={(e) => setEditForm({ ...editForm, zipCode: e.target.value })}
+                  className="bg-slate-700/50 border-slate-600 text-white"
+                  maxLength={10}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-slate-200">Date of Birth</Label>
+                <Input
+                  type="date"
+                  value={editForm.dateOfBirth}
+                  onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })}
+                  className="bg-slate-700/50 border-slate-600 text-white"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-slate-200">SSN Last 4</Label>
+                <Input
+                  value={editForm.ssnLast4}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, "").slice(0, 4);
+                    setEditForm({ ...editForm, ssnLast4: val });
+                  }}
+                  className="bg-slate-700/50 border-slate-600 text-white"
+                  placeholder="****"
+                  maxLength={4}
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 pt-4">
               <Button type="button" variant="ghost" onClick={() => setEditDialogOpen(false)}>
                 Cancel
               </Button>
