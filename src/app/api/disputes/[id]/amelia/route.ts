@@ -21,8 +21,14 @@ import {
   type ClientPersonalInfo,
   type DisputeAccount,
   type HardInquiry,
+  type ActivePersonalInfoDispute,
 } from "@/lib/amelia/index";
 import { CRA } from "@/types";
+import {
+  getActiveDisputes,
+  getLastDisputeDate,
+  recordDisputedItems,
+} from "@/lib/personal-info-dispute-service";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -158,6 +164,21 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Determine flow type
     const flowType = dispute.flow as "ACCURACY" | "COLLECTION" | "CONSENT" | "COMBO";
 
+    // AMELIA Doctrine: For R2+, fetch last dispute date and active personal info disputes
+    let lastDisputeDateStr: string | undefined;
+    let activePersonalInfoDisputes: ActivePersonalInfoDispute[] | undefined;
+
+    if (dispute.round >= 2) {
+      // Get the actual date of the last letter sent for this client/CRA
+      const lastDisputeDate = await getLastDisputeDate(client.id, cra);
+      if (lastDisputeDate) {
+        lastDisputeDateStr = format(lastDisputeDate, "MMMM d, yyyy");
+      }
+
+      // Get active personal info disputes that need to continue being disputed
+      activePersonalInfoDisputes = await getActiveDisputes(client.id, cra);
+    }
+
     // Generate the letter using AMELIA doctrine (supports all rounds)
     const generatedLetter = generateLetter({
       client: clientInfo,
@@ -166,6 +187,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       flow: flowType,
       round: dispute.round,
       usedContentHashes: usedHashSet,
+      lastDisputeDate: lastDisputeDateStr,
+      activePersonalInfoDisputes,
     });
 
     // Store the content hash to prevent future reuse
@@ -195,10 +218,19 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           statute: generatedLetter.statute,
           includesScreenshots: generatedLetter.includesScreenshots,
           personalInfoDisputed: generatedLetter.personalInfoDisputed,
-          ameliaVersion: "2.0",
+          ameliaVersion: "2.1", // Version bump for persistent personal info disputes
         }),
       },
     });
+
+    // AMELIA Doctrine: Record disputed items for persistent tracking
+    // These will continue to be disputed until confirmed removed from report
+    await recordDisputedItems(
+      client.id,
+      session.user.organizationId,
+      cra,
+      generatedLetter.personalInfoDisputed
+    );
 
     // Log the event
     await prisma.eventLog.create({

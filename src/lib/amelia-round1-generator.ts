@@ -51,7 +51,8 @@ function generateClientHeader(
     header += `${client.addressLine2}\n`;
   }
   header += `${client.city}, ${client.state} ${client.zipCode}\n`;
-  header += `DOB: ${client.dateOfBirth} Last 4 of SSN: ${client.ssnLast4}\n\n`;
+  // AMELIA Doctrine: SSN only, NO DOB in dispute letters
+  header += `SSN: XXX-XX-${client.ssnLast4}\n\n`;
 
   // CRA Address
   header += `${craInfo.name}\n`;

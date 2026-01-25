@@ -27,6 +27,7 @@ export {
   type FlowType,
   type LetterGenerationInput,
   type GeneratedLetter,
+  type ActivePersonalInfoDispute,
 } from "../amelia-generator";
 
 // =============================================================================

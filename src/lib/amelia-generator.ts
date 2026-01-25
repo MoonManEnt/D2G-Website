@@ -51,6 +51,16 @@ import type { NextRoundContext } from "./dispute-intelligence/types";
 // TYPES
 // =============================================================================
 
+// Active personal info dispute from database (for persistent disputes)
+export interface ActivePersonalInfoDispute {
+  type: "PREVIOUS_NAME" | "PREVIOUS_ADDRESS" | "HARD_INQUIRY";
+  value: string;
+  cra: string;
+  inquiryDate?: string; // For hard inquiries
+  disputeCount: number;
+  firstDisputedAt: Date;
+}
+
 export interface LetterGenerationInput {
   client: ClientPersonalInfo;
   accounts: DisputeAccount[];
@@ -58,11 +68,13 @@ export interface LetterGenerationInput {
   flow: FlowType;
   round: number;
   usedContentHashes?: Set<string>;
-  lastDisputeDate?: string;
+  lastDisputeDate?: string; // Actual date of last letter for this client/CRA
   debtCollectorNames?: string[];
   creditorNames?: string[];
   // For rounds 2+, include context from previous round responses
   previousRoundContext?: NextRoundContext;
+  // AMELIA Doctrine: Personal info disputes persist until removed from report
+  activePersonalInfoDisputes?: ActivePersonalInfoDispute[];
 }
 
 export interface GeneratedLetter {
@@ -108,7 +120,10 @@ function interpolateVariables(
   result = result.replace(/\{bureauName\}/g, vars.bureauName);
   result = result.replace(/\{bureauAddress\}/g, vars.bureauAddress);
   result = result.replace(/\{currentDate\}/g, vars.currentDate);
+  // AMELIA Doctrine: R2+ letters MUST have the actual last letter date, never a placeholder
   result = result.replace(/\{lastDisputeDate\}/g, vars.lastDisputeDate || "[DATE OF LAST LETTER]");
+  result = result.replace(/\[INSERT DATE OF LAST LETTER\]/g, vars.lastDisputeDate || "[DATE OF LAST LETTER]");
+  result = result.replace(/\[DATE OF LAST\]/g, vars.lastDisputeDate || "[DATE OF LAST LETTER]");
 
   // Debt collector names
   if (vars.debtCollectorNames && vars.debtCollectorNames.length > 0) {
@@ -157,7 +172,8 @@ function generateHeader(
   }
 
   lines.push(`${client.city}, ${client.state} ${client.zipCode}`);
-  lines.push(`DOB: ${client.dateOfBirth} Last 4 of SSN: ${client.ssnLast4}`);
+  // AMELIA Doctrine: SSN only, NO DOB in dispute letters
+  lines.push(`SSN: XXX-XX-${client.ssnLast4}`);
   lines.push("");
   lines.push(craInfo.name);
   lines.push(...craInfo.lines);
@@ -219,50 +235,104 @@ function generateCorrectionsSection(
 }
 
 /**
- * Generate personal information disputes section (Round 1 only)
+ * Generate personal information disputes section
+ *
+ * AMELIA DOCTRINE:
+ * - R1: ALWAYS include hard inquiries and personal info if any exist
+ * - R2+: Continue disputing items that are still ACTIVE (not confirmed removed)
  */
 function generatePersonalInfoSection(
   client: ClientPersonalInfo,
-  cra: CRA
+  cra: CRA,
+  round: number,
+  activeDisputes?: ActivePersonalInfoDispute[]
 ): string {
   const sections: string[] = [];
 
-  // Previous names
-  if (client.previousNames.length > 0) {
-    sections.push("PREVIOUS NAME VARIATIONS TO REMOVE:");
-    client.previousNames.forEach(name => {
-      sections.push(`- ${name}`);
-    });
-    sections.push("These name variations do not accurately represent my identity and should be removed from my credit file.");
-    sections.push("");
-  }
+  if (round === 1) {
+    // Round 1: Use client data directly (initial disputes)
 
-  // Previous addresses
-  if (client.previousAddresses.length > 0) {
-    sections.push("PREVIOUS ADDRESSES TO REMOVE:");
-    client.previousAddresses.forEach(addr => {
-      sections.push(`- ${addr}`);
-    });
-    sections.push("These addresses are outdated and no longer associated with me. Please remove them from my credit file.");
-    sections.push("");
-  }
+    // Previous names
+    if (client.previousNames.length > 0) {
+      sections.push("PREVIOUS NAME VARIATIONS TO REMOVE:");
+      client.previousNames.forEach(name => {
+        sections.push(`- ${name}`);
+      });
+      sections.push("These name variations do not accurately represent my identity and should be removed from my credit file.");
+      sections.push("");
+    }
 
-  // Hard inquiries for this CRA
-  const craInquiries = client.hardInquiries.filter(inq => inq.cra === cra);
-  if (craInquiries.length > 0) {
-    sections.push("UNAUTHORIZED HARD INQUIRIES TO REMOVE:");
-    craInquiries.forEach(inq => {
-      sections.push(`- ${inq.creditorName} (${inq.inquiryDate}) - I did not authorize this inquiry`);
-    });
-    sections.push("These inquiries were made without my permission and should be removed immediately.");
-    sections.push("");
+    // Previous addresses
+    if (client.previousAddresses.length > 0) {
+      sections.push("PREVIOUS ADDRESSES TO REMOVE:");
+      client.previousAddresses.forEach(addr => {
+        sections.push(`- ${addr}`);
+      });
+      sections.push("These addresses are outdated and no longer associated with me. Please remove them from my credit file.");
+      sections.push("");
+    }
+
+    // AMELIA Doctrine: ALWAYS include hard inquiries in R1 if any exist
+    const craInquiries = client.hardInquiries.filter(inq => inq.cra === cra);
+    if (craInquiries.length > 0) {
+      sections.push("UNAUTHORIZED HARD INQUIRIES TO REMOVE:");
+      craInquiries.forEach(inq => {
+        sections.push(`- ${inq.creditorName} (${inq.inquiryDate}) - I did not authorize this inquiry`);
+      });
+      sections.push("These inquiries were made without my permission and should be removed immediately.");
+      sections.push("");
+    }
+  } else {
+    // Round 2+: Use activeDisputes from PersonalInfoDispute table
+    // Only include items that are still ACTIVE (not confirmed removed from report)
+
+    if (activeDisputes && activeDisputes.length > 0) {
+      const craDisputes = activeDisputes.filter(d => d.cra === cra);
+
+      // Group by type
+      const names = craDisputes.filter(d => d.type === "PREVIOUS_NAME");
+      const addresses = craDisputes.filter(d => d.type === "PREVIOUS_ADDRESS");
+      const inquiries = craDisputes.filter(d => d.type === "HARD_INQUIRY");
+
+      if (names.length > 0) {
+        sections.push("PREVIOUS NAME VARIATIONS STILL REQUIRING REMOVAL:");
+        names.forEach(d => {
+          sections.push(`- ${d.value} (previously disputed ${d.disputeCount} time${d.disputeCount > 1 ? "s" : ""}, still reporting)`);
+        });
+        sections.push("These name variations were previously disputed and still appear on my report. Remove them immediately.");
+        sections.push("");
+      }
+
+      if (addresses.length > 0) {
+        sections.push("PREVIOUS ADDRESSES STILL REQUIRING REMOVAL:");
+        addresses.forEach(d => {
+          sections.push(`- ${d.value} (previously disputed ${d.disputeCount} time${d.disputeCount > 1 ? "s" : ""}, still reporting)`);
+        });
+        sections.push("These addresses were previously disputed and still appear on my report. Remove them immediately.");
+        sections.push("");
+      }
+
+      if (inquiries.length > 0) {
+        sections.push("UNAUTHORIZED HARD INQUIRIES STILL REQUIRING REMOVAL:");
+        inquiries.forEach(d => {
+          const dateStr = d.inquiryDate ? ` (${d.inquiryDate})` : "";
+          sections.push(`- ${d.value}${dateStr} - Previously disputed ${d.disputeCount} time${d.disputeCount > 1 ? "s" : ""}, still reporting`);
+        });
+        sections.push("These unauthorized inquiries were previously disputed and still appear on my report. Remove them immediately per FCRA requirements.");
+        sections.push("");
+      }
+    }
   }
 
   if (sections.length === 0) {
     return "";
   }
 
-  return "Personal Information to Investigate and Correct / Remove:\n\n" + sections.join("\n");
+  const headerText = round === 1
+    ? "Personal Information to Investigate and Correct / Remove:"
+    : "Personal Information STILL Requiring Correction / Removal (Previously Disputed):";
+
+  return headerText + "\n\n" + sections.join("\n");
 }
 
 /**
@@ -459,6 +529,7 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
     debtCollectorNames,
     creditorNames,
     previousRoundContext,
+    activePersonalInfoDisputes,
   } = input;
 
   const craInfo = CRA_ADDRESSES[cra];
@@ -562,10 +633,15 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
   // Corrections section
   const correctionsSection = generateCorrectionsSection(accounts, effectiveFlow);
 
-  // Personal info section (Round 1 only)
-  const personalInfoSection = round === 1
-    ? generatePersonalInfoSection(client, cra)
-    : "";
+  // AMELIA Doctrine: Personal info disputes persist until confirmed removed
+  // R1: Initial disputes from client data
+  // R2+: Continue disputing items that are still ACTIVE in PersonalInfoDispute table
+  const personalInfoSection = generatePersonalInfoSection(
+    client,
+    cra,
+    round,
+    activePersonalInfoDisputes
+  );
 
   // Consumer statement
   const consumerStatement = interpolateVariables(template.consumerStatement, vars);
@@ -612,6 +688,30 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
   // Calculate content hash
   const contentHash = hashContent(content);
 
+  // Calculate what personal info was disputed in this letter
+  let disputedNames: string[] = [];
+  let disputedAddresses: string[] = [];
+  let disputedInquiries: HardInquiry[] = [];
+
+  if (round === 1) {
+    // R1: Use client data
+    disputedNames = client.previousNames;
+    disputedAddresses = client.previousAddresses;
+    disputedInquiries = client.hardInquiries.filter(i => i.cra === cra);
+  } else if (activePersonalInfoDisputes && activePersonalInfoDisputes.length > 0) {
+    // R2+: Use active disputes that match this CRA
+    const craDisputes = activePersonalInfoDisputes.filter(d => d.cra === cra);
+    disputedNames = craDisputes.filter(d => d.type === "PREVIOUS_NAME").map(d => d.value);
+    disputedAddresses = craDisputes.filter(d => d.type === "PREVIOUS_ADDRESS").map(d => d.value);
+    disputedInquiries = craDisputes
+      .filter(d => d.type === "HARD_INQUIRY")
+      .map(d => ({
+        creditorName: d.value,
+        inquiryDate: d.inquiryDate || "",
+        cra: cra,
+      }));
+  }
+
   return {
     content,
     letterDate,
@@ -625,9 +725,9 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
     contentHash,
     includesScreenshots: shouldIncludeScreenshots(round),
     personalInfoDisputed: {
-      previousNames: round === 1 ? client.previousNames : [],
-      previousAddresses: round === 1 ? client.previousAddresses : [],
-      hardInquiries: round === 1 ? client.hardInquiries.filter(i => i.cra === cra) : [],
+      previousNames: disputedNames,
+      previousAddresses: disputedAddresses,
+      hardInquiries: disputedInquiries,
     },
   };
 }

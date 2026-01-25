@@ -684,7 +684,6 @@ ${craAddresses[cra]}
 
 Re: Dispute of Inaccurate Credit Information${round > 1 ? ` - Attempt #${round}` : ""}
 SSN: XXX-XX-${client.ssn4 || "XXXX"}
-DOB: ${client.dob || "[Date of Birth]"}
 
 ${damagesSection}
 
@@ -1295,7 +1294,6 @@ CLIENT:
 ${client.firstName} ${client.lastName}
 ${client.address}, ${client.city}, ${client.state} ${client.zip}
 SSN: XXX-XX-${client.ssn4 || "XXXX"}
-DOB: ${client.dob || "[DOB]"}
 
 TO: ${cra}
 

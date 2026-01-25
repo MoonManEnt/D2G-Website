@@ -107,6 +107,7 @@ model Client {
   communications          Communication[]
   clientDocuments         ClientDocument[]
   archiveSnapshot         ClientArchiveSnapshot?
+  personalInfoDisputes    PersonalInfoDispute[]
 
   @@index([organizationId])
   @@index([lastName, firstName])
@@ -781,6 +782,45 @@ model AmeliaContentHash {
   @@unique([clientId, contentHash])
   @@index([clientId])
   @@index([contentHash])
+}
+
+// PERSONAL INFO DISPUTE TRACKING - Track removal status across reports
+// =============================================================================
+
+model PersonalInfoDispute {
+  id                String    @id @default(uuid())
+  clientId          String
+  organizationId    String
+
+  // What is being disputed
+  type              String    // PREVIOUS_NAME, PREVIOUS_ADDRESS, HARD_INQUIRY
+  value             String    // The actual name/address/inquiry creditor name
+  cra               String    // TRANSUNION, EXPERIAN, EQUIFAX
+
+  // For hard inquiries, additional context
+  inquiryDate       String?   // Original inquiry date (MM/DD/YYYY)
+
+  // Dispute tracking
+  firstDisputedAt   DateTime  @default(now())  // When first included in a letter
+  lastDisputedAt    DateTime  @default(now())  // Most recent dispute letter
+  disputeCount      Int       @default(1)      // How many rounds disputed
+
+  // Status tracking - drives AMELIA's inclusion logic
+  status            String    @default("ACTIVE") // ACTIVE, REMOVED, VERIFIED
+  removedAt         DateTime?                   // When confirmed removed from report
+  removedInReportId String?                     // CreditReport.id that confirmed removal
+  verifiedAt        DateTime?                   // If CRA verified (keeps disputing)
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  client            Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, type, value, cra])  // One record per item per bureau
+  @@index([clientId])
+  @@index([clientId, status])
+  @@index([organizationId])
+  @@index([status])
 }
 
 model Communication {
