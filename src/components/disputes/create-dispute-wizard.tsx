@@ -28,7 +28,9 @@ import {
   Target,
   Zap,
   Info,
+  Brain,
 } from "lucide-react";
+import { AmeliaInsightsPanel, type AmeliaInsight } from "./amelia-insights-panel";
 import { useToast } from "@/lib/use-toast";
 import {
   getDNAClassificationLabel,
@@ -120,6 +122,7 @@ export function CreateDisputeWizard({
   const [loading, setLoading] = useState(false);
   const [dnaLoading, setDnaLoading] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [ameliaInsights, setAmeliaInsights] = useState<AmeliaInsight | null>(null);
 
   // Reset form when closed
   useEffect(() => {
@@ -131,6 +134,7 @@ export function CreateDisputeWizard({
       setSelectedAccounts([]);
       setNegativeAccounts([]);
       setClientDNA(null);
+      setAmeliaInsights(null);
     }
   }, [open]);
 
@@ -589,15 +593,38 @@ export function CreateDisputeWizard({
                   </div>
                 </div>
 
-                <div className="p-4 bg-violet-500/10 border border-violet-500/30 rounded-xl">
-                  <div className="flex items-center gap-2 text-violet-400">
-                    <Sparkles className="w-5 h-5" />
-                    <span className="font-medium">Ready to Generate</span>
+                {/* AMELIA Insights Panel */}
+                <AmeliaInsightsPanel
+                  clientId={selectedClient}
+                  cra={selectedCRA}
+                  flow={selectedFlow}
+                  accountIds={selectedAccounts}
+                  onInsightsGenerated={setAmeliaInsights}
+                />
+
+                {ameliaInsights && (
+                  <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-xl">
+                    <div className="flex items-center gap-2 text-green-400">
+                      <Brain className="w-5 h-5" />
+                      <span className="font-medium">AI Analysis Complete</span>
+                    </div>
+                    <p className="text-sm text-slate-400 mt-1">
+                      {ameliaInsights.estimatedSuccessRate}% estimated success rate with {ameliaInsights.confidence}% confidence
+                    </p>
                   </div>
-                  <p className="text-sm text-slate-400 mt-1">
-                    AMELIA will create a customized dispute letter with proper statute citations.
-                  </p>
-                </div>
+                )}
+
+                {!ameliaInsights && (
+                  <div className="p-4 bg-violet-500/10 border border-violet-500/30 rounded-xl">
+                    <div className="flex items-center gap-2 text-violet-400">
+                      <Sparkles className="w-5 h-5" />
+                      <span className="font-medium">Ready to Generate</span>
+                    </div>
+                    <p className="text-sm text-slate-400 mt-1">
+                      Generate AI insights above, or proceed to create your dispute letter.
+                    </p>
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
