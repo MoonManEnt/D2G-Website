@@ -468,24 +468,17 @@ function ClientQuickViewModal({
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="w-full max-w-5xl max-h-[90vh] overflow-hidden"
+              className="w-full max-w-5xl max-h-[85vh] flex flex-col"
             >
-              <div className="h-full rounded-2xl bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 shadow-2xl shadow-black/50 overflow-hidden flex flex-col">
+              <div className="flex-1 min-h-0 rounded-2xl bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 shadow-2xl shadow-black/50 flex flex-col overflow-hidden">
               {/* Glassmorphic gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none" />
               <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent" />
 
               {/* Header */}
-              <div className="relative px-4 py-3 border-b border-slate-700/50">
-                <button
-                  onClick={onClose}
-                  className="absolute top-3 right-3 p-1.5 rounded-lg hover:bg-slate-700/50 transition-colors"
-                >
-                  <X className="w-4 h-4 text-slate-400" />
-                </button>
-
+              <div className="relative px-4 py-3 border-b border-slate-700/50 flex-shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500/30 to-purple-500/30 flex items-center justify-center border-2 border-blue-500/30">
+                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500/30 to-purple-500/30 flex items-center justify-center border-2 border-blue-500/30 flex-shrink-0">
                     <span className="text-sm font-bold text-white">
                       {client.firstName.charAt(0)}{client.lastName.charAt(0)}
                     </span>
@@ -523,11 +516,18 @@ function ClientQuickViewModal({
                       Profile
                     </button>
                   </div>
+                  {/* Close button */}
+                  <button
+                    onClick={onClose}
+                    className="ml-3 p-1.5 rounded-lg hover:bg-slate-700/50 transition-colors flex-shrink-0"
+                  >
+                    <X className="w-4 h-4 text-slate-400" />
+                  </button>
                 </div>
               </div>
 
               {/* Content */}
-              <div className="relative flex-1 overflow-y-auto p-4 space-y-4">
+              <div className="relative flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
                 {activeTab === "reports" ? (
                   <>
                     <CreditReportsPanel
@@ -738,7 +738,7 @@ function ClientQuickViewModal({
               </div>
 
               {/* Footer */}
-              <div className="relative px-4 py-2.5 border-t border-slate-700/50">
+              <div className="relative px-4 py-2.5 border-t border-slate-700/50 flex-shrink-0">
                 {activeTab === "reports" ? (
                   <div className="flex justify-end gap-2">
                     <Button variant="ghost" size="sm" onClick={onClose}>
