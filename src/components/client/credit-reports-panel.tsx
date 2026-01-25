@@ -808,10 +808,6 @@ export function CreditReportsPanel({
       setIsUploading(true);
       setUploadProgress(0);
 
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("clientId", clientId);
-
       // Simulate progress for UI feedback
       const progressInterval = setInterval(() => {
         setUploadProgress((p) => {
@@ -823,15 +819,64 @@ export function CreditReportsPanel({
       }, 200);
 
       try {
-        const res = await fetch("/api/reports/upload", {
+        let finalUrl = "";
+
+        // Try Vercel Blob first (handles large files via direct upload)
+        try {
+          const { upload } = await import("@vercel/blob/client");
+          const timestamp = Date.now();
+          const randomNum = Math.floor(Math.random() * 100000);
+          const safePath = `reports/report${timestamp}${randomNum}.pdf`;
+
+          console.log("Starting Vercel Blob upload...");
+
+          const blob = await upload(safePath, file, {
+            access: "public",
+            handleUploadUrl: "/api/reports/upload-token",
+          });
+
+          finalUrl = blob.url;
+          console.log("Vercel Blob upload complete:", finalUrl);
+        } catch (blobError) {
+          console.warn("Vercel Blob upload failed, falling back to local:", blobError);
+
+          // Local Fallback
+          const formData = new FormData();
+          formData.append("file", file);
+          formData.append("type", "reports");
+
+          const localRes = await fetch("/api/upload/local", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!localRes.ok) {
+            const errorData = await localRes.json();
+            throw new Error(errorData.error || "Local upload failed");
+          }
+
+          const localData = await localRes.json();
+          finalUrl = localData.url;
+          console.log("Local upload complete:", finalUrl);
+        }
+
+        setUploadProgress(70);
+
+        // Now create the report record and trigger parsing
+        const reportRes = await fetch("/api/reports", {
           method: "POST",
-          body: formData,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            clientId,
+            blobUrl: finalUrl,
+            fileName: file.name,
+          }),
         });
 
         clearInterval(progressInterval);
         setUploadProgress(100);
 
-        if (res.ok) {
+        if (reportRes.ok) {
           setIsUploading(false);
           setIsParsing(true);
           setParsingFile(file.name);
@@ -864,8 +909,8 @@ export function CreditReportsPanel({
             }
           }, 60000);
         } else {
-          const errorData = await res.json().catch(() => ({}));
-          throw new Error(errorData.error || `Upload failed (${res.status})`);
+          const errorData = await reportRes.json().catch(() => ({}));
+          throw new Error(errorData.error || `Report creation failed (${reportRes.status})`);
         }
       } catch (error) {
         clearInterval(progressInterval);

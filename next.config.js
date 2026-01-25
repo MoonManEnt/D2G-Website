@@ -4,6 +4,9 @@ const { withSentryConfig } = require("@sentry/nextjs");
 const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['pdfjs-dist', 'unpdf'],
+    serverActions: {
+      bodySizeLimit: '100mb',
+    },
   },
   env: {
     NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
