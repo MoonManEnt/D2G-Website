@@ -65,13 +65,14 @@ export const GET = withAuth(async (req, { organizationId }) => {
  * consistency with manual re-parse operations.
  */
 export const POST = withAuth<UploadReportBody>(async (req, { session, body, organizationId }) => {
-  // Check subscription
-  if (session.user.subscriptionTier === "FREE") {
-    return NextResponse.json(
-      { error: "Report upload requires Pro subscription" },
-      { status: 403 }
-    );
-  }
+  // Note: Subscription check removed for beta testing
+  // In production, uncomment to restrict FREE tier:
+  // if (session.user.subscriptionTier === "FREE") {
+  //   return NextResponse.json(
+  //     { error: "Report upload requires Pro subscription" },
+  //     { status: 403 }
+  //   );
+  // }
 
   const { clientId, blobUrl, fileName, reportDate } = body;
   console.log("📂 [REPORTS] Processing upload:", { clientId, fileName, blobUrl });

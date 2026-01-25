@@ -32,13 +32,14 @@ export async function POST(req: NextRequest) {
 
     const { id: userId, email: userEmail, organizationId, subscriptionTier } = session.user;
 
-    // Check subscription
-    if (subscriptionTier === "FREE") {
-      return NextResponse.json(
-        { error: "Report upload requires Pro subscription" },
-        { status: 403 }
-      );
-    }
+    // Note: Subscription check removed for beta testing
+    // In production, uncomment to restrict FREE tier:
+    // if (subscriptionTier === "FREE") {
+    //   return NextResponse.json(
+    //     { error: "Report upload requires Pro subscription" },
+    //     { status: 403 }
+    //   );
+    // }
 
     // Parse form data
     const formData = await req.formData();
