@@ -949,7 +949,7 @@ export default function ClientsPage() {
 
   const handleDisputeAction = (e: React.MouseEvent, client: Client) => {
     e.stopPropagation();
-    router.push(`/clients/${client.id}?tab=disputes`);
+    router.push(`/disputes?client=${client.id}`);
   };
 
   return (

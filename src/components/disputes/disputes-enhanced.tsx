@@ -920,7 +920,7 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
             </div>
 
             {/* Right Panel - AMELIA AI */}
-            <div className="space-y-5">
+            <div className="space-y-5 lg:sticky lg:top-6 lg:self-start">
               {/* AMELIA Insights */}
               <AmeliaInsightsPanel
                 clientId={selectedClientId}
