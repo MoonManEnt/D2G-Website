@@ -58,7 +58,7 @@ export default function BillingPage() {
       const response = await fetch("/api/billing/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: "PRO", interval }),
+        body: JSON.stringify({ plan: "PROFESSIONAL", interval }),
       });
 
       const data = await response.json();
@@ -132,7 +132,7 @@ export default function BillingPage() {
       </div>
 
       {/* Success banner for PRO users */}
-      {currentTier === "PRO" && subscriptionStatus === "ACTIVE" && (
+      {currentTier === "PROFESSIONAL" && subscriptionStatus === "ACTIVE" && (
         <div className="bg-gradient-to-r from-emerald-500/10 to-blue-500/10 border border-emerald-500/30 rounded-lg p-4 flex items-center gap-4">
           <div className="bg-emerald-500/20 rounded-full p-2">
             <CheckCircle2 className="w-6 h-6 text-emerald-400" />
@@ -192,23 +192,23 @@ export default function BillingPage() {
               <div className="flex items-center gap-3">
                 <Badge
                   className={
-                    currentTier === "PRO"
+                    currentTier === "PROFESSIONAL"
                       ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 text-lg px-4 py-1"
                       : "bg-slate-600 text-slate-200 text-lg px-4 py-1"
                   }
                 >
-                  {currentTier === "PRO" && <Sparkles className="w-4 h-4 mr-1" />}
+                  {currentTier === "PROFESSIONAL" && <Sparkles className="w-4 h-4 mr-1" />}
                   {currentTier}
                 </Badge>
-                {currentTier === "PRO" && getStatusBadge()}
+                {currentTier === "PROFESSIONAL" && getStatusBadge()}
               </div>
               <p className="text-slate-400 mt-2">
-                {currentTier === "PRO"
+                {currentTier === "PROFESSIONAL"
                   ? "You have access to all features"
                   : "Upgrade to unlock all features and remove limits"}
               </p>
             </div>
-            {currentTier === "PRO" && (
+            {currentTier === "PROFESSIONAL" && (
               <Button
                 variant="outline"
                 onClick={handleManageBilling}
@@ -258,7 +258,7 @@ export default function BillingPage() {
         </Card>
 
         {/* Pro Plan */}
-        <Card className={`bg-slate-800/50 border-slate-700 relative ${currentTier === "PRO" ? "ring-2 ring-amber-500" : ""}`}>
+        <Card className={`bg-slate-800/50 border-slate-700 relative ${currentTier === "PROFESSIONAL" ? "ring-2 ring-amber-500" : ""}`}>
           <div className="absolute -top-3 right-4">
             <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0">
               <Sparkles className="w-3 h-3 mr-1" />
@@ -288,7 +288,7 @@ export default function BillingPage() {
               ))}
             </ul>
 
-            {currentTier === "PRO" ? (
+            {currentTier === "PROFESSIONAL" ? (
               <Button variant="outline" className="w-full mt-6 border-amber-500/50 text-amber-400" disabled>
                 <CheckCircle2 className="w-4 h-4 mr-2" />
                 Current Plan

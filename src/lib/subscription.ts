@@ -1,4 +1,4 @@
-import { SubscriptionTier, SubscriptionStatus, FeatureFlags, FREE_TIER_FLAGS, PRO_TIER_FLAGS } from "@/types";
+import { SubscriptionTier, SubscriptionStatus, FeatureFlags, FREE_TIER_FLAGS, PRO_TIER_FLAGS, ENTERPRISE_TIER_FLAGS } from "@/types";
 
 /**
  * Get feature flags based on subscription tier and status
@@ -10,8 +10,12 @@ export function getFeatureFlags(tier: SubscriptionTier, status: SubscriptionStat
   }
 
   switch (tier) {
-    case SubscriptionTier.PRO:
+    case SubscriptionTier.ENTERPRISE:
+      return ENTERPRISE_TIER_FLAGS;
+    case SubscriptionTier.PROFESSIONAL:
       return PRO_TIER_FLAGS;
+    case SubscriptionTier.STARTER:
+      return { ...FREE_TIER_FLAGS, canUploadReports: true, maxClients: 15, maxReportsPerMonth: 25 };
     case SubscriptionTier.FREE:
     default:
       return FREE_TIER_FLAGS;
@@ -91,9 +95,19 @@ export const TIER_INFO: Record<SubscriptionTier, { name: string; description: st
     description: "View the platform and explore features",
     price: "$0/month",
   },
-  [SubscriptionTier.PRO]: {
-    name: "Pro",
+  [SubscriptionTier.STARTER]: {
+    name: "Starter",
+    description: "Essential dispute tools for individuals",
+    price: "$49/month",
+  },
+  [SubscriptionTier.PROFESSIONAL]: {
+    name: "Professional",
     description: "Full access to all dispute tools",
     price: "$99/month",
+  },
+  [SubscriptionTier.ENTERPRISE]: {
+    name: "Enterprise",
+    description: "Unlimited access with premium support",
+    price: "$299/month",
   },
 };

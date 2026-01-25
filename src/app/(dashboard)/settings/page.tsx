@@ -474,7 +474,7 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="text-xl font-bold text-white">Current Plan</h3>
                       <Badge className={
-                        session?.user?.subscriptionTier === "PRO"
+                        session?.user?.subscriptionTier === "PROFESSIONAL"
                           ? "bg-gradient-to-r from-amber-500 to-orange-500 border-0"
                           : "bg-slate-600"
                       }>
@@ -486,7 +486,7 @@ export default function SettingsPage() {
                     </p>
                   </div>
 
-                  {session?.user?.subscriptionTier !== "PRO" && (
+                  {session?.user?.subscriptionTier !== "PROFESSIONAL" && (
                     <Button className="bg-amber-600 hover:bg-amber-700 text-white" onClick={() => window.location.href = "/billing"}>
                       <Sparkles className="w-4 h-4 mr-2" />
                       Upgrade to PRO

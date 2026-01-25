@@ -14,7 +14,9 @@ export enum UserRole {
 
 export enum SubscriptionTier {
   FREE = "FREE",
-  PRO = "PRO",
+  STARTER = "STARTER",
+  PROFESSIONAL = "PROFESSIONAL",
+  ENTERPRISE = "ENTERPRISE",
 }
 
 export enum SubscriptionStatus {
@@ -449,6 +451,17 @@ export const FREE_TIER_FLAGS: FeatureFlags = {
 };
 
 export const PRO_TIER_FLAGS: FeatureFlags = {
+  canUploadReports: true,
+  canGenerateLetters: true,
+  canGenerateCFPB: true,
+  canUseEvidence: true,
+  canViewDiff: true,
+  canExportDocuments: true,
+  maxClients: 50,
+  maxReportsPerMonth: 100,
+};
+
+export const ENTERPRISE_TIER_FLAGS: FeatureFlags = {
   canUploadReports: true,
   canGenerateLetters: true,
   canGenerateCFPB: true,

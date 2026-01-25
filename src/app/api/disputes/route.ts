@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { getDisputeReasonFromIssueCode, FCRA_SECTIONS } from "@/lib/dispute-templates";
+import { withAuth, trackUsage } from "@/lib/api-middleware";
+import { getDisputeReasonFromIssueCode } from "@/lib/dispute-templates";
 import {
   generateLetterFromTemplate,
   type LetterData,
@@ -11,17 +10,11 @@ import {
 } from "@/lib/docx-generator";
 
 // GET /api/disputes - List all disputes
-export async function GET() {
+export const GET = withAuth(async (req, ctx) => {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const disputes = await prisma.dispute.findMany({
       where: {
-        organizationId: session.user.organizationId,
+        organizationId: ctx.organizationId,
       },
       include: {
         client: {
@@ -76,22 +69,16 @@ export async function GET() {
   } catch (error) {
     console.error("Error fetching disputes:", error);
     return NextResponse.json(
-      { error: "Failed to fetch disputes" },
+      { error: "Failed to fetch disputes", code: "FETCH_ERROR" },
       { status: 500 }
     );
   }
-}
+});
 
-// POST /api/disputes - Create a new dispute
-export async function POST(request: NextRequest) {
+// POST /api/disputes - Create a new dispute (with subscription limit check)
+export const POST = withAuth(async (req, ctx) => {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const body = await request.json();
+    const body = await req.json();
     const { clientId, cra, flow, accountIds } = body;
 
     if (!clientId || !cra || !flow || !accountIds || accountIds.length === 0) {
@@ -113,7 +100,7 @@ export async function POST(request: NextRequest) {
     const client = await prisma.client.findFirst({
       where: {
         id: clientId,
-        organizationId: session.user.organizationId,
+        organizationId: ctx.organizationId,
       },
     });
 
@@ -125,7 +112,7 @@ export async function POST(request: NextRequest) {
     const accounts = await prisma.accountItem.findMany({
       where: {
         id: { in: accountIds },
-        organizationId: session.user.organizationId,
+        organizationId: ctx.organizationId,
         cra: cra,
       },
     });
@@ -152,7 +139,7 @@ export async function POST(request: NextRequest) {
     const dispute = await prisma.dispute.create({
       data: {
         clientId,
-        organizationId: session.user.organizationId,
+        organizationId: ctx.organizationId,
         cra,
         flow,
         round,
@@ -264,8 +251,8 @@ export async function POST(request: NextRequest) {
         ]),
         approvalStatus: "DRAFT",
         disputeId: dispute.id,
-        organizationId: session.user.organizationId,
-        createdById: session.user.id,
+        organizationId: ctx.organizationId,
+        createdById: ctx.userId,
       },
     });
 
@@ -273,8 +260,8 @@ export async function POST(request: NextRequest) {
     await prisma.eventLog.create({
       data: {
         eventType: "DISPUTE_CREATED",
-        actorId: session.user.id,
-        actorEmail: session.user.email,
+        actorId: ctx.userId,
+        actorEmail: ctx.session.user.email,
         targetType: "Dispute",
         targetId: dispute.id,
         eventData: JSON.stringify({
@@ -284,8 +271,16 @@ export async function POST(request: NextRequest) {
           accountCount: accounts.length,
           documentId: document.id,
         }),
-        organizationId: session.user.organizationId,
+        organizationId: ctx.organizationId,
       },
+    });
+
+    // Track usage
+    await trackUsage(ctx.organizationId, ctx.userId, "dispute_created", {
+      disputeId: dispute.id,
+      cra,
+      flow,
+      round,
     });
 
     return NextResponse.json({
@@ -306,8 +301,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Error creating dispute:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to create dispute" },
+      { error: error instanceof Error ? error.message : "Failed to create dispute", code: "CREATE_ERROR" },
       { status: 500 }
     );
   }
-}
+}, { checkLimit: "disputes" });
