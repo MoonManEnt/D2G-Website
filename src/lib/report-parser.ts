@@ -8,7 +8,7 @@
 
 import prisma from "@/lib/prisma";
 import { extractTextFromPDF, extractTextFromBuffer } from "@/lib/pdf-extract";
-import { parseIdentityIQReport, analyzeAccountsForIssues, getIssuesSummary, ParsedAccountWithIssues } from "@/lib/parser";
+import { parseIdentityIQReport, analyzeAccountsForIssues, getIssuesSummary, ParsedAccountWithIssues, extractCreditScores, ExtractedCreditScores } from "@/lib/parser";
 import { computeConfidenceLevel } from "@/types";
 
 export interface ParseReportOptions {
@@ -35,6 +35,60 @@ export interface ParseReportResult {
     mediumSeverityIssues: number;
     lowSeverityIssues: number;
   };
+}
+
+/**
+ * Save extracted credit scores to the database
+ */
+async function saveCreditScores({
+  clientId,
+  reportId,
+  scores,
+  reportDate,
+}: {
+  clientId: string;
+  reportId: string;
+  scores: ExtractedCreditScores;
+  reportDate: Date;
+}): Promise<number> {
+  let saved = 0;
+
+  const bureaus = [
+    { key: "transunion" as const, cra: "TRANSUNION" },
+    { key: "equifax" as const, cra: "EQUIFAX" },
+    { key: "experian" as const, cra: "EXPERIAN" },
+  ];
+
+  for (const { key, cra } of bureaus) {
+    const score = scores[key];
+    if (score !== null) {
+      // Check if a score already exists for this report
+      const existing = await prisma.creditScore.findFirst({
+        where: {
+          clientId,
+          reportId,
+          cra,
+        },
+      });
+
+      if (!existing) {
+        await prisma.creditScore.create({
+          data: {
+            clientId,
+            reportId,
+            cra,
+            score,
+            scoreType: "VANTAGE3", // IdentityIQ typically uses VantageScore 3.0
+            scoreDate: reportDate,
+            source: "REPORT_PARSE",
+          },
+        });
+        saved++;
+      }
+    }
+  }
+
+  return saved;
 }
 
 /**
@@ -161,7 +215,18 @@ export async function parseAndAnalyzeReport(options: ParseReportOptions): Promis
       accountsParsed++;
     }
 
-    // Step 5: Update report status to completed
+    // Step 5: Extract and save credit scores
+    const extractedScores = extractCreditScores(extractionResult.text);
+    const scoresExtracted = await saveCreditScores({
+      clientId,
+      reportId,
+      scores: extractedScores,
+      reportDate: new Date(), // Will be updated with actual report date if available
+    });
+
+    console.log(`[PARSER] Credit scores extracted: TU=${extractedScores.transunion}, EQ=${extractedScores.equifax}, EX=${extractedScores.experian}`);
+
+    // Step 6: Update report status to completed
     await prisma.creditReport.update({
       where: { id: reportId },
       data: {
@@ -171,7 +236,7 @@ export async function parseAndAnalyzeReport(options: ParseReportOptions): Promis
       },
     });
 
-    // Step 6: Log the parsing event
+    // Step 7: Log the parsing event
     await prisma.eventLog.create({
       data: {
         eventType: "REPORT_PARSED",

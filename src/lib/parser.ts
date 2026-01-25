@@ -67,6 +67,93 @@ const STATUS_MAP: Record<string, AccountStatus> = {
   "collections": AccountStatus.COLLECTION,
 };
 
+// Credit score extraction result
+export interface ExtractedCreditScores {
+  transunion: number | null;
+  equifax: number | null;
+  experian: number | null;
+}
+
+/**
+ * Extract credit scores from the report text.
+ * IdentityIQ reports typically have a score summary section like:
+ * "TransUnion VantageScore 3.0 642"
+ * "Equifax VantageScore 3.0 638"
+ * "Experian VantageScore 3.0 651"
+ */
+export function extractCreditScores(text: string): ExtractedCreditScores {
+  const scores: ExtractedCreditScores = {
+    transunion: null,
+    equifax: null,
+    experian: null,
+  };
+
+  // Common patterns for credit scores in IdentityIQ reports
+  const scorePatterns = [
+    // Pattern: "TransUnion VantageScore 3.0 642"
+    /TransUnion\s+(?:VantageScore|Vantage\s*Score|FICO)[\s\d.]*?(\d{3})/i,
+    /Equifax\s+(?:VantageScore|Vantage\s*Score|FICO)[\s\d.]*?(\d{3})/i,
+    /Experian\s+(?:VantageScore|Vantage\s*Score|FICO)[\s\d.]*?(\d{3})/i,
+    // Alternative pattern: "TU: 642 EQ: 638 EX: 651"
+    /\bTU[:\s]*(\d{3})\b/i,
+    /\bEQ[:\s]*(\d{3})\b/i,
+    /\bEX[:\s]*(\d{3})\b/i,
+    // Pattern: Score summary table with three scores
+    /Credit\s+Score[s]?\s*(?:Summary)?[\s\S]*?(\d{3})\s+(\d{3})\s+(\d{3})/i,
+  ];
+
+  // Try TransUnion patterns
+  for (const pattern of [scorePatterns[0], scorePatterns[3]]) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      const score = parseInt(match[1], 10);
+      if (score >= 300 && score <= 850) {
+        scores.transunion = score;
+        break;
+      }
+    }
+  }
+
+  // Try Equifax patterns
+  for (const pattern of [scorePatterns[1], scorePatterns[4]]) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      const score = parseInt(match[1], 10);
+      if (score >= 300 && score <= 850) {
+        scores.equifax = score;
+        break;
+      }
+    }
+  }
+
+  // Try Experian patterns
+  for (const pattern of [scorePatterns[2], scorePatterns[5]]) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      const score = parseInt(match[1], 10);
+      if (score >= 300 && score <= 850) {
+        scores.experian = score;
+        break;
+      }
+    }
+  }
+
+  // Try table pattern if individual patterns didn't work
+  if (!scores.transunion && !scores.equifax && !scores.experian) {
+    const tableMatch = text.match(scorePatterns[6]);
+    if (tableMatch) {
+      const s1 = parseInt(tableMatch[1], 10);
+      const s2 = parseInt(tableMatch[2], 10);
+      const s3 = parseInt(tableMatch[3], 10);
+      if (s1 >= 300 && s1 <= 850) scores.transunion = s1;
+      if (s2 >= 300 && s2 <= 850) scores.experian = s2;
+      if (s3 >= 300 && s3 <= 850) scores.equifax = s3;
+    }
+  }
+
+  return scores;
+}
+
 /**
  * Main parsing function
  */

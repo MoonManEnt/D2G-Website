@@ -52,7 +52,9 @@ import {
   Save,
   Loader2,
   Trash2,
+  CreditCard,
 } from "lucide-react";
+import { CreditReportsPanel, ReportComparisonModal } from "@/components/client";
 import { useToast } from "@/lib/use-toast";
 import { useRouter, useSearchParams } from "next/navigation";
 import { formatDistanceToNow, format } from "date-fns";
@@ -293,11 +295,15 @@ function ClientQuickViewModal({
   onUpdate: () => void;
 }) {
   const { toast } = useToast();
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<"profile" | "reports">("reports");
   const [detail, setDetail] = useState<ClientDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showComparisonModal, setShowComparisonModal] = useState(false);
+  const [comparisonReports, setComparisonReports] = useState<unknown[]>([]);
   const [editForm, setEditForm] = useState({
     email: "",
     phone: "",
@@ -438,7 +444,7 @@ function ClientQuickViewModal({
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="fixed inset-4 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-[90vw] sm:max-w-3xl sm:max-h-[85vh] z-50 overflow-hidden"
+            className="fixed inset-4 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-[95vw] sm:max-w-5xl sm:max-h-[90vh] z-50 overflow-hidden"
           >
             <div className="h-full rounded-2xl bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 shadow-2xl shadow-black/50 overflow-hidden flex flex-col">
               {/* Glassmorphic gradient overlay */}
@@ -454,7 +460,7 @@ function ClientQuickViewModal({
                   <X className="w-5 h-5 text-slate-400" />
                 </button>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 mb-4">
                   <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500/30 to-purple-500/30 flex items-center justify-center border-2 border-blue-500/30">
                     <span className="text-xl font-bold text-white">
                       {client.firstName.charAt(0)}{client.lastName.charAt(0)}
@@ -469,11 +475,52 @@ function ClientQuickViewModal({
                     </p>
                   </div>
                 </div>
+
+                {/* Tab Navigation */}
+                <div className="flex items-center gap-1 bg-slate-800/50 rounded-lg p-1">
+                  <button
+                    onClick={() => setActiveTab("reports")}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                      activeTab === "reports"
+                        ? "bg-blue-600 text-white"
+                        : "text-slate-400 hover:text-white hover:bg-slate-700/50"
+                    }`}
+                  >
+                    <CreditCard className="w-4 h-4" />
+                    Credit Reports
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("profile")}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                      activeTab === "profile"
+                        ? "bg-blue-600 text-white"
+                        : "text-slate-400 hover:text-white hover:bg-slate-700/50"
+                    }`}
+                  >
+                    <User className="w-4 h-4" />
+                    Profile
+                  </button>
+                </div>
               </div>
 
               {/* Content */}
               <div className="relative flex-1 overflow-y-auto p-6 space-y-6">
-                {loading ? (
+                {activeTab === "reports" ? (
+                  <>
+                    <CreditReportsPanel
+                      clientId={client.id}
+                      clientName={`${client.firstName} ${client.lastName}`}
+                      onStartDisputes={() => {
+                        onClose();
+                        router.push(`/disputes?clientId=${client.id}`);
+                      }}
+                      onCompareAll={(reports) => {
+                        setComparisonReports(reports);
+                        setShowComparisonModal(true);
+                      }}
+                    />
+                  </>
+                ) : loading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
                   </div>
@@ -669,7 +716,13 @@ function ClientQuickViewModal({
 
               {/* Footer */}
               <div className="relative p-4 border-t border-slate-700/50">
-                {showDeleteConfirm ? (
+                {activeTab === "reports" ? (
+                  <div className="flex justify-end gap-3">
+                    <Button variant="ghost" onClick={onClose}>
+                      Close
+                    </Button>
+                  </div>
+                ) : showDeleteConfirm ? (
                   <div className="space-y-3">
                     <p className="text-sm text-slate-300">
                       How do you want to remove this client?
@@ -737,6 +790,14 @@ function ClientQuickViewModal({
               </div>
             </div>
           </motion.div>
+
+          {/* Report Comparison Modal */}
+          <ReportComparisonModal
+            isOpen={showComparisonModal}
+            onClose={() => setShowComparisonModal(false)}
+            reports={comparisonReports as Parameters<typeof ReportComparisonModal>[0]["reports"]}
+            clientName={`${client.firstName} ${client.lastName}`}
+          />
         </>
       )}
     </AnimatePresence>
