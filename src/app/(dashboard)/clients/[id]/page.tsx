@@ -886,11 +886,18 @@ export default function ClientDetailPage() {
                         >
                           {report.parseStatus}
                         </Badge>
-                        <Link href={`/reports?id=${report.id}`}>
-                          <Button size="sm" variant="outline">
-                            View
-                          </Button>
-                        </Link>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            toast({
+                              title: "Report Details",
+                              description: `${report.originalFile?.filename || "Report"} - ${report._count.accounts} accounts parsed`,
+                            });
+                          }}
+                        >
+                          View
+                        </Button>
                       </div>
                     </div>
                   </CardContent>
