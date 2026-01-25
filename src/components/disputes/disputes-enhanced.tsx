@@ -7,6 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Loader2,
   Plus,
   Scale,
@@ -19,6 +26,10 @@ import {
   AlertTriangle,
   CheckCircle,
   Download,
+  Edit3,
+  Copy,
+  Check,
+  Printer,
 } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
 
@@ -74,6 +85,20 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
   const [loading, setLoading] = useState(true);
   const [accountsLoading, setAccountsLoading] = useState(false);
   const [creating, setCreating] = useState(false);
+
+  // Letter preview state
+  const [letterModalOpen, setLetterModalOpen] = useState(false);
+  const [generatedLetter, setGeneratedLetter] = useState<{
+    disputeId: string;
+    documentId: string;
+    documentTitle: string;
+    content: string;
+    cra: string;
+    flow: string;
+    round: number;
+  } | null>(null);
+  const [letterCopied, setLetterCopied] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   // Fetch clients on mount
   useEffect(() => {
@@ -210,16 +235,61 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
 
       if (res.ok) {
         const data = await res.json();
-        toast({ title: "Dispute Created", description: `${data.dispute.cra} dispute letter generated` });
-        // Reset selection
-        setSelectedAccounts([]);
-        setAmeliaInsights(null);
-        // Refresh disputes list
+
+        // Fetch the generated letter content (returns plain text)
+        const letterRes = await fetch(`/api/disputes/${data.dispute.id}/docx?format=text`);
+        let letterContent = "";
+        if (letterRes.ok) {
+          letterContent = await letterRes.text();
+        }
+
+        // Set the generated letter for preview
+        setGeneratedLetter({
+          disputeId: data.dispute.id,
+          documentId: data.document.id,
+          documentTitle: data.document.title,
+          content: letterContent,
+          cra: data.dispute.cra,
+          flow: data.dispute.flow,
+          round: data.dispute.round,
+        });
+
+        // Open the letter preview modal
+        setLetterModalOpen(true);
+
+        toast({
+          title: "Dispute Letter Generated",
+          description: `${data.dispute.cra} Round ${data.dispute.round} - ${selectedAccounts.length} items`
+        });
+
+        // Refresh disputes list in background
         fetch("/api/disputes")
           .then((r) => r.ok ? r.json() : [])
-          .then((data) => setDisputes(Array.isArray(data) ? data : []));
-        // Switch to history tab
-        setActiveTab("history");
+          .then((disputeData) => {
+            const mapped = (Array.isArray(disputeData) ? disputeData : [])
+              .filter((d: { _count?: { items: number } }) => (d._count?.items || 0) > 0)
+              .map((d: {
+                id: string;
+                client: { id: string; firstName: string; lastName: string };
+                cra: string;
+                flow: string;
+                round: number;
+                disputeStatus: string;
+                createdAt: string;
+                _count?: { items: number };
+              }) => ({
+                id: d.id,
+                clientId: d.client?.id,
+                client: d.client,
+                cra: d.cra,
+                flow: d.flow,
+                round: d.round,
+                status: d.disputeStatus || "DRAFT",
+                createdAt: d.createdAt,
+                itemCount: d._count?.items || 0,
+              }));
+            setDisputes(mapped);
+          });
       } else {
         const error = await res.json();
         toast({ title: "Failed", description: error.error || "Failed to create dispute", variant: "destructive" });
@@ -229,6 +299,56 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
     } finally {
       setCreating(false);
     }
+  };
+
+  // Download letter as DOCX
+  const handleDownloadLetter = async () => {
+    if (!generatedLetter) return;
+
+    setDownloading(true);
+    try {
+      const res = await fetch(`/api/disputes/${generatedLetter.disputeId}/docx`);
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${generatedLetter.cra}_Round${generatedLetter.round}_Dispute.docx`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        toast({ title: "Downloaded", description: "Letter saved as DOCX" });
+      } else {
+        toast({ title: "Download Failed", description: "Could not download letter", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Download failed", variant: "destructive" });
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  // Copy letter to clipboard
+  const handleCopyLetter = async () => {
+    if (!generatedLetter?.content) return;
+
+    try {
+      await navigator.clipboard.writeText(generatedLetter.content);
+      setLetterCopied(true);
+      setTimeout(() => setLetterCopied(false), 2000);
+      toast({ title: "Copied", description: "Letter copied to clipboard" });
+    } catch {
+      toast({ title: "Failed", description: "Could not copy to clipboard", variant: "destructive" });
+    }
+  };
+
+  // Close letter modal and reset
+  const handleCloseLetterModal = () => {
+    setLetterModalOpen(false);
+    // Reset selection after closing
+    setSelectedAccounts([]);
+    setAmeliaInsights(null);
   };
 
   // Calculate stats
@@ -695,6 +815,104 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Letter Preview Modal */}
+      <Dialog open={letterModalOpen} onOpenChange={setLetterModalOpen}>
+        <DialogContent className="bg-slate-800 border-slate-700 max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle className="text-white flex items-center gap-2">
+              <FileText className="w-5 h-5 text-purple-400" />
+              {generatedLetter?.documentTitle || "Dispute Letter"}
+            </DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Review the generated dispute letter before downloading or sending
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Letter metadata */}
+          {generatedLetter && (
+            <div className="flex items-center gap-3 flex-wrap pb-3 border-b border-slate-700">
+              <Badge className={CRA_COLORS[generatedLetter.cra]?.tailwind || "bg-slate-500/20 text-slate-400"}>
+                {generatedLetter.cra}
+              </Badge>
+              <Badge className="bg-purple-500/20 text-purple-400">
+                Round {generatedLetter.round}
+              </Badge>
+              <Badge className="bg-blue-500/20 text-blue-400">
+                {generatedLetter.flow}
+              </Badge>
+              <span className="text-xs text-slate-500 ml-auto">
+                Generated {new Date().toLocaleDateString()}
+              </span>
+            </div>
+          )}
+
+          {/* Letter content */}
+          <div className="flex-1 overflow-y-auto my-4">
+            <div className="bg-white rounded-lg p-8 text-black font-serif text-sm leading-relaxed shadow-lg">
+              {generatedLetter?.content ? (
+                <div className="whitespace-pre-wrap">{generatedLetter.content}</div>
+              ) : (
+                <div className="text-center text-slate-400 py-12">
+                  <Loader2 className="w-8 h-8 mx-auto animate-spin mb-4" />
+                  Loading letter content...
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-between pt-4 border-t border-slate-700 flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCopyLetter}
+                className="gap-2"
+              >
+                {letterCopied ? (
+                  <>
+                    <Check className="w-4 h-4 text-green-400" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    Copy Text
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.print()}
+                className="gap-2"
+              >
+                <Printer className="w-4 h-4" />
+                Print
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" onClick={handleCloseLetterModal}>
+                Close
+              </Button>
+              <Button
+                onClick={handleDownloadLetter}
+                disabled={downloading}
+                className="bg-purple-600 hover:bg-purple-700 gap-2"
+              >
+                {downloading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                Download DOCX
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
