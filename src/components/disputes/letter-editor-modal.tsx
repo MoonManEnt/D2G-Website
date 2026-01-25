@@ -61,12 +61,13 @@ interface AmeliaSettings {
 
 interface GeneratedLetter {
   disputeId: string;
-  documentId: string;
-  documentTitle: string;
+  documentId?: string;  // Optional - created when launched
+  documentTitle?: string;  // Optional - created when launched
   content: string;
   cra: string;
   flow: string;
   round: number;
+  status?: string;  // DRAFT, SENT, RESPONDED, RESOLVED
   ameliaMetadata?: {
     letterDate: string;
     isBackdated: boolean;
@@ -74,13 +75,13 @@ interface GeneratedLetter {
     tone: string;
     effectiveFlow: string;
     statute: string;
-    includesScreenshots: boolean;
+    includesScreenshots?: boolean;
     personalInfoDisputed: {
       previousNames: number;
       previousAddresses: number;
       hardInquiries: number;
     };
-    ameliaVersion: string;
+    ameliaVersion?: string;
   };
 }
 

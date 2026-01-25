@@ -2,12 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { withAuth, trackUsage } from "@/lib/api-middleware";
 import { getDisputeReasonFromIssueCode } from "@/lib/dispute-templates";
+import { format } from "date-fns";
 import {
-  generateLetterFromTemplate,
-  type LetterData,
-  type DisputeAccountForLetter,
-  type DisputeFlow,
-} from "@/lib/docx-generator";
+  generateLetter,
+  type ClientPersonalInfo,
+  type DisputeAccount,
+  type HardInquiry,
+  type ActivePersonalInfoDispute,
+} from "@/lib/amelia/index";
+import { CRA } from "@/types";
+import {
+  getActiveDisputes,
+  getLastDisputeDate,
+  recordDisputedItems,
+} from "@/lib/personal-info-dispute-service";
 
 // GET /api/disputes - List all disputes
 export const GET = withAuth(async (req, ctx) => {
@@ -75,12 +83,24 @@ export const GET = withAuth(async (req, ctx) => {
   }
 });
 
-// POST /api/disputes - Create a new dispute (with subscription limit check)
+// =============================================================================
+// POST /api/disputes - Create dispute with automatic AMELIA letter generation
+// =============================================================================
+// SIMPLIFIED WORKFLOW:
+// 1. Create dispute as DRAFT
+// 2. Automatically generate AMELIA letter
+// 3. Return dispute ready for review/edit
+//
+// Statuses: DRAFT → SENT → RESPONDED → RESOLVED
+// Account locking: Only when status = SENT
+// =============================================================================
+
 export const POST = withAuth(async (req, ctx) => {
   try {
     const body = await req.json();
-    const { clientId, cra, flow, accountIds } = body;
+    const { clientId, cra, flow, accountIds, tone } = body;
 
+    // Validate required fields
     if (!clientId || !cra || !flow || !accountIds || accountIds.length === 0) {
       return NextResponse.json(
         { error: "clientId, cra, flow, and accountIds are required" },
@@ -92,6 +112,14 @@ export const POST = withAuth(async (req, ctx) => {
     if (!["TRANSUNION", "EXPERIAN", "EQUIFAX"].includes(cra)) {
       return NextResponse.json(
         { error: "Invalid CRA. Must be TRANSUNION, EXPERIAN, or EQUIFAX" },
+        { status: 400 }
+      );
+    }
+
+    // Validate flow
+    if (!["ACCURACY", "COLLECTION", "CONSENT", "COMBO"].includes(flow)) {
+      return NextResponse.json(
+        { error: "Invalid flow. Must be ACCURACY, COLLECTION, CONSENT, or COMBO" },
         { status: 400 }
       );
     }
@@ -108,7 +136,7 @@ export const POST = withAuth(async (req, ctx) => {
       return NextResponse.json({ error: "Client not found" }, { status: 404 });
     }
 
-    // Get account items
+    // Get account items - verify they belong to this CRA and organization
     const accounts = await prisma.accountItem.findMany({
       where: {
         id: { in: accountIds },
@@ -126,26 +154,22 @@ export const POST = withAuth(async (req, ctx) => {
 
     // Determine the next round number for this client/CRA combination
     const lastDispute = await prisma.dispute.findFirst({
-      where: {
-        clientId,
-        cra,
-      },
+      where: { clientId, cra },
       orderBy: { round: "desc" },
     });
 
     // WORKFLOW ENFORCEMENT: Previous round must be SENT or RESPONDED before creating new round
-    // This ensures proper tracking: DRAFT -> SENT -> RESPONSE_RECEIVED -> next round
+    // This allows flexibility while ensuring proper sequencing
     if (lastDispute) {
-      const validStatusesForNextRound = ["SENT", "RESPONSE_RECEIVED", "RESOLVED", "ESCALATED"];
+      const validStatusesForNextRound = ["SENT", "RESPONDED", "RESOLVED"];
       if (!validStatusesForNextRound.includes(lastDispute.status)) {
         return NextResponse.json(
           {
-            error: `Cannot create Round ${lastDispute.round + 1} - Round ${lastDispute.round} has not been sent yet`,
+            error: `Cannot create Round ${lastDispute.round + 1}`,
             details: {
               currentRound: lastDispute.round,
               currentStatus: lastDispute.status,
-              requiredStatus: "SENT, RESPONSE_RECEIVED, or RESOLVED",
-              message: `Please send Round ${lastDispute.round} letter first, then log responses before creating the next round.`
+              message: `Round ${lastDispute.round} must be sent first. Current status: ${lastDispute.status}`
             }
           },
           { status: 400 }
@@ -155,7 +179,7 @@ export const POST = withAuth(async (req, ctx) => {
 
     const round = (lastDispute?.round || 0) + 1;
 
-    // Create the dispute
+    // Create the dispute with items
     const dispute = await prisma.dispute.create({
       data: {
         clientId,
@@ -166,7 +190,6 @@ export const POST = withAuth(async (req, ctx) => {
         status: "DRAFT",
         items: {
           create: accounts.map((account) => {
-            // Parse detected issues to get dispute reasons
             let disputeReason = "Information is inaccurate and requires verification";
             try {
               const issues = account.detectedIssues ? JSON.parse(account.detectedIssues) : [];
@@ -180,6 +203,7 @@ export const POST = withAuth(async (req, ctx) => {
             return {
               accountItemId: account.id,
               disputeReason,
+              suggestedFlow: account.suggestedFlow || flow,
             };
           }),
         },
@@ -193,88 +217,176 @@ export const POST = withAuth(async (req, ctx) => {
       },
     });
 
-    // Parse detected issues for each account to include in letter
-    const accountsForLetter: DisputeAccountForLetter[] = dispute.items.map((item) => {
-      // Parse the detected issues JSON
-      let issues: Array<{ code: string; severity: string; description: string; suggestedFlow: string; fcraSection?: string }> = [];
+    // =========================================================================
+    // AMELIA LETTER GENERATION - Automatic on creation
+    // =========================================================================
+
+    // Fetch the most recent credit report for personal info
+    const latestReport = await prisma.creditReport.findFirst({
+      where: {
+        clientId: client.id,
+        parseStatus: "COMPLETED",
+      },
+      orderBy: { reportDate: "desc" },
+    });
+
+    // Parse personal info from report
+    let previousNames: string[] = [];
+    let previousAddresses: string[] = [];
+    let hardInquiries: HardInquiry[] = [];
+
+    if (latestReport) {
       try {
-        issues = item.accountItem.detectedIssues
-          ? JSON.parse(item.accountItem.detectedIssues)
-          : [];
+        previousNames = JSON.parse(latestReport.previousNames || "[]");
+        previousAddresses = JSON.parse(latestReport.previousAddresses || "[]");
+        const rawInquiries = JSON.parse(latestReport.hardInquiries || "[]");
+        hardInquiries = rawInquiries.map((inq: { creditorName: string; inquiryDate: string; cra: string }) => ({
+          creditorName: inq.creditorName,
+          inquiryDate: inq.inquiryDate,
+          cra: inq.cra as CRA,
+        }));
       } catch {
-        // Use empty array if parsing fails
+        // If parsing fails, use empty arrays
       }
+    }
+
+    // Build client personal info for AMELIA
+    const clientInfo: ClientPersonalInfo = {
+      firstName: client.firstName,
+      lastName: client.lastName,
+      fullName: `${client.firstName} ${client.lastName}`,
+      addressLine1: client.addressLine1 || "",
+      addressLine2: client.addressLine2 || undefined,
+      city: client.city || "",
+      state: client.state || "",
+      zipCode: client.zipCode || "",
+      ssnLast4: client.ssnLast4 || "XXXX",
+      dateOfBirth: client.dateOfBirth
+        ? format(new Date(client.dateOfBirth), "MM/dd/yyyy")
+        : "XX/XX/XXXX",
+      phone: client.phone || undefined,
+      previousNames,
+      previousAddresses,
+      hardInquiries,
+    };
+
+    // Build dispute accounts for AMELIA
+    const disputeAccounts: DisputeAccount[] = dispute.items.map((item) => {
+      const acc = item.accountItem;
+      const issues = acc?.detectedIssues ? JSON.parse(acc.detectedIssues) : [];
 
       return {
-        creditorName: item.accountItem.creditorName,
-        accountNumber: item.accountItem.maskedAccountId || "N/A",
-        accountType: item.accountItem.accountType || undefined,
-        balance: item.accountItem.balance
-          ? `$${Number(item.accountItem.balance).toLocaleString()}`
+        creditorName: acc?.creditorName || "Unknown Creditor",
+        accountNumber: acc?.maskedAccountId || "XXXXXXXX****",
+        accountType: acc?.accountType || undefined,
+        balance: acc?.balance ? parseFloat(acc.balance.toString()) : undefined,
+        pastDue: acc?.pastDue ? parseFloat(acc.pastDue.toString()) : undefined,
+        dateOpened: acc?.dateOpened
+          ? format(new Date(acc.dateOpened), "MM/dd/yyyy")
           : undefined,
-        reason: item.disputeReason || "Requires verification",
-        issues: issues.map((issue) => ({
-          code: issue.code,
-          description: issue.description,
-        })),
+        dateReported: acc?.dateReported
+          ? format(new Date(acc.dateReported), "MM/dd/yyyy")
+          : undefined,
+        paymentStatus: acc?.paymentStatus || undefined,
+        issues: issues,
+        inaccurateCategories: [],
       };
     });
 
-    // Get debt collector name if collection flow
-    const debtCollectorName = accountsForLetter.find((a) =>
-      a.accountType?.toLowerCase().includes("collection")
-    )?.creditorName;
+    // Get used content hashes to ensure uniqueness
+    const usedHashes = await prisma.ameliaContentHash.findMany({
+      where: { clientId: client.id },
+      select: { contentHash: true },
+    });
+    const usedHashSet = new Set(usedHashes.map((h) => h.contentHash));
 
-    // Prepare letter data for template
-    const letterData: LetterData = {
-      clientFirstName: client.firstName,
-      clientLastName: client.lastName,
-      clientAddress: client.addressLine1 || "[ADDRESS]",
-      clientCity: client.city || "[CITY]",
-      clientState: client.state || "[STATE]",
-      clientZip: client.zipCode || "[ZIP]",
-      clientSSN4: client.ssnLast4 || "XXXX",
-      clientDOB: client.dateOfBirth
-        ? new Date(client.dateOfBirth).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })
-        : "[DATE OF BIRTH]",
-      currentDate: new Date().toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      }),
-      accounts: accountsForLetter,
-      debtCollectorName,
-    };
+    // For R2+, fetch last dispute date and active personal info disputes
+    let lastDisputeDateStr: string | undefined;
+    let activePersonalInfoDisputes: ActivePersonalInfoDispute[] | undefined;
 
-    // Generate letter content from actual eOSCAR template
-    const letterContent = generateLetterFromTemplate(
-      cra as "TRANSUNION" | "EXPERIAN" | "EQUIFAX",
-      letterData,
-      flow as DisputeFlow,
-      round
-    );
+    if (round >= 2) {
+      const lastDisputeDate = await getLastDisputeDate(client.id, cra as CRA);
+      if (lastDisputeDate) {
+        lastDisputeDateStr = format(lastDisputeDate, "MMMM d, yyyy");
+      }
+      activePersonalInfoDisputes = await getActiveDisputes(client.id, cra as CRA);
+    }
 
-    // Create the document
-    const document = await prisma.document.create({
+    // Generate the letter using AMELIA doctrine
+    const generatedLetter = generateLetter({
+      client: clientInfo,
+      accounts: disputeAccounts,
+      cra: cra as CRA,
+      flow: flow as "ACCURACY" | "COLLECTION" | "CONSENT" | "COMBO",
+      round,
+      usedContentHashes: usedHashSet,
+      lastDisputeDate: lastDisputeDateStr,
+      activePersonalInfoDisputes,
+      // TODO: Add toneOverride support to AMELIA generator
+    });
+
+    // Store the content hash
+    await prisma.ameliaContentHash.create({
       data: {
-        documentType: "DISPUTE_LETTER",
-        title: `${cra} Dispute Letter - Round ${round}`,
-        content: letterContent,
-        statutesCited: JSON.stringify([
-          "15 U.S.C. § 1681e(b)",
-          "15 U.S.C. § 1681i",
-          "15 U.S.C. § 1681s-2(b)",
-        ]),
-        approvalStatus: "DRAFT",
-        disputeId: dispute.id,
-        organizationId: ctx.organizationId,
-        createdById: ctx.userId,
+        clientId: client.id,
+        contentHash: generatedLetter.contentHash,
+        contentType: "LETTER",
+        sourceDocId: dispute.id,
       },
     });
+
+    // Update dispute with AMELIA letter content
+    const updatedDispute = await prisma.dispute.update({
+      where: { id: dispute.id },
+      data: {
+        letterContent: generatedLetter.content,
+        aiStrategy: JSON.stringify({
+          generatedAt: new Date().toISOString(),
+          tone: generatedLetter.tone,
+          isBackdated: generatedLetter.isBackdated,
+          backdatedDays: generatedLetter.backdatedDays,
+          letterDate: generatedLetter.letterDate.toISOString(),
+          flow: generatedLetter.flow,
+          effectiveFlow: generatedLetter.effectiveFlow,
+          round: generatedLetter.round,
+          statute: generatedLetter.statute,
+          includesScreenshots: generatedLetter.includesScreenshots,
+          personalInfoDisputed: generatedLetter.personalInfoDisputed,
+          ameliaVersion: "2.2",
+        }),
+      },
+      include: {
+        client: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        items: {
+          include: {
+            accountItem: {
+              select: {
+                id: true,
+                creditorName: true,
+                maskedAccountId: true,
+                balance: true,
+                accountType: true,
+                detectedIssues: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Record disputed items for persistent tracking
+    await recordDisputedItems(
+      client.id,
+      ctx.organizationId,
+      cra as CRA,
+      generatedLetter.personalInfoDisputed
+    );
 
     // Log the event
     await prisma.eventLog.create({
@@ -289,7 +401,9 @@ export const POST = withAuth(async (req, ctx) => {
           flow,
           round,
           accountCount: accounts.length,
-          documentId: document.id,
+          ameliaGenerated: true,
+          tone: generatedLetter.tone,
+          isBackdated: generatedLetter.isBackdated,
         }),
         organizationId: ctx.organizationId,
       },
@@ -306,16 +420,36 @@ export const POST = withAuth(async (req, ctx) => {
     return NextResponse.json({
       success: true,
       dispute: {
-        id: dispute.id,
-        cra,
-        flow,
-        round,
-        status: dispute.status,
-        itemCount: dispute.items.length,
+        id: updatedDispute.id,
+        clientId: updatedDispute.clientId,
+        client: updatedDispute.client,
+        cra: updatedDispute.cra,
+        flow: updatedDispute.flow,
+        round: updatedDispute.round,
+        status: updatedDispute.status,
+        letterContent: updatedDispute.letterContent,
+        items: updatedDispute.items.map((item) => ({
+          id: item.id,
+          disputeReason: item.disputeReason,
+          accountItem: {
+            ...item.accountItem,
+            balance: item.accountItem.balance ? Number(item.accountItem.balance) : null,
+          },
+        })),
+        createdAt: updatedDispute.createdAt,
       },
-      document: {
-        id: document.id,
-        title: document.title,
+      amelia: {
+        tone: generatedLetter.tone,
+        isBackdated: generatedLetter.isBackdated,
+        backdatedDays: generatedLetter.backdatedDays,
+        letterDate: generatedLetter.letterDate.toISOString(),
+        effectiveFlow: generatedLetter.effectiveFlow,
+        statute: generatedLetter.statute,
+        personalInfoDisputed: {
+          previousNames: generatedLetter.personalInfoDisputed.previousNames.length,
+          previousAddresses: generatedLetter.personalInfoDisputed.previousAddresses.length,
+          hardInquiries: generatedLetter.personalInfoDisputed.hardInquiries.length,
+        },
       },
     });
   } catch (error) {

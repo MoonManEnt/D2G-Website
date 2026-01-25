@@ -78,31 +78,27 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
   const [letterModalOpen, setLetterModalOpen] = useState(false);
   const [generatedLetter, setGeneratedLetter] = useState<{
     disputeId: string;
-    documentId: string;
-    documentTitle: string;
     content: string;
     cra: string;
     flow: string;
     round: number;
-    // AMELIA metadata
-    ameliaMetadata?: {
+    status: string;
+    // AMELIA metadata (always present with new simplified workflow)
+    ameliaMetadata: {
       letterDate: string;
       isBackdated: boolean;
       backdatedDays: number;
       tone: string;
       effectiveFlow: string;
       statute: string;
-      includesScreenshots: boolean;
       personalInfoDisputed: {
         previousNames: number;
         previousAddresses: number;
         hardInquiries: number;
       };
-      ameliaVersion: string;
     };
   } | null>(null);
   const [downloading, setDownloading] = useState(false);
-  const [generatingAmelia, setGeneratingAmelia] = useState(false);
   const [launching, setLaunching] = useState(false);
 
   // Fetch clients on mount
@@ -128,7 +124,7 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
             cra: string;
             flow: string;
             round: number;
-            disputeStatus: string;
+            status: string;
             createdAt: string;
             _count?: { items: number };
           }) => ({
@@ -138,7 +134,7 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
             cra: d.cra,
             flow: d.flow,
             round: d.round,
-            status: d.disputeStatus || "DRAFT",
+            status: d.status || "DRAFT",
             createdAt: d.createdAt,
             itemCount: d._count?.items || 0,
           }));
@@ -161,16 +157,17 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
   };
 
   // Fetch accounts when client and CRA change
-  // Also fetch active disputes to determine which accounts are locked
+  // Also fetch SENT disputes to determine which accounts are locked
+  // (accounts are only locked when dispute status = SENT, not DRAFT)
   useEffect(() => {
     if (!selectedClientId) return;
 
     setAccountsLoading(true);
 
-    // Fetch both accounts and active disputes in parallel
+    // Fetch both accounts and SENT disputes in parallel
     Promise.all([
       fetch(`/api/accounts/negative?clientId=${selectedClientId}`).then((r) => r.ok ? r.json() : { accounts: [] }),
-      fetch(`/api/disputes?clientId=${selectedClientId}&status=SENT,PENDING_RESPONSE`).then((r) => r.ok ? r.json() : [])
+      fetch(`/api/disputes?clientId=${selectedClientId}&status=SENT`).then((r) => r.ok ? r.json() : [])
     ])
       .then(([accountsData, disputesData]) => {
         // Build a map of active disputes by account fingerprint + CRA
@@ -205,7 +202,7 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
               disputeId: dispute.id,
               flow: dispute.flow,
               round: dispute.round,
-              status: dispute.disputeStatus || "SENT",
+              status: dispute.status || "SENT",
               sentDate,
               responseDeadline,
             });
@@ -230,7 +227,7 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
                 disputeId: activeDispute.disputeId,
                 flow: activeDispute.flow,
                 round: activeDispute.round,
-                status: activeDispute.status as "DRAFT" | "SENT" | "PENDING_RESPONSE" | "RESPONDED",
+                status: activeDispute.status as "DRAFT" | "SENT" | "RESPONDED" | "RESOLVED",
                 sentDate: activeDispute.sentDate,
                 daysRemaining: Math.abs(daysRemaining),
                 responseDeadline: activeDispute.responseDeadline,
@@ -365,7 +362,7 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
     setSelectedAccounts(parsedAccounts.map((a) => a.id));
   };
 
-  // Create dispute
+  // Create dispute - AMELIA letter is now generated automatically
   const handleCreateDispute = async () => {
     if (!selectedClientId || selectedAccounts.length === 0) {
       toast({ title: "Missing Information", description: "Select a client and at least one account", variant: "destructive" });
@@ -388,93 +385,36 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
       if (res.ok) {
         const data = await res.json();
 
-        // Generate the letter using AMELIA brain (unique stories, backdating, tone escalation)
-        setGeneratingAmelia(true);
-        try {
-          const ameliaRes = await fetch(`/api/disputes/${data.dispute.id}/amelia`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ regenerate: false }),
-          });
+        // Letter is now generated automatically by the API
+        // Set the AMELIA-generated letter for preview/editing
+        setGeneratedLetter({
+          disputeId: data.dispute.id,
+          content: data.dispute.letterContent,
+          cra: data.dispute.cra,
+          flow: data.dispute.flow,
+          round: data.dispute.round,
+          status: data.dispute.status,
+          ameliaMetadata: {
+            letterDate: data.amelia.letterDate,
+            isBackdated: data.amelia.isBackdated,
+            backdatedDays: data.amelia.backdatedDays,
+            tone: data.amelia.tone,
+            effectiveFlow: data.amelia.effectiveFlow,
+            statute: data.amelia.statute,
+            personalInfoDisputed: data.amelia.personalInfoDisputed,
+          },
+        });
 
-          if (ameliaRes.ok) {
-            const ameliaData = await ameliaRes.json();
+        // Open the letter preview modal
+        setLetterModalOpen(true);
 
-            // Set the AMELIA-generated letter for preview
-            setGeneratedLetter({
-              disputeId: data.dispute.id,
-              documentId: data.document.id,
-              documentTitle: data.document.title,
-              content: ameliaData.letterContent,
-              cra: data.dispute.cra,
-              flow: data.dispute.flow,
-              round: data.dispute.round,
-              ameliaMetadata: ameliaData.metadata,
-            });
-
-            // Open the letter preview modal
-            setLetterModalOpen(true);
-
-            toast({
-              title: "AMELIA Letter Generated",
-              description: `${data.dispute.cra} Round ${data.dispute.round} - ${ameliaData.metadata?.tone || "PROFESSIONAL"} tone${ameliaData.metadata?.isBackdated ? " (backdated 30 days)" : ""}`
-            });
-          } else {
-            // Fallback to basic template if AMELIA fails
-            const letterRes = await fetch(`/api/disputes/${data.dispute.id}/docx?format=text`);
-            let letterContent = "";
-            if (letterRes.ok) {
-              letterContent = await letterRes.text();
-            }
-
-            setGeneratedLetter({
-              disputeId: data.dispute.id,
-              documentId: data.document.id,
-              documentTitle: data.document.title,
-              content: letterContent,
-              cra: data.dispute.cra,
-              flow: data.dispute.flow,
-              round: data.dispute.round,
-            });
-
-            setLetterModalOpen(true);
-            toast({
-              title: "Letter Generated",
-              description: `${data.dispute.cra} Round ${data.dispute.round} - ${selectedAccounts.length} items (basic template)`
-            });
-          }
-        } finally {
-          setGeneratingAmelia(false);
-        }
+        toast({
+          title: "AMELIA Letter Generated",
+          description: `${data.dispute.cra} Round ${data.dispute.round} - ${data.amelia.tone} tone${data.amelia.isBackdated ? " (backdated)" : ""}`,
+        });
 
         // Refresh disputes list in background
-        fetch("/api/disputes")
-          .then((r) => r.ok ? r.json() : [])
-          .then((disputeData) => {
-            const mapped = (Array.isArray(disputeData) ? disputeData : [])
-              .filter((d: { _count?: { items: number } }) => (d._count?.items || 0) > 0)
-              .map((d: {
-                id: string;
-                client: { id: string; firstName: string; lastName: string };
-                cra: string;
-                flow: string;
-                round: number;
-                disputeStatus: string;
-                createdAt: string;
-                _count?: { items: number };
-              }) => ({
-                id: d.id,
-                clientId: d.client?.id,
-                client: d.client,
-                cra: d.cra,
-                flow: d.flow,
-                round: d.round,
-                status: d.disputeStatus || "DRAFT",
-                createdAt: d.createdAt,
-                itemCount: d._count?.items || 0,
-              }));
-            setDisputes(mapped);
-          });
+        refreshDisputesList();
       } else {
         const error = await res.json();
         toast({ title: "Failed", description: error.error || "Failed to create dispute", variant: "destructive" });
@@ -484,6 +424,37 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
     } finally {
       setCreating(false);
     }
+  };
+
+  // Helper to refresh disputes list
+  const refreshDisputesList = () => {
+    fetch("/api/disputes")
+      .then((r) => r.ok ? r.json() : [])
+      .then((disputeData) => {
+        const mapped = (Array.isArray(disputeData) ? disputeData : [])
+          .filter((d: { _count?: { items: number } }) => (d._count?.items || 0) > 0)
+          .map((d: {
+            id: string;
+            client: { id: string; firstName: string; lastName: string };
+            cra: string;
+            flow: string;
+            round: number;
+            status: string;
+            createdAt: string;
+            _count?: { items: number };
+          }) => ({
+            id: d.id,
+            clientId: d.client?.id,
+            client: d.client,
+            cra: d.cra,
+            flow: d.flow,
+            round: d.round,
+            status: d.status || "DRAFT",
+            createdAt: d.createdAt,
+            itemCount: d._count?.items || 0,
+          }));
+        setDisputes(mapped);
+      });
   };
 
   // Download letter as DOCX
@@ -515,6 +486,7 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
   };
 
   // Launch dispute - marks as SENT and starts 30-day FCRA tracking
+  // This is when accounts become "locked" (can't be added to new disputes)
   const handleLaunchDispute = async () => {
     if (!generatedLetter?.disputeId) return;
 
@@ -540,45 +512,25 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
         setSelectedAccounts([]);
         setGeneratedLetter(null);
 
-        // Refresh disputes list and accounts (to show locked status)
-        fetch("/api/disputes")
-          .then((r) => r.ok ? r.json() : [])
-          .then((disputeData) => {
-            const mapped = (Array.isArray(disputeData) ? disputeData : [])
-              .filter((d: { _count?: { items: number } }) => (d._count?.items || 0) > 0)
-              .map((d: {
-                id: string;
-                client: { id: string; firstName: string; lastName: string };
-                cra: string;
-                flow: string;
-                round: number;
-                disputeStatus: string;
-                createdAt: string;
-                _count?: { items: number };
-              }) => ({
-                id: d.id,
-                clientId: d.client?.id,
-                client: d.client,
-                cra: d.cra,
-                flow: d.flow,
-                round: d.round,
-                status: d.disputeStatus || "DRAFT",
-                createdAt: d.createdAt,
-                itemCount: d._count?.items || 0,
-              }));
-            setDisputes(mapped);
-          });
+        // Refresh disputes list
+        refreshDisputesList();
 
-        // Refresh accounts to show locked state
+        // Refresh accounts to show locked state (only SENT disputes lock accounts)
         if (selectedClientId) {
           setAccountsLoading(true);
-          Promise.all([
-            fetch(`/api/accounts/negative?clientId=${selectedClientId}`).then((r) => r.ok ? r.json() : { accounts: [] }),
-            fetch(`/api/disputes?clientId=${selectedClientId}&status=SENT,PENDING_RESPONSE`).then((r) => r.ok ? r.json() : [])
-          ]).then(([accountsData, disputesData]) => {
-            // Rebuild accounts with updated dispute status
-            // (simplified - in real implementation would merge properly)
-          }).finally(() => setAccountsLoading(false));
+          fetch(`/api/accounts/negative?clientId=${selectedClientId}`)
+            .then((r) => r.ok ? r.json() : { accounts: [] })
+            .then((accountsData) => {
+              // Accounts in SENT disputes are now locked
+              const accounts = accountsData.accounts || [];
+              setParsedAccounts(
+                accounts.map((a: ParsedAccountWithIssues) => ({
+                  ...a,
+                  detectedIssues: parseDetectedIssues(a.detectedIssues),
+                }))
+              );
+            })
+            .finally(() => setAccountsLoading(false));
         }
       } else {
         const error = await res.json();
@@ -588,7 +540,7 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to launch dispute",
@@ -994,15 +946,10 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
                 </Button>
                 <Button
                   className="flex-1 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400"
-                  disabled={selectedAccounts.length === 0 || creating || generatingAmelia}
+                  disabled={selectedAccounts.length === 0 || creating}
                   onClick={handleCreateDispute}
                 >
-                  {creating && !generatingAmelia ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Creating Dispute...
-                    </>
-                  ) : generatingAmelia ? (
+                  {creating ? (
                     <>
                       <Sparkles className="w-4 h-4 mr-2 animate-pulse" />
                       AMELIA Generating...

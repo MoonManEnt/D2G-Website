@@ -116,9 +116,9 @@ export function SmartAccountCard({
   const hasActiveDispute = !!account.activeDispute;
   const activeDispute = account.activeDispute;
 
-  // Check if account is locked (has pending dispute)
-  const isLocked = hasActiveDispute &&
-    (activeDispute?.status === "SENT" || activeDispute?.status === "PENDING_RESPONSE");
+  // Check if account is locked (only SENT disputes lock accounts)
+  // DRAFT disputes allow editing/starting over, RESPONDED/RESOLVED are completed
+  const isLocked = hasActiveDispute && activeDispute?.status === "SENT";
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {

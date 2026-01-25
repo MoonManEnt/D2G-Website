@@ -24,12 +24,12 @@ export interface ParsedAccountWithIssues {
   nextAvailableRound?: Record<string, number>; // Flow -> next available round
 }
 
-// Active dispute tracking
+// Active dispute tracking (simplified workflow: DRAFT → SENT → RESPONDED → RESOLVED)
 export interface ActiveDisputeInfo {
   disputeId: string;
   flow: string;
   round: number;
-  status: "DRAFT" | "SENT" | "PENDING_RESPONSE" | "RESPONDED";
+  status: "DRAFT" | "SENT" | "RESPONDED" | "RESOLVED";
   sentDate?: string;
   daysRemaining?: number; // Days until 30-day FCRA deadline
   responseDeadline?: string;
