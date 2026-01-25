@@ -23,12 +23,30 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const clientId = searchParams.get('clientId');
 
+    // EXPANDED FILTER: Get ALL potentially disputable accounts
+    // An account is disputable if ANY of these conditions are true:
+    // - Has detected issues (issueCount > 0)
+    // - Is marked as disputable
+    // - Has negative status (Collection, Charged Off, Derogatory)
+    // - Has past due amount
+    // - Has low/medium confidence (parsing issues)
+    // - Has late payment status
+    // - Has any balance (potential for disputes)
     const whereClause: any = {
       organizationId: session.user.organizationId,
       OR: [
+        { isDisputable: true },
+        { issueCount: { gt: 0 } },
+        { detectedIssues: { not: "[]" } }, // Has any detected issues
         { confidenceLevel: { in: ["LOW", "MEDIUM"] } },
-        { accountStatus: { in: ["COLLECTION", "CHARGED_OFF"] } },
+        { accountStatus: { in: ["COLLECTION", "CHARGED_OFF", "DEROGATORY", "DELINQUENT"] } },
         { pastDue: { gt: 0 } },
+        { paymentStatus: { contains: "Late" } },
+        { paymentStatus: { contains: "Delinquent" } },
+        { paymentStatus: { contains: "Chargeoff" } },
+        { paymentStatus: { contains: "Collection" } },
+        // Include accounts with any balance for cross-bureau comparison
+        { balance: { gt: 0 } },
       ],
     };
 
@@ -240,9 +258,54 @@ export async function GET(request: Request) {
     // Sort by priority score (highest first)
     transformedAccounts.sort((a, b) => b.worthiness.priorityScore - a.worthiness.priorityScore);
 
+    // If clientId is provided, also fetch inquiries from the client record
+    let inquiries: Array<{
+      id: string;
+      creditorName: string;
+      inquiryDate: string;
+      cra: string;
+      type: "INQUIRY";
+      isDisputable: boolean;
+      suggestedFlow: string;
+    }> = [];
+
+    if (clientId) {
+      // Fetch hardInquiries from the most recent CreditReport (not Client model)
+      const latestReport = await prisma.creditReport.findFirst({
+        where: { clientId },
+        orderBy: { reportDate: 'desc' },
+        select: { hardInquiries: true },
+      });
+
+      if (latestReport?.hardInquiries) {
+        try {
+          const parsedInquiries = JSON.parse(latestReport.hardInquiries);
+          if (Array.isArray(parsedInquiries)) {
+            inquiries = parsedInquiries.map((inq: { creditorName: string; inquiryDate: string; cra: string }, index: number) => ({
+              id: `inquiry_${clientId}_${index}_${inq.cra}`,
+              creditorName: inq.creditorName,
+              inquiryDate: inq.inquiryDate,
+              cra: inq.cra,
+              type: "INQUIRY" as const,
+              isDisputable: true,
+              suggestedFlow: "CONSENT", // Inquiries use CONSENT flow
+              detectedIssues: [{
+                code: "UNAUTHORIZED_INQUIRY",
+                severity: "MEDIUM",
+                description: `Unauthorized hard inquiry from ${inq.creditorName} on ${inq.inquiryDate}`,
+              }],
+            }));
+          }
+        } catch {
+          // Invalid JSON, skip
+        }
+      }
+    }
+
     // Calculate summary
     const summary = {
       totalNegative: accounts.length,
+      totalInquiries: inquiries.length,
       highSeverity: accounts.filter(a => {
         try {
           const issues = a.detectedIssues ? JSON.parse(a.detectedIssues) : [];
@@ -259,6 +322,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       accounts: transformedAccounts,
+      inquiries, // Include inquiries for CONSENT flow disputes
       summary,
     });
 

@@ -257,6 +257,54 @@ export function validateClientAddress(client: DisputeClientData): ValidationResu
 }
 
 /**
+ * Validate client has Date of Birth (REQUIRED for dispute letters)
+ * DOB is a HARD REQUIREMENT - letters cannot be generated without it
+ */
+export function validateClientDOB(client: DisputeClientData): ValidationResult {
+  if (!client.dateOfBirth) {
+    return {
+      valid: false,
+      error: "Client Date of Birth is required for dispute letters. Please update the client profile with their DOB.",
+      code: "MISSING_DOB",
+    };
+  }
+  return { valid: true };
+}
+
+/**
+ * Validate client has SSN last 4 (REQUIRED for dispute letters)
+ */
+export function validateClientSSN4(client: DisputeClientData): ValidationResult {
+  if (!client.ssnLast4) {
+    return {
+      valid: false,
+      error: "Client SSN (last 4 digits) is required for dispute letters. Please update the client profile.",
+      code: "MISSING_SSN4",
+    };
+  }
+  return { valid: true };
+}
+
+/**
+ * Validate all required client information for letter generation
+ */
+export function validateClientForLetter(client: DisputeClientData): ValidationResult {
+  // Address validation
+  const addressValidation = validateClientAddress(client);
+  if (!addressValidation.valid) return addressValidation;
+
+  // DOB validation - HARD REQUIREMENT
+  const dobValidation = validateClientDOB(client);
+  if (!dobValidation.valid) return dobValidation;
+
+  // SSN4 validation
+  const ssn4Validation = validateClientSSN4(client);
+  if (!ssn4Validation.valid) return ssn4Validation;
+
+  return { valid: true };
+}
+
+/**
  * Fetch and validate accounts exist and belong to organization
  */
 export async function fetchAndValidateAccounts(
@@ -363,13 +411,13 @@ export async function validateFullRequest(
     };
   }
 
-  // Validate client address (required for all letter types)
-  const addressValidation = validateClientAddress(client);
-  if (!addressValidation.valid) {
+  // Validate ALL client information required for letters (address, DOB, SSN4)
+  const clientValidation = validateClientForLetter(client);
+  if (!clientValidation.valid) {
     return {
       valid: false,
-      error: addressValidation.error!,
-      code: addressValidation.code,
+      error: clientValidation.error!,
+      code: clientValidation.code,
       status: 400,
     };
   }
