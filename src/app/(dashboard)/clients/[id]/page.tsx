@@ -440,7 +440,7 @@ export default function ClientDetailPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
-  const [showSSN, setShowSSN] = useState(false);
+  const [showSSN, setShowSSN] = useState(true); // Default to showing last 4
 
   const fetchClient = useCallback(async () => {
     try {
@@ -902,19 +902,19 @@ export default function ClientDetailPage() {
                     {client.ssnLast4
                       ? showSSN
                         ? `***-**-${client.ssnLast4}`
-                        : "***-**-****"
+                        : "•••-••-••••"
                       : "Not provided"}
                   </p>
                   {client.ssnLast4 && (
                     <button
                       onClick={() => setShowSSN(!showSSN)}
-                      className="p-1 rounded hover:bg-slate-700/50 transition-colors"
-                      title={showSSN ? "Hide SSN" : "Show SSN"}
+                      className="p-1.5 rounded-md hover:bg-slate-700/50 transition-colors"
+                      title={showSSN ? "Hide last 4" : "Show last 4"}
                     >
                       {showSSN ? (
-                        <EyeOff className="w-4 h-4 text-slate-400" />
+                        <EyeOff className="w-3.5 h-3.5 text-slate-400 hover:text-slate-300" />
                       ) : (
-                        <Eye className="w-4 h-4 text-slate-400" />
+                        <Eye className="w-3.5 h-3.5 text-slate-400 hover:text-slate-300" />
                       )}
                     </button>
                   )}

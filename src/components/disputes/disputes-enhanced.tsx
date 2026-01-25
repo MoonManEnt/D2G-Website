@@ -634,15 +634,17 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
               ))}
             </select>
             {client && client.firstName && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-slate-700/50 rounded-lg">
-                <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center text-purple-400 text-sm font-bold">
+              <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-700/50 border border-slate-600/50 rounded-xl min-w-[180px]">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500/30 to-purple-600/20 flex items-center justify-center text-purple-400 text-sm font-bold border border-purple-500/30">
                   {client.firstName?.[0] || ""}{client.lastName?.[0] || ""}
                 </div>
-                <div>
-                  <span className="text-sm font-medium text-white block">
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm font-semibold text-white block truncate">
                     {client.firstName} {client.lastName}
                   </span>
-                  <span className="text-xs text-slate-400">{client.stage?.replace("_", " ")}</span>
+                  <span className="text-xs text-slate-400 uppercase tracking-wide">
+                    Round {client.currentRound || 1}
+                  </span>
                 </div>
               </div>
             )}
@@ -700,18 +702,18 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="bg-slate-800/50 border border-slate-700/50 p-1 w-fit">
+        <TabsList className="bg-slate-800/50 border border-slate-700/50 p-1 w-full justify-start">
           <TabsTrigger value="create" className="gap-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
             <Sparkles className="w-4 h-4" />
             Create Dispute
           </TabsTrigger>
-          <TabsTrigger value="rounds" className="gap-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
-            <BarChart3 className="w-4 h-4" />
-            Round Flow
-          </TabsTrigger>
           <TabsTrigger value="cfpb" className="gap-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
             <Building className="w-4 h-4" />
             CFPB Complaints
+          </TabsTrigger>
+          <TabsTrigger value="rounds" className="gap-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
+            <BarChart3 className="w-4 h-4" />
+            Round Flow
           </TabsTrigger>
           <TabsTrigger value="history" className="gap-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
             <History className="w-4 h-4" />
