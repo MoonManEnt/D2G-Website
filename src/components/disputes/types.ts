@@ -18,6 +18,22 @@ export interface ParsedAccountWithIssues {
   suggestedFlow: string | null;
   detectedIssues: DetectedIssue[];
   bureauData: Record<string, BureauDataPoint>;
+  // Enhanced tracking for smart workflow
+  activeDispute?: ActiveDisputeInfo | null;
+  applicableFlows?: string[]; // Only flows that make sense for this account's issues
+  nextAvailableRound?: Record<string, number>; // Flow -> next available round
+}
+
+// Active dispute tracking
+export interface ActiveDisputeInfo {
+  disputeId: string;
+  flow: string;
+  round: number;
+  status: "DRAFT" | "SENT" | "PENDING_RESPONSE" | "RESPONDED";
+  sentDate?: string;
+  daysRemaining?: number; // Days until 30-day FCRA deadline
+  responseDeadline?: string;
+  isOverdue?: boolean;
 }
 
 export interface DetectedIssue {

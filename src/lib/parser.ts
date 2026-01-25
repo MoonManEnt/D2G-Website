@@ -16,6 +16,8 @@ import {
   PARSE_ERROR_CODES,
   computeConfidenceLevel,
   FlowType,
+  PaymentHistory,
+  PaymentHistoryEntry,
 } from "@/types";
 import { generateFingerprint } from "./utils";
 
@@ -41,19 +43,179 @@ const KNOWN_CREDITOR_PATTERNS = [
 ];
 
 // Field extraction patterns for flat text
+// These patterns handle the three-column format: TransUnion | Experian | Equifax
 const FIELD_PATTERNS = {
+  // Basic identifiers
   accountNumber: /Account\s*#:\s*(\S+)\s+(\S+)\s+(\S+)/,
-  accountType: /Account\s+Type:\s*([A-Za-z]+)\s+([A-Za-z]+)\s+([A-Za-z]+)/,
+  accountType: /Account\s+Type:\s*([A-Za-z\s]+?)\s{2,}([A-Za-z\s]+?)\s{2,}([A-Za-z\s]+?)(?:\s*$|\s+Account)/m,
+  accountTypeDetail: /Account\s+Type\s*-\s*Detail:\s*([A-Za-z\s]+?)\s{2,}([A-Za-z\s]+?)\s{2,}([A-Za-z\s]+?)(?:\s*$|\s+Bureau)/m,
+  bureauCode: /Bureau\s+Code:\s*([A-Za-z\s]+?)\s{2,}([A-Za-z\s]+?)\s{2,}([A-Za-z\s]+?)(?:\s*$|\s+Account)/m,
   accountStatus: /Account\s+Status:\s*([A-Za-z]+)\s+([A-Za-z]+)\s+([A-Za-z]+)/,
+
+  // Financial fields
   monthlyPayment: /Monthly\s+Payment:\s*\$?([\d,]+\.?\d*)\s+\$?([\d,]+\.?\d*)\s+\$?([\d,]+\.?\d*)/,
-  dateOpened: /Date\s+Opened:\s*(\d{2}\/\d{2}\/\d{4})\s+(\d{2}\/\d{2}\/\d{4})\s+(\d{2}\/\d{2}\/\d{4})/,
   balance: /Balance:\s*\$?([\d,]+\.?\d*)\s+\$?([\d,]+\.?\d*)\s+\$?([\d,]+\.?\d*)/,
+  numberOfMonths: /No\.\s*of\s+Months\s*\(terms\):\s*(\d+)\s+(\d+)\s+(\d+)/,
   highCredit: /High\s+Credit:\s*\$?([\d,]+\.?\d*)\s+\$?([\d,]+\.?\d*)\s+\$?([\d,]+\.?\d*)/,
   creditLimit: /Credit\s+Limit:\s*\$?([\d,]+\.?\d*)\s+\$?([\d,]+\.?\d*)\s+\$?([\d,]+\.?\d*)/,
   pastDue: /Past\s+Due:\s*\$?([\d,]+\.?\d*)\s+\$?([\d,]+\.?\d*)\s+\$?([\d,]+\.?\d*)/,
-  paymentStatus: /Payment\s+Status:\s*([A-Za-z0-9\s]+?)\s+([A-Za-z0-9\s]+?)\s+([A-Za-z0-9\s]+?)\s+Last/,
-  lastReported: /Last\s+Reported:\s*(\d{2}\/\d{2}\/\d{4})\s+(\d{2}\/\d{2}\/\d{4})\s+(\d{2}\/\d{2}\/\d{4})/,
+
+  // Status and dates
+  paymentStatus: /Payment\s+Status:\s*([A-Za-z0-9\/\s]+?)\s{2,}([A-Za-z0-9\/\s]+?)\s{2,}([A-Za-z0-9\/\s]+?)(?:\s*$|\s+Last)/m,
+  lastReported: /Last\s+Reported:\s*(\d{2}\/\d{2}\/\d{4}|\-)\s+(\d{2}\/\d{2}\/\d{4}|\-)\s+(\d{2}\/\d{2}\/\d{4}|\-)/,
+  dateOpened: /Date\s+Opened:\s*(\d{2}\/\d{2}\/\d{4}|\-)\s+(\d{2}\/\d{2}\/\d{4}|\-)\s+(\d{2}\/\d{2}\/\d{4}|\-)/,
+  dateLastActive: /Date\s+Last\s+Active:\s*(\d{2}\/\d{2}\/\d{4}|\-)\s+(\d{2}\/\d{2}\/\d{4}|\-)\s+(\d{2}\/\d{2}\/\d{4}|\-)/,
+  dateOfLastPayment: /Date\s+of\s+Last\s+Payment:\s*(\d{2}\/\d{2}\/\d{4}|\-)\s+(\d{2}\/\d{2}\/\d{4}|\-)\s+(\d{2}\/\d{2}\/\d{4}|\-)/,
+
+  // Comments (can be multi-line, so we handle separately)
+  comments: /Comments:\s*([^\n]+?)(?:\s{2,}([^\n]+?))?(?:\s{2,}([^\n]+?))?(?:\s*$|\s+Date)/m,
 };
+
+// Payment history status codes
+const PAYMENT_STATUS_CODES: Record<string, { isLate: boolean; daysLate: number; isChargeoff: boolean }> = {
+  "OK": { isLate: false, daysLate: 0, isChargeoff: false },
+  "30": { isLate: true, daysLate: 30, isChargeoff: false },
+  "60": { isLate: true, daysLate: 60, isChargeoff: false },
+  "90": { isLate: true, daysLate: 90, isChargeoff: false },
+  "120": { isLate: true, daysLate: 120, isChargeoff: false },
+  "CO": { isLate: false, daysLate: 0, isChargeoff: true },
+  "": { isLate: false, daysLate: 0, isChargeoff: false }, // Missing data
+};
+
+// Month abbreviations for payment history parsing
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/**
+ * Parse two-year payment history from account block.
+ * IdentityIQ format has the payment history grid like:
+ *
+ * Two-Year Payment History
+ *           Dec Nov Oct Sep Aug Jul Jun May Apr Mar Feb Jan Dec Nov Oct Sep Aug Jul Jun May Apr Mar Feb Jan
+ * Year   25  25  25  25  25  25  25  25  25  24  24  24  24  24  24  24  24  24  24  24  24  24  24  24  24
+ * Status OK  OK  OK  OK  90  60  OK  OK  OK  OK  OK  OK  OK  OK  OK  OK  OK  OK  OK  OK  OK  OK  OK  OK
+ */
+function parsePaymentHistory(blockText: string, craIndex: number): PaymentHistory | undefined {
+  const result: PaymentHistory = {
+    entries: [],
+    hasLatePayments: false,
+    hasChargeoffs: false,
+    hasMissingMonths: false,
+    totalLateCount: 0,
+    totalChargeoffCount: 0,
+    totalMissingCount: 0,
+    lateMonths: [],
+    chargeoffMonths: [],
+    missingMonths: [],
+  };
+
+  // Look for Two-Year Payment History section
+  const historyMatch = blockText.match(/Two[\s-]*Year\s+Payment\s+History[\s\S]*?(?=(?:Account|$))/i);
+  if (!historyMatch) return undefined;
+
+  const historyBlock = historyMatch[0];
+
+  // Extract month headers - they appear in a row like: Dec Nov Oct Sep Aug Jul...
+  const monthHeaderMatch = historyBlock.match(/(?:Dec|Nov|Oct|Sep|Aug|Jul|Jun|May|Apr|Mar|Feb|Jan)(?:\s+(?:Dec|Nov|Oct|Sep|Aug|Jul|Jun|May|Apr|Mar|Feb|Jan))+/gi);
+  if (!monthHeaderMatch) return undefined;
+
+  const monthHeaders = monthHeaderMatch[0].split(/\s+/).filter(m => MONTHS.includes(m));
+
+  // Extract year row - numbers like: 25 25 25 25 24 24 24...
+  const yearRowMatch = historyBlock.match(/(?:Year\s+)?(\d{2}(?:\s+\d{2})+)/);
+  let years: string[] = [];
+  if (yearRowMatch) {
+    years = yearRowMatch[1].split(/\s+/).filter(y => /^\d{2}$/.test(y));
+  }
+
+  // Extract status rows - Each CRA has its own row
+  // Look for patterns like: TransUnion OK OK 30 60 OK OK...
+  // Or the three-column format after the year row
+
+  // Pattern for IdentityIQ three-column format
+  const statusPatterns = [
+    // CRA-labeled rows
+    /TransUnion\s+((?:OK|30|60|90|120|CO|[\-\s])+)/gi,
+    /Experian\s+((?:OK|30|60|90|120|CO|[\-\s])+)/gi,
+    /Equifax\s+((?:OK|30|60|90|120|CO|[\-\s])+)/gi,
+    // Generic status rows (when CRAs aren't labeled individually)
+    /(?:^|\n)\s*((?:OK|30|60|90|120|CO)(?:\s+(?:OK|30|60|90|120|CO|\-))+)/gm,
+  ];
+
+  // Try to find status row for this CRA
+  let statusValues: string[] = [];
+
+  // First try CRA-specific pattern
+  const craPattern = statusPatterns[craIndex];
+  const craMatch = historyBlock.match(craPattern);
+  if (craMatch && craMatch[1]) {
+    statusValues = craMatch[1].trim().split(/\s+/).filter(s => s && s !== "-");
+  }
+
+  // If no CRA-specific match, try to find rows of statuses
+  if (statusValues.length === 0) {
+    const allStatusMatches = historyBlock.matchAll(/(?:^|\s)((?:OK|30|60|90|120|CO)(?:\s+(?:OK|30|60|90|120|CO|\-)){5,})/gm);
+    const statusRows: string[][] = [];
+
+    for (const match of allStatusMatches) {
+      const row = match[1].trim().split(/\s+/).filter(s => s && s !== "-");
+      if (row.length >= 6) {
+        statusRows.push(row);
+      }
+    }
+
+    // If we have multiple rows, pick the one for this CRA index
+    if (statusRows.length > craIndex) {
+      statusValues = statusRows[craIndex];
+    } else if (statusRows.length === 1) {
+      // Single row, all CRAs share the same history
+      statusValues = statusRows[0];
+    }
+  }
+
+  // Build entries from the parsed data
+  const numMonths = Math.min(monthHeaders.length, statusValues.length, years.length || 24);
+
+  for (let i = 0; i < numMonths; i++) {
+    const month = monthHeaders[i] || "";
+    const year = years[i] || "";
+    const status = statusValues[i] || "";
+
+    const statusInfo = PAYMENT_STATUS_CODES[status] || PAYMENT_STATUS_CODES[""];
+    const isMissing = status === "" || status === "-";
+
+    const entry: PaymentHistoryEntry = {
+      month,
+      year,
+      status,
+      isLate: statusInfo.isLate,
+      daysLate: statusInfo.daysLate || undefined,
+      isChargeoff: statusInfo.isChargeoff,
+      isMissing,
+    };
+
+    result.entries.push(entry);
+
+    // Update summary counts
+    if (statusInfo.isLate) {
+      result.hasLatePayments = true;
+      result.totalLateCount++;
+      result.lateMonths.push(`${month} ${year}`);
+    }
+    if (statusInfo.isChargeoff) {
+      result.hasChargeoffs = true;
+      result.totalChargeoffCount++;
+      result.chargeoffMonths.push(`${month} ${year}`);
+    }
+    if (isMissing) {
+      result.hasMissingMonths = true;
+      result.totalMissingCount++;
+      result.missingMonths.push(`${month} ${year}`);
+    }
+  }
+
+  // Only return if we actually found data
+  return result.entries.length > 0 ? result : undefined;
+}
 
 // Status mapping - Expanded to capture ALL negative/derogatory accounts
 const STATUS_MAP: Record<string, AccountStatus> = {
@@ -349,24 +511,30 @@ function parseAccountBlock(creditorName: string, blockText: string, blockIndex: 
   const accounts: ParsedAccountItem[] = [];
   const cras: CRA[] = [CRA.TRANSUNION, CRA.EXPERIAN, CRA.EQUIFAX];
 
-  // Extract fields
+  // Extract ALL fields from the three-column format
   const accountNumbers = extractTripleValues(blockText, FIELD_PATTERNS.accountNumber);
   const accountTypes = extractTripleValues(blockText, FIELD_PATTERNS.accountType);
+  const accountTypeDetails = extractTripleValues(blockText, FIELD_PATTERNS.accountTypeDetail);
+  const bureauCodes = extractTripleValues(blockText, FIELD_PATTERNS.bureauCode);
   const accountStatuses = extractTripleValues(blockText, FIELD_PATTERNS.accountStatus);
   const balances = extractTripleValues(blockText, FIELD_PATTERNS.balance);
   const pastDues = extractTripleValues(blockText, FIELD_PATTERNS.pastDue);
   const creditLimits = extractTripleValues(blockText, FIELD_PATTERNS.creditLimit);
   const highCredits = extractTripleValues(blockText, FIELD_PATTERNS.highCredit);
   const monthlyPayments = extractTripleValues(blockText, FIELD_PATTERNS.monthlyPayment);
+  const numberOfMonths = extractTripleValues(blockText, FIELD_PATTERNS.numberOfMonths);
   const datesOpened = extractTripleValues(blockText, FIELD_PATTERNS.dateOpened);
+  const datesLastActive = extractTripleValues(blockText, FIELD_PATTERNS.dateLastActive);
+  const datesOfLastPayment = extractTripleValues(blockText, FIELD_PATTERNS.dateOfLastPayment);
   const paymentStatuses = extractTripleValues(blockText, FIELD_PATTERNS.paymentStatus);
   const lastReportedDates = extractTripleValues(blockText, FIELD_PATTERNS.lastReported);
+  const comments = extractTripleValues(blockText, FIELD_PATTERNS.comments);
 
   // Create account for each CRA that has data
   for (let i = 0; i < cras.length; i++) {
     const accountNum = accountNumbers[i];
 
-    // Skip if no account number for this CRA
+    // Skip if no account number for this CRA (account doesn't exist at this bureau)
     if (!accountNum || accountNum === "-" || accountNum === "$0.00") {
       continue;
     }
@@ -376,15 +544,19 @@ function parseAccountBlock(creditorName: string, blockText: string, blockIndex: 
     const creditLimit = parseNumber(creditLimits[i]);
     const highBalance = parseNumber(highCredits[i]);
     const monthlyPayment = parseNumber(monthlyPayments[i]);
+    const numMonths = parseNumber(numberOfMonths[i]);
     const status = mapAccountStatus(accountStatuses[i]);
 
-    // Calculate confidence
+    // Parse payment history for this CRA
+    const paymentHistory = parsePaymentHistory(blockText, i);
+
+    // Calculate confidence - more fields = higher confidence
     const confidence = calculateConfidence({
       hasCreditorName: creditorName.length > 2,
       hasAccountId: accountNum.length > 3,
       hasBalance: balance !== undefined,
       hasStatus: !!accountStatuses[i],
-      hasDates: !!datesOpened[i] || !!lastReportedDates[i],
+      hasDates: !!datesOpened[i] || !!lastReportedDates[i] || !!datesLastActive[i],
       hasStructure: blockText.includes("Account #:") && blockText.includes("Balance:"),
     });
 
@@ -392,16 +564,29 @@ function parseAccountBlock(creditorName: string, blockText: string, blockIndex: 
       creditorName: cleanCreditorName(creditorName),
       maskedAccountId: cleanAccountId(accountNum),
       cra: cras[i],
+      // Basic account info
       accountType: accountTypes[i] || undefined,
+      accountTypeDetail: accountTypeDetails[i] || undefined,
+      bureauCode: bureauCodes[i] || undefined,
       accountStatus: status,
+      // Financial fields
       balance,
       pastDue,
       creditLimit,
       highBalance,
       monthlyPayment,
-      dateOpened: datesOpened[i] || undefined,
-      dateReported: lastReportedDates[i] || undefined,
+      numberOfMonths: numMonths,
+      // Date fields
+      dateOpened: cleanDateField(datesOpened[i]),
+      dateReported: cleanDateField(lastReportedDates[i]),
+      lastActivityDate: cleanDateField(datesLastActive[i]),
+      dateOfLastPayment: cleanDateField(datesOfLastPayment[i]),
+      // Status fields
       paymentStatus: paymentStatuses[i] || undefined,
+      comments: comments[i] || undefined,
+      // Payment history
+      paymentHistory,
+      // Metadata
       confidenceScore: confidence,
       rawExtractedData: {
         blockIndex,
@@ -411,6 +596,16 @@ function parseAccountBlock(creditorName: string, blockText: string, blockIndex: 
   }
 
   return accounts;
+}
+
+/**
+ * Clean date field - return undefined for invalid/missing values
+ */
+function cleanDateField(dateStr: string | undefined): string | undefined {
+  if (!dateStr || dateStr === "-" || dateStr.trim() === "") {
+    return undefined;
+  }
+  return dateStr.trim();
 }
 
 /**
@@ -523,12 +718,12 @@ export function analyzeAccountsForIssues(accounts: ParsedAccountItem[]): ParsedA
       });
     }
 
-    // 2. Check for late payment indicators
+    // 2. Check for late payment indicators in payment status
     if (account.paymentStatus && /late|30|60|90|120|delinquent/i.test(account.paymentStatus)) {
       issues.push({
-        code: "LATE_PAYMENT",
+        code: "LATE_PAYMENT_STATUS",
         severity: "HIGH",
-        description: `Late payment reported: ${account.paymentStatus}`,
+        description: `Late payment reported in status: ${account.paymentStatus}`,
         suggestedFlow: FlowType.ACCURACY,
         fcraSection: "15 U.S.C. § 1681e(b)",
       });
@@ -545,9 +740,57 @@ export function analyzeAccountsForIssues(accounts: ParsedAccountItem[]): ParsedA
       });
     }
 
-    // 4. Cross-bureau inconsistencies
+    // ============================================================================
+    // 4. PAYMENT HISTORY ANALYSIS - Late marks and missing "OK" detection
+    // ============================================================================
+    if (account.paymentHistory) {
+      const ph = account.paymentHistory;
+
+      // 4a. Late payment marks in payment history
+      if (ph.hasLatePayments) {
+        const lateSummary = ph.lateMonths.slice(0, 5).join(", ");
+        const additionalCount = ph.lateMonths.length > 5 ? ` and ${ph.lateMonths.length - 5} more` : "";
+        issues.push({
+          code: "PAYMENT_HISTORY_LATE_MARKS",
+          severity: "HIGH",
+          description: `Payment history shows ${ph.totalLateCount} late payment(s): ${lateSummary}${additionalCount}`,
+          suggestedFlow: FlowType.ACCURACY,
+          fcraSection: "15 U.S.C. § 1681e(b)",
+        });
+      }
+
+      // 4b. Chargeoff marks in payment history
+      if (ph.hasChargeoffs) {
+        const coSummary = ph.chargeoffMonths.slice(0, 5).join(", ");
+        issues.push({
+          code: "PAYMENT_HISTORY_CHARGEOFF_MARKS",
+          severity: "HIGH",
+          description: `Payment history shows ${ph.totalChargeoffCount} charge-off mark(s): ${coSummary}`,
+          suggestedFlow: FlowType.COLLECTION,
+          fcraSection: "15 U.S.C. § 1692g",
+        });
+      }
+
+      // 4c. MISSING "OK" MARKS - gaps in payment history
+      // This is a key dispute point: if there's no data for months, CRA cannot verify
+      if (ph.hasMissingMonths && ph.totalMissingCount > 0) {
+        const missingSummary = ph.missingMonths.slice(0, 5).join(", ");
+        const additionalCount = ph.missingMonths.length > 5 ? ` and ${ph.missingMonths.length - 5} more` : "";
+        issues.push({
+          code: "PAYMENT_HISTORY_MISSING_DATA",
+          severity: "MEDIUM",
+          description: `Payment history has ${ph.totalMissingCount} missing month(s) without "OK" status: ${missingSummary}${additionalCount}. CRA cannot verify accuracy of incomplete data.`,
+          suggestedFlow: FlowType.ACCURACY,
+          fcraSection: "15 U.S.C. § 1681e(b)",
+        });
+      }
+    }
+
+    // ============================================================================
+    // 5. CROSS-BUREAU INCONSISTENCIES
+    // ============================================================================
     if (creditorAccounts.length > 1) {
-      // Check balance inconsistency
+      // 5a. Balance inconsistency
       const balances = creditorAccounts.map(a => a.balance).filter(b => b !== undefined);
       if (balances.length > 1) {
         const uniqueBalances = new Set(balances);
@@ -562,7 +805,7 @@ export function analyzeAccountsForIssues(accounts: ParsedAccountItem[]): ParsedA
         }
       }
 
-      // Check status inconsistency
+      // 5b. Status inconsistency
       const statuses = creditorAccounts.map(a => a.accountStatus);
       const uniqueStatuses = new Set(statuses);
       if (uniqueStatuses.size > 1) {
@@ -575,7 +818,7 @@ export function analyzeAccountsForIssues(accounts: ParsedAccountItem[]): ParsedA
         });
       }
 
-      // Check account number inconsistency
+      // 5c. Account number inconsistency
       const accountNums = creditorAccounts.map(a => a.maskedAccountId);
       const uniqueNums = new Set(accountNums);
       if (uniqueNums.size > 1) {
@@ -588,7 +831,7 @@ export function analyzeAccountsForIssues(accounts: ParsedAccountItem[]): ParsedA
         });
       }
 
-      // Check date opened inconsistency
+      // 5d. Date opened inconsistency
       const dates = creditorAccounts.map(a => a.dateOpened).filter(d => d !== undefined);
       const uniqueDates = new Set(dates);
       if (uniqueDates.size > 1) {
@@ -600,9 +843,47 @@ export function analyzeAccountsForIssues(accounts: ParsedAccountItem[]): ParsedA
           fcraSection: "15 U.S.C. § 1681e(b)",
         });
       }
+
+      // ============================================================================
+      // 5e. CROSS-BUREAU PAYMENT HISTORY COMPARISON
+      // ============================================================================
+      const accountsWithHistory = creditorAccounts.filter(a => a.paymentHistory && a.paymentHistory.entries.length > 0);
+      if (accountsWithHistory.length > 1) {
+        // Compare payment history across bureaus
+        const paymentHistoryDiscrepancies = comparePaymentHistoriesAcrossBureaus(accountsWithHistory);
+        for (const discrepancy of paymentHistoryDiscrepancies) {
+          issues.push({
+            code: "PAYMENT_HISTORY_CROSS_BUREAU_DISCREPANCY",
+            severity: "HIGH",
+            description: discrepancy,
+            suggestedFlow: FlowType.ACCURACY,
+            fcraSection: "15 U.S.C. § 1681e(b)",
+          });
+        }
+      }
     }
 
-    // 5. Check for outdated accounts (>7 years for most items)
+    // ============================================================================
+    // 6. MISSING BUREAU DETECTION
+    // If account exists at some bureaus but not all three, it's a potential issue
+    // ============================================================================
+    if (creditorAccounts.length > 0 && creditorAccounts.length < 3) {
+      const presentBureaus = creditorAccounts.map(a => a.cra);
+      const allBureaus: CRA[] = [CRA.TRANSUNION, CRA.EXPERIAN, CRA.EQUIFAX];
+      const missingBureaus = allBureaus.filter(b => !presentBureaus.includes(b));
+
+      if (missingBureaus.length > 0) {
+        issues.push({
+          code: "MISSING_FROM_BUREAUS",
+          severity: "MEDIUM",
+          description: `Account not reported to: ${missingBureaus.join(", ")}. Bureau divergence may indicate reporting error.`,
+          suggestedFlow: FlowType.ACCURACY,
+          fcraSection: "15 U.S.C. § 1681e(b)",
+        });
+      }
+    }
+
+    // 7. Check for outdated accounts (>7 years for most items)
     if (account.dateOpened) {
       const openedDate = parseDate(account.dateOpened);
       if (openedDate) {
@@ -619,7 +900,7 @@ export function analyzeAccountsForIssues(accounts: ParsedAccountItem[]): ParsedA
       }
     }
 
-    // 6. Check for missing required information
+    // 8. Check for missing required information
     if (!account.dateOpened) {
       issues.push({
         code: "MISSING_DATE_OPENED",
@@ -630,7 +911,7 @@ export function analyzeAccountsForIssues(accounts: ParsedAccountItem[]): ParsedA
       });
     }
 
-    // 7. Check for student loan specific issues
+    // 9. Check for student loan specific issues
     if (/student|ed\s*loan|dept\s*ed|dpt\s*ed|aidv|nelnet|navient|mohela/i.test(account.creditorName)) {
       if (account.accountStatus === AccountStatus.CHARGED_OFF ||
           (account.pastDue && account.pastDue > 0)) {
@@ -644,7 +925,7 @@ export function analyzeAccountsForIssues(accounts: ParsedAccountItem[]): ParsedA
       }
     }
 
-    // 8. Check for medical debt issues (FCRA restrictions on medical debt)
+    // 10. Check for medical debt issues (FCRA restrictions on medical debt)
     if (/medical|hospital|clinic|health|doctor|physician/i.test(account.creditorName)) {
       issues.push({
         code: "MEDICAL_DEBT",
@@ -677,6 +958,69 @@ export function analyzeAccountsForIssues(accounts: ParsedAccountItem[]): ParsedA
   }
 
   return analyzedAccounts;
+}
+
+/**
+ * Compare payment histories across bureaus to find discrepancies.
+ * This catches cases where one bureau shows late but others show OK.
+ */
+function comparePaymentHistoriesAcrossBureaus(accounts: ParsedAccountItem[]): string[] {
+  const discrepancies: string[] = [];
+
+  // Build a map of month/year -> status for each CRA
+  const historyByCRA = new Map<CRA, Map<string, string>>();
+
+  for (const account of accounts) {
+    if (!account.paymentHistory) continue;
+    const statusMap = new Map<string, string>();
+    for (const entry of account.paymentHistory.entries) {
+      const key = `${entry.month} ${entry.year}`;
+      statusMap.set(key, entry.status);
+    }
+    historyByCRA.set(account.cra, statusMap);
+  }
+
+  // Compare histories across all CRAs
+  const allMonths = new Set<string>();
+  for (const statusMap of historyByCRA.values()) {
+    for (const month of statusMap.keys()) {
+      allMonths.add(month);
+    }
+  }
+
+  for (const monthKey of allMonths) {
+    const statusesForMonth: { cra: CRA; status: string }[] = [];
+
+    for (const [cra, statusMap] of historyByCRA.entries()) {
+      const status = statusMap.get(monthKey);
+      if (status && status !== "") {
+        statusesForMonth.push({ cra, status });
+      }
+    }
+
+    if (statusesForMonth.length < 2) continue;
+
+    // Check for discrepancies
+    const uniqueStatuses = new Set(statusesForMonth.map(s => s.status));
+    if (uniqueStatuses.size > 1) {
+      // There's a discrepancy for this month
+      const details = statusesForMonth
+        .map(s => `${s.cra}: ${s.status}`)
+        .join(", ");
+
+      // Determine severity - late vs OK is more serious
+      const hasLate = statusesForMonth.some(s => ["30", "60", "90", "120", "CO"].includes(s.status));
+      const hasOK = statusesForMonth.some(s => s.status === "OK");
+
+      if (hasLate && hasOK) {
+        discrepancies.push(
+          `Payment history discrepancy for ${monthKey}: ${details}. One bureau shows late/derogatory while another shows on-time.`
+        );
+      }
+    }
+  }
+
+  return discrepancies;
 }
 
 /**

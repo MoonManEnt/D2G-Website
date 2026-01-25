@@ -169,22 +169,65 @@ export const FLOW_DEFINITIONS = {
 // PARSING ENGINE TYPES
 // ============================================================================
 
+// Payment history entry for a single month
+export interface PaymentHistoryEntry {
+  month: string; // e.g., "Dec", "Nov"
+  year: string; // e.g., "25", "24"
+  status: string; // "OK", "30", "60", "90", "120", "CO", "" (empty/missing)
+  isLate: boolean;
+  daysLate?: number; // 30, 60, 90, 120
+  isChargeoff: boolean;
+  isMissing: boolean; // No data for this month
+}
+
+// Two-year payment history for an account
+export interface PaymentHistory {
+  entries: PaymentHistoryEntry[];
+  hasLatePayments: boolean;
+  hasChargeoffs: boolean;
+  hasMissingMonths: boolean;
+  totalLateCount: number;
+  totalChargeoffCount: number;
+  totalMissingCount: number;
+  lateMonths: string[]; // e.g., ["Oct 24", "Nov 24"]
+  chargeoffMonths: string[];
+  missingMonths: string[];
+}
+
 export interface ParsedAccountItem {
   creditorName: string;
   maskedAccountId: string;
   fingerprint?: string;
   cra: CRA;
-  accountType?: string;
+
+  // Basic account info
+  accountType?: string; // Revolving, Installment, Mortgage, Open Account
+  accountTypeDetail?: string; // Credit Card, Charge account, Auto Loan, etc.
+  bureauCode?: string; // Individual, Authorized User, Joint
   accountStatus: AccountStatus;
+
+  // Financial fields
   balance?: number;
   pastDue?: number;
   creditLimit?: number;
-  highBalance?: number;
+  highBalance?: number; // High Credit
   monthlyPayment?: number;
+  numberOfMonths?: number; // No. of Months (terms)
+
+  // Date fields
   dateOpened?: string;
-  dateReported?: string;
-  lastActivityDate?: string;
-  paymentStatus?: string;
+  dateReported?: string; // Last Reported
+  lastActivityDate?: string; // Date Last Active
+  dateOfLastPayment?: string; // Date of Last Payment
+
+  // Status fields
+  paymentStatus?: string; // Current, Late 30 Days, Collection/Chargeoff
+  comments?: string; // Comments field
+
+  // Payment history
+  paymentHistory?: PaymentHistory;
+
+  // Legacy fields
   disputeComment?: string;
   confidenceScore: number;
   rawExtractedData?: Record<string, unknown>;

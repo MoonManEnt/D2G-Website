@@ -37,6 +37,7 @@ import { useToast } from "@/lib/use-toast";
 import { CRASelector } from "./cra-selector";
 import { FlowSelector } from "./flow-selector";
 import { AccountCard } from "./account-card";
+import { SmartAccountCard } from "./smart-account-card";
 import { RoundFlowView } from "./round-flow-view";
 import { CFPBView } from "./cfpb-view";
 import { AmeliaInsightsPanel } from "./amelia-insights-panel";
@@ -173,30 +174,177 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
   };
 
   // Fetch accounts when client and CRA change
+  // Also fetch active disputes to determine which accounts are locked
   useEffect(() => {
     if (!selectedClientId) return;
 
     setAccountsLoading(true);
-    fetch(`/api/accounts/negative?clientId=${selectedClientId}`)
-      .then((r) => r.ok ? r.json() : { accounts: [] })
-      .then((data) => {
-        const accounts = (data.accounts || [])
-          .filter((a: ParsedAccountWithIssues) => a.cra === selectedCRA || !a.cra)
-          .map((a: ParsedAccountWithIssues) => ({
-            ...a,
-            detectedIssues: parseDetectedIssues(a.detectedIssues),
-            bureauData: a.bureauData || {
-              TRANSUNION: { balance: a.balance, status: a.accountStatus },
-              EXPERIAN: { balance: a.balance, status: a.accountStatus },
-              EQUIFAX: { balance: a.balance, status: a.accountStatus },
-            },
-          }));
+
+    // Fetch both accounts and active disputes in parallel
+    Promise.all([
+      fetch(`/api/accounts/negative?clientId=${selectedClientId}`).then((r) => r.ok ? r.json() : { accounts: [] }),
+      fetch(`/api/disputes?clientId=${selectedClientId}&status=SENT,PENDING_RESPONSE`).then((r) => r.ok ? r.json() : [])
+    ])
+      .then(([accountsData, disputesData]) => {
+        // Build a map of active disputes by account fingerprint + CRA
+        const activeDisputeMap = new Map<string, {
+          disputeId: string;
+          flow: string;
+          round: number;
+          status: string;
+          sentDate?: string;
+          responseDeadline?: string;
+        }>();
+
+        // Process disputes to find which accounts have active disputes
+        const disputesList = Array.isArray(disputesData) ? disputesData : [];
+        for (const dispute of disputesList) {
+          if (!dispute.items) continue;
+          for (const item of dispute.items) {
+            // Key by account ID + CRA to track per-bureau disputes
+            const key = `${item.accountId || item.accountItemId}_${dispute.cra}`;
+            const sentDate = dispute.sentAt || dispute.createdAt;
+            let daysRemaining = 30;
+            let responseDeadline = "";
+
+            if (sentDate) {
+              const sent = new Date(sentDate);
+              const deadline = new Date(sent.getTime() + 30 * 24 * 60 * 60 * 1000);
+              responseDeadline = deadline.toISOString();
+              daysRemaining = Math.ceil((deadline.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+            }
+
+            activeDisputeMap.set(key, {
+              disputeId: dispute.id,
+              flow: dispute.flow,
+              round: dispute.round,
+              status: dispute.disputeStatus || "SENT",
+              sentDate,
+              responseDeadline,
+            });
+          }
+        }
+
+        // Filter accounts to ONLY show those on the selected CRA
+        const accounts = (accountsData.accounts || [])
+          .filter((a: ParsedAccountWithIssues) => a.cra === selectedCRA)
+          .map((a: ParsedAccountWithIssues) => {
+            const key = `${a.id}_${selectedCRA}`;
+            const activeDispute = activeDisputeMap.get(key);
+
+            // Calculate days remaining and overdue status
+            let activeDisputeInfo = null;
+            if (activeDispute) {
+              const deadline = activeDispute.responseDeadline ? new Date(activeDispute.responseDeadline) : null;
+              const daysRemaining = deadline ? Math.ceil((deadline.getTime() - Date.now()) / (24 * 60 * 60 * 1000)) : 30;
+              const isOverdue = daysRemaining < 0;
+
+              activeDisputeInfo = {
+                disputeId: activeDispute.disputeId,
+                flow: activeDispute.flow,
+                round: activeDispute.round,
+                status: activeDispute.status as "DRAFT" | "SENT" | "PENDING_RESPONSE" | "RESPONDED",
+                sentDate: activeDispute.sentDate,
+                daysRemaining: Math.abs(daysRemaining),
+                responseDeadline: activeDispute.responseDeadline,
+                isOverdue,
+              };
+            }
+
+            // Determine applicable flows based on issues
+            const issues = parseDetectedIssues(a.detectedIssues);
+            const applicableFlows = determineApplicableFlows(issues);
+
+            // Calculate next available round per flow
+            const nextAvailableRound: Record<string, number> = {};
+            for (const flow of applicableFlows) {
+              // Find highest round used for this account+cra+flow
+              const maxRound = disputesList
+                .filter((d: { cra: string; flow: string; items?: { accountId?: string; accountItemId?: string }[] }) =>
+                  d.cra === selectedCRA &&
+                  d.flow === flow &&
+                  d.items?.some((item: { accountId?: string; accountItemId?: string }) =>
+                    item.accountId === a.id || item.accountItemId === a.id
+                  )
+                )
+                .reduce((max: number, d: { round: number }) => Math.max(max, d.round || 0), 0);
+              nextAvailableRound[flow] = maxRound + 1;
+            }
+
+            return {
+              ...a,
+              detectedIssues: issues,
+              bureauData: a.bureauData || {
+                TRANSUNION: { balance: a.balance, status: a.accountStatus },
+                EXPERIAN: { balance: a.balance, status: a.accountStatus },
+                EQUIFAX: { balance: a.balance, status: a.accountStatus },
+              },
+              activeDispute: activeDisputeInfo,
+              applicableFlows,
+              nextAvailableRound,
+            };
+          });
+
         setParsedAccounts(accounts);
-        // Auto-select all accounts
-        setSelectedAccounts(accounts.map((a: ParsedAccountWithIssues) => a.id));
+
+        // Auto-select only accounts WITHOUT active disputes
+        const availableAccounts = accounts.filter((a: ParsedAccountWithIssues) => !a.activeDispute);
+        setSelectedAccounts(availableAccounts.map((a: ParsedAccountWithIssues) => a.id));
       })
       .finally(() => setAccountsLoading(false));
   }, [selectedClientId, selectedCRA]);
+
+  // Helper function to determine applicable flows based on issue codes
+  function determineApplicableFlows(issues: Array<{ code?: string; severity?: string; description?: string }>): string[] {
+    const flows = new Set<string>();
+
+    for (const issue of issues) {
+      const code = (issue.code || "").toUpperCase();
+
+      // Collection-related issues -> COLLECTION flow
+      if (code.includes("COLLECTION") ||
+          code.includes("CHARGEOFF") ||
+          code.includes("CHARGE_OFF") ||
+          code.includes("DEROGATORY") ||
+          code.includes("DEBT")) {
+        flows.add("COLLECTION");
+      }
+
+      // Accuracy-related issues -> ACCURACY flow
+      if (code.includes("ACCURACY") ||
+          code.includes("INCONSISTENCY") ||
+          code.includes("BALANCE") ||
+          code.includes("DATE") ||
+          code.includes("STATUS") ||
+          code.includes("MISSING") ||
+          code.includes("LATE_PAYMENT") ||
+          code.includes("PAYMENT_HISTORY") ||
+          code.includes("OUTDATED") ||
+          code.includes("PAST_DUE")) {
+        flows.add("ACCURACY");
+      }
+
+      // Consent-related issues -> CONSENT flow
+      if (code.includes("CONSENT") ||
+          code.includes("UNAUTHORIZED") ||
+          code.includes("INQUIRY") ||
+          code.includes("PERMISSIBLE")) {
+        flows.add("CONSENT");
+      }
+    }
+
+    // Default to ACCURACY if no specific flow determined
+    if (flows.size === 0) {
+      flows.add("ACCURACY");
+    }
+
+    // Add COMBO if multiple flows apply
+    if (flows.size >= 2) {
+      flows.add("COMBO");
+    }
+
+    return Array.from(flows);
+  }
 
   // Fetch client DNA when client changes
   useEffect(() => {
@@ -550,45 +698,112 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
                 />
               </Card>
 
-              {/* Parsed Accounts */}
+              {/* Parsed Accounts - Smart Workflow */}
               <Card className="bg-slate-800/60 border-slate-700/50 p-5">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="flex items-center gap-2 text-sm font-semibold text-white">
-                    📋 Parsed Accounts
-                  </h3>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
-                    onClick={selectAllAccounts}
-                  >
-                    Select All ({parsedAccounts.length})
-                  </Button>
+                  <div>
+                    <h3 className="flex items-center gap-2 text-sm font-semibold text-white">
+                      📋 {selectedCRA} Accounts
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Showing accounts reported to this bureau only
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {/* Account counts */}
+                    {parsedAccounts.length > 0 && (
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-slate-500">
+                          {parsedAccounts.filter(a => !a.activeDispute).length} available
+                        </span>
+                        {parsedAccounts.filter(a => a.activeDispute).length > 0 && (
+                          <span className="text-amber-500">
+                            {parsedAccounts.filter(a => a.activeDispute).length} pending
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
+                      onClick={() => {
+                        // Only select accounts without active disputes
+                        const available = parsedAccounts.filter(a => !a.activeDispute);
+                        setSelectedAccounts(available.map(a => a.id));
+                      }}
+                    >
+                      Select Available ({parsedAccounts.filter(a => !a.activeDispute).length})
+                    </Button>
+                  </div>
                 </div>
 
                 {accountsLoading ? (
                   <div className="py-8 text-center">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto text-slate-400" />
-                    <p className="text-sm text-slate-400 mt-2">Loading accounts...</p>
+                    <p className="text-sm text-slate-400 mt-2">Loading {selectedCRA} accounts...</p>
                   </div>
                 ) : parsedAccounts.length === 0 ? (
                   <div className="py-8 text-center">
                     <Scale className="w-10 h-10 mx-auto text-slate-600" />
                     <p className="text-sm text-slate-400 mt-2">
-                      {selectedClientId ? "No negative accounts found for this CRA" : "Select a client to view accounts"}
+                      {selectedClientId
+                        ? `No negative accounts found on ${selectedCRA} report`
+                        : "Select a client to view accounts"}
                     </p>
+                    {selectedClientId && (
+                      <p className="text-xs text-slate-500 mt-1">
+                        Try selecting a different bureau
+                      </p>
+                    )}
                   </div>
                 ) : (
-                  <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
-                    {parsedAccounts.map((account) => (
-                      <AccountCard
-                        key={account.id}
-                        account={account}
-                        isSelected={selectedAccounts.includes(account.id)}
-                        onToggle={() => toggleAccount(account.id)}
-                        selectedCRA={selectedCRA}
-                      />
-                    ))}
+                  <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+                    {/* Available accounts first (no active disputes) */}
+                    {parsedAccounts
+                      .filter(a => !a.activeDispute)
+                      .map((account) => (
+                        <SmartAccountCard
+                          key={account.id}
+                          account={account}
+                          isSelected={selectedAccounts.includes(account.id)}
+                          onToggle={() => toggleAccount(account.id)}
+                          selectedCRA={selectedCRA}
+                          selectedFlow={selectedFlow}
+                          onSelectFlow={setSelectedFlow}
+                        />
+                      ))}
+
+                    {/* Separator if there are both available and pending accounts */}
+                    {parsedAccounts.some(a => !a.activeDispute) &&
+                     parsedAccounts.some(a => a.activeDispute) && (
+                      <div className="flex items-center gap-3 py-2">
+                        <div className="flex-1 border-t border-slate-600/50" />
+                        <span className="text-xs text-amber-500/70 font-medium uppercase tracking-wider">
+                          Awaiting Response
+                        </span>
+                        <div className="flex-1 border-t border-slate-600/50" />
+                      </div>
+                    )}
+
+                    {/* Pending accounts (have active disputes) */}
+                    {parsedAccounts
+                      .filter(a => a.activeDispute)
+                      .map((account) => (
+                        <SmartAccountCard
+                          key={account.id}
+                          account={account}
+                          isSelected={false}
+                          onToggle={() => {}} // Disabled for locked accounts
+                          selectedCRA={selectedCRA}
+                          selectedFlow={selectedFlow}
+                          onSelectFlow={setSelectedFlow}
+                          onViewDispute={(disputeId) => {
+                            // Navigate to dispute detail or open modal
+                            setActiveTab("history");
+                          }}
+                        />
+                      ))}
                   </div>
                 )}
               </Card>
