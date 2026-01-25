@@ -225,14 +225,14 @@ export function DashboardClient({
   });
 
   return (
-    <div className="min-h-screen text-slate-50 relative overflow-hidden">
-      {/* Background Effects */}
-      <div className="fixed inset-0 bg-gradient-to-br from-[#07051a] via-[#0f0d2e] to-[#07051a]" />
-      <div className="fixed top-[-30%] left-[-10%] w-[60%] h-[70%] bg-[radial-gradient(ellipse,rgba(99,102,241,0.1)_0%,transparent_70%)] blur-[80px] pointer-events-none" />
-      <div className="fixed bottom-[-20%] right-[-10%] w-[50%] h-[60%] bg-[radial-gradient(ellipse,rgba(16,185,129,0.06)_0%,transparent_70%)] blur-[80px] pointer-events-none" />
+    <div className="min-h-full text-slate-50 relative">
+      {/* Background Effects - positioned absolute within container, not fixed */}
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-900 pointer-events-none" />
+      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-[radial-gradient(ellipse,rgba(99,102,241,0.08)_0%,transparent_70%)] blur-[60px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[radial-gradient(ellipse,rgba(16,185,129,0.05)_0%,transparent_70%)] blur-[60px] pointer-events-none" />
 
       {/* Main Content */}
-      <main className="relative z-10 p-6 md:p-8 pb-24">
+      <div className="relative z-10 pb-24">
         {/* Welcome Bar */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
           <div>
@@ -428,10 +428,10 @@ export function DashboardClient({
             </div>
           </section>
         </div>
-      </main>
+      </div>
 
-      {/* Quick Stats Bar (Fixed Footer) */}
-      <footer className="fixed bottom-0 left-0 right-0 z-20 flex justify-center items-center gap-10 py-4 px-8 bg-white/[0.02] backdrop-blur-xl border-t border-white/[0.05]">
+      {/* Quick Stats Bar - sticky at bottom of content area, not fixed to viewport */}
+      <div className="sticky bottom-0 z-20 flex justify-center items-center gap-10 py-4 px-8 bg-slate-900/95 backdrop-blur-xl border-t border-white/[0.05]">
         <div className="text-center">
           <span className="block text-2xl font-bold text-white">{stats.totalClients}</span>
           <span className="text-[11px] text-slate-500">Total Clients</span>
@@ -451,7 +451,7 @@ export function DashboardClient({
           <span className="block text-2xl font-bold text-amber-400">{stats.deletionsThisMonth}</span>
           <span className="text-[11px] text-slate-500">Deletions This Month</span>
         </div>
-      </footer>
+      </div>
     </div>
   );
 }
