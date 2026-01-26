@@ -77,17 +77,42 @@ export const POST = withAuth(async (req, ctx) => {
       );
     }
 
-    // Determine the next round number - only count SENT/RESPONDED/RESOLVED disputes
-    const lastDispute = await prisma.dispute.findFirst({
+    // Determine the round number based on the SELECTED accounts
+    // Each account tracks its own round - only advance if the account was already disputed
+    // This allows disputing new accounts at Round 1 even after other accounts have been sent
+    const disputedAccountRounds = await prisma.disputeItem.findMany({
       where: {
-        clientId,
-        cra,
-        status: { in: ["SENT", "RESPONDED", "RESOLVED"] },
+        accountItemId: { in: accountIds },
+        dispute: {
+          cra,
+          status: { in: ["SENT", "RESPONDED", "RESOLVED"] },
+        },
       },
-      orderBy: { round: "desc" },
+      select: {
+        accountItemId: true,
+        dispute: {
+          select: { round: true },
+        },
+      },
     });
 
-    const round = (lastDispute?.round || 0) + 1;
+    // Build a map of account -> highest round disputed
+    const accountRoundMap = new Map<string, number>();
+    for (const item of disputedAccountRounds) {
+      const currentMax = accountRoundMap.get(item.accountItemId) || 0;
+      accountRoundMap.set(item.accountItemId, Math.max(currentMax, item.dispute.round));
+    }
+
+    // For selected accounts, find the max round any of them have been disputed at
+    // If an account has never been disputed, it's effectively Round 0
+    // The next round is max + 1
+    let maxAccountRound = 0;
+    for (const accountId of accountIds) {
+      const accountRound = accountRoundMap.get(accountId) || 0;
+      maxAccountRound = Math.max(maxAccountRound, accountRound);
+    }
+
+    const round = maxAccountRound + 1;
 
     // Set dates
     const sentDate = new Date();
