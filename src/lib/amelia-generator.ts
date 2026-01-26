@@ -593,11 +593,15 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
   if (round === 1) {
     const story = generateUniqueStory(usedContentHashes, round);
     usedContentHashes.add(story.hash);
-    // The templates already have story elements, so we humanize the existing text
-    openingParagraph = humanizeText(openingParagraph);
+    // AMELIA Doctrine: Insert the unique story into the DAMAGES section
+    // The story adds a personal, human element that makes each letter unique (eOSCAR resistant)
+    openingParagraph = humanizeText(openingParagraph) + "\n\n" + story.paragraph;
   } else if (previousRoundContext) {
     // For rounds 2+, use adaptive opening based on previous responses
     openingParagraph = generateAdaptiveOpening(previousRoundContext, client.firstName, vars);
+  } else {
+    // For rounds 2+ without context, just humanize
+    openingParagraph = humanizeText(openingParagraph);
   }
 
   // Body paragraphs (STORY/FACTS)

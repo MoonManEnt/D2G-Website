@@ -191,15 +191,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       activePersonalInfoDisputes,
     });
 
-    // Store the content hash to prevent future reuse
-    await prisma.ameliaContentHash.create({
-      data: {
-        clientId: client.id,
-        contentHash: generatedLetter.contentHash,
-        contentType: "LETTER",
-        sourceDocId: disputeId,
-      },
-    });
+    // NOTE: Content hash is NOT stored on regeneration - only when dispute is LAUNCHED
+    // This allows unlimited regeneration while still preventing duplicate content across launched disputes
+    // The hash will be stored when the dispute is sent via /api/disputes/create-and-launch or when status changes to SENT
 
     // Update the dispute with the generated letter content
     await prisma.dispute.update({
