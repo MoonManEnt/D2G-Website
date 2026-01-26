@@ -190,7 +190,7 @@ export function DashboardClient({
   const router = useRouter();
   const [time, setTime] = useState(new Date());
   const [greeting, setGreeting] = useState("");
-  const [filter, setFilter] = useState<"all" | "urgent" | "responses" | "letters">("all");
+  const [filter, setFilter] = useState<"all" | "urgent" | "letters">("all");
 
   // Update clock every second
   useEffect(() => {
@@ -219,7 +219,6 @@ export function DashboardClient({
   const filteredQueue = actionQueue.filter((item) => {
     if (filter === "all") return true;
     if (filter === "urgent") return item.priority === "urgent";
-    if (filter === "responses") return item.type === "response";
     if (filter === "letters") return item.type === "send";
     return true;
   });
@@ -279,7 +278,7 @@ export function DashboardClient({
               </span>
             </div>
             <div className="flex gap-1.5">
-              {(["all", "urgent", "responses", "letters"] as const).map((f) => (
+              {(["all", "urgent", "letters"] as const).map((f) => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
@@ -292,6 +291,12 @@ export function DashboardClient({
                   {f.charAt(0).toUpperCase() + f.slice(1)}
                 </button>
               ))}
+              <button
+                onClick={() => router.push("/responses")}
+                className="px-3.5 py-2 rounded-lg text-xs font-medium transition-all duration-200 bg-transparent border border-white/[0.08] text-slate-500 hover:text-white hover:bg-indigo-500/20 hover:border-indigo-500/30"
+              >
+                Responses →
+              </button>
             </div>
           </div>
 

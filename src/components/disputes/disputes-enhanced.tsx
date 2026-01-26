@@ -19,6 +19,7 @@ import {
   BarChart3,
   CheckSquare,
   Square,
+  MessageSquareText,
 } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
 
@@ -705,6 +706,14 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
             <BarChart3 className="w-4 h-4" />
             Round Flow
           </TabsTrigger>
+          <Button
+            variant="ghost"
+            className="gap-2 text-slate-400 hover:text-white hover:bg-slate-700 h-9 px-3 rounded-md text-sm font-medium"
+            onClick={() => router.push("/responses")}
+          >
+            <MessageSquareText className="w-4 h-4" />
+            Responses
+          </Button>
           <TabsTrigger value="history" className="gap-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
             <History className="w-4 h-4" />
             History
