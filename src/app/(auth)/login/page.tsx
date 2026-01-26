@@ -37,13 +37,25 @@ function LoginForm() {
       });
 
       if (result?.error) {
-        setLoginError(result.error);
+        // Map common NextAuth errors to user-friendly messages
+        const errorMessages: Record<string, string> = {
+          CredentialsSignin: "Invalid email or password",
+          Configuration: "Server configuration error. Please contact support.",
+          AccessDenied: "Access denied",
+          Verification: "Verification failed",
+        };
+        setLoginError(errorMessages[result.error] || result.error);
       } else if (result?.ok) {
         router.push(callbackUrl);
         router.refresh();
       }
-    } catch {
-      setLoginError("An unexpected error occurred");
+    } catch (err) {
+      console.error("Login error:", err);
+      setLoginError(
+        err instanceof Error
+          ? `Login failed: ${err.message}`
+          : "An unexpected error occurred. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
