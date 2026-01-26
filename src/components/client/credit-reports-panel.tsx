@@ -405,9 +405,9 @@ const SuccessCelebrationModal = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: "spring", duration: 0.5 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
           >
-            <div className="bg-gradient-to-b from-zinc-900 to-zinc-950 border border-zinc-700/50 rounded-2xl shadow-2xl overflow-hidden">
+            <div className="w-full max-w-md bg-gradient-to-b from-zinc-900 to-zinc-950 border border-zinc-700/50 rounded-2xl shadow-2xl overflow-hidden">
               {/* Success Header with Animation */}
               <div className="relative bg-gradient-to-r from-emerald-500/20 via-emerald-400/10 to-emerald-500/20 p-6 text-center overflow-hidden">
                 {/* Animated particles */}
@@ -1027,6 +1027,7 @@ export function CreditReportsPanel({
   const [parsingFile, setParsingFile] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "timeline">("grid");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [pendingReportsData, setPendingReportsData] = useState<CreditReportData[] | null>(null);
   const [successFilename, setSuccessFilename] = useState("");
 
   // Check if user has muted confirmations
@@ -1139,8 +1140,8 @@ export function CreditReportsPanel({
               const latestReport = data[0];
               if (latestReport?.status === "completed") {
                 clearInterval(checkParsing);
-                // Don't close parsing yet - let animation complete
-                setReports(data);
+                // Store data but don't show yet - wait for animation and modal to complete
+                setPendingReportsData(data);
               }
             }
           }, 2000);
@@ -1287,6 +1288,11 @@ export function CreditReportsPanel({
               if (!isMuted) {
                 setShowSuccessModal(true);
               } else {
+                // Apply pending reports data immediately when muted
+                if (pendingReportsData) {
+                  setReports(pendingReportsData);
+                  setPendingReportsData(null);
+                }
                 toast({
                   title: "Report Parsed",
                   description: "Credit report has been successfully parsed.",
@@ -1300,7 +1306,14 @@ export function CreditReportsPanel({
       {/* Success Celebration Modal */}
       <SuccessCelebrationModal
         isOpen={showSuccessModal}
-        onClose={() => setShowSuccessModal(false)}
+        onClose={() => {
+          setShowSuccessModal(false);
+          // Apply pending reports data after modal closes
+          if (pendingReportsData) {
+            setReports(pendingReportsData);
+            setPendingReportsData(null);
+          }
+        }}
         filename={successFilename}
       />
 
