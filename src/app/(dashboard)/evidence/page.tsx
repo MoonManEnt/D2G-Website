@@ -152,6 +152,24 @@ interface Divergence {
   note: string;
 }
 
+interface ClientOption {
+  id: string;
+  firstName: string;
+  lastName: string;
+  _count: { reports: number };
+}
+
+interface ReportOption {
+  id: string;
+  filename: string;
+  reportDate: string;
+  status: string;
+  summary: {
+    totalAccounts: number;
+    negativeItems: number;
+  };
+}
+
 // ============================================================================
 // CONSTANTS
 // ============================================================================
@@ -220,6 +238,14 @@ export default function EvidencePage() {
   const [evidenceToDelete, setEvidenceToDelete] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  // Client/Report selection state
+  const [clients, setClients] = useState<ClientOption[]>([]);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [reports, setReports] = useState<ReportOption[]>([]);
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+  const [loadingClients, setLoadingClients] = useState(true);
+  const [loadingReports, setLoadingReports] = useState(false);
+
   // Annotator state
   const [annotatorEvidence, setAnnotatorEvidence] = useState<EvidenceItem | null>(null);
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
@@ -231,10 +257,53 @@ export default function EvidencePage() {
   // Bureau comparison state
   const [comparisonEvidence, setComparisonEvidence] = useState<EvidenceItem | null>(null);
 
-  const fetchEvidence = async () => {
+  // Computed: check if selection is complete
+  const hasSelection = Boolean(selectedClientId && selectedReportId);
+
+  // Fetch clients on mount
+  const fetchClients = useCallback(async () => {
+    try {
+      setLoadingClients(true);
+      const res = await fetch("/api/clients");
+      if (res.ok) {
+        const data = await res.json();
+        setClients(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch clients:", error);
+    } finally {
+      setLoadingClients(false);
+    }
+  }, []);
+
+  // Fetch reports when client selected
+  const fetchReports = useCallback(async (clientId: string) => {
+    try {
+      setLoadingReports(true);
+      const res = await fetch(`/api/clients/${clientId}/reports`);
+      if (res.ok) {
+        const data = await res.json();
+        setReports(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch reports:", error);
+    } finally {
+      setLoadingReports(false);
+    }
+  }, []);
+
+  const fetchEvidence = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/evidence");
+      let url = "/api/evidence";
+      const params = new URLSearchParams();
+
+      if (selectedClientId) params.set("clientId", selectedClientId);
+      if (selectedReportId) params.set("reportId", selectedReportId);
+
+      if (params.toString()) url += `?${params.toString()}`;
+
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         setEvidence(data.evidence);
@@ -250,11 +319,27 @@ export default function EvidencePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedClientId, selectedReportId, toast]);
 
+  // Fetch clients on mount
+  useEffect(() => {
+    fetchClients();
+  }, [fetchClients]);
+
+  // Fetch reports when client changes
+  useEffect(() => {
+    if (selectedClientId) {
+      fetchReports(selectedClientId);
+    } else {
+      setReports([]);
+      setSelectedReportId(null);
+    }
+  }, [selectedClientId, fetchReports]);
+
+  // Fetch evidence when selection changes
   useEffect(() => {
     fetchEvidence();
-  }, []);
+  }, [fetchEvidence]);
 
   const confirmDelete = (evidenceId: string) => {
     setEvidenceToDelete(evidenceId);
@@ -426,6 +511,95 @@ export default function EvidencePage() {
         </div>
       </div>
 
+      {/* Client/Report Selection */}
+      <div className="flex items-end gap-4 relative z-10">
+        <div className="flex-1 max-w-xs">
+          <label className="text-xs text-slate-500 mb-1.5 block font-medium">
+            <User className="w-3 h-3 inline mr-1" />
+            Client
+          </label>
+          <Select
+            value={selectedClientId || ""}
+            onValueChange={(value) => {
+              setSelectedClientId(value || null);
+              setSelectedReportId(null);
+            }}
+          >
+            <SelectTrigger className="bg-slate-800/60 border-slate-700/50 text-white">
+              <SelectValue placeholder={loadingClients ? "Loading clients..." : "Select a client..."} />
+            </SelectTrigger>
+            <SelectContent className="bg-slate-800 border-slate-700">
+              {clients.map((client) => (
+                <SelectItem key={client.id} value={client.id}>
+                  {client.firstName} {client.lastName}
+                  <span className="text-slate-500 ml-2">({client._count.reports} reports)</span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex-1 max-w-xs">
+          <label className="text-xs text-slate-500 mb-1.5 block font-medium">
+            <FileText className="w-3 h-3 inline mr-1" />
+            Credit Report
+          </label>
+          <Select
+            value={selectedReportId || ""}
+            onValueChange={(value) => setSelectedReportId(value || null)}
+            disabled={!selectedClientId || loadingReports}
+          >
+            <SelectTrigger className="bg-slate-800/60 border-slate-700/50 text-white disabled:opacity-50">
+              <SelectValue
+                placeholder={
+                  loadingReports
+                    ? "Loading reports..."
+                    : selectedClientId
+                      ? "Select a report..."
+                      : "Select client first"
+                }
+              />
+            </SelectTrigger>
+            <SelectContent className="bg-slate-800 border-slate-700">
+              {reports.map((report) => (
+                <SelectItem key={report.id} value={report.id}>
+                  {new Date(report.reportDate).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                  <span className="text-slate-500 ml-2">
+                    ({report.summary.totalAccounts} accounts, {report.summary.negativeItems} negative)
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {selectedClientId && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-slate-400 hover:text-white"
+            onClick={() => {
+              setSelectedClientId(null);
+              setSelectedReportId(null);
+            }}
+          >
+            <X className="w-4 h-4 mr-1" />
+            Clear
+          </Button>
+        )}
+
+        {hasSelection && (
+          <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 ml-auto">
+            <CheckCircle className="w-3 h-3 mr-1" />
+            Ready to capture evidence
+          </Badge>
+        )}
+      </div>
+
       {/* Tab Navigation */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="relative z-10">
         <TabsList className="bg-slate-800/60 border border-slate-700/50">
@@ -433,18 +607,30 @@ export default function EvidencePage() {
             <Layers className="w-4 h-4 mr-2" />
             Library
           </TabsTrigger>
-          <TabsTrigger value="annotator" className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-400">
+          <TabsTrigger
+            value="annotator"
+            disabled={!hasSelection}
+            className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-400 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             <Edit3 className="w-4 h-4 mr-2" />
             Annotator
           </TabsTrigger>
-          <TabsTrigger value="exhibits" className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-400">
+          <TabsTrigger
+            value="exhibits"
+            disabled={!hasSelection}
+            className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-400 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             <FileText className="w-4 h-4 mr-2" />
             Exhibit Builder
             {exhibits.length > 0 && (
               <Badge className="ml-2 bg-purple-500/30 text-purple-300">{exhibits.length}</Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="comparison" className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-400">
+          <TabsTrigger
+            value="comparison"
+            disabled={!hasSelection}
+            className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-400 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             <GitCompare className="w-4 h-4 mr-2" />
             Bureau Comparison
           </TabsTrigger>

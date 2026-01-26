@@ -6,8 +6,8 @@ import { subDays, startOfDay, format, startOfMonth, subMonths } from "date-fns";
 
 export const dynamic = 'force-dynamic';
 
-// GET /api/analytics - Get dashboard analytics
-export async function GET() {
+// GET /api/analytics - Get comprehensive dashboard analytics
+export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -16,8 +16,22 @@ export async function GET() {
     }
 
     const organizationId = session.user.organizationId;
-    const now = new Date();
-    const thirtyDaysAgo = subDays(now, 30);
+
+    // Parse time range from query params
+    const { searchParams } = new URL(req.url);
+    const range = searchParams.get("range") || "6m";
+
+    // Calculate date range based on selection
+    const rangeMonths: Record<string, number> = {
+      "1m": 1,
+      "3m": 3,
+      "6m": 6,
+      "1y": 12,
+      "all": 120, // 10 years for "all"
+    };
+    const months = rangeMonths[range] || 6;
+    const startDate = subMonths(new Date(), months);
+    const thirtyDaysAgo = subDays(new Date(), 30);
 
     // Run all queries in parallel
     const [
@@ -33,27 +47,35 @@ export async function GET() {
       dailyActivity,
       topClients,
       llmStats,
-      scoreImprovements,
-      monthlyDisputes,
+      // New comprehensive queries
+      disputeResponses,
+      clientsByStage,
+      monthlyData,
+      recentEvents,
+      disputeItemsByAccountType,
+      clientsWithScoreHistory,
+      resolvedDisputeTimes,
     ] = await Promise.all([
       // Total clients
       prisma.client.count({
         where: { organizationId, isActive: true },
       }),
 
-      // Active disputes
+      // Active disputes (within date range)
       prisma.dispute.count({
         where: {
           organizationId,
           status: { in: ["DRAFT", "APPROVED", "SENT"] },
+          createdAt: { gte: startDate },
         },
       }),
 
-      // Resolved disputes
+      // Resolved disputes (within date range)
       prisma.dispute.count({
         where: {
           organizationId,
           status: "RESOLVED",
+          createdAt: { gte: startDate },
         },
       }),
 
@@ -90,29 +112,29 @@ export async function GET() {
       // Disputes by status
       prisma.dispute.groupBy({
         by: ["status"],
-        where: { organizationId },
+        where: { organizationId, createdAt: { gte: startDate } },
         _count: { id: true },
       }),
 
       // Disputes by CRA
       prisma.dispute.groupBy({
         by: ["cra"],
-        where: { organizationId },
+        where: { organizationId, createdAt: { gte: startDate } },
         _count: { id: true },
       }),
 
       // Disputes by flow
       prisma.dispute.groupBy({
         by: ["flow"],
-        where: { organizationId },
+        where: { organizationId, createdAt: { gte: startDate } },
         _count: { id: true },
       }),
 
-      // Reports uploaded (last 30 days)
+      // Reports uploaded (within date range)
       prisma.creditReport.count({
         where: {
           organizationId,
-          uploadedAt: { gte: thirtyDaysAgo },
+          uploadedAt: { gte: startDate },
         },
       }),
 
@@ -142,12 +164,140 @@ export async function GET() {
       // LLM usage stats
       getLLMStats(organizationId),
 
-      // Score change tracking
-      getScoreImprovements(organizationId),
+      // ========== NEW COMPREHENSIVE QUERIES ==========
 
-      // Disputes by month
-      getMonthlyDisputes(organizationId, 6),
+      // All dispute responses for outcome analysis
+      prisma.disputeResponse.findMany({
+        where: {
+          disputeItem: {
+            dispute: {
+              organizationId,
+              createdAt: { gte: startDate },
+            },
+          },
+        },
+        select: {
+          outcome: true,
+          wasLate: true,
+          stallTactic: true,
+          daysToRespond: true,
+          disputeItem: {
+            select: {
+              dispute: {
+                select: {
+                  cra: true,
+                  flow: true,
+                  round: true,
+                },
+              },
+              accountItem: {
+                select: {
+                  accountType: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+
+      // Clients by stage for pipeline funnel
+      prisma.client.groupBy({
+        by: ["stage"],
+        where: { organizationId, isActive: true },
+        _count: { id: true },
+      }),
+
+      // Monthly dispute and client data for trends
+      getMonthlyTrends(organizationId, Math.min(months, 12)),
+
+      // Recent events for activity feed
+      prisma.eventLog.findMany({
+        where: {
+          organizationId,
+          createdAt: { gte: thirtyDaysAgo },
+          eventType: {
+            in: [
+              "DISPUTE_CREATED",
+              "DISPUTE_SENT",
+              "DISPUTE_RESOLVED",
+              "RESPONSE_RECORDED",
+              "REPORT_UPLOADED",
+              "CLIENT_CREATED",
+            ],
+          },
+        },
+        select: {
+          eventType: true,
+          targetType: true,
+          targetId: true,
+          eventData: true,
+          createdAt: true,
+          actor: {
+            select: { name: true },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 10,
+      }),
+
+      // Dispute items by account type for success breakdown
+      prisma.disputeItem.findMany({
+        where: {
+          dispute: {
+            organizationId,
+            createdAt: { gte: startDate },
+          },
+          outcome: { not: null },
+        },
+        select: {
+          outcome: true,
+          accountItem: {
+            select: { accountType: true },
+          },
+        },
+      }),
+
+      // Clients with score history for improvement tracking
+      prisma.client.findMany({
+        where: { organizationId },
+        select: {
+          id: true,
+          creditScores: {
+            orderBy: { scoreDate: "asc" },
+            take: 10,
+          },
+        },
+      }),
+
+      // Resolved disputes with timing for avg completion
+      prisma.dispute.findMany({
+        where: {
+          organizationId,
+          status: "RESOLVED",
+          resolvedAt: { not: null },
+          createdAt: { gte: startDate },
+        },
+        select: {
+          createdAt: true,
+          resolvedAt: true,
+        },
+      }),
     ]);
+
+    // ========== COMPUTE DERIVED METRICS ==========
+
+    // Calculate items deleted and success rates
+    const totalResponses = disputeResponses.length;
+    const deletedResponses = disputeResponses.filter(r => r.outcome === "DELETED").length;
+    const verifiedResponses = disputeResponses.filter(r => r.outcome === "VERIFIED").length;
+    const noResponseCount = disputeResponses.filter(r => r.outcome === "NO_RESPONSE").length;
+    const stallCount = disputeResponses.filter(r => r.outcome === "STALL_LETTER").length;
+    const lateResponses = disputeResponses.filter(r => r.wasLate).length;
+
+    // Overall success rate
+    const overallSuccessRate = totalResponses > 0
+      ? Math.round((deletedResponses / totalResponses) * 100)
+      : 0;
 
     // Calculate resolution rate
     const totalDisputes = activeDisputeCount + resolvedDisputeCount;
@@ -155,29 +305,168 @@ export async function GET() {
       ? Math.round((resolvedDisputeCount / totalDisputes) * 100)
       : 0;
 
-    // Calculate average resolution time
-    const resolvedWithDates = await prisma.dispute.findMany({
-      where: {
-        organizationId,
-        status: "RESOLVED",
-        resolvedAt: { not: null },
-      },
-      select: {
-        createdAt: true,
-        resolvedAt: true,
-      },
-    });
-
+    // Average resolution time in days and months
     let avgResolutionDays = 0;
-    if (resolvedWithDates.length > 0) {
-      const totalDays = resolvedWithDates.reduce((sum, d) => {
+    if (resolvedDisputeTimes.length > 0) {
+      const totalDays = resolvedDisputeTimes.reduce((sum, d) => {
         if (d.resolvedAt) {
           return sum + Math.ceil((d.resolvedAt.getTime() - d.createdAt.getTime()) / (1000 * 60 * 60 * 24));
         }
         return sum;
       }, 0);
-      avgResolutionDays = Math.round(totalDays / resolvedWithDates.length);
+      avgResolutionDays = Math.round(totalDays / resolvedDisputeTimes.length);
     }
+
+    // Average score improvement
+    let totalImprovement = 0;
+    let clientsWithImprovement = 0;
+    for (const client of clientsWithScoreHistory) {
+      if (client.creditScores.length >= 2) {
+        const oldest = client.creditScores[0].score;
+        const newest = client.creditScores[client.creditScores.length - 1].score;
+        const improvement = newest - oldest;
+        if (improvement > 0) {
+          totalImprovement += improvement;
+          clientsWithImprovement++;
+        }
+      }
+    }
+    const avgScoreImprovement = clientsWithImprovement > 0
+      ? Math.round(totalImprovement / clientsWithImprovement)
+      : 0;
+
+    // Success by CRA
+    const successByCRA: Record<string, { sent: number; deleted: number; verified: number; noResponse: number; rate: number }> = {};
+    for (const cra of ["TRANSUNION", "EXPERIAN", "EQUIFAX"]) {
+      const craResponses = disputeResponses.filter(r => r.disputeItem?.dispute?.cra === cra);
+      const craDeleted = craResponses.filter(r => r.outcome === "DELETED").length;
+      const craVerified = craResponses.filter(r => r.outcome === "VERIFIED").length;
+      const craNoResponse = craResponses.filter(r => r.outcome === "NO_RESPONSE").length;
+      successByCRA[cra] = {
+        sent: craResponses.length,
+        deleted: craDeleted,
+        verified: craVerified,
+        noResponse: craNoResponse,
+        rate: craResponses.length > 0 ? Math.round((craDeleted / craResponses.length) * 100) : 0,
+      };
+    }
+
+    // Success by Flow
+    const successByFlow: Record<string, { total: number; success: number; rate: number }> = {};
+    for (const flow of ["ACCURACY", "COLLECTION", "CONSENT", "COMBO"]) {
+      const flowResponses = disputeResponses.filter(r => r.disputeItem?.dispute?.flow === flow);
+      const flowDeleted = flowResponses.filter(r => r.outcome === "DELETED").length;
+      successByFlow[flow] = {
+        total: flowResponses.length,
+        success: flowDeleted,
+        rate: flowResponses.length > 0 ? Math.round((flowDeleted / flowResponses.length) * 100) : 0,
+      };
+    }
+
+    // Round Performance
+    const roundPerformance: Array<{ round: string; sent: number; deleted: number; rate: number }> = [];
+    for (let r = 1; r <= 4; r++) {
+      const roundResponses = disputeResponses.filter(resp => resp.disputeItem?.dispute?.round === r);
+      const roundDeleted = roundResponses.filter(resp => resp.outcome === "DELETED").length;
+      roundPerformance.push({
+        round: `R${r}`,
+        sent: roundResponses.length,
+        deleted: roundDeleted,
+        rate: roundResponses.length > 0 ? Math.round((roundDeleted / roundResponses.length) * 100) : 0,
+      });
+    }
+
+    // Client Funnel from stages
+    const stageOrder = ["INTAKE", "ANALYSIS", "ROUND_1", "ROUND_2", "ROUND_3", "ROUND_4", "MAINTENANCE", "COMPLETED"];
+    const clientFunnel: Record<string, number> = {};
+    for (const stage of stageOrder) {
+      const stageCount = clientsByStage.find(s => s.stage === stage);
+      clientFunnel[stage.toLowerCase().replace(/_/g, "")] = stageCount?._count.id || 0;
+    }
+
+    // Top Performing Items by Account Type
+    const accountTypeStats: Record<string, { deleted: number; total: number }> = {};
+    for (const item of disputeItemsByAccountType) {
+      const type = item.accountItem?.accountType || "OTHER";
+      if (!accountTypeStats[type]) {
+        accountTypeStats[type] = { deleted: 0, total: 0 };
+      }
+      accountTypeStats[type].total++;
+      if (item.outcome === "DELETED") {
+        accountTypeStats[type].deleted++;
+      }
+    }
+
+    const topPerformingItems = Object.entries(accountTypeStats)
+      .map(([type, stats]) => ({
+        type: formatAccountType(type),
+        deleted: stats.deleted,
+        total: stats.total,
+        rate: stats.total > 0 ? Math.round((stats.deleted / stats.total) * 100) : 0,
+      }))
+      .sort((a, b) => b.rate - a.rate)
+      .slice(0, 5);
+
+    // FCRA Violations
+    const fcraViolations = {
+      total: lateResponses + stallCount,
+      failureToRespond: noResponseCount,
+      inadequateInvestigation: stallCount,
+      frivolousRejection: disputeResponses.filter(r => r.stallTactic === "FRIVOLOUS_CLAIM").length,
+      cfpbComplaints: 0, // Would need separate tracking
+    };
+
+    // Recent Activity from events
+    const recentActivity = recentEvents.slice(0, 6).map(event => {
+      const data = event.eventData ? JSON.parse(event.eventData) : {};
+      let activityType = "response";
+      let details = "";
+
+      switch (event.eventType) {
+        case "DISPUTE_CREATED":
+          activityType = "sent";
+          details = `${data.flow || "Dispute"} created - ${data.cra || "CRA"}`;
+          break;
+        case "DISPUTE_SENT":
+          activityType = "sent";
+          details = `Dispute sent to ${data.cra || "CRA"}`;
+          break;
+        case "DISPUTE_RESOLVED":
+          activityType = "deletion";
+          details = `Dispute resolved - ${data.outcome || "complete"}`;
+          break;
+        case "RESPONSE_RECORDED":
+          activityType = data.outcome === "DELETED" ? "deletion" : "response";
+          details = `Response: ${data.outcome || "recorded"}`;
+          break;
+        case "REPORT_UPLOADED":
+          activityType = "response";
+          details = "Credit report uploaded";
+          break;
+        case "CLIENT_CREATED":
+          activityType = "response";
+          details = "New client added";
+          break;
+        default:
+          details = event.eventType.replace(/_/g, " ").toLowerCase();
+      }
+
+      return {
+        date: format(event.createdAt, "MMM d"),
+        type: activityType,
+        client: event.actor?.name || "System",
+        details,
+      };
+    });
+
+    // Monthly Trends (transform data for frontend)
+    const monthlyTrends = monthlyData.map(m => ({
+      month: m.month,
+      clients: m.newClients,
+      disputes: m.sent,
+      deleted: m.deleted,
+      successRate: m.sent > 0 ? Math.round((m.deleted / m.sent) * 100) : 0,
+    }));
 
     return NextResponse.json({
       summary: {
@@ -188,6 +477,11 @@ export async function GET() {
         reportsUploaded,
         resolutionRate,
         avgResolutionDays,
+        // New metrics
+        totalItemsDeleted: deletedResponses,
+        overallSuccessRate,
+        avgScoreImprovement,
+        avgCompletionMonths: avgResolutionDays > 0 ? Number((avgResolutionDays / 30).toFixed(1)) : 0,
       },
       charts: {
         disputesByStatus: disputesByStatus.map((d) => ({
@@ -204,6 +498,16 @@ export async function GET() {
         })),
         dailyActivity,
       },
+      // New comprehensive data
+      monthlyTrends,
+      successByCRA,
+      successByFlow,
+      roundPerformance,
+      clientFunnel,
+      topPerformingItems,
+      fcraViolations,
+      recentActivity,
+      // Existing data
       recentDisputes: recentDisputes.map((d) => ({
         id: d.id,
         cra: d.cra,
@@ -221,8 +525,6 @@ export async function GET() {
         accountCount: c._count.accounts,
       })),
       llmStats,
-      scoreImprovements,
-      monthlyDisputes,
     });
   } catch (error) {
     console.error("Error fetching analytics:", error);
@@ -231,6 +533,24 @@ export async function GET() {
       { status: 500 }
     );
   }
+}
+
+// Format account type for display
+function formatAccountType(type: string): string {
+  const typeMap: Record<string, string> = {
+    "COLLECTION": "Collections",
+    "CHARGE_OFF": "Charge-offs",
+    "CREDIT_CARD": "Credit Cards",
+    "MORTGAGE": "Mortgages",
+    "AUTO_LOAN": "Auto Loans",
+    "STUDENT_LOAN": "Student Loans",
+    "PERSONAL_LOAN": "Personal Loans",
+    "MEDICAL": "Medical Collections",
+    "RETAIL": "Retail Accounts",
+    "UTILITY": "Utility Accounts",
+    "OTHER": "Other Accounts",
+  };
+  return typeMap[type] || type.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 }
 
 async function getDailyActivity(organizationId: string, days: number) {
@@ -334,84 +654,59 @@ async function getLLMStats(organizationId: string) {
   };
 }
 
-async function getScoreImprovements(organizationId: string) {
-  // Get all clients with their score history
-  const clients = await prisma.client.findMany({
-    where: { organizationId },
-    include: {
-      creditScores: {
-        orderBy: { scoreDate: "desc" },
-        take: 2, // Get latest two scores for comparison
-      },
-    },
-  });
-
-  let improved = 0;
-  let declined = 0;
-  let noChange = 0;
-  let totalImprovement = 0;
-  let clientsWithScores = 0;
-
-  for (const client of clients) {
-    if (client.creditScores.length >= 2) {
-      const latest = client.creditScores[0].score;
-      const previous = client.creditScores[1].score;
-      const change = latest - previous;
-
-      if (change > 0) {
-        improved++;
-        totalImprovement += change;
-      } else if (change < 0) {
-        declined++;
-      } else {
-        noChange++;
-      }
-      clientsWithScores++;
-    }
-  }
-
-  return {
-    improved,
-    declined,
-    noChange,
-    averageImprovement: clientsWithScores > 0 ? Math.round(totalImprovement / improved || 0) : 0,
-    clientsTracked: clientsWithScores,
-  };
-}
-
-async function getMonthlyDisputes(organizationId: string, months: number) {
-  const results: Array<{ month: string; created: number; resolved: number; sent: number }> = [];
+async function getMonthlyTrends(organizationId: string, months: number) {
+  const results: Array<{
+    month: string;
+    newClients: number;
+    sent: number;
+    deleted: number;
+    resolved: number;
+  }> = [];
 
   for (let i = months - 1; i >= 0; i--) {
     const monthStart = startOfMonth(subMonths(new Date(), i));
     const monthEnd = startOfMonth(subMonths(new Date(), i - 1));
 
-    const [created, resolved, sent] = await Promise.all([
-      prisma.dispute.count({
+    const [newClients, disputesSent, disputeResponses, resolved] = await Promise.all([
+      // New clients this month
+      prisma.client.count({
         where: {
           organizationId,
           createdAt: { gte: monthStart, lt: monthEnd },
         },
       }),
-      prisma.dispute.count({
-        where: {
-          organizationId,
-          resolvedAt: { gte: monthStart, lt: monthEnd },
-        },
-      }),
+      // Disputes sent this month
       prisma.dispute.count({
         where: {
           organizationId,
           sentDate: { gte: monthStart, lt: monthEnd },
         },
       }),
+      // Responses with deletions this month
+      prisma.disputeResponse.count({
+        where: {
+          outcome: "DELETED",
+          responseDate: { gte: monthStart, lt: monthEnd },
+          disputeItem: {
+            dispute: { organizationId },
+          },
+        },
+      }),
+      // Disputes resolved this month
+      prisma.dispute.count({
+        where: {
+          organizationId,
+          resolvedAt: { gte: monthStart, lt: monthEnd },
+        },
+      }),
     ]);
 
     results.push({
-      month: format(monthStart, "MMM yyyy"),
-      created,
+      month: format(monthStart, "MMM"),
+      newClients,
+      sent: disputesSent,
+      deleted: disputeResponses,
       resolved,
-      sent,
     });
   }
 

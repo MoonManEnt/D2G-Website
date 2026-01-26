@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const accountId = searchParams.get("accountId");
     const clientId = searchParams.get("clientId");
+    const reportId = searchParams.get("reportId");
 
     // Build where clause
     const whereClause: Record<string, unknown> = {
@@ -25,8 +26,21 @@ export async function GET(request: NextRequest) {
       whereClause.accountItemId = accountId;
     }
 
-    // If filtering by client, we need to get all accounts for that client first
-    if (clientId) {
+    // If filtering by reportId, get all accounts for that report
+    if (reportId) {
+      const reportAccounts = await prisma.accountItem.findMany({
+        where: {
+          organizationId: session.user.organizationId,
+          reportId: reportId,
+        },
+        select: { id: true },
+      });
+      whereClause.accountItemId = {
+        in: reportAccounts.map((a) => a.id),
+      };
+    }
+    // If filtering by client (and no reportId), get all accounts for that client
+    else if (clientId) {
       const clientAccounts = await prisma.accountItem.findMany({
         where: {
           organizationId: session.user.organizationId,
