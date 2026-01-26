@@ -343,11 +343,224 @@ const UploadZone = ({
 };
 
 // =============================================================================
+// MOTIVATIONAL QUOTES
+// =============================================================================
+
+const MOTIVATIONAL_QUOTES = [
+  { quote: "The secret of getting ahead is getting started.", author: "Mark Twain" },
+  { quote: "Take action! An inch of movement will bring you closer to your goals than a mile of intention.", author: "Steve Maraboli" },
+  { quote: "The future depends on what you do today.", author: "Mahatma Gandhi" },
+  { quote: "Success is not final, failure is not fatal: it is the courage to continue that counts.", author: "Winston Churchill" },
+  { quote: "The only impossible journey is the one you never begin.", author: "Tony Robbins" },
+  { quote: "Do what you can, with what you have, where you are.", author: "Theodore Roosevelt" },
+  { quote: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" },
+  { quote: "Every accomplishment starts with the decision to try.", author: "John F. Kennedy" },
+  { quote: "The best time to plant a tree was 20 years ago. The second best time is now.", author: "Chinese Proverb" },
+  { quote: "Progress is impossible without change, and those who cannot change their minds cannot change anything.", author: "George Bernard Shaw" },
+];
+
+const getRandomQuote = () => MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
+
+// =============================================================================
+// SUCCESS CELEBRATION MODAL
+// =============================================================================
+
+const SuccessCelebrationModal = ({
+  isOpen,
+  onClose,
+  filename,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  filename: string;
+}) => {
+  const [muteConfirmations, setMuteConfirmations] = useState(false);
+  const [quote] = useState(getRandomQuote);
+
+  const handleClose = () => {
+    if (muteConfirmations) {
+      localStorage.setItem("d2g_mute_upload_confirmations", "true");
+    }
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop - click to close */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            onClick={handleClose}
+          />
+
+          {/* Modal */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ type: "spring", duration: 0.5 }}
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md"
+          >
+            <div className="bg-gradient-to-b from-zinc-900 to-zinc-950 border border-zinc-700/50 rounded-2xl shadow-2xl overflow-hidden">
+              {/* Success Header with Animation */}
+              <div className="relative bg-gradient-to-r from-emerald-500/20 via-emerald-400/10 to-emerald-500/20 p-6 text-center overflow-hidden">
+                {/* Animated particles */}
+                <div className="absolute inset-0 overflow-hidden">
+                  {[...Array(12)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, y: 50, x: Math.random() * 100 - 50 }}
+                      animate={{
+                        opacity: [0, 1, 0],
+                        y: -100,
+                        x: Math.random() * 200 - 100,
+                      }}
+                      transition={{
+                        duration: 2,
+                        delay: i * 0.1,
+                        repeat: Infinity,
+                        repeatDelay: 1,
+                      }}
+                      className="absolute bottom-0 left-1/2 w-2 h-2 rounded-full bg-emerald-400/60"
+                    />
+                  ))}
+                </div>
+
+                {/* Success Icon */}
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", delay: 0.2, stiffness: 200 }}
+                  className="relative w-20 h-20 mx-auto mb-4"
+                >
+                  <div className="absolute inset-0 bg-emerald-500/30 rounded-full animate-ping" />
+                  <div className="relative w-full h-full bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                    <CheckCircle size={40} className="text-white" />
+                  </div>
+                </motion.div>
+
+                <motion.h2
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="text-2xl font-bold text-white mb-1"
+                >
+                  Credit Report Upload - Success!
+                </motion.h2>
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                  className="text-sm text-emerald-400/80"
+                >
+                  {filename}
+                </motion.p>
+              </div>
+
+              {/* Quote Section */}
+              <div className="p-6">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="bg-zinc-800/50 border border-zinc-700/50 rounded-xl p-4 mb-6"
+                >
+                  <div className="flex gap-3">
+                    <div className="text-4xl text-emerald-500/50 font-serif leading-none">"</div>
+                    <div>
+                      <p className="text-white text-sm leading-relaxed italic mb-2">
+                        {quote.quote}
+                      </p>
+                      <p className="text-zinc-500 text-xs">— {quote.author}</p>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Info */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.6 }}
+                  className="flex items-center gap-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg mb-6"
+                >
+                  <Sparkles size={18} className="text-blue-400 flex-shrink-0" />
+                  <p className="text-xs text-blue-300">
+                    Your report has been parsed and analyzed. You can now start creating disputes from the negative items found.
+                  </p>
+                </motion.div>
+
+                {/* Mute Option */}
+                <motion.label
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.7 }}
+                  className="flex items-center gap-3 cursor-pointer group mb-4"
+                >
+                  <div
+                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                      muteConfirmations
+                        ? "bg-emerald-500 border-emerald-500"
+                        : "border-zinc-600 group-hover:border-zinc-500"
+                    }`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setMuteConfirmations(!muteConfirmations);
+                    }}
+                  >
+                    {muteConfirmations && <Check size={12} className="text-white" />}
+                  </div>
+                  <span className="text-xs text-zinc-400 group-hover:text-zinc-300">
+                    Don't show success confirmations for future uploads
+                  </span>
+                </motion.label>
+
+                {/* Close Button */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.8 }}
+                >
+                  <Button
+                    onClick={handleClose}
+                    className="w-full bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white py-3"
+                  >
+                    Let's Get Started
+                  </Button>
+                </motion.div>
+
+                <p className="text-center text-[10px] text-zinc-600 mt-3">
+                  Click anywhere outside to close
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+};
+
+// =============================================================================
 // PARSING PROGRESS COMPONENT
 // =============================================================================
 
-const ParsingProgress = ({ filename, onCancel }: { filename: string; onCancel: () => void }) => {
+const ParsingProgress = ({
+  filename,
+  onCancel,
+  onComplete,
+}: {
+  filename: string;
+  onCancel: () => void;
+  onComplete: () => void;
+}) => {
   const [stage, setStage] = useState(0);
+  const [isComplete, setIsComplete] = useState(false);
   const stages = [
     { label: "Reading PDF", icon: FileText },
     { label: "Extracting bureaus", icon: Building2 },
@@ -358,51 +571,75 @@ const ParsingProgress = ({ filename, onCancel }: { filename: string; onCancel: (
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setStage((s) => Math.min(s + 1, stages.length - 1));
+      setStage((s) => {
+        const next = s + 1;
+        if (next >= stages.length) {
+          clearInterval(timer);
+          // Mark as complete and trigger callback after a brief delay
+          setTimeout(() => {
+            setIsComplete(true);
+            onComplete();
+          }, 500);
+          return stages.length - 1;
+        }
+        return next;
+      });
     }, 1500);
     return () => clearInterval(timer);
-  }, [stages.length]);
+  }, [stages.length, onComplete]);
 
   const updatedStages = stages.map((s, i) => ({
     ...s,
-    status: i < stage ? "complete" : i === stage ? "active" : "pending",
+    status: i < stage ? "complete" : i === stage ? (isComplete ? "complete" : "active") : "pending",
   }));
+
+  // If all stages complete, show final complete state
+  const allComplete = stage >= stages.length - 1 && isComplete;
 
   return (
     <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-5">
       <div className="flex items-start justify-between mb-5">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
-            <FileCheck size={20} className="text-blue-400" />
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${allComplete ? "bg-emerald-500/20" : "bg-blue-500/20"}`}>
+            {allComplete ? (
+              <CheckCircle size={20} className="text-emerald-400" />
+            ) : (
+              <FileCheck size={20} className="text-blue-400" />
+            )}
           </div>
           <div>
-            <p className="font-medium text-white text-sm">Parsing Report</p>
+            <p className="font-medium text-white text-sm">
+              {allComplete ? "Parsing Complete!" : "Parsing Report"}
+            </p>
             <p className="text-xs text-zinc-500 truncate max-w-[180px]">{filename}</p>
           </div>
         </div>
-        <button
-          onClick={onCancel}
-          className="p-1.5 text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
-        >
-          <X size={16} />
-        </button>
+        {!allComplete && (
+          <button
+            onClick={onCancel}
+            className="p-1.5 text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
+          >
+            <X size={16} />
+          </button>
+        )}
       </div>
 
       <div className="space-y-2">
         {updatedStages.map((s, i) => {
           const Icon = s.icon;
+          const isCurrentlyComplete = i < stage || (i === stage && isComplete) || allComplete;
           return (
             <div key={i} className="flex items-center gap-2">
               <div
                 className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
-                  s.status === "complete"
+                  isCurrentlyComplete
                     ? "bg-emerald-500/20"
                     : s.status === "active"
                     ? "bg-blue-500/20"
                     : "bg-zinc-800"
                 }`}
               >
-                {s.status === "complete" ? (
+                {isCurrentlyComplete ? (
                   <Check size={14} className="text-emerald-400" />
                 ) : s.status === "active" ? (
                   <Loader2 size={14} className="text-blue-400 animate-spin" />
@@ -412,7 +649,7 @@ const ParsingProgress = ({ filename, onCancel }: { filename: string; onCancel: (
               </div>
               <span
                 className={`text-xs ${
-                  s.status === "complete"
+                  isCurrentlyComplete
                     ? "text-emerald-400"
                     : s.status === "active"
                     ? "text-white"
@@ -421,7 +658,9 @@ const ParsingProgress = ({ filename, onCancel }: { filename: string; onCancel: (
               >
                 {s.label}
               </span>
-              {s.status === "active" && <span className="ml-auto text-[10px] text-blue-400">Processing...</span>}
+              {s.status === "active" && !isComplete && (
+                <span className="ml-auto text-[10px] text-blue-400">Processing...</span>
+              )}
             </div>
           );
         })}
@@ -430,7 +669,11 @@ const ParsingProgress = ({ filename, onCancel }: { filename: string; onCancel: (
       <div className="mt-4 pt-3 border-t border-zinc-800">
         <div className="flex items-center gap-2 text-[10px] text-zinc-500">
           <Activity size={10} />
-          <span>Estimated time remaining: ~15 seconds</span>
+          <span>
+            {allComplete
+              ? "All steps completed successfully!"
+              : `Estimated time remaining: ~${Math.max(0, (stages.length - stage - 1) * 3)} seconds`}
+          </span>
         </div>
       </div>
     </div>
@@ -783,6 +1026,13 @@ export function CreditReportsPanel({
   const [isParsing, setIsParsing] = useState(false);
   const [parsingFile, setParsingFile] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "timeline">("grid");
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successFilename, setSuccessFilename] = useState("");
+
+  // Check if user has muted confirmations
+  const isMuted = typeof window !== "undefined"
+    ? localStorage.getItem("d2g_mute_upload_confirmations") === "true"
+    : false;
 
   // Fetch reports for this client
   const fetchReports = useCallback(async () => {
@@ -889,13 +1139,8 @@ export function CreditReportsPanel({
               const latestReport = data[0];
               if (latestReport?.status === "completed") {
                 clearInterval(checkParsing);
-                setIsParsing(false);
-                setParsingFile(null);
+                // Don't close parsing yet - let animation complete
                 setReports(data);
-                toast({
-                  title: "Report Parsed",
-                  description: "Credit report has been successfully parsed.",
-                });
               }
             }
           }, 2000);
@@ -1029,8 +1274,35 @@ export function CreditReportsPanel({
 
       {/* Parsing Progress */}
       {isParsing && parsingFile && (
-        <ParsingProgress filename={parsingFile} onCancel={handleCancelParsing} />
+        <ParsingProgress
+          filename={parsingFile}
+          onCancel={handleCancelParsing}
+          onComplete={() => {
+            // Delay slightly to let user see the completion state
+            setTimeout(() => {
+              setIsParsing(false);
+              setSuccessFilename(parsingFile || "Credit Report");
+              setParsingFile(null);
+              // Show success modal if not muted
+              if (!isMuted) {
+                setShowSuccessModal(true);
+              } else {
+                toast({
+                  title: "Report Parsed",
+                  description: "Credit report has been successfully parsed.",
+                });
+              }
+            }, 800);
+          }}
+        />
       )}
+
+      {/* Success Celebration Modal */}
+      <SuccessCelebrationModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        filename={successFilename}
+      />
 
       {/* Reports Section */}
       <div>
