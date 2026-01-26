@@ -67,6 +67,7 @@ export async function GET(req: Request) {
           organizationId,
           status: { in: ["DRAFT", "APPROVED", "SENT"] },
           createdAt: { gte: startDate },
+          client: { isActive: true, archivedAt: null },
         },
       }),
 
@@ -76,6 +77,7 @@ export async function GET(req: Request) {
           organizationId,
           status: "RESOLVED",
           createdAt: { gte: startDate },
+          client: { isActive: true, archivedAt: null },
         },
       }),
 
@@ -84,6 +86,7 @@ export async function GET(req: Request) {
         where: {
           organizationId,
           confidenceLevel: { in: ["LOW", "MEDIUM"] },
+          client: { isActive: true, archivedAt: null },
         },
       }),
 
@@ -92,6 +95,7 @@ export async function GET(req: Request) {
         where: {
           organizationId,
           createdAt: { gte: thirtyDaysAgo },
+          client: { isActive: true, archivedAt: null },
         },
         select: {
           id: true,
@@ -112,21 +116,21 @@ export async function GET(req: Request) {
       // Disputes by status
       prisma.dispute.groupBy({
         by: ["status"],
-        where: { organizationId, createdAt: { gte: startDate } },
+        where: { organizationId, createdAt: { gte: startDate }, client: { isActive: true, archivedAt: null } },
         _count: { id: true },
       }),
 
       // Disputes by CRA
       prisma.dispute.groupBy({
         by: ["cra"],
-        where: { organizationId, createdAt: { gte: startDate } },
+        where: { organizationId, createdAt: { gte: startDate }, client: { isActive: true, archivedAt: null } },
         _count: { id: true },
       }),
 
       // Disputes by flow
       prisma.dispute.groupBy({
         by: ["flow"],
-        where: { organizationId, createdAt: { gte: startDate } },
+        where: { organizationId, createdAt: { gte: startDate }, client: { isActive: true, archivedAt: null } },
         _count: { id: true },
       }),
 
@@ -135,6 +139,7 @@ export async function GET(req: Request) {
         where: {
           organizationId,
           uploadedAt: { gte: startDate },
+          client: { isActive: true, archivedAt: null },
         },
       }),
 
@@ -173,6 +178,7 @@ export async function GET(req: Request) {
             dispute: {
               organizationId,
               createdAt: { gte: startDate },
+              client: { isActive: true, archivedAt: null },
             },
           },
         },
@@ -246,6 +252,7 @@ export async function GET(req: Request) {
           dispute: {
             organizationId,
             createdAt: { gte: startDate },
+            client: { isActive: true, archivedAt: null },
           },
           outcome: { not: null },
         },
@@ -259,7 +266,7 @@ export async function GET(req: Request) {
 
       // Clients with score history for improvement tracking
       prisma.client.findMany({
-        where: { organizationId },
+        where: { organizationId, isActive: true, archivedAt: null },
         select: {
           id: true,
           creditScores: {
@@ -276,6 +283,7 @@ export async function GET(req: Request) {
           status: "RESOLVED",
           resolvedAt: { not: null },
           createdAt: { gte: startDate },
+          client: { isActive: true, archivedAt: null },
         },
         select: {
           createdAt: true,
@@ -570,6 +578,7 @@ async function getDailyActivity(organizationId: string, days: number) {
             gte: dayStart,
             lt: dayEnd,
           },
+          client: { isActive: true, archivedAt: null },
         },
       }),
       prisma.creditReport.count({
@@ -579,6 +588,7 @@ async function getDailyActivity(organizationId: string, days: number) {
             gte: dayStart,
             lt: dayEnd,
           },
+          client: { isActive: true, archivedAt: null },
         },
       }),
     ]);
@@ -668,11 +678,13 @@ async function getMonthlyTrends(organizationId: string, months: number) {
     const monthEnd = startOfMonth(subMonths(new Date(), i - 1));
 
     const [newClients, disputesSent, disputeResponses, resolved] = await Promise.all([
-      // New clients this month
+      // New clients this month (count only active clients)
       prisma.client.count({
         where: {
           organizationId,
           createdAt: { gte: monthStart, lt: monthEnd },
+          isActive: true,
+          archivedAt: null,
         },
       }),
       // Disputes sent this month
@@ -680,6 +692,7 @@ async function getMonthlyTrends(organizationId: string, months: number) {
         where: {
           organizationId,
           sentDate: { gte: monthStart, lt: monthEnd },
+          client: { isActive: true, archivedAt: null },
         },
       }),
       // Responses with deletions this month
@@ -688,7 +701,7 @@ async function getMonthlyTrends(organizationId: string, months: number) {
           outcome: "DELETED",
           responseDate: { gte: monthStart, lt: monthEnd },
           disputeItem: {
-            dispute: { organizationId },
+            dispute: { organizationId, client: { isActive: true, archivedAt: null } },
           },
         },
       }),
@@ -697,6 +710,7 @@ async function getMonthlyTrends(organizationId: string, months: number) {
         where: {
           organizationId,
           resolvedAt: { gte: monthStart, lt: monthEnd },
+          client: { isActive: true, archivedAt: null },
         },
       }),
     ]);
