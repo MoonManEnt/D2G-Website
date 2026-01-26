@@ -62,14 +62,18 @@ interface AmeliaSettings {
 }
 
 interface GeneratedLetter {
-  disputeId: string;
+  disputeId?: string;  // Optional - not present in preview mode
+  isPreview?: boolean;  // True when letter is just a preview (not saved yet)
+  clientId?: string;  // For creating dispute on launch (preview mode)
+  accountIds?: string[];  // For creating dispute on launch (preview mode)
+  contentHash?: string;  // For storing content hash on launch (preview mode)
   documentId?: string;  // Optional - created when launched
   documentTitle?: string;  // Optional - created when launched
   content: string;
   cra: string;
   flow: string;
   round: number;
-  status?: string;  // DRAFT, SENT, RESPONDED, RESOLVED
+  status?: string;  // PREVIEW, DRAFT, SENT, RESPONDED, RESOLVED
   ameliaMetadata?: {
     letterDate: string;
     isBackdated: boolean;
@@ -425,6 +429,12 @@ export function LetterEditorModal({
   const regenerateSection = async (sectionKey: keyof LetterSections) => {
     if (!generatedLetter || !sections) return;
 
+    // Can't regenerate in preview mode - no dispute exists yet
+    if (generatedLetter.isPreview || !generatedLetter.disputeId) {
+      toast({ title: "Preview Mode", description: "Launch the dispute first to regenerate sections", variant: "destructive" });
+      return;
+    }
+
     setRegeneratingSection(sectionKey);
     setIsRegenerating(true);
 
@@ -467,6 +477,12 @@ export function LetterEditorModal({
   // Regenerate entire letter
   const regenerateAll = async () => {
     if (!generatedLetter) return;
+
+    // Can't regenerate in preview mode - no dispute exists yet
+    if (generatedLetter.isPreview || !generatedLetter.disputeId) {
+      toast({ title: "Preview Mode", description: "Launch the dispute first to regenerate the letter", variant: "destructive" });
+      return;
+    }
 
     setIsRegenerating(true);
 

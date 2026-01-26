@@ -98,7 +98,11 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
   // Letter preview state
   const [letterModalOpen, setLetterModalOpen] = useState(false);
   const [generatedLetter, setGeneratedLetter] = useState<{
-    disputeId: string;
+    disputeId?: string; // Optional - not present in preview mode
+    isPreview?: boolean; // True when letter is just a preview (not saved yet)
+    clientId?: string; // For creating dispute on launch
+    accountIds?: string[]; // For creating dispute on launch
+    contentHash?: string; // For storing content hash on launch
     content: string;
     cra: string;
     flow: string;
@@ -413,7 +417,8 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
     setSelectedAccounts(parsedAccounts.map((a) => a.id));
   };
 
-  // Create dispute - AMELIA letter is now generated automatically
+  // Generate letter preview - does NOT create dispute until Launch
+  // This prevents the issue where closing the modal leaves a DRAFT dispute blocking future rounds
   const handleCreateDispute = async () => {
     if (!selectedClientId || selectedAccounts.length === 0) {
       toast({ title: "Missing Information", description: "Select a client and at least one account", variant: "destructive" });
@@ -422,7 +427,8 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
 
     setCreating(true);
     try {
-      const res = await fetch("/api/disputes", {
+      // Use preview API - generates letter WITHOUT creating dispute
+      const res = await fetch("/api/disputes/preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -436,15 +442,18 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
       if (res.ok) {
         const data = await res.json();
 
-        // Letter is now generated automatically by the API
         // Set the AMELIA-generated letter for preview/editing
+        // Note: isPreview=true means dispute is NOT created yet
         setGeneratedLetter({
-          disputeId: data.dispute.id,
-          content: data.dispute.letterContent,
-          cra: data.dispute.cra,
-          flow: data.dispute.flow,
-          round: data.dispute.round,
-          status: data.dispute.status,
+          isPreview: true,
+          clientId: selectedClientId,
+          accountIds: selectedAccounts,
+          contentHash: data.preview.contentHash,
+          content: data.preview.letterContent,
+          cra: data.preview.cra,
+          flow: data.preview.flow,
+          round: data.preview.round,
+          status: "PREVIEW", // Not saved yet
           ameliaMetadata: {
             letterDate: data.amelia.letterDate,
             isBackdated: data.amelia.isBackdated,
@@ -460,18 +469,17 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
         setLetterModalOpen(true);
 
         toast({
-          title: "AMELIA Letter Generated",
-          description: `${data.dispute.cra} Round ${data.dispute.round} - ${data.amelia.tone} tone${data.amelia.isBackdated ? " (backdated)" : ""}`,
+          title: "Letter Preview Ready",
+          description: `${data.preview.cra} Round ${data.preview.round} - Review and click "Launch Round" to send`,
         });
 
-        // Refresh disputes list in background
-        refreshDisputesList();
+        // Don't refresh disputes list - nothing created yet
       } else {
         const error = await res.json();
-        toast({ title: "Failed", description: error.error || "Failed to create dispute", variant: "destructive" });
+        toast({ title: "Failed", description: error.error || "Failed to generate letter", variant: "destructive" });
       }
     } catch {
-      toast({ title: "Error", description: "Failed to create dispute", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to generate letter", variant: "destructive" });
     } finally {
       setCreating(false);
     }
@@ -553,26 +561,53 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
     }
   };
 
-  // Launch dispute - marks as SENT and starts 30-day FCRA tracking
+  // Launch dispute - creates dispute AND marks as SENT in one atomic operation
   // This is when accounts become "locked" (can't be added to new disputes)
   const handleLaunchDispute = async () => {
-    if (!generatedLetter?.disputeId) return;
+    if (!generatedLetter) return;
 
     setLaunching(true);
     try {
-      const res = await fetch(`/api/disputes/${generatedLetter.disputeId}/launch`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sentDate: new Date().toISOString(),
-        }),
-      });
+      let res: Response;
+
+      if (generatedLetter.isPreview) {
+        // Preview mode: Create and launch in one atomic operation
+        res = await fetch("/api/disputes/create-and-launch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            clientId: generatedLetter.clientId,
+            cra: generatedLetter.cra,
+            flow: generatedLetter.flow,
+            accountIds: generatedLetter.accountIds,
+            letterContent: generatedLetter.content,
+            contentHash: generatedLetter.contentHash,
+          }),
+        });
+      } else if (generatedLetter.disputeId) {
+        // Existing dispute: Just launch it
+        res = await fetch(`/api/disputes/${generatedLetter.disputeId}/launch`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sentDate: new Date().toISOString(),
+          }),
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Invalid letter state",
+          variant: "destructive",
+        });
+        setLaunching(false);
+        return;
+      }
 
       if (res.ok) {
         const data = await res.json();
         toast({
           title: `Round ${generatedLetter.round} Launched!`,
-          description: `${generatedLetter.cra} dispute is now being tracked. 30-day FCRA deadline: ${new Date(data.responseDeadline).toLocaleDateString()}`,
+          description: `${generatedLetter.cra} dispute is now being tracked. 30-day FCRA deadline: ${new Date(data.responseDeadline || data.dispute?.deadlineDate).toLocaleDateString()}`,
         });
 
         // Close modal and reset selection
