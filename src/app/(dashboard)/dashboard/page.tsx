@@ -91,6 +91,9 @@ async function getDashboardData(organizationId: string) {
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
+  // Filter for active clients only
+  const activeClientFilter = { isActive: true, archivedAt: null };
+
   // Parallel fetch all data
   const [
     // Stats
@@ -114,15 +117,19 @@ async function getDashboardData(organizationId: string) {
     sentDisputes,
   ] = await Promise.all([
     // Stats
-    prisma.client.count({ where: { organizationId, isActive: true, archivedAt: null } }),
+    prisma.client.count({ where: { organizationId, ...activeClientFilter } }),
     prisma.dispute.count({
-      where: { organizationId, status: { in: ["DRAFT", "PENDING_REVIEW", "APPROVED", "SENT"] } },
+      where: {
+        organizationId,
+        status: { in: ["DRAFT", "PENDING_REVIEW", "APPROVED", "SENT"] },
+        client: activeClientFilter,
+      },
     }),
-    prisma.dispute.count({ where: { organizationId } }),
-    prisma.dispute.count({ where: { organizationId, status: "RESOLVED" } }),
+    prisma.dispute.count({ where: { organizationId, client: activeClientFilter } }),
+    prisma.dispute.count({ where: { organizationId, status: "RESOLVED", client: activeClientFilter } }),
     prisma.disputeItem.count({
       where: {
-        dispute: { organizationId },
+        dispute: { organizationId, client: activeClientFilter },
         outcome: "DELETED",
         createdAt: { gte: startOfMonth },
       },
@@ -130,7 +137,7 @@ async function getDashboardData(organizationId: string) {
 
     // Disputes with RESPONDED status (need review)
     prisma.dispute.findMany({
-      where: { organizationId, status: "RESPONDED" },
+      where: { organizationId, status: "RESPONDED", client: activeClientFilter },
       orderBy: { respondedAt: "desc" },
       take: 10,
       include: {
@@ -145,7 +152,7 @@ async function getDashboardData(organizationId: string) {
 
     // Disputes ready to send (approved)
     prisma.dispute.findMany({
-      where: { organizationId, status: "APPROVED" },
+      where: { organizationId, status: "APPROVED", client: activeClientFilter },
       orderBy: { approvedAt: "desc" },
       take: 10,
       include: {
@@ -156,7 +163,7 @@ async function getDashboardData(organizationId: string) {
 
     // Reports pending parse
     prisma.creditReport.findMany({
-      where: { organizationId, parseStatus: "PENDING" },
+      where: { organizationId, parseStatus: "PENDING", client: activeClientFilter },
       orderBy: { uploadedAt: "desc" },
       take: 10,
       include: {
@@ -167,7 +174,7 @@ async function getDashboardData(organizationId: string) {
     // Upcoming reminders (today)
     prisma.reminder.findMany({
       where: {
-        client: { organizationId },
+        client: { organizationId, ...activeClientFilter },
         status: "PENDING",
         scheduledFor: {
           gte: new Date(new Date().setHours(0, 0, 0, 0)),
@@ -187,6 +194,7 @@ async function getDashboardData(organizationId: string) {
         organizationId,
         status: "SENT",
         sentDate: { lte: thirtyDaysAgo },
+        client: activeClientFilter,
       },
       orderBy: { sentDate: "asc" },
       take: 10,
@@ -199,7 +207,7 @@ async function getDashboardData(organizationId: string) {
     prisma.disputeResponse.findMany({
       where: {
         disputeItem: {
-          dispute: { organizationId },
+          dispute: { organizationId, client: activeClientFilter },
         },
       },
       orderBy: { responseDate: "desc" },
@@ -224,6 +232,7 @@ async function getDashboardData(organizationId: string) {
         organizationId,
         status: "SENT",
         sentDate: { not: null },
+        client: activeClientFilter,
       },
       orderBy: { sentDate: "asc" },
       take: 10,
