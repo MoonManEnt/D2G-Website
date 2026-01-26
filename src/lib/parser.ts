@@ -281,10 +281,8 @@ export interface ExtractedCreditScores {
 
 /**
  * Extract credit scores from the report text.
- * IdentityIQ reports typically have a score summary section like:
- * "TransUnion VantageScore 3.0 642"
- * "Equifax VantageScore 3.0 638"
- * "Experian VantageScore 3.0 651"
+ * IdentityIQ reports have various formats for displaying scores.
+ * This function tries multiple patterns to extract scores reliably.
  */
 export function extractCreditScores(text: string): ExtractedCreditScores {
   const scores: ExtractedCreditScores = {
@@ -293,68 +291,130 @@ export function extractCreditScores(text: string): ExtractedCreditScores {
     experian: null,
   };
 
-  // Common patterns for credit scores in IdentityIQ reports
-  const scorePatterns = [
-    // Pattern: "TransUnion VantageScore 3.0 642"
-    /TransUnion\s+(?:VantageScore|Vantage\s*Score|FICO)[\s\d.]*?(\d{3})/i,
-    /Equifax\s+(?:VantageScore|Vantage\s*Score|FICO)[\s\d.]*?(\d{3})/i,
-    /Experian\s+(?:VantageScore|Vantage\s*Score|FICO)[\s\d.]*?(\d{3})/i,
-    // Alternative pattern: "TU: 642 EQ: 638 EX: 651"
-    /\bTU[:\s]*(\d{3})\b/i,
-    /\bEQ[:\s]*(\d{3})\b/i,
-    /\bEX[:\s]*(\d{3})\b/i,
-    // Pattern: Score summary table with three scores
-    /Credit\s+Score[s]?\s*(?:Summary)?[\s\S]*?(\d{3})\s+(\d{3})\s+(\d{3})/i,
+  // Helper to validate and extract a score
+  const extractScore = (match: RegExpMatchArray | null, group: number = 1): number | null => {
+    if (match && match[group]) {
+      const score = parseInt(match[group], 10);
+      if (score >= 300 && score <= 850) {
+        return score;
+      }
+    }
+    return null;
+  };
+
+  // TransUnion patterns (from most specific to least)
+  const tuPatterns = [
+    /TransUnion[®™]?\s*[:\-]?\s*(\d{3})/i,
+    /TransUnion\s+(?:VantageScore|Vantage\s*Score|FICO)[\s\d.®™]*?(\d{3})/i,
+    /TransUnion\s+Score[:\s]+(\d{3})/i,
+    /TransUnion\s+Credit\s+Score[:\s]+(\d{3})/i,
+    /\bTU[:\s]+(\d{3})\b/i,
+    /TransUnion[\s\S]{0,50}?(\d{3})(?=\s|$|\n)/i,
   ];
 
-  // Try TransUnion patterns
-  for (const pattern of [scorePatterns[0], scorePatterns[3]]) {
-    const match = text.match(pattern);
-    if (match && match[1]) {
-      const score = parseInt(match[1], 10);
-      if (score >= 300 && score <= 850) {
-        scores.transunion = score;
-        break;
-      }
+  // Equifax patterns
+  const eqPatterns = [
+    /Equifax[®™]?\s*[:\-]?\s*(\d{3})/i,
+    /Equifax\s+(?:VantageScore|Vantage\s*Score|FICO)[\s\d.®™]*?(\d{3})/i,
+    /Equifax\s+Score[:\s]+(\d{3})/i,
+    /Equifax\s+Credit\s+Score[:\s]+(\d{3})/i,
+    /\bEQ[:\s]+(\d{3})\b/i,
+    /Equifax[\s\S]{0,50}?(\d{3})(?=\s|$|\n)/i,
+  ];
+
+  // Experian patterns
+  const exPatterns = [
+    /Experian[®™]?\s*[:\-]?\s*(\d{3})/i,
+    /Experian\s+(?:VantageScore|Vantage\s*Score|FICO)[\s\d.®™]*?(\d{3})/i,
+    /Experian\s+Score[:\s]+(\d{3})/i,
+    /Experian\s+Credit\s+Score[:\s]+(\d{3})/i,
+    /\bEX[:\s]+(\d{3})\b/i,
+    /Experian[\s\S]{0,50}?(\d{3})(?=\s|$|\n)/i,
+  ];
+
+  // Try each TransUnion pattern
+  for (const pattern of tuPatterns) {
+    const score = extractScore(text.match(pattern));
+    if (score) {
+      scores.transunion = score;
+      break;
     }
   }
 
-  // Try Equifax patterns
-  for (const pattern of [scorePatterns[1], scorePatterns[4]]) {
-    const match = text.match(pattern);
-    if (match && match[1]) {
-      const score = parseInt(match[1], 10);
-      if (score >= 300 && score <= 850) {
-        scores.equifax = score;
-        break;
-      }
+  // Try each Equifax pattern
+  for (const pattern of eqPatterns) {
+    const score = extractScore(text.match(pattern));
+    if (score) {
+      scores.equifax = score;
+      break;
     }
   }
 
-  // Try Experian patterns
-  for (const pattern of [scorePatterns[2], scorePatterns[5]]) {
-    const match = text.match(pattern);
-    if (match && match[1]) {
-      const score = parseInt(match[1], 10);
-      if (score >= 300 && score <= 850) {
-        scores.experian = score;
-        break;
-      }
+  // Try each Experian pattern
+  for (const pattern of exPatterns) {
+    const score = extractScore(text.match(pattern));
+    if (score) {
+      scores.experian = score;
+      break;
     }
   }
 
-  // Try table pattern if individual patterns didn't work
+  // Try score summary table pattern if individual patterns didn't work
   if (!scores.transunion && !scores.equifax && !scores.experian) {
-    const tableMatch = text.match(scorePatterns[6]);
-    if (tableMatch) {
-      const s1 = parseInt(tableMatch[1], 10);
-      const s2 = parseInt(tableMatch[2], 10);
-      const s3 = parseInt(tableMatch[3], 10);
-      if (s1 >= 300 && s1 <= 850) scores.transunion = s1;
-      if (s2 >= 300 && s2 <= 850) scores.experian = s2;
-      if (s3 >= 300 && s3 <= 850) scores.equifax = s3;
+    // Pattern: Three 3-digit scores in sequence (common in summary tables)
+    // IdentityIQ often shows: TransUnion Experian Equifax header with scores below
+    const tablePatterns = [
+      /Credit\s+Score[s]?\s*(?:Summary)?[\s\S]*?(\d{3})\s+(\d{3})\s+(\d{3})/i,
+      /Score[s]?\s*Summary[\s\S]*?(\d{3})\s+(\d{3})\s+(\d{3})/i,
+      /VantageScore[\s\S]*?(\d{3})\s+(\d{3})\s+(\d{3})/i,
+    ];
+
+    for (const pattern of tablePatterns) {
+      const tableMatch = text.match(pattern);
+      if (tableMatch) {
+        const s1 = parseInt(tableMatch[1], 10);
+        const s2 = parseInt(tableMatch[2], 10);
+        const s3 = parseInt(tableMatch[3], 10);
+        // Typically order is: TransUnion, Experian, Equifax in IdentityIQ
+        if (s1 >= 300 && s1 <= 850) scores.transunion = s1;
+        if (s2 >= 300 && s2 <= 850) scores.experian = s2;
+        if (s3 >= 300 && s3 <= 850) scores.equifax = s3;
+        break;
+      }
     }
   }
+
+  // Last resort: Look for "Your Score" or "Credit Score" followed by 3-digit number
+  // and use context to determine bureau
+  if (!scores.transunion && !scores.equifax && !scores.experian) {
+    // Find all 3-digit numbers that could be scores
+    const allScores = text.match(/\b([3-8]\d{2})\b/g);
+    if (allScores) {
+      const validScores = allScores
+        .map(s => parseInt(s, 10))
+        .filter(s => s >= 300 && s <= 850);
+
+      // If we found exactly 3 valid scores, assign them
+      if (validScores.length >= 3) {
+        // Check if TransUnion, Experian, Equifax appear in order in the text
+        const tuPos = text.search(/TransUnion/i);
+        const exPos = text.search(/Experian/i);
+        const eqPos = text.search(/Equifax/i);
+
+        if (tuPos >= 0 && exPos >= 0 && eqPos >= 0) {
+          // Assign first 3 unique valid scores
+          const uniqueScores = [...new Set(validScores)].slice(0, 3);
+          if (uniqueScores.length >= 3) {
+            scores.transunion = uniqueScores[0];
+            scores.experian = uniqueScores[1];
+            scores.equifax = uniqueScores[2];
+          }
+        }
+      }
+    }
+  }
+
+  console.log(`[PARSER] Score extraction result: TU=${scores.transunion}, EQ=${scores.equifax}, EX=${scores.experian}`);
 
   return scores;
 }

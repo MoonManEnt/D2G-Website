@@ -203,27 +203,24 @@ export function CFPBView({ accounts, selectedCRA, onSelectCRA, clientName, clien
       const companyName = selectedCRA === "TRANSUNION" ? "TransUnion" :
                          selectedCRA === "EXPERIAN" ? "Experian" : "Equifax Information Services LLC";
 
-      // Build detailed account list with dispute history
+      // Build detailed account list - NEVER include internal workflow info (Round, Flow, Status)
+      // CFPB complaints should only contain consumer-relevant information
       const accountList = selectedAccountDetails.map((acc, i) => {
-        // Find disputes for this CRA
+        // Find disputes for this CRA to check for FCRA violations
         const craDisputes = acc.disputeHistory.filter(d => d.cra === selectedCRA);
         const latestDispute = craDisputes.sort((a, b) => b.round - a.round)[0];
 
         let disputeContext = "";
         if (latestDispute) {
-          const sentDate = latestDispute.sentDate
-            ? new Date(latestDispute.sentDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
-            : "N/A";
+          // Only include dispute sent date if actually sent - NO internal status info
+          if (latestDispute.sentDate) {
+            const sentDate = new Date(latestDispute.sentDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+            disputeContext = `\n   Previously disputed: ${sentDate}`;
+          }
 
-          disputeContext = `\n   Dispute sent: ${sentDate} (Round ${latestDispute.round}, ${latestDispute.flow} flow)`;
-          disputeContext += `\n   Status: ${latestDispute.status}`;
-
-          if (latestDispute.status === "SENT" && latestDispute.daysRemaining !== undefined) {
-            if (latestDispute.isOverdue) {
-              disputeContext += ` - OVERDUE by ${Math.abs(latestDispute.daysRemaining)} days (FCRA VIOLATION)`;
-            } else {
-              disputeContext += ` - ${latestDispute.daysRemaining} days remaining`;
-            }
+          // Only mention FCRA violation if overdue - this is legally relevant
+          if (latestDispute.isOverdue && latestDispute.daysRemaining !== undefined) {
+            disputeContext += `\n   Bureau response: OVERDUE by ${Math.abs(latestDispute.daysRemaining)} days (FCRA 30-day violation)`;
           }
         }
 
