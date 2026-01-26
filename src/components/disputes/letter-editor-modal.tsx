@@ -429,30 +429,47 @@ export function LetterEditorModal({
   const regenerateSection = async (sectionKey: keyof LetterSections) => {
     if (!generatedLetter || !sections) return;
 
-    // Can't regenerate in preview mode - no dispute exists yet
-    if (generatedLetter.isPreview || !generatedLetter.disputeId) {
-      toast({ title: "Preview Mode", description: "Launch the dispute first to regenerate sections", variant: "destructive" });
-      return;
-    }
-
     setRegeneratingSection(sectionKey);
     setIsRegenerating(true);
 
     try {
-      const res = await fetch(`/api/disputes/${generatedLetter.disputeId}/amelia`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          regenerate: true,
-          tone: ameliaSettings.tone,
-        }),
-      });
+      let res: Response;
+
+      // In preview mode, call the preview API to regenerate
+      if (generatedLetter.isPreview && generatedLetter.clientId && generatedLetter.accountIds) {
+        res = await fetch("/api/disputes/preview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            clientId: generatedLetter.clientId,
+            cra: generatedLetter.cra,
+            flow: generatedLetter.flow,
+            accountIds: generatedLetter.accountIds,
+          }),
+        });
+      } else if (generatedLetter.disputeId) {
+        // Existing dispute - use the dispute-specific endpoint
+        res = await fetch(`/api/disputes/${generatedLetter.disputeId}/amelia`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            regenerate: true,
+            tone: ameliaSettings.tone,
+          }),
+        });
+      } else {
+        toast({ title: "Error", description: "Missing required data for regeneration", variant: "destructive" });
+        setIsRegenerating(false);
+        setRegeneratingSection(null);
+        return;
+      }
 
       if (res.ok) {
         const data = await res.json();
         // Re-parse the entire letter with new content
-        if (data.letterContent) {
-          setSections(parseLetterIntoSections(data.letterContent, generatedLetter.cra));
+        const newContent = data.letterContent || data.preview?.letterContent;
+        if (newContent) {
+          setSections(parseLetterIntoSections(newContent, generatedLetter.cra));
         }
 
         // Update AMELIA stats
@@ -478,28 +495,44 @@ export function LetterEditorModal({
   const regenerateAll = async () => {
     if (!generatedLetter) return;
 
-    // Can't regenerate in preview mode - no dispute exists yet
-    if (generatedLetter.isPreview || !generatedLetter.disputeId) {
-      toast({ title: "Preview Mode", description: "Launch the dispute first to regenerate the letter", variant: "destructive" });
-      return;
-    }
-
     setIsRegenerating(true);
 
     try {
-      const res = await fetch(`/api/disputes/${generatedLetter.disputeId}/amelia`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          regenerate: true,
-          tone: ameliaSettings.tone,
-        }),
-      });
+      let res: Response;
+
+      // In preview mode, call the preview API to regenerate
+      if (generatedLetter.isPreview && generatedLetter.clientId && generatedLetter.accountIds) {
+        res = await fetch("/api/disputes/preview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            clientId: generatedLetter.clientId,
+            cra: generatedLetter.cra,
+            flow: generatedLetter.flow,
+            accountIds: generatedLetter.accountIds,
+          }),
+        });
+      } else if (generatedLetter.disputeId) {
+        // Existing dispute - use the dispute-specific endpoint
+        res = await fetch(`/api/disputes/${generatedLetter.disputeId}/amelia`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            regenerate: true,
+            tone: ameliaSettings.tone,
+          }),
+        });
+      } else {
+        toast({ title: "Error", description: "Missing required data for regeneration", variant: "destructive" });
+        setIsRegenerating(false);
+        return;
+      }
 
       if (res.ok) {
         const data = await res.json();
-        if (data.letterContent) {
-          setSections(parseLetterIntoSections(data.letterContent, generatedLetter.cra));
+        const newContent = data.letterContent || data.preview?.letterContent;
+        if (newContent) {
+          setSections(parseLetterIntoSections(newContent, generatedLetter.cra));
         }
 
         setAmeliaSettings(prev => ({
