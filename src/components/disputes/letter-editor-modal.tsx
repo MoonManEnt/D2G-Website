@@ -292,6 +292,57 @@ export function LetterEditorModal({
     eoscarRisk: "LOW",
   });
 
+  // Print letter - opens isolated printable view
+  const handlePrintLetter = () => {
+    if (!sections) return;
+
+    // Build letter content HTML
+    const letterHTML = Object.values(sections)
+      .map(section => section.content.split("\n").map((line: string) => `<p style="margin: 0 0 8px 0;">${line}</p>`).join(""))
+      .join('<div style="margin-bottom: 24px;"></div>');
+
+    // Create print window with proper styling
+    const printWindow = window.open("", "_blank", "width=800,height=1000");
+    if (!printWindow) {
+      toast({ title: "Print blocked", description: "Please allow popups to print", variant: "destructive" });
+      return;
+    }
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>${generatedLetter?.cra || "Dispute"} Round ${generatedLetter?.round || 1} Letter</title>
+          <style>
+            @media print {
+              @page { margin: 1in; }
+            }
+            body {
+              font-family: "Times New Roman", Times, serif;
+              font-size: 12pt;
+              line-height: 1.5;
+              color: #000;
+              background: #fff;
+              max-width: 7.5in;
+              margin: 0 auto;
+              padding: 40px;
+            }
+            p { margin: 0 0 8px 0; }
+          </style>
+        </head>
+        <body>
+          ${letterHTML}
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+
+    // Wait for content to load then print
+    printWindow.onload = () => {
+      printWindow.print();
+    };
+  };
+
   // Parse letter when it changes
   useEffect(() => {
     if (generatedLetter?.content && generatedLetter.cra) {
@@ -796,7 +847,7 @@ export function LetterEditorModal({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => window.print()}
+                onClick={handlePrintLetter}
                 className="flex-1 gap-1.5 border-slate-600"
               >
                 <Printer className="w-4 h-4" />
@@ -841,7 +892,7 @@ export function LetterEditorModal({
                   <Download className="w-4 h-4 mr-2" />
                   Download DOCX
                 </Button>
-                <Button variant="outline" onClick={() => window.print()}>
+                <Button variant="outline" onClick={handlePrintLetter}>
                   <Printer className="w-4 h-4 mr-2" />
                   Print
                 </Button>

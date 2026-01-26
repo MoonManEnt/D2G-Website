@@ -447,8 +447,101 @@ ${data.clientFirstName} ${data.clientLastName}`;
 export const generateLetterText = generateLetterFromTemplate;
 
 /**
- * Generate a simple DOCX from raw text content (for AMELIA letters)
- * This creates a basic Word document with proper formatting
+ * Generate a DOCX from AMELIA letter content
+ * Uses the 'docx' package to create professional Word documents
+ */
+export async function generateDocxFromAmeliaContent(
+  content: string,
+  clientName: string,
+  cra: string,
+  round: number
+): Promise<Buffer> {
+  // Dynamic import to avoid bundling issues
+  const { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } = await import("docx");
+
+  // Parse content into paragraphs
+  const paragraphs = content.split(/\n\n+/).filter(p => p.trim());
+
+  // Create document paragraphs
+  const docParagraphs = paragraphs.flatMap((para, idx) => {
+    const lines = para.split("\n");
+
+    // Check for section headers (all caps or specific patterns)
+    const isHeader = para.match(/^[A-Z][A-Z\s\-:]+$/) ||
+                     para.includes("DISPUTED ACCOUNTS") ||
+                     para.includes("PERSONAL INFORMATION") ||
+                     para.includes("HARD INQUIRIES") ||
+                     para.includes("PREVIOUS ADDRESSES") ||
+                     para.includes("PREVIOUS NAMES") ||
+                     para.includes("DEMAND");
+
+    if (isHeader) {
+      return [
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: para.trim(),
+              bold: true,
+              size: 24, // 12pt
+            }),
+          ],
+          spacing: { before: 240, after: 120 },
+        }),
+      ];
+    }
+
+    // Regular paragraphs
+    return lines.map((line, lineIdx) => {
+      // Check if this is a numbered list item (1. something)
+      const isListItem = line.match(/^\d+\.\s/);
+
+      return new Paragraph({
+        children: [
+          new TextRun({
+            text: line.trim(),
+            size: 24, // 12pt
+          }),
+        ],
+        spacing: { after: lineIdx === lines.length - 1 ? 200 : 60 },
+        indent: isListItem ? { left: 360 } : undefined,
+      });
+    });
+  });
+
+  // Create the document
+  const doc = new Document({
+    sections: [{
+      properties: {
+        page: {
+          margin: {
+            top: 1440,    // 1 inch
+            right: 1440,
+            bottom: 1440,
+            left: 1440,
+          },
+        },
+      },
+      children: docParagraphs,
+    }],
+    styles: {
+      default: {
+        document: {
+          run: {
+            font: "Times New Roman",
+            size: 24, // 12pt
+          },
+        },
+      },
+    },
+  });
+
+  // Generate buffer
+  const buffer = await Packer.toBuffer(doc);
+  return Buffer.from(buffer);
+}
+
+/**
+ * Sync version for backward compatibility - uses template-based approach
  */
 export function generateDocxFromContent(
   content: string,
@@ -459,7 +552,7 @@ export function generateDocxFromContent(
   // Use the blank template for custom content
   const blankTemplatePath = path.join(process.cwd(), "templates", "blank.docx");
 
-  // Check if blank template exists, otherwise create document from scratch
+  // Check if blank template exists
   if (fs.existsSync(blankTemplatePath)) {
     const templateContent = fs.readFileSync(blankTemplatePath, "binary");
     const zip = new PizZip(templateContent);
@@ -477,12 +570,7 @@ export function generateDocxFromContent(
     });
   }
 
-  // If no blank template, create a minimal DOCX structure
-  // The docxtemplater library requires a template, so we'll use the base64 of a minimal docx
-  const minimalDocxBase64 = "UEsDBBQAAAAIAIRVLFMY/ZxKZgAAAIAAAA0AAABDT05URU5UX1RZUEVTLnhtbF3OywrCMBCF4f2gvEKy8OoLILq3cMoQxxoTMpV4extt6+LS/OdH7lQW75SzJ/2Gh8CQMRRxNNM0cS4aqDIEiMIQRO8TBxFHnEJIw9Dsg0nPT0Y9YAnhDZ5gHCIXb8M2eTu/E+dcXpCX1uTpf4PXBwFQSwMEFAAAAAgAgFUsU6O0EGHGAAAA8wAAABEAAABXT1JEL0RPQ1VNRU5ULlhNTF2QzU7DMBCE70i8g+U7dRxKWymlEhJCgkPlB9Gz5WzSCMcbZR3K9LR0s+JI9g1fbq3MFv2cFk+i4tHX4xFlEq2bQkkBL4R35P0AXS/gtDj1kHGU8ABl5UNVmYGfxLHADY9VBNHDq9xTdFhFjIHf+L9UfYHJQUE/IEq9V4ZMJBVwDjHxTHQR6BwTphPyTdnvNJ19x8uPeLcCdLCcJD6ROGOdBCCHH0nE9cXpAl6OPKJvfhwvVPQDUEsDBBQAAAAIAAAAIQBFq1z0PQAAAEoAAAARAAAAV09SRC9SRUxBVElPTlMuWE1MKw4u0Q+xLEvM0Q/OzMnI0Q0uLcvM0UvOz0nVL0ktLlFwD3F31A9KycxLL0ksSgEAUEsDBBQAAAAIAAAAIQBU8BXz4AAAAP0AAAALAAAAd29yZC9zdHlsZXMueG1spZC9CsIwFIXfBfEB8gAmuAoFnRVxcXMSr22k5IYkFVR8d4NYXNzP9p3DO3cqe/GWw5Na4b0FUaSAkIV33pQ13G/ns83hqMz7vn9rLQxdKBrjPDBkEiDfLhHc5c8wHFaC+qGrBLDf8g8MkYzQj4lEfEgVaopO1xVc6f5gGNWIoNtXfvCxQF4rOKlNBGKlmOdIRRwpMRgYCwrjCgYhFRH7C3CRlYJEJhPhZWB/oT9QSwMEFAAAAAgAAAAhANFNJVDzAAAAjQEAAA8AAABbQ29udGVudF9UeXBlc10ueG1sjZDLTsMwEEXfkfgHy3ucpKqQEEqC2AB7kAfMIhNnRPAL2wT1D3BdYANsmE/6nb0yvPj2PU7+4qONdoIQjyYLpplRCpNJvY3uBYKLGmQHY1OMDQkOxoEQDx6bh/K9WIKLdQIW7q9KqNACNcBMqxSCYxBxmgI5mYONhBcMjLAZ9hliEQ1dIZ0IChIsECCdWRMsUFDzKOuOCLI3h0a3Qk8Z1VdIaYxHBQsVT1xJJBBB3wETPCPjSAF9hvL8F1BLAQIUABQAAAAIAIRVLFMY/ZxKZgAAAIAAAAANAAAAAAAAAAAAAAAAAAAAAABDT05URU5UX1RZUEVTLnhtbFBLAQIUABQAAAAIAIBVLFOjtBBhxgAAAPMAAAARAAAAAAAAAAAAAAAApAAAAFdPUkQvRE9DVU1FTlQuWE1MUEsBAhQAFAAAAAgAAAAhAEWrXPQ9AAAASgAAABEAAAAAAAAAAAAAAAAAlwEAAFdPUkQvUkVMQVRJT05TLlhNTFBLAQIUABQAAAAIAAAAIQBU8BXz4AAAAP0AAAALAAAAAAAAAAAAAAAAAPEBAABbQ29udGVudF9UeXBlc10ueG1sUEsBAhQAFAAAAAgAAAAhANFNJVDzAAAAjQEAAA8AAAAAAAAAAAAAAAD+AgAAd29yZC9zdHlsZXMueG1sUEsFBgAAAAAFAAUAGQEAACQEAAAAAAAA";
-
-  // For now, fall back to just returning text as buffer
-  // In production, you'd want a proper blank.docx template
-  console.warn("No blank.docx template found, DOCX generation may be limited");
+  // Fallback - return text as buffer (will be handled by route)
+  console.warn("No blank.docx template found, returning text content");
   return Buffer.from(content, "utf-8");
 }

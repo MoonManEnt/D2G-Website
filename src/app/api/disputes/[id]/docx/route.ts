@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import {
   generateDisputeDocx,
   generateLetterText,
+  generateDocxFromAmeliaContent,
   type DisputeFlow,
   type LetterData,
   type DisputeAccountForLetter,
@@ -125,10 +126,23 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       });
     }
 
-    // Generate DOCX - for now, use template-based generation
-    // TODO: Create DOCX from AMELIA content for full fidelity
+    // Generate DOCX - prefer AMELIA content if available
     try {
-      const docxBuffer = generateDisputeDocx(cra, letterData, flow, round);
+      let docxBuffer: Buffer;
+
+      if (hasAmeliaContent) {
+        // Use AMELIA-generated content for full fidelity
+        // This includes personal info disputes, consumer statements, etc.
+        docxBuffer = await generateDocxFromAmeliaContent(
+          dispute.letterContent!,
+          `${dispute.client.firstName} ${dispute.client.lastName}`,
+          cra,
+          round
+        );
+      } else {
+        // Fall back to template-based generation
+        docxBuffer = generateDisputeDocx(cra, letterData, flow, round);
+      }
 
       // Convert Buffer to Uint8Array for NextResponse
       const uint8Array = new Uint8Array(docxBuffer);

@@ -934,16 +934,8 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
                 </Card>
               )}
 
-              {/* Action Buttons */}
+              {/* Action Button - Single step creates dispute & generates letter for review */}
               <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  className="flex-1 border-slate-600 text-white hover:bg-slate-700"
-                  disabled={selectedAccounts.length === 0}
-                >
-                  <Eye className="w-4 h-4 mr-2" />
-                  Preview Letter
-                </Button>
                 <Button
                   className="flex-1 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400"
                   disabled={selectedAccounts.length === 0 || creating}
@@ -956,12 +948,15 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
                     </>
                   ) : (
                     <>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Create Dispute
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Generate Letter
                     </>
                   )}
                 </Button>
               </div>
+              <p className="text-xs text-slate-500 text-center mt-2">
+                Creates draft dispute with AMELIA-generated letter for review
+              </p>
             </div>
           </div>
         </TabsContent>
