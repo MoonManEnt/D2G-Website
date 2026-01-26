@@ -112,7 +112,20 @@ export interface DisputeHistoryItem {
   round: number;
   status: string;
   createdAt: string;
+  sentDate?: string;  // When the letter was officially sent
+  respondedAt?: string;
+  letterContent?: string;
   itemCount: number;
+  items?: Array<{
+    id: string;
+    disputeReason?: string;
+    accountItem?: {
+      id: string;
+      creditorName: string;
+      maskedAccountId?: string | null;
+      balance?: number | null;
+    };
+  }>;
 }
 
 export interface CFPBComplaint {

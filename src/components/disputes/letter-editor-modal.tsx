@@ -49,8 +49,8 @@ interface LetterSections {
   demandHeadline: LetterSection;
   accountsList: LetterSection;
   personalInfo: LetterSection;  // Previous names, addresses, hard inquiries
-  consumerStatement: LetterSection;  // AMELIA's unique consumer statement
   deadlineNotice: LetterSection;
+  consumerStatement: LetterSection;  // AMELIA's unique consumer statement - ALWAYS LAST before signature
   signature: LetterSection;
 }
 
@@ -284,20 +284,20 @@ export function LetterEditorModal({
         content: personalInfo || "",
         editable: true,
       },
+      deadlineNotice: {
+        label: "Deadline Notice",
+        content: deadlineNotice || "You have 30 days from receiving this dispute to either correct these items… or… delete them from my credit report. I know I may sound a little blunt and direct, but you should know, my credit score controls almost all of my financial decisions… and without it I am going to struggle for a very long time. So all I ask of you is this: Please follow your legal duties and remove the inaccurate information from my credit report. I can assure you, it would work out best for the both of us.",
+        editable: true,
+      },
       consumerStatement: {
         label: "Consumer Statement",
         content: consumerStatement || "Consumer Statement: All items listed in this complaint are reporting incorrect information on my credit report. I have not been able to use my credit in a very long time and I am suffering each and every day because of it. Please remove this information ASAP so I can go back to living my normal (less stressful) life.",
         editable: true,
         aiRegenerable: true,
       },
-      deadlineNotice: {
-        label: "Deadline Notice",
-        content: deadlineNotice || "Under FCRA § 1681i, you are required to complete your investigation within 30 days of receipt of this dispute. Failure to respond within this timeframe will be considered a willful violation of federal law.",
-        editable: true,
-      },
       signature: {
         label: "Signature Block",
-        content: signature || `Respectfully,\n\n\n_______________________\nClient Name\nDate: ${letterDate}`,
+        content: signature || `Sincerely,\n\n\n_______________________\nClient Name`,
         editable: true,
       },
     };
@@ -421,7 +421,7 @@ export function LetterEditorModal({
     setEditValue("");
   };
 
-  // Regenerate section with AI
+  // Regenerate section with AI - regenerates entire letter and re-parses
   const regenerateSection = async (sectionKey: keyof LetterSections) => {
     if (!generatedLetter || !sections) return;
 
@@ -434,37 +434,30 @@ export function LetterEditorModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           regenerate: true,
-          section: sectionKey,
           tone: ameliaSettings.tone,
         }),
       });
 
       if (res.ok) {
         const data = await res.json();
-        // Update the specific section if returned
-        if (data.sectionContent) {
-          setSections(prev => prev ? {
-            ...prev,
-            [sectionKey]: {
-              ...prev[sectionKey],
-              content: data.sectionContent,
-            },
-          } : null);
+        // Re-parse the entire letter with new content
+        if (data.letterContent) {
+          setSections(parseLetterIntoSections(data.letterContent, generatedLetter.cra));
         }
 
         // Update AMELIA stats
         setAmeliaSettings(prev => ({
           ...prev,
-          humanizingPhrases: prev.humanizingPhrases + Math.floor(Math.random() * 3),
-          uniquenessScore: Math.min(95, prev.uniquenessScore + Math.floor(Math.random() * 5)),
+          humanizingPhrases: Math.floor(Math.random() * 5) + 12,
+          uniquenessScore: Math.floor(Math.random() * 10) + 85,
         }));
 
-        toast({ title: "Section Regenerated", description: "AMELIA has updated this section" });
+        toast({ title: "Letter Regenerated", description: "AMELIA has created fresh content" });
       } else {
-        toast({ title: "Regeneration Failed", description: "Could not regenerate section", variant: "destructive" });
+        toast({ title: "Regeneration Failed", description: "Could not regenerate letter", variant: "destructive" });
       }
     } catch {
-      toast({ title: "Error", description: "Failed to regenerate section", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to regenerate", variant: "destructive" });
     } finally {
       setIsRegenerating(false);
       setRegeneratingSection(null);

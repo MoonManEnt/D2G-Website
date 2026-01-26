@@ -126,6 +126,19 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
             round: number;
             status: string;
             createdAt: string;
+            sentDate?: string;
+            respondedAt?: string;
+            letterContent?: string;
+            items?: Array<{
+              id: string;
+              disputeReason?: string;
+              accountItem?: {
+                id: string;
+                creditorName: string;
+                maskedAccountId?: string | null;
+                balance?: number | null;
+              };
+            }>;
             _count?: { items: number };
           }) => ({
             id: d.id,
@@ -136,7 +149,11 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
             round: d.round,
             status: d.status || "DRAFT",
             createdAt: d.createdAt,
+            sentDate: d.sentDate,
+            respondedAt: d.respondedAt,
+            letterContent: d.letterContent,
             itemCount: d._count?.items || 0,
+            items: d.items,
           }));
         setDisputes(mapped);
       });
@@ -187,7 +204,7 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
           for (const item of dispute.items) {
             // Key by account ID + CRA to track per-bureau disputes
             const key = `${item.accountId || item.accountItemId}_${dispute.cra}`;
-            const sentDate = dispute.sentAt || dispute.createdAt;
+            const sentDate = dispute.sentDate || dispute.createdAt;
             let daysRemaining = 30;
             let responseDeadline = "";
 
@@ -441,6 +458,19 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
             round: number;
             status: string;
             createdAt: string;
+            sentDate?: string;
+            respondedAt?: string;
+            letterContent?: string;
+            items?: Array<{
+              id: string;
+              disputeReason?: string;
+              accountItem?: {
+                id: string;
+                creditorName: string;
+                maskedAccountId?: string | null;
+                balance?: number | null;
+              };
+            }>;
             _count?: { items: number };
           }) => ({
             id: d.id,
@@ -451,7 +481,11 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
             round: d.round,
             status: d.status || "DRAFT",
             createdAt: d.createdAt,
+            sentDate: d.sentDate,
+            respondedAt: d.respondedAt,
+            letterContent: d.letterContent,
             itemCount: d._count?.items || 0,
+            items: d.items,
           }));
         setDisputes(mapped);
       });
@@ -968,6 +1002,46 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
               client={client}
               currentRound={client.currentRound || 1}
               currentFlow={selectedFlow}
+              disputes={disputes.filter(d => d.clientId === selectedClientId || d.client?.id === selectedClientId)}
+              onViewLetter={(disputeId) => {
+                // Find the dispute and open letter modal
+                const dispute = disputes.find(d => d.id === disputeId);
+                if (dispute) {
+                  // Fetch full dispute with letter content
+                  fetch(`/api/disputes/${disputeId}`)
+                    .then(r => r.ok ? r.json() : null)
+                    .then(data => {
+                      if (data?.letterContent) {
+                        setGeneratedLetter({
+                          disputeId: data.id,
+                          content: data.letterContent,
+                          cra: data.cra,
+                          flow: data.flow,
+                          round: data.round,
+                          status: data.status,
+                          ameliaMetadata: data.aiStrategy ? JSON.parse(data.aiStrategy) : {
+                            letterDate: data.createdAt,
+                            isBackdated: false,
+                            backdatedDays: 0,
+                            tone: "CONCERNED",
+                            effectiveFlow: data.flow,
+                            statute: "§ 1681i",
+                            personalInfoDisputed: { previousNames: 0, previousAddresses: 0, hardInquiries: 0 },
+                          },
+                        });
+                        setLetterModalOpen(true);
+                      } else {
+                        toast({ title: "No Letter", description: "No letter content found for this dispute", variant: "destructive" });
+                      }
+                    });
+                }
+              }}
+              onTrackResponse={(disputeId) => {
+                // Switch to history tab and potentially open a response modal
+                setActiveTab("history");
+                toast({ title: "Track Response", description: "Response tracking coming soon" });
+              }}
+              onRefresh={refreshDisputesList}
             />
           ) : (
             <Card className="bg-slate-800/60 border-slate-700/50 p-12 text-center">
