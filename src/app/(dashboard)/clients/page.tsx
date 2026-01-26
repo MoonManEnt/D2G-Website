@@ -285,7 +285,7 @@ function BureauBadges({ bureaus }: { bureaus: string[] }) {
 
   const colors: Record<string, string> = {
     TU: "bg-blue-500/20 text-blue-400",
-    EQ: "bg-amber-500/20 text-amber-400",
+    EQ: "bg-red-500/20 text-red-400",
     EX: "bg-purple-500/20 text-purple-400",
   };
 
@@ -1162,6 +1162,8 @@ export default function ClientsPage() {
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [quickViewClient, setQuickViewClient] = useState<Client | null>(null);
+  const [hardDeleteClient, setHardDeleteClient] = useState<Client | null>(null);
+  const [isHardDeleting, setIsHardDeleting] = useState(false);
   const [newClient, setNewClient] = useState({
     firstName: "",
     lastName: "",
@@ -1266,6 +1268,46 @@ export default function ClientsPage() {
   const handleDisputeAction = (e: React.MouseEvent, client: Client) => {
     e.stopPropagation();
     router.push(`/disputes?client=${client.id}`);
+  };
+
+  const handleHardDeleteClick = (e: React.MouseEvent, client: Client) => {
+    e.stopPropagation();
+    setHardDeleteClient(client);
+  };
+
+  const handleConfirmHardDelete = async () => {
+    if (!hardDeleteClient) return;
+    setIsHardDeleting(true);
+    try {
+      const res = await fetch(`/api/clients/${hardDeleteClient.id}?permanent=true`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        toast({
+          title: "Client Permanently Deleted",
+          description: `${hardDeleteClient.firstName} ${hardDeleteClient.lastName} and all associated data have been permanently removed.`,
+        });
+        setHardDeleteClient(null);
+        fetchClients();
+        fetchStats();
+      } else {
+        const error = await res.json();
+        toast({
+          title: "Delete Failed",
+          description: error.error || "Failed to delete client",
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsHardDeleting(false);
+    }
   };
 
   return (
@@ -1653,6 +1695,13 @@ export default function ClientsPage() {
                   >
                     <Gavel className="w-4 h-4 text-amber-400" />
                   </button>
+                  <button
+                    onClick={(e) => handleHardDeleteClick(e, client)}
+                    className="p-2 rounded-lg hover:bg-red-500/20 transition-colors opacity-60 group-hover:opacity-100"
+                    title="Delete Client & All Data"
+                  >
+                    <Trash2 className="w-4 h-4 text-red-400" />
+                  </button>
                   <ChevronRight className="w-4 h-4 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               </motion.div>
@@ -1674,6 +1723,80 @@ export default function ClientsPage() {
           ))}
         </motion.div>
       )}
+
+      {/* Hard Delete Confirmation Dialog */}
+      <ResponsiveDialog open={!!hardDeleteClient} onOpenChange={(open) => !open && setHardDeleteClient(null)}>
+        <ResponsiveDialogContent size="sm">
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle className="text-red-400 flex items-center gap-2">
+              <Trash2 className="w-5 h-5" />
+              Permanently Delete Client
+            </ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
+              This action cannot be undone. All data will be permanently removed.
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
+          <ResponsiveDialogBody className="space-y-4">
+            <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+              <p className="text-sm text-red-300 mb-3">
+                You are about to permanently delete <span className="font-bold text-white">{hardDeleteClient?.firstName} {hardDeleteClient?.lastName}</span> and ALL associated data:
+              </p>
+              <ul className="text-xs text-slate-400 space-y-1.5 ml-4">
+                <li className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                  All credit reports and parsed data
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                  All disputes and generated letters
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                  All response tracking and FCRA records
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                  All evidence and documents
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                  All activity history and audit logs
+                </li>
+              </ul>
+            </div>
+            <p className="text-xs text-slate-500">
+              After deletion, you can re-add this person as a brand new client to start fresh.
+            </p>
+          </ResponsiveDialogBody>
+          <ResponsiveDialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setHardDeleteClient(null)}
+              disabled={isHardDeleting}
+              className="border-slate-600"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmHardDelete}
+              disabled={isHardDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isHardDeleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Forever
+                </>
+              )}
+            </Button>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
     </motion.div>
   );
 }
