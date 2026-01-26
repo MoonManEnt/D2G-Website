@@ -303,6 +303,322 @@ function BureauBadges({ bureaus }: { bureaus: string[] }) {
   );
 }
 
+// Client Hover Quick View Component - Shows dispute summary on hover
+function ClientHoverPreview({ client, onClose }: { client: Client; onClose: () => void }) {
+  const [disputeData, setDisputeData] = useState<{
+    disputes: Array<{
+      id: string;
+      cra: string;
+      flow: string;
+      round: number;
+      status: string;
+      sentDate?: string;
+      itemCount: number;
+    }>;
+    loading: boolean;
+  }>({ disputes: [], loading: true });
+
+  useEffect(() => {
+    // Fetch dispute summary for this client
+    fetch(`/api/disputes?clientId=${client.id}`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        const disputes = (Array.isArray(data) ? data : [])
+          .filter((d: { _count?: { items: number } }) => (d._count?.items || 0) > 0)
+          .map((d: {
+            id: string;
+            cra: string;
+            flow: string;
+            round: number;
+            status: string;
+            sentDate?: string;
+            _count?: { items: number };
+          }) => ({
+            id: d.id,
+            cra: d.cra,
+            flow: d.flow,
+            round: d.round,
+            status: d.status || "DRAFT",
+            sentDate: d.sentDate,
+            itemCount: d._count?.items || 0,
+          }));
+        setDisputeData({ disputes, loading: false });
+      })
+      .catch(() => setDisputeData({ disputes: [], loading: false }));
+  }, [client.id]);
+
+  // Group disputes by CRA
+  const disputesByCRA = disputeData.disputes.reduce((acc, d) => {
+    if (!acc[d.cra]) acc[d.cra] = [];
+    acc[d.cra].push(d);
+    return acc;
+  }, {} as Record<string, typeof disputeData.disputes>);
+
+  // Get latest/active dispute per CRA
+  const activeByCRA = Object.entries(disputesByCRA).map(([cra, disputes]) => {
+    const sorted = disputes.sort((a, b) => b.round - a.round);
+    return { cra, latest: sorted[0], total: sorted.length };
+  });
+
+  // Calculate FCRA deadline days
+  const getFCRADays = (sentDate?: string) => {
+    if (!sentDate) return null;
+    const sent = new Date(sentDate);
+    const deadline = new Date(sent.getTime() + 30 * 24 * 60 * 60 * 1000);
+    return Math.ceil((deadline.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+  };
+
+  const statusColors: Record<string, string> = {
+    DRAFT: "text-amber-400",
+    SENT: "text-blue-400",
+    RESPONDED: "text-purple-400",
+    RESOLVED: "text-emerald-400",
+  };
+
+  const craColors: Record<string, string> = {
+    TRANSUNION: "text-sky-400",
+    EXPERIAN: "text-blue-400",
+    EQUIFAX: "text-red-400",
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+      transition={{ duration: 0.15 }}
+      className="absolute left-0 right-0 top-full mt-2 z-50 rounded-xl bg-slate-900/95 backdrop-blur-xl border border-slate-600/50 shadow-2xl shadow-black/50 p-4"
+      onMouseLeave={onClose}
+    >
+      {/* Arrow pointer */}
+      <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-slate-900/95 border-l border-t border-slate-600/50 rotate-45" />
+
+      <div className="relative">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-700/50">
+          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            Dispute Summary
+          </span>
+          <span className="text-[10px] text-slate-500">
+            {client.totalDisputes} total disputes
+          </span>
+        </div>
+
+        {disputeData.loading ? (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+          </div>
+        ) : activeByCRA.length === 0 ? (
+          <div className="text-center py-4">
+            <Scale className="w-8 h-8 mx-auto text-slate-600 mb-2" />
+            <p className="text-sm text-slate-400">No active disputes</p>
+            <p className="text-xs text-slate-500 mt-1">Start a dispute to track progress</p>
+          </div>
+        ) : (
+          <>
+            {/* CRA Status Grid */}
+            <div className="space-y-2 mb-3">
+              {activeByCRA.map(({ cra, latest, total }) => {
+                const days = getFCRADays(latest.sentDate);
+                const isOverdue = days !== null && days < 0;
+
+                return (
+                  <div key={cra} className="flex items-center gap-3 p-2 rounded-lg bg-slate-800/50">
+                    <div className="flex-shrink-0">
+                      <span className={`text-xs font-bold ${craColors[cra] || "text-slate-400"}`}>
+                        {cra.slice(0, 2)}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-white">
+                          R{latest.round}
+                        </span>
+                        <span className="text-xs text-slate-400">
+                          {latest.flow}
+                        </span>
+                        <span className={`text-xs font-medium ${statusColors[latest.status]}`}>
+                          {latest.status}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[10px] text-slate-500">
+                          {latest.itemCount} accounts
+                        </span>
+                        {latest.status === "SENT" && days !== null && (
+                          <span className={`text-[10px] font-medium ${isOverdue ? "text-red-400" : days <= 7 ? "text-amber-400" : "text-emerald-400"}`}>
+                            {isOverdue ? `${Math.abs(days)}d overdue` : `${days}d left`}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {total > 1 && (
+                      <span className="text-[10px] text-slate-500 bg-slate-700/50 px-1.5 py-0.5 rounded">
+                        +{total - 1}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Quick Stats Row */}
+            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-700/50">
+              <div className="text-center">
+                <p className="text-lg font-bold text-white">{client.currentRound || 1}</p>
+                <p className="text-[10px] text-slate-500">Current Round</p>
+              </div>
+              <div className="text-center">
+                <p className={`text-lg font-bold ${client.successRate !== null && client.successRate >= 70 ? "text-emerald-400" : "text-white"}`}>
+                  {client.successRate !== null ? `${client.successRate}%` : "—"}
+                </p>
+                <p className="text-[10px] text-slate-500">Success Rate</p>
+              </div>
+              <div className="text-center">
+                <p className="text-lg font-bold text-white">{client.activeDisputeCount}</p>
+                <p className="text-[10px] text-slate-500">Active</p>
+              </div>
+            </div>
+
+            {/* Recent Activity */}
+            <div className="mt-3 pt-2 border-t border-slate-700/50">
+              <div className="flex items-center gap-2 text-xs text-slate-400">
+                <Clock className="w-3 h-3" />
+                <span>Last activity: {client.lastActivity ? safeFormatDistance(client.lastActivity) : "Never"}</span>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+// Client Grid Card with Hover Preview
+function ClientGridCard({
+  client,
+  index,
+  onQuickView,
+  onDisputeAction,
+  onNavigate,
+}: {
+  client: Client;
+  index: number;
+  onQuickView: (e: React.MouseEvent, client: Client) => void;
+  onDisputeAction: (e: React.MouseEvent, client: Client) => void;
+  onNavigate: () => void;
+}) {
+  const [showPreview, setShowPreview] = useState(false);
+  const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  const handleMouseEnter = () => {
+    // Delay showing preview to avoid flickering on quick passes
+    const timeout = setTimeout(() => setShowPreview(true), 400);
+    setHoverTimeout(timeout);
+  };
+
+  const handleMouseLeave = () => {
+    if (hoverTimeout) clearTimeout(hoverTimeout);
+    setShowPreview(false);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.03 }}
+      className="relative rounded-xl bg-slate-800/40 border border-slate-700/50 p-4 hover:bg-slate-800/60 hover:border-slate-600/50 transition-all group"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      {/* Header */}
+      <div className="flex items-start justify-between mb-4">
+        <div
+          className="flex items-center gap-3 cursor-pointer"
+          onClick={onNavigate}
+        >
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center border border-slate-600/50">
+            <span className="font-medium text-white">
+              {client.firstName.charAt(0)}{client.lastName.charAt(0)}
+            </span>
+          </div>
+          <div>
+            <p className="font-medium text-white">{client.firstName} {client.lastName}</p>
+            <p className="text-xs text-slate-400">{client.email || "No email"}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={(e) => onQuickView(e, client)}
+            className="p-1.5 rounded-lg hover:bg-slate-600/50 transition-colors"
+            title="Quick View"
+          >
+            <Eye className="w-4 h-4 text-blue-400" />
+          </button>
+          <button
+            onClick={(e) => onDisputeAction(e, client)}
+            className="p-1.5 rounded-lg hover:bg-slate-600/50 transition-colors"
+            title="Disputes"
+          >
+            <Gavel className="w-4 h-4 text-amber-400" />
+          </button>
+        </div>
+      </div>
+
+      {/* Badges Row */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        <PriorityBadge priority={client.priority} />
+        <SegmentBadge segment={client.segment} />
+        <StageBadge stage={client.derivedStage || client.stage} />
+      </div>
+
+      {/* Stats Row */}
+      <div
+        className="grid grid-cols-3 gap-2 text-center cursor-pointer"
+        onClick={onNavigate}
+      >
+        <div className="p-2 rounded-lg bg-slate-700/30">
+          <p className="text-lg font-bold text-white">{client.totalDisputes}</p>
+          <p className="text-xs text-slate-400">Disputes</p>
+        </div>
+        <div className="p-2 rounded-lg bg-slate-700/30">
+          <p className={`text-lg font-bold ${client.successRate !== null && client.successRate >= 70 ? "text-emerald-400" : "text-white"}`}>
+            {client.successRate !== null ? `${client.successRate}%` : "—"}
+          </p>
+          <p className="text-xs text-slate-400">Success</p>
+        </div>
+        <div className="p-2 rounded-lg bg-slate-700/30">
+          <p className="text-lg font-bold text-white">{client.currentRound || 0}</p>
+          <p className="text-xs text-slate-400">Round</p>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div
+        className="flex items-center justify-between mt-4 pt-3 border-t border-slate-700/50 cursor-pointer"
+        onClick={onNavigate}
+      >
+        <BureauBadges bureaus={client.activeBureaus} />
+        <span className="text-xs text-slate-500">
+          {client.lastActivity
+            ? safeFormatDistance(client.lastActivity)
+            : "Never"}
+        </span>
+      </div>
+
+      {/* Hover Preview Popup */}
+      <AnimatePresence>
+        {showPreview && (
+          <ClientHoverPreview
+            client={client}
+            onClose={() => setShowPreview(false)}
+          />
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
 // Client Quick View Modal Component
 function ClientQuickViewModal({
   client,
@@ -964,7 +1280,10 @@ export default function ClientsPage() {
         client={quickViewClient}
         isOpen={!!quickViewClient}
         onClose={() => setQuickViewClient(null)}
-        onUpdate={fetchClients}
+        onUpdate={() => {
+          fetchClients();
+          fetchStats(); // Also refresh stats when client is updated/deleted
+        }}
       />
 
       {/* Header */}
@@ -1341,91 +1660,17 @@ export default function ClientsPage() {
           </div>
         </motion.div>
       ) : (
-        /* Grid View - Cards */
+        /* Grid View - Cards with Hover Preview */
         <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {clients.map((client, index) => (
-            <motion.div
+            <ClientGridCard
               key={client.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.03 }}
-              className="rounded-xl bg-slate-800/40 border border-slate-700/50 p-4 hover:bg-slate-800/60 hover:border-slate-600/50 transition-all group"
-            >
-              {/* Header */}
-              <div className="flex items-start justify-between mb-4">
-                <div
-                  className="flex items-center gap-3 cursor-pointer"
-                  onClick={() => router.push(`/clients/${client.id}`)}
-                >
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center border border-slate-600/50">
-                    <span className="font-medium text-white">
-                      {client.firstName.charAt(0)}{client.lastName.charAt(0)}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="font-medium text-white">{client.firstName} {client.lastName}</p>
-                    <p className="text-xs text-slate-400">{client.email || "No email"}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={(e) => handleQuickView(e, client)}
-                    className="p-1.5 rounded-lg hover:bg-slate-600/50 transition-colors"
-                    title="Quick View"
-                  >
-                    <Eye className="w-4 h-4 text-blue-400" />
-                  </button>
-                  <button
-                    onClick={(e) => handleDisputeAction(e, client)}
-                    className="p-1.5 rounded-lg hover:bg-slate-600/50 transition-colors"
-                    title="Disputes"
-                  >
-                    <Gavel className="w-4 h-4 text-amber-400" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Badges Row */}
-              <div className="flex flex-wrap gap-2 mb-4">
-                <PriorityBadge priority={client.priority} />
-                <SegmentBadge segment={client.segment} />
-                <StageBadge stage={client.derivedStage || client.stage} />
-              </div>
-
-              {/* Stats Row */}
-              <div
-                className="grid grid-cols-3 gap-2 text-center cursor-pointer"
-                onClick={() => router.push(`/clients/${client.id}`)}
-              >
-                <div className="p-2 rounded-lg bg-slate-700/30">
-                  <p className="text-lg font-bold text-white">{client.totalDisputes}</p>
-                  <p className="text-xs text-slate-400">Disputes</p>
-                </div>
-                <div className="p-2 rounded-lg bg-slate-700/30">
-                  <p className={`text-lg font-bold ${client.successRate !== null && client.successRate >= 70 ? "text-emerald-400" : "text-white"}`}>
-                    {client.successRate !== null ? `${client.successRate}%` : "—"}
-                  </p>
-                  <p className="text-xs text-slate-400">Success</p>
-                </div>
-                <div className="p-2 rounded-lg bg-slate-700/30">
-                  <p className="text-lg font-bold text-white">{client.currentRound || 0}</p>
-                  <p className="text-xs text-slate-400">Round</p>
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div
-                className="flex items-center justify-between mt-4 pt-3 border-t border-slate-700/50 cursor-pointer"
-                onClick={() => router.push(`/clients/${client.id}`)}
-              >
-                <BureauBadges bureaus={client.activeBureaus} />
-                <span className="text-xs text-slate-500">
-                  {client.lastActivity
-                    ? safeFormatDistance(client.lastActivity)
-                    : "Never"}
-                </span>
-              </div>
-            </motion.div>
+              client={client}
+              index={index}
+              onQuickView={handleQuickView}
+              onDisputeAction={handleDisputeAction}
+              onNavigate={() => router.push(`/clients/${client.id}`)}
+            />
           ))}
         </motion.div>
       )}
