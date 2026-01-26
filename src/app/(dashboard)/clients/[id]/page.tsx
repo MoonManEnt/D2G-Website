@@ -54,6 +54,7 @@ import {
 } from "lucide-react";
 import { ScoreChart, AddScoreModal } from "@/components/credit-scores";
 import { useToast } from "@/lib/use-toast";
+import { DisputeCommandCenter } from "@/components/disputes/dispute-command-center";
 import {
   getDNAClassificationLabel,
   getDNAClassificationDescription,
@@ -1121,40 +1122,31 @@ export default function ClientDetailPage() {
           )}
         </TabsContent>
 
-        {/* Disputes Tab */}
+        {/* Disputes Tab - Command Center */}
         <TabsContent value="disputes" className="mt-4 flex-1 overflow-auto">
-          {client.disputes.length === 0 ? (
-            <Card className="bg-slate-800/50 border-slate-700/50">
-              <CardContent className="py-12 text-center">
-                <Scale className="w-12 h-12 mx-auto text-slate-600" />
-                <h3 className="text-lg font-medium text-white mt-4">No Disputes</h3>
-                <p className="text-slate-400 mt-2">Create a dispute from the negative items</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-3">
-              {client.disputes.map((dispute) => (
-                <Card key={dispute.id} className="bg-slate-800/50 border-slate-700/50">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded bg-purple-500/20 flex items-center justify-center">
-                          <Scale className="w-5 h-5 text-purple-400" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-white">Dispute to {dispute.cra}</p>
-                          <p className="text-sm text-slate-400">
-                            {new Date(dispute.createdAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                      <Badge>{dispute.disputeStatus}</Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+          <DisputeCommandCenter
+            clientId={clientId}
+            accounts={client.accounts.map((a) => ({
+              id: a.id,
+              creditorName: a.creditorName,
+              maskedAccountId: a.maskedAccountId,
+              accountType: null,
+              accountStatus: a.accountStatus,
+              balance: a.balance,
+              cra: a.cra,
+              detectedIssues: a.detectedIssues,
+              issueCount: a.issueCount,
+            }))}
+            existingDisputes={client.disputes.map((d) => ({
+              id: d.id,
+              cra: d.cra,
+              round: 1,
+              status: d.disputeStatus,
+              flow: "ACCURACY",
+              createdAt: d.createdAt,
+            }))}
+            onDisputeCreated={fetchClient}
+          />
         </TabsContent>
 
         {/* Credit Scores Tab */}

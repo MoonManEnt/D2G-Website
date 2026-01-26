@@ -17,6 +17,8 @@ import {
   Building,
   Eye,
   BarChart3,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
 
@@ -290,9 +292,9 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
 
         setParsedAccounts(accounts);
 
-        // Auto-select only accounts WITHOUT active disputes
-        const availableAccounts = accounts.filter((a: ParsedAccountWithIssues) => !a.activeDispute);
-        setSelectedAccounts(availableAccounts.map((a: ParsedAccountWithIssues) => a.id));
+        // Don't auto-select - let users choose their accounts
+        // Clear selection when CRA changes to avoid selecting accounts from different bureau
+        setSelectedAccounts([]);
       })
       .finally(() => setAccountsLoading(false));
   }, [selectedClientId, selectedCRA]);
@@ -750,30 +752,35 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    {/* Account counts */}
+                    {/* Selection count */}
                     {parsedAccounts.length > 0 && (
-                      <div className="flex items-center gap-2 text-xs">
-                        <span className="text-slate-500">
-                          {parsedAccounts.filter(a => !a.activeDispute).length} available
-                        </span>
-                        {parsedAccounts.filter(a => a.activeDispute).length > 0 && (
-                          <span className="text-amber-500">
-                            {parsedAccounts.filter(a => a.activeDispute).length} pending
-                          </span>
-                        )}
-                      </div>
+                      <span className="text-xs text-slate-400">
+                        {selectedAccounts.length} of {parsedAccounts.filter(a => !a.activeDispute).length} selected
+                      </span>
                     )}
                     <Button
                       size="sm"
-                      variant="ghost"
-                      className="text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
+                      variant="outline"
+                      className="text-purple-400 border-purple-500/30 hover:text-purple-300 hover:bg-purple-500/10 hover:border-purple-500/50"
                       onClick={() => {
                         // Only select accounts without active disputes
                         const available = parsedAccounts.filter(a => !a.activeDispute);
                         setSelectedAccounts(available.map(a => a.id));
                       }}
+                      disabled={parsedAccounts.filter(a => !a.activeDispute).length === 0}
                     >
-                      Select Available ({parsedAccounts.filter(a => !a.activeDispute).length})
+                      <CheckSquare className="w-4 h-4 mr-1.5" />
+                      Select All
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-slate-400 border-slate-600 hover:text-white hover:bg-slate-700/50"
+                      onClick={() => setSelectedAccounts([])}
+                      disabled={selectedAccounts.length === 0}
+                    >
+                      <Square className="w-4 h-4 mr-1.5" />
+                      Clear All
                     </Button>
                   </div>
                 </div>
