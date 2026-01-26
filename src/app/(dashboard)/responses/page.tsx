@@ -119,7 +119,7 @@ export default function ResponseTrackerPage() {
           </h1>
           <p className="text-slate-400 text-sm">Monitor CRA responses and FCRA compliance</p>
         </div>
-        <Button variant="outline" className="gap-2">
+        <Button variant="outline" className="gap-2 bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white">
           <Download className="w-4 h-4" />
           Export Report
         </Button>
@@ -293,7 +293,7 @@ function PendingResponseCard({ response, onLogResponse }: { response: PendingRes
 
       {/* Actions */}
       <div className="mt-4 flex justify-end gap-2">
-        <Button variant="outline" size="sm" onClick={onLogResponse}>
+        <Button variant="outline" size="sm" onClick={onLogResponse} className="bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white">
           Log Response
         </Button>
         {isOverdue && (
@@ -449,8 +449,8 @@ function LogResponseModal({ dispute, onClose, onSave }: { dispute: PendingRespon
 
         {/* Actions */}
         <div className="flex justify-end gap-3">
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSave} disabled={saving}>
+          <Button variant="ghost" onClick={onClose} className="text-slate-400 hover:text-white hover:bg-slate-800">Cancel</Button>
+          <Button onClick={handleSave} disabled={saving} className="bg-purple-600 hover:bg-purple-700 text-white">
             {saving ? "Saving..." : "Log Response"}
           </Button>
         </div>
