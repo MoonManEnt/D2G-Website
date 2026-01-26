@@ -11,10 +11,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Filter for active clients only
+    const activeClientFilter = { isActive: true, archivedAt: null };
+
     const pendingDisputes = await prisma.dispute.findMany({
       where: {
         organizationId: session.user.organizationId,
         status: "SENT",
+        client: activeClientFilter,
       },
       include: {
         client: { select: { id: true, firstName: true, lastName: true } },
@@ -29,6 +33,7 @@ export async function GET(request: NextRequest) {
       where: {
         organizationId: session.user.organizationId,
         status: { in: ["RESPONDED", "RESOLVED"] },
+        client: activeClientFilter,
       },
       include: {
         client: { select: { id: true, firstName: true, lastName: true } },

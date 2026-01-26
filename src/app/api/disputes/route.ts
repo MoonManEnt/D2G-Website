@@ -28,6 +28,11 @@ export const GET = withAuth(async (req, ctx) => {
       where: {
         organizationId: ctx.organizationId,
         ...(clientId && { clientId }),
+        // Only show disputes for active, non-archived clients
+        client: {
+          isActive: true,
+          archivedAt: null,
+        },
       },
       include: {
         client: {

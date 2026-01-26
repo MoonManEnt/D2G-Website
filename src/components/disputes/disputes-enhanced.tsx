@@ -74,6 +74,22 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
   // History state
   const [disputes, setDisputes] = useState<DisputeHistoryItem[]>([]);
 
+  // Responses state
+  const [pendingResponses, setPendingResponses] = useState<Array<{
+    id: string;
+    clientId: string;
+    clientName: string;
+    cra: string;
+    round: number;
+    flow: string;
+    sentDate: string;
+    daysRemaining: number;
+    daysElapsed: number;
+    status: string;
+    itemCount: number;
+  }>>([]);
+  const [responsesLoading, setResponsesLoading] = useState(false);
+
   // Loading states
   const [loading, setLoading] = useState(true);
   const [accountsLoading, setAccountsLoading] = useState(false);
@@ -163,6 +179,19 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
         setDisputes(mapped);
       });
   }, []);
+
+  // Fetch pending responses when responses tab is active
+  useEffect(() => {
+    if (activeTab !== "responses") return;
+
+    setResponsesLoading(true);
+    fetch("/api/disputes/responses/pending")
+      .then((r) => r.ok ? r.json() : { pending: [] })
+      .then((data) => {
+        setPendingResponses(data.pending || []);
+      })
+      .finally(() => setResponsesLoading(false));
+  }, [activeTab]);
 
   // Helper to parse detectedIssues (may be JSON string or array)
   const parseDetectedIssues = (issues: unknown): Array<{ severity: string; description: string }> => {
@@ -706,14 +735,10 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
             <BarChart3 className="w-4 h-4" />
             Round Flow
           </TabsTrigger>
-          <Button
-            variant="ghost"
-            className="gap-2 text-slate-400 hover:text-white hover:bg-slate-700 h-9 px-3 rounded-md text-sm font-medium"
-            onClick={() => router.push("/responses")}
-          >
+          <TabsTrigger value="responses" className="gap-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
             <MessageSquareText className="w-4 h-4" />
             Responses
-          </Button>
+          </TabsTrigger>
           <TabsTrigger value="history" className="gap-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
             <History className="w-4 h-4" />
             History
@@ -1077,6 +1102,112 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
             clientName={client ? `${client.firstName} ${client.lastName}` : undefined}
             clientId={selectedClientId || undefined}
           />
+        </TabsContent>
+
+        {/* Responses Tab */}
+        <TabsContent value="responses" className="mt-6">
+          <Card className="bg-slate-800/60 border-slate-700/50 p-6">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="text-lg font-bold text-white">Response Tracker</h2>
+                <p className="text-sm text-slate-400 mt-1">
+                  Track pending responses and FCRA deadlines
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push("/responses")}
+                className="text-indigo-400 border-indigo-500/30 hover:bg-indigo-500/10"
+              >
+                Full View →
+              </Button>
+            </div>
+
+            {responsesLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+              </div>
+            ) : pendingResponses.length === 0 ? (
+              <div className="py-12 text-center">
+                <MessageSquareText className="w-12 h-12 mx-auto text-slate-600 mb-4" />
+                <h3 className="text-lg font-medium text-white mb-2">No Pending Responses</h3>
+                <p className="text-slate-400 max-w-md mx-auto">
+                  Disputes that have been sent will appear here with their 30-day FCRA deadline tracking.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {pendingResponses.map((response) => {
+                  const isUrgent = response.daysRemaining <= 5;
+                  const isWarning = response.daysRemaining <= 10 && response.daysRemaining > 5;
+
+                  return (
+                    <div
+                      key={response.id}
+                      className={cn(
+                        "flex items-center gap-4 p-4 rounded-lg border transition-colors cursor-pointer hover:bg-slate-700/30",
+                        isUrgent ? "border-red-500/30 bg-red-500/5" :
+                        isWarning ? "border-amber-500/30 bg-amber-500/5" :
+                        "border-slate-700/50 bg-slate-800/30"
+                      )}
+                      onClick={() => router.push(`/clients/${response.clientId}?tab=disputes`)}
+                    >
+                      {/* Days Badge */}
+                      <div className={cn(
+                        "w-14 h-14 rounded-lg flex flex-col items-center justify-center",
+                        isUrgent ? "bg-red-500/20" :
+                        isWarning ? "bg-amber-500/20" :
+                        "bg-emerald-500/20"
+                      )}>
+                        <span className={cn(
+                          "text-xl font-bold",
+                          isUrgent ? "text-red-400" :
+                          isWarning ? "text-amber-400" :
+                          "text-emerald-400"
+                        )}>
+                          {response.daysRemaining}d
+                        </span>
+                      </div>
+
+                      {/* Client & Details */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-white">{response.clientName}</span>
+                          <Badge className={cn(
+                            "text-[10px]",
+                            response.cra === "TRANSUNION" ? "bg-blue-500/20 text-blue-400" :
+                            response.cra === "EQUIFAX" ? "bg-red-500/20 text-red-400" :
+                            "bg-purple-500/20 text-purple-400"
+                          )}>
+                            {response.cra.slice(0, 2)}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-slate-400 mt-0.5">
+                          R{response.round} • {response.flow} • {response.itemCount} items • Sent {new Date(response.sentDate).toLocaleDateString()}
+                        </p>
+                      </div>
+
+                      {/* Status */}
+                      <div className="text-right">
+                        <span className={cn(
+                          "text-xs font-medium",
+                          isUrgent ? "text-red-400" :
+                          isWarning ? "text-amber-400" :
+                          "text-emerald-400"
+                        )}>
+                          {isUrgent ? "Urgent" : isWarning ? "Soon" : "On Track"}
+                        </span>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {response.daysElapsed} days elapsed
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
         </TabsContent>
 
         {/* History Tab */}
