@@ -125,7 +125,7 @@ export default function BillingPage() {
   };
 
   return (
-    <div className="space-y-6 lg:ml-64 pt-16 lg:pt-0 p-6">
+    <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-white">Billing</h1>
         <p className="text-slate-400 mt-1">Manage your subscription and billing</p>

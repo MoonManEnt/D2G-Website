@@ -289,7 +289,7 @@ export default function SettingsPage() {
 
   return (
     <motion.div
-      className="space-y-6 lg:ml-64 pt-16 lg:pt-0 p-6"
+      className="space-y-6"
       initial="hidden"
       animate="visible"
       variants={containerVariants}

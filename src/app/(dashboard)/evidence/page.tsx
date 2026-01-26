@@ -493,7 +493,7 @@ export default function EvidencePage() {
   };
 
   return (
-    <div className="space-y-6 lg:ml-64 pt-16 lg:pt-0 p-6 relative">
+    <div className="space-y-6 relative">
       {/* Ambient glow effects */}
       <div className="fixed top-[10%] left-[20%] w-[600px] h-[600px] bg-[radial-gradient(ellipse,rgba(124,58,237,0.08)_0%,transparent_70%)] pointer-events-none" />
       <div className="fixed bottom-[20%] right-[10%] w-[400px] h-[400px] bg-[radial-gradient(ellipse,rgba(16,185,129,0.06)_0%,transparent_70%)] pointer-events-none" />
