@@ -48,6 +48,8 @@ interface LetterSections {
   storyParagraph: LetterSection;
   demandHeadline: LetterSection;
   accountsList: LetterSection;
+  personalInfo: LetterSection;  // Previous names, addresses, hard inquiries
+  consumerStatement: LetterSection;  // AMELIA's unique consumer statement
   deadlineNotice: LetterSection;
   signature: LetterSection;
 }
@@ -173,6 +175,8 @@ export function LetterEditorModal({
     let storyParagraph = "";
     let demandHeadline = "";
     let accountsList = "";
+    let personalInfo = "";
+    let consumerStatement = "";
     let deadlineNotice = "";
     let signature = "";
 
@@ -203,6 +207,18 @@ export function LetterEditorModal({
       // Account list (numbered items)
       else if (p.match(/^\d\./m) || p.includes("Account #") || p.includes("Account:")) {
         accountsList = p;
+      }
+      // Personal info section (previous names, addresses, hard inquiries)
+      else if (p.toUpperCase().includes("PREVIOUS NAME") ||
+               p.toUpperCase().includes("PREVIOUS ADDRESS") ||
+               p.toUpperCase().includes("HARD INQUIR") ||
+               p.toUpperCase().includes("UNAUTHORIZED") ||
+               p.toUpperCase().includes("PERSONAL INFORMATION")) {
+        personalInfo += (personalInfo ? "\n\n" : "") + p;
+      }
+      // Consumer Statement
+      else if (p.toLowerCase().includes("consumer statement")) {
+        consumerStatement = p;
       }
       // Deadline notice
       else if (p.includes("30 days") || p.includes("deadline") || p.toLowerCase().includes("failure to respond")) {
@@ -260,6 +276,17 @@ export function LetterEditorModal({
       accountsList: {
         label: "Disputed Accounts",
         content: accountsList || "1. Account details will be listed here",
+        editable: true,
+        aiRegenerable: true,
+      },
+      personalInfo: {
+        label: "Personal Information Disputes",
+        content: personalInfo || "",
+        editable: true,
+      },
+      consumerStatement: {
+        label: "Consumer Statement",
+        content: consumerStatement || "Consumer Statement: All items listed in this complaint are reporting incorrect information on my credit report. I have not been able to use my credit in a very long time and I am suffering each and every day because of it. Please remove this information ASAP so I can go back to living my normal (less stressful) life.",
         editable: true,
         aiRegenerable: true,
       },
