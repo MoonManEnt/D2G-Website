@@ -1058,6 +1058,7 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
             selectedCRA={selectedCRA}
             onSelectCRA={setSelectedCRA}
             clientName={client ? `${client.firstName} ${client.lastName}` : undefined}
+            clientId={selectedClientId || undefined}
           />
         </TabsContent>
 

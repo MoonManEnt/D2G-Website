@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,9 +16,30 @@ import {
   Search,
   FileText,
   Building2,
+  AlertTriangle,
+  Timer,
+  Send,
 } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
 import { CRA_COLORS, type ParsedAccountWithIssues, type CFPBComplaint } from "./types";
+
+// Dispute history for an account
+interface AccountDisputeHistory {
+  disputeId: string;
+  cra: string;
+  flow: string;
+  round: number;
+  status: string;
+  sentDate?: string;
+  disputeReason?: string;
+  daysRemaining?: number;
+  isOverdue?: boolean;
+}
+
+// Enhanced account with dispute history
+interface AccountWithHistory extends ParsedAccountWithIssues {
+  disputeHistory: AccountDisputeHistory[];
+}
 
 // Reusable field component with copy button
 interface CopyableFieldProps {
@@ -80,18 +101,93 @@ interface CFPBViewProps {
   selectedCRA: string;
   onSelectCRA: (cra: string) => void;
   clientName?: string;
+  clientId?: string;
 }
 
 const CRAS = ["TRANSUNION", "EXPERIAN", "EQUIFAX"] as const;
 
-export function CFPBView({ accounts, selectedCRA, onSelectCRA, clientName }: CFPBViewProps) {
+// Helper to calculate FCRA deadline days
+const getFCRADaysRemaining = (sentDate?: string) => {
+  if (!sentDate) return null;
+  const sent = new Date(sentDate);
+  const deadline = new Date(sent.getTime() + 30 * 24 * 60 * 60 * 1000);
+  return Math.ceil((deadline.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+};
+
+export function CFPBView({ accounts, selectedCRA, onSelectCRA, clientName, clientId }: CFPBViewProps) {
   const { toast } = useToast();
   const [generating, setGenerating] = useState(false);
   const [complaint, setComplaint] = useState<CFPBComplaint | null>(null);
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
+  const [accountsWithHistory, setAccountsWithHistory] = useState<AccountWithHistory[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
-  const selectedAccountDetails = accounts.filter((a) => selectedAccounts.includes(a.id));
+  // Fetch dispute history for accounts
+  useEffect(() => {
+    if (!clientId || accounts.length === 0) {
+      setAccountsWithHistory(accounts.map(a => ({ ...a, disputeHistory: [] })));
+      return;
+    }
+
+    setLoadingHistory(true);
+    fetch(`/api/disputes?clientId=${clientId}`)
+      .then(r => r.ok ? r.json() : [])
+      .then((disputes: Array<{
+        id: string;
+        cra: string;
+        flow: string;
+        round: number;
+        status: string;
+        sentDate?: string;
+        items?: Array<{
+          accountItemId: string;
+          disputeReason?: string;
+        }>;
+      }>) => {
+        // Build a map of accountId -> dispute history
+        const historyMap = new Map<string, AccountDisputeHistory[]>();
+
+        for (const dispute of disputes) {
+          if (!dispute.items) continue;
+
+          for (const item of dispute.items) {
+            const accountId = item.accountItemId;
+            if (!historyMap.has(accountId)) {
+              historyMap.set(accountId, []);
+            }
+
+            const daysRemaining = getFCRADaysRemaining(dispute.sentDate);
+
+            historyMap.get(accountId)!.push({
+              disputeId: dispute.id,
+              cra: dispute.cra,
+              flow: dispute.flow,
+              round: dispute.round,
+              status: dispute.status,
+              sentDate: dispute.sentDate,
+              disputeReason: item.disputeReason,
+              daysRemaining: daysRemaining ?? undefined,
+              isOverdue: daysRemaining !== null && daysRemaining < 0,
+            });
+          }
+        }
+
+        // Merge history with accounts
+        const enhanced = accounts.map(acc => ({
+          ...acc,
+          disputeHistory: historyMap.get(acc.id) || [],
+        }));
+
+        setAccountsWithHistory(enhanced);
+      })
+      .catch(() => {
+        setAccountsWithHistory(accounts.map(a => ({ ...a, disputeHistory: [] })));
+      })
+      .finally(() => setLoadingHistory(false));
+  }, [clientId, accounts]);
+
+  const selectedAccountDetails = accountsWithHistory.filter((a) => selectedAccounts.includes(a.id));
 
   const generateComplaint = async () => {
     if (selectedAccounts.length === 0) {
@@ -101,40 +197,98 @@ export function CFPBView({ accounts, selectedCRA, onSelectCRA, clientName }: CFP
 
     setGenerating(true);
     try {
-      // In production, this would call the CFPB API
-      // For now, generate a structured complaint
+      // Generate complaint with dispute history context
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
       const companyName = selectedCRA === "TRANSUNION" ? "TransUnion" :
                          selectedCRA === "EXPERIAN" ? "Experian" : "Equifax Information Services LLC";
 
-      const accountList = selectedAccountDetails.map((acc, i) =>
-        `${i + 1}. ${acc.creditorName} - Account #${acc.maskedAccountId || "N/A"}\n   Issue: ${acc.detectedIssues?.[0]?.description || "Inaccurate information"}`
-      ).join("\n\n");
+      // Build detailed account list with dispute history
+      const accountList = selectedAccountDetails.map((acc, i) => {
+        // Find disputes for this CRA
+        const craDisputes = acc.disputeHistory.filter(d => d.cra === selectedCRA);
+        const latestDispute = craDisputes.sort((a, b) => b.round - a.round)[0];
+
+        let disputeContext = "";
+        if (latestDispute) {
+          const sentDate = latestDispute.sentDate
+            ? new Date(latestDispute.sentDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+            : "N/A";
+
+          disputeContext = `\n   Dispute sent: ${sentDate} (Round ${latestDispute.round}, ${latestDispute.flow} flow)`;
+          disputeContext += `\n   Status: ${latestDispute.status}`;
+
+          if (latestDispute.status === "SENT" && latestDispute.daysRemaining !== undefined) {
+            if (latestDispute.isOverdue) {
+              disputeContext += ` - OVERDUE by ${Math.abs(latestDispute.daysRemaining)} days (FCRA VIOLATION)`;
+            } else {
+              disputeContext += ` - ${latestDispute.daysRemaining} days remaining`;
+            }
+          }
+        }
+
+        return `${i + 1}. ${acc.creditorName} - Account #${acc.maskedAccountId || "N/A"}
+   Issue: ${acc.detectedIssues?.[0]?.description || "Inaccurate information"}${disputeContext}`;
+      }).join("\n\n");
+
+      // Check for FCRA violations (overdue responses)
+      const overdueDisputes = selectedAccountDetails.flatMap(acc =>
+        acc.disputeHistory.filter(d => d.cra === selectedCRA && d.isOverdue)
+      );
+      const hasOverdue = overdueDisputes.length > 0;
+
+      // Find earliest dispute date for this CRA
+      const allCRADisputes = selectedAccountDetails.flatMap(acc =>
+        acc.disputeHistory.filter(d => d.cra === selectedCRA && d.sentDate)
+      );
+      const earliestDispute = allCRADisputes.sort((a, b) =>
+        new Date(a.sentDate!).getTime() - new Date(b.sentDate!).getTime()
+      )[0];
+
+      const firstDisputeDate = earliestDispute?.sentDate
+        ? new Date(earliestDispute.sentDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+        : "recently";
+
+      // Generate contextual narrative
+      let narrative = `I am filing this complaint because ${companyName} has failed to properly investigate my dispute regarding inaccurate information on my credit report.
+
+I first submitted a formal dispute letter via certified mail on ${firstDisputeDate} regarding the following accounts that are reporting inaccurately:
+
+${accountList}
+
+`;
+
+      if (hasOverdue) {
+        narrative += `CRITICAL: ${companyName} has VIOLATED the Fair Credit Reporting Act by failing to complete their investigation within the legally mandated 30-day period. This is a clear violation of 15 U.S.C. § 1681i(a)(1).
+
+`;
+      }
+
+      narrative += `Despite my detailed dispute with supporting documentation, ${companyName} has:
+- Failed to conduct a reasonable investigation as required by federal law
+- Not provided proof of how they verified this information
+- Continued to report information they cannot verify
+${hasOverdue ? "- EXCEEDED the 30-day response deadline mandated by the FCRA" : ""}
+
+This inaccurate reporting has caused me significant harm including denial of credit applications and higher interest rates on approved credit.`;
 
       setComplaint({
         product: "Credit reporting or other personal consumer reports",
         subProduct: "Credit reporting",
-        issue: "Problem with a credit reporting company's investigation into an existing problem",
-        subIssue: "Their investigation did not fix an error on your report",
+        issue: hasOverdue
+          ? "Problem with a credit reporting company's investigation into an existing problem"
+          : "Problem with a credit reporting company's investigation into an existing problem",
+        subIssue: hasOverdue
+          ? "Investigation took more than 30 days"
+          : "Their investigation did not fix an error on your report",
         companyName,
-        narrative: `I am filing this complaint because ${companyName} has failed to properly investigate my dispute regarding inaccurate information on my credit report.
-
-I submitted a formal dispute letter via certified mail regarding the following accounts that are reporting inaccurately:
-
-${accountList}
-
-Despite my detailed dispute with supporting documentation, ${companyName} has:
-- Failed to conduct a reasonable investigation as required by federal law
-- Not provided proof of how they verified this information
-- Continued to report information they cannot verify
-
-This inaccurate reporting has caused me significant harm including denial of credit applications and higher interest rates on approved credit.`,
+        narrative,
         desiredResolution: `I request that the CFPB:
 1. Require ${companyName} to conduct a proper investigation
 2. Require ${companyName} to provide the method of verification
 3. If they cannot verify, require deletion of the disputed items
-4. Investigate ${companyName}'s compliance procedures`,
+4. Investigate ${companyName}'s compliance procedures${hasOverdue ? `
+5. Document this FCRA timing violation in ${companyName}'s compliance record` : ""}`,
       });
     } catch {
       toast({ title: "Error", description: "Failed to generate complaint", variant: "destructive" });
@@ -254,39 +408,136 @@ ${complaint.desiredResolution}`;
           </div>
         </Card>
 
-        {/* Account Selection */}
+        {/* Account Selection with Dispute History */}
         <Card className="bg-slate-800/60 border-slate-700/50 p-4">
           <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
             <FileText className="w-4 h-4" />
             Accounts to Include
+            {loadingHistory && <Loader2 className="w-3 h-3 animate-spin text-slate-400" />}
           </h3>
-          <div className="space-y-2 max-h-[200px] overflow-y-auto">
-            {accounts.slice(0, 5).map((acc) => (
-              <label
-                key={acc.id}
-                className={cn(
-                  "flex items-start gap-2.5 p-2.5 rounded-lg cursor-pointer transition-all",
-                  selectedAccounts.includes(acc.id)
-                    ? "bg-purple-500/15"
-                    : "bg-slate-700/30 hover:bg-slate-700/50"
-                )}
-              >
-                <Checkbox
-                  checked={selectedAccounts.includes(acc.id)}
-                  onCheckedChange={() => toggleAccount(acc.id)}
-                  className="mt-0.5 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
-                />
-                <div className="flex-1 min-w-0">
-                  <span className="block text-sm font-medium text-white truncate">
-                    {acc.creditorName}
-                  </span>
-                  <span className="block text-xs text-slate-500 truncate">
-                    {acc.detectedIssues?.[0]?.description || "No issues detected"}
-                  </span>
-                </div>
-              </label>
-            ))}
-            {accounts.length === 0 && (
+          <div className="space-y-2 max-h-[300px] overflow-y-auto">
+            {accountsWithHistory.map((acc) => {
+              // Get disputes for selected CRA
+              const craDisputes = acc.disputeHistory.filter(d => d.cra === selectedCRA);
+              const hasDisputes = craDisputes.length > 0;
+              const latestDispute = craDisputes.sort((a, b) => b.round - a.round)[0];
+              const isOverdue = latestDispute?.isOverdue;
+
+              return (
+                <label
+                  key={acc.id}
+                  className={cn(
+                    "block p-3 rounded-lg cursor-pointer transition-all",
+                    selectedAccounts.includes(acc.id)
+                      ? "bg-purple-500/15 ring-1 ring-purple-500/30"
+                      : "bg-slate-700/30 hover:bg-slate-700/50"
+                  )}
+                >
+                  <div className="flex items-start gap-2.5">
+                    <Checkbox
+                      checked={selectedAccounts.includes(acc.id)}
+                      onCheckedChange={() => toggleAccount(acc.id)}
+                      className="mt-0.5 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <span className="block text-sm font-medium text-white truncate">
+                        {acc.creditorName}
+                      </span>
+                      <span className="block text-xs text-slate-500 truncate">
+                        {acc.detectedIssues?.[0]?.description || "No issues detected"}
+                      </span>
+
+                      {/* Dispute History for this CRA */}
+                      {hasDisputes && (
+                        <div className="mt-2 pt-2 border-t border-slate-600/30">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <Badge
+                              className={cn(
+                                "text-[10px] px-1.5",
+                                CRA_COLORS[selectedCRA]?.tailwind || "bg-slate-500/20 text-slate-400"
+                              )}
+                            >
+                              {selectedCRA.slice(0, 2)}
+                            </Badge>
+                            <span className="text-[10px] text-slate-400">
+                              R{latestDispute.round}
+                            </span>
+                            <Badge className="text-[10px] px-1.5 bg-slate-600/30 text-slate-300">
+                              {latestDispute.flow}
+                            </Badge>
+                            <Badge
+                              className={cn(
+                                "text-[10px] px-1.5",
+                                latestDispute.status === "SENT" && "bg-blue-500/20 text-blue-400",
+                                latestDispute.status === "DRAFT" && "bg-amber-500/20 text-amber-400",
+                                latestDispute.status === "RESPONDED" && "bg-purple-500/20 text-purple-400",
+                                latestDispute.status === "RESOLVED" && "bg-emerald-500/20 text-emerald-400"
+                              )}
+                            >
+                              {latestDispute.status}
+                            </Badge>
+                          </div>
+
+                          {/* FCRA Deadline Status */}
+                          {latestDispute.status === "SENT" && latestDispute.daysRemaining !== undefined && (
+                            <div className={cn(
+                              "flex items-center gap-1.5 mt-1.5 text-[10px]",
+                              isOverdue ? "text-red-400" : latestDispute.daysRemaining <= 7 ? "text-amber-400" : "text-emerald-400"
+                            )}>
+                              {isOverdue ? (
+                                <>
+                                  <AlertTriangle className="w-3 h-3" />
+                                  <span className="font-medium">OVERDUE by {Math.abs(latestDispute.daysRemaining)}d - FCRA Violation!</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Timer className="w-3 h-3" />
+                                  <span>{latestDispute.daysRemaining}d remaining</span>
+                                </>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Sent Date */}
+                          {latestDispute.sentDate && (
+                            <div className="flex items-center gap-1 mt-1 text-[10px] text-slate-500">
+                              <Send className="w-2.5 h-2.5" />
+                              <span>
+                                Sent {new Date(latestDispute.sentDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* No disputes yet indicator */}
+                      {!hasDisputes && acc.disputeHistory.length > 0 && (
+                        <div className="mt-2 pt-2 border-t border-slate-600/30">
+                          <span className="text-[10px] text-slate-500">
+                            Not disputed with {selectedCRA} yet
+                          </span>
+                          {/* Show other CRAs this was disputed with */}
+                          <div className="flex gap-1 mt-1">
+                            {[...new Set(acc.disputeHistory.map(d => d.cra))].map(cra => (
+                              <Badge
+                                key={cra}
+                                className={cn(
+                                  "text-[9px] px-1",
+                                  CRA_COLORS[cra]?.tailwind || "bg-slate-500/20 text-slate-400"
+                                )}
+                              >
+                                {cra.slice(0, 2)}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </label>
+              );
+            })}
+            {accountsWithHistory.length === 0 && (
               <p className="text-sm text-slate-500 text-center py-4">
                 No accounts available
               </p>

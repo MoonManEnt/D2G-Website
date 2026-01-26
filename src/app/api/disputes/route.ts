@@ -20,9 +20,14 @@ import {
 // GET /api/disputes - List all disputes
 export const GET = withAuth(async (req, ctx) => {
   try {
+    // Support filtering by clientId
+    const { searchParams } = new URL(req.url);
+    const clientId = searchParams.get("clientId");
+
     const disputes = await prisma.dispute.findMany({
       where: {
         organizationId: ctx.organizationId,
+        ...(clientId && { clientId }),
       },
       include: {
         client: {
