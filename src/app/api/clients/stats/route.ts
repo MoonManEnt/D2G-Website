@@ -16,31 +16,48 @@ export const GET = withAuth(async (req, { organizationId }) => {
     prisma.client.count({
       where: { organizationId, isActive: true, archivedAt: null, priority: "URGENT" },
     }),
+    // Only count disputes for active, non-archived clients
     prisma.dispute.count({
       where: {
         organizationId,
         status: { in: ["DRAFT", "PENDING_REVIEW", "APPROVED", "SENT"] },
+        client: {
+          isActive: true,
+          archivedAt: null,
+        },
       },
     }),
+    // Only count needs action for active, non-archived clients
     prisma.dispute.count({
       where: {
         organizationId,
         status: { in: ["PENDING_REVIEW", "RESPONDED"] },
+        client: {
+          isActive: true,
+          archivedAt: null,
+        },
       },
     }),
     prisma.client.count({
       where: {
         organizationId,
         isActive: true,
+        archivedAt: null,
         createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
       },
     }),
   ]);
 
-  // Calculate average success rate
+  // Calculate average success rate - only for active clients
   const disputeItems = await prisma.disputeItem.findMany({
     where: {
-      dispute: { organizationId },
+      dispute: {
+        organizationId,
+        client: {
+          isActive: true,
+          archivedAt: null,
+        },
+      },
       outcome: { not: null },
     },
     select: { outcome: true },
