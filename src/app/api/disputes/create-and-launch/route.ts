@@ -60,18 +60,19 @@ export const POST = withAuth(async (req, ctx) => {
       return NextResponse.json({ error: "Client not found" }, { status: 404 });
     }
 
-    // Get account items
+    // Get account items - verify they belong to this organization
+    // Note: We don't filter by CRA here because accounts may be multi-bureau
+    // The frontend already filters accounts by CRA before selection
     const accounts = await prisma.accountItem.findMany({
       where: {
         id: { in: accountIds },
         organizationId: ctx.organizationId,
-        cra: cra,
       },
     });
 
     if (accounts.length === 0) {
       return NextResponse.json(
-        { error: "No valid accounts found for the specified CRA" },
+        { error: "No valid accounts found" },
         { status: 400 }
       );
     }
