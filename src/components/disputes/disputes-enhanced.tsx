@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,6 +48,7 @@ interface DisputesEnhancedProps {
 
 export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
   const { toast } = useToast();
+  const router = useRouter();
 
   // Tab state
   const [activeTab, setActiveTab] = useState("create");
@@ -1037,9 +1039,8 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
                 }
               }}
               onTrackResponse={(disputeId) => {
-                // Switch to history tab and potentially open a response modal
-                setActiveTab("history");
-                toast({ title: "Track Response", description: "Response tracking coming soon" });
+                // Navigate to the Response Tracker page with the dispute ID
+                router.push(`/responses?disputeId=${disputeId}`);
               }}
               onRefresh={refreshDisputesList}
             />
