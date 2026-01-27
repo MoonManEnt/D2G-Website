@@ -652,15 +652,19 @@ export function ReportComparisonModal({
             onClick={onClose}
           />
 
-          {/* Modal */}
+          {/* Modal - using flexbox centering instead of transform for better nested modal support */}
           <motion.div
             variants={modalVariants}
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="fixed inset-4 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-[95vw] sm:max-w-4xl sm:max-h-[90vh] z-50 overflow-hidden"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            onClick={onClose}
           >
-            <div className="h-full rounded-2xl bg-zinc-900 border border-zinc-800 shadow-2xl shadow-black/50 overflow-hidden flex flex-col">
+            <div
+              className="w-full max-w-4xl max-h-[90vh] rounded-2xl bg-zinc-900 border border-zinc-800 shadow-2xl shadow-black/50 overflow-hidden flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
               {/* Header */}
               <div className="p-5 border-b border-zinc-800 flex items-center justify-between">
                 <div className="flex items-center gap-3">
