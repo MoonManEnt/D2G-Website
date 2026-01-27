@@ -132,23 +132,35 @@ const ScoreChart = ({ reports }: { reports: CreditReportData[] }) => {
   const innerWidth = chartWidth - padding.left - padding.right;
   const innerHeight = chartHeight - padding.top - padding.bottom;
 
-  // Get score ranges
+  // Get score ranges - safely handle empty arrays and null values
   const allScores = sortedReports.flatMap((r) =>
-    [r.bureaus.transunion.score, r.bureaus.equifax.score, r.bureaus.experian.score].filter(
-      (s): s is number => s !== null
+    [r.bureaus?.transunion?.score, r.bureaus?.equifax?.score, r.bureaus?.experian?.score].filter(
+      (s): s is number => s !== null && s !== undefined && !isNaN(s)
     )
   );
-  const minScore = Math.min(...allScores, 300);
-  const maxScore = Math.max(...allScores, 850);
+
+  // If no valid scores, use reasonable defaults for display
+  const hasValidScores = allScores.length > 0;
+  const dataMin = hasValidScores ? Math.min(...allScores) : 600;
+  const dataMax = hasValidScores ? Math.max(...allScores) : 650;
+
+  // Add padding to the range (10% on each side, min 50 points)
+  const rangePadding = Math.max(50, (dataMax - dataMin) * 0.1);
+  const minScore = Math.max(300, Math.floor((dataMin - rangePadding) / 10) * 10);
+  const maxScore = Math.min(850, Math.ceil((dataMax + rangePadding) / 10) * 10);
   const scoreRange = maxScore - minScore || 100;
 
-  const getY = (score: number | null) => {
-    if (score === null) return innerHeight;
-    return innerHeight - ((score - minScore) / scoreRange) * innerHeight;
+  const getY = (score: number | null | undefined) => {
+    if (score === null || score === undefined || isNaN(score)) return innerHeight;
+    // Clamp the result to valid chart bounds
+    const normalized = (score - minScore) / scoreRange;
+    const y = innerHeight - Math.max(0, Math.min(1, normalized)) * innerHeight;
+    return Math.max(0, Math.min(innerHeight, y));
   };
 
   const getX = (index: number) => {
-    return (index / Math.max(sortedReports.length - 1, 1)) * innerWidth;
+    const divisor = Math.max(sortedReports.length - 1, 1);
+    return (index / divisor) * innerWidth;
   };
 
   const bureaus = [
@@ -156,6 +168,21 @@ const ScoreChart = ({ reports }: { reports: CreditReportData[] }) => {
     { key: "equifax" as const, color: "#ef4444", label: "Equifax" },
     { key: "experian" as const, color: "#8b5cf6", label: "Experian" },
   ];
+
+  // If no valid data, show a placeholder message
+  if (!hasValidScores) {
+    return (
+      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+        <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+          <BarChart2 size={16} className="text-blue-400" />
+          Score Progression Over Time
+        </h3>
+        <div className="flex items-center justify-center h-[200px] text-zinc-500 text-sm">
+          No score data available for chart
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
@@ -198,12 +225,15 @@ const ScoreChart = ({ reports }: { reports: CreditReportData[] }) => {
           {bureaus.map((bureau) => {
             const points = sortedReports
               .map((r, i) => {
-                const score = r.bureaus[bureau.key].score;
-                if (score === null) return null;
+                const score = r.bureaus?.[bureau.key]?.score;
+                if (score === null || score === undefined || isNaN(score)) return null;
                 return `${getX(i)},${getY(score)}`;
               })
               .filter(Boolean)
               .join(" ");
+
+            // Only render if we have at least one valid point
+            if (!points) return null;
 
             return (
               <g key={bureau.key}>
@@ -216,8 +246,8 @@ const ScoreChart = ({ reports }: { reports: CreditReportData[] }) => {
                   strokeLinejoin="round"
                 />
                 {sortedReports.map((r, i) => {
-                  const score = r.bureaus[bureau.key].score;
-                  if (score === null) return null;
+                  const score = r.bureaus?.[bureau.key]?.score;
+                  if (score === null || score === undefined || isNaN(score)) return null;
                   return (
                     <circle
                       key={`${bureau.key}-${i}`}
@@ -296,17 +326,17 @@ const ComparisonTable = ({ reports }: { reports: CreditReportData[] }) => {
           </thead>
           <tbody>
             {bureaus.map((bureau) => {
-              const oldScore = oldest.bureaus[bureau.key].score;
-              const newScore = latest.bureaus[bureau.key].score;
+              const oldScore = oldest.bureaus?.[bureau.key]?.score ?? null;
+              const newScore = latest.bureaus?.[bureau.key]?.score ?? null;
               const change = getChange(newScore, oldScore);
               return (
                 <tr key={bureau.key} className="border-b border-zinc-800/50">
                   <td className={`px-4 py-3 text-sm font-medium ${bureau.color}`}>{bureau.label} Score</td>
-                  <td className="px-4 py-3 text-center text-sm text-white">{oldScore || "—"}</td>
+                  <td className="px-4 py-3 text-center text-sm text-white">{oldScore ?? "—"}</td>
                   <td className="px-4 py-3 text-center">
                     {change !== null && <ChangeArrow value={change} />}
                   </td>
-                  <td className="px-4 py-3 text-center text-sm text-white font-semibold">{newScore || "—"}</td>
+                  <td className="px-4 py-3 text-center text-sm text-white font-semibold">{newScore ?? "—"}</td>
                   <td className="px-4 py-3 text-center">
                     {change !== null && (
                       <span
@@ -324,73 +354,73 @@ const ComparisonTable = ({ reports }: { reports: CreditReportData[] }) => {
             })}
             <tr className="border-b border-zinc-800/50 bg-zinc-800/20">
               <td className="px-4 py-3 text-sm font-medium text-white">Negative Items</td>
-              <td className="px-4 py-3 text-center text-sm text-red-400">{oldest.summary.negativeItems}</td>
+              <td className="px-4 py-3 text-center text-sm text-red-400">{oldest.summary?.negativeItems ?? 0}</td>
               <td className="px-4 py-3 text-center">
-                <ChangeArrow value={oldest.summary.negativeItems - latest.summary.negativeItems} />
+                <ChangeArrow value={(oldest.summary?.negativeItems ?? 0) - (latest.summary?.negativeItems ?? 0)} />
               </td>
               <td className="px-4 py-3 text-center text-sm text-red-400 font-semibold">
-                {latest.summary.negativeItems}
+                {latest.summary?.negativeItems ?? 0}
               </td>
               <td className="px-4 py-3 text-center">
                 <span
                   className={`text-sm font-medium ${
-                    oldest.summary.negativeItems - latest.summary.negativeItems > 0
+                    (oldest.summary?.negativeItems ?? 0) - (latest.summary?.negativeItems ?? 0) > 0
                       ? "text-emerald-400"
-                      : oldest.summary.negativeItems - latest.summary.negativeItems < 0
+                      : (oldest.summary?.negativeItems ?? 0) - (latest.summary?.negativeItems ?? 0) < 0
                       ? "text-red-400"
                       : "text-zinc-500"
                   }`}
                 >
-                  {oldest.summary.negativeItems - latest.summary.negativeItems > 0 ? "-" : "+"}
-                  {Math.abs(oldest.summary.negativeItems - latest.summary.negativeItems)}
+                  {(oldest.summary?.negativeItems ?? 0) - (latest.summary?.negativeItems ?? 0) > 0 ? "-" : "+"}
+                  {Math.abs((oldest.summary?.negativeItems ?? 0) - (latest.summary?.negativeItems ?? 0))}
                 </span>
               </td>
             </tr>
             <tr className="border-b border-zinc-800/50">
               <td className="px-4 py-3 text-sm font-medium text-white">Collections</td>
-              <td className="px-4 py-3 text-center text-sm text-orange-400">{oldest.summary.collections}</td>
+              <td className="px-4 py-3 text-center text-sm text-orange-400">{oldest.summary?.collections ?? 0}</td>
               <td className="px-4 py-3 text-center">
-                <ChangeArrow value={oldest.summary.collections - latest.summary.collections} />
+                <ChangeArrow value={(oldest.summary?.collections ?? 0) - (latest.summary?.collections ?? 0)} />
               </td>
               <td className="px-4 py-3 text-center text-sm text-orange-400 font-semibold">
-                {latest.summary.collections}
+                {latest.summary?.collections ?? 0}
               </td>
               <td className="px-4 py-3 text-center">
                 <span
                   className={`text-sm font-medium ${
-                    oldest.summary.collections - latest.summary.collections > 0
+                    (oldest.summary?.collections ?? 0) - (latest.summary?.collections ?? 0) > 0
                       ? "text-emerald-400"
-                      : oldest.summary.collections - latest.summary.collections < 0
+                      : (oldest.summary?.collections ?? 0) - (latest.summary?.collections ?? 0) < 0
                       ? "text-red-400"
                       : "text-zinc-500"
                   }`}
                 >
-                  {oldest.summary.collections - latest.summary.collections > 0 ? "-" : "+"}
-                  {Math.abs(oldest.summary.collections - latest.summary.collections)}
+                  {(oldest.summary?.collections ?? 0) - (latest.summary?.collections ?? 0) > 0 ? "-" : "+"}
+                  {Math.abs((oldest.summary?.collections ?? 0) - (latest.summary?.collections ?? 0))}
                 </span>
               </td>
             </tr>
             <tr>
               <td className="px-4 py-3 text-sm font-medium text-white">Inquiries</td>
-              <td className="px-4 py-3 text-center text-sm text-amber-400">{oldest.summary.inquiries}</td>
+              <td className="px-4 py-3 text-center text-sm text-amber-400">{oldest.summary?.inquiries ?? 0}</td>
               <td className="px-4 py-3 text-center">
-                <ChangeArrow value={oldest.summary.inquiries - latest.summary.inquiries} />
+                <ChangeArrow value={(oldest.summary?.inquiries ?? 0) - (latest.summary?.inquiries ?? 0)} />
               </td>
               <td className="px-4 py-3 text-center text-sm text-amber-400 font-semibold">
-                {latest.summary.inquiries}
+                {latest.summary?.inquiries ?? 0}
               </td>
               <td className="px-4 py-3 text-center">
                 <span
                   className={`text-sm font-medium ${
-                    oldest.summary.inquiries - latest.summary.inquiries > 0
+                    (oldest.summary?.inquiries ?? 0) - (latest.summary?.inquiries ?? 0) > 0
                       ? "text-emerald-400"
-                      : oldest.summary.inquiries - latest.summary.inquiries < 0
+                      : (oldest.summary?.inquiries ?? 0) - (latest.summary?.inquiries ?? 0) < 0
                       ? "text-red-400"
                       : "text-zinc-500"
                   }`}
                 >
-                  {oldest.summary.inquiries - latest.summary.inquiries > 0 ? "-" : "+"}
-                  {Math.abs(oldest.summary.inquiries - latest.summary.inquiries)}
+                  {(oldest.summary?.inquiries ?? 0) - (latest.summary?.inquiries ?? 0) > 0 ? "-" : "+"}
+                  {Math.abs((oldest.summary?.inquiries ?? 0) - (latest.summary?.inquiries ?? 0))}
                 </span>
               </td>
             </tr>
@@ -421,8 +451,8 @@ const InsightsPanel = ({ reports }: { reports: CreditReportData[] }) => {
     let worstBureau = { name: "", improvement: Infinity };
 
     bureaus.forEach((bureau) => {
-      const oldScore = oldest.bureaus[bureau].score;
-      const newScore = latest.bureaus[bureau].score;
+      const oldScore = oldest.bureaus?.[bureau]?.score ?? null;
+      const newScore = latest.bureaus?.[bureau]?.score ?? null;
       if (oldScore !== null && newScore !== null) {
         const improvement = newScore - oldScore;
         totalImprovement += improvement;
@@ -485,10 +515,11 @@ const InsightsPanel = ({ reports }: { reports: CreditReportData[] }) => {
     }
 
     // Remaining negatives
-    if (latest.summary.negativeItems > 0) {
+    const negativeItems = latest.summary?.negativeItems ?? 0;
+    if (negativeItems > 0) {
       result.push({
         type: "neutral",
-        text: `${latest.summary.negativeItems} negative item${latest.summary.negativeItems !== 1 ? "s" : ""} remaining to dispute`,
+        text: `${negativeItems} negative item${negativeItems !== 1 ? "s" : ""} remaining to dispute`,
       });
     }
 
@@ -562,9 +593,11 @@ export function ReportComparisonModal({
     const oldest = reports[reports.length - 1];
 
     const getAvgScore = (r: CreditReportData) => {
-      const scores = [r.bureaus.transunion.score, r.bureaus.equifax.score, r.bureaus.experian.score].filter(
-        (s): s is number => s !== null
-      );
+      const scores = [
+        r.bureaus?.transunion?.score,
+        r.bureaus?.equifax?.score,
+        r.bureaus?.experian?.score,
+      ].filter((s): s is number => s !== null && s !== undefined && !isNaN(s));
       return scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
     };
 
