@@ -174,28 +174,79 @@ export const POST = withAuth(async (req, ctx) => {
       );
     }
 
-    // Determine the next round number for this client/CRA in Sentry system
-    const lastDispute = await prisma.sentryDispute.findFirst({
-      where: { clientId, cra },
-      orderBy: { round: "desc" },
+    // Determine round number PER ACCOUNT - accounts never disputed start at Round 1
+    // Check if any of the selected accounts are already in a DRAFT dispute
+    const existingDraftWithAccounts = await prisma.sentryDispute.findFirst({
+      where: {
+        clientId,
+        cra,
+        status: "DRAFT",
+        items: {
+          some: {
+            accountItemId: { in: accountIds },
+          },
+        },
+      },
+      include: {
+        items: {
+          where: {
+            accountItemId: { in: accountIds },
+          },
+          include: {
+            accountItem: {
+              select: { creditorName: true },
+            },
+          },
+        },
+      },
     });
 
-    // Check if previous round is sent (if exists)
-    if (lastDispute && lastDispute.status === "DRAFT") {
+    // Only block if there's a draft that contains the SAME accounts
+    if (existingDraftWithAccounts) {
+      const affectedAccounts = existingDraftWithAccounts.items
+        .map((i) => i.accountItem.creditorName)
+        .join(", ");
       return NextResponse.json(
         {
-          error: `Cannot create Round ${lastDispute.round + 1}`,
+          error: `Draft dispute exists for selected accounts`,
           details: {
-            currentRound: lastDispute.round,
-            currentStatus: lastDispute.status,
-            message: `Round ${lastDispute.round} must be sent first`,
+            currentRound: existingDraftWithAccounts.round,
+            currentStatus: "DRAFT",
+            affectedAccounts,
+            disputeId: existingDraftWithAccounts.id,
+            message: `You have a draft dispute (Round ${existingDraftWithAccounts.round}) that includes: ${affectedAccounts}. Please send or delete that draft first.`,
           },
         },
         { status: 400 }
       );
     }
 
-    const round = (lastDispute?.round || 0) + 1;
+    // Find the highest round for each selected account with this CRA
+    const previousDisputesForAccounts = await prisma.sentryDisputeItem.findMany({
+      where: {
+        accountItemId: { in: accountIds },
+        sentryDispute: {
+          cra,
+          status: { in: ["SENT", "RESPONDED", "RESOLVED"] }, // Only count completed disputes
+        },
+      },
+      include: {
+        sentryDispute: {
+          select: { round: true },
+        },
+      },
+    });
+
+    // Determine the max round across all selected accounts
+    let maxPreviousRound = 0;
+    for (const item of previousDisputesForAccounts) {
+      if (item.sentryDispute.round > maxPreviousRound) {
+        maxPreviousRound = item.sentryDispute.round;
+      }
+    }
+
+    // Next round is max + 1, or 1 if no previous disputes for these accounts
+    const round = maxPreviousRound + 1;
 
     // Create the Sentry dispute with items
     const dispute = await prisma.sentryDispute.create({
