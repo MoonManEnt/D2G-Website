@@ -67,10 +67,10 @@ import {
 import { Progress } from "@/components/ui/progress";
 
 // Safe date formatting helper
-const safeFormatDate = (dateStr: string | null | undefined, fallback: string = "Unknown"): string => {
-  if (!dateStr) return fallback;
+const safeFormatDate = (dateInput: string | Date | null | undefined, fallback: string = "Unknown"): string => {
+  if (!dateInput) return fallback;
   try {
-    const date = new Date(dateStr);
+    const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
     if (isNaN(date.getTime())) return fallback;
     return date.toLocaleDateString();
   } catch {
@@ -78,10 +78,10 @@ const safeFormatDate = (dateStr: string | null | undefined, fallback: string = "
   }
 };
 
-const safeFormatDateTime = (dateStr: string | null | undefined, fallback: string = "Unknown"): string => {
-  if (!dateStr) return fallback;
+const safeFormatDateTime = (dateInput: string | Date | null | undefined, fallback: string = "Unknown"): string => {
+  if (!dateInput) return fallback;
   try {
-    const date = new Date(dateStr);
+    const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
     if (isNaN(date.getTime())) return fallback;
     return `${date.toLocaleDateString()} at ${date.toLocaleTimeString()}`;
   } catch {
