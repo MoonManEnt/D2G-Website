@@ -824,7 +824,7 @@ export default function ClientDetailPage() {
             <CardContent className="p-4 text-center">
               <User className="w-6 h-6 mx-auto text-slate-400" />
               <p className="text-2xl font-bold text-white mt-2">{summary.totalAccounts}</p>
-              <p className="text-xs text-slate-500">Accounts</p>
+              <p className="text-xs text-slate-500">Creditors</p>
             </CardContent>
           </Card>
           <Card className="bg-slate-800/50 border-slate-700/50">
@@ -1757,7 +1757,7 @@ export default function ClientDetailPage() {
               </p>
               <ul className="text-red-400/80 text-sm mt-2 list-disc list-inside space-y-1">
                 <li>{summary?.totalReports || 0} credit reports</li>
-                <li>{summary?.totalAccounts || 0} accounts</li>
+                <li>{summary?.totalAccounts || 0} creditors</li>
                 <li>{summary?.totalDisputes || 0} disputes</li>
                 <li>All evidence and documents</li>
               </ul>

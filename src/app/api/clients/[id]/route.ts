@@ -94,12 +94,44 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       })),
     };
 
+    // Helper to check if account is truly negative (not just disputable)
+    const isTrulyNegative = (account: { accountStatus: string | null; detectedIssues: string | null }) => {
+      const status = account.accountStatus?.toUpperCase() || "";
+      // Only count as negative if it has actual derogatory status
+      const isDerogatory = ["DEROGATORY", "CHARGED_OFF", "COLLECTION", "CHARGEOFF"].includes(status);
+      // Or if it has actual late payment marks in detected issues
+      const hasLateMarks = account.detectedIssues?.includes("PAYMENT_HISTORY_LATE_MARKS") ||
+                          account.detectedIssues?.includes("LATE_PAYMENT_STATUS");
+      return isDerogatory || hasLateMarks;
+    };
+
+    // Get all accounts to calculate unique creditors
+    const allAccounts = await prisma.accountItem.findMany({
+      where: {
+        clientId,
+        organizationId: session.user.organizationId,
+      },
+      select: {
+        creditorName: true,
+        accountStatus: true,
+        detectedIssues: true,
+      },
+    });
+
+    // Calculate unique creditors
+    const uniqueCreditors = new Set(
+      allAccounts.map((a) => a.creditorName?.toUpperCase().trim()).filter(Boolean)
+    ).size;
+
+    // Calculate truly negative items
+    const trulyNegativeCount = allAccounts.filter(isTrulyNegative).length;
+
     // Calculate summary stats
     const summary = {
       totalReports: client._count.reports,
-      totalAccounts: client._count.accounts,
+      totalAccounts: uniqueCreditors, // Unique creditors instead of total entries
       totalDisputes: client._count.disputes,
-      negativeItems: client.accounts.length,
+      negativeItems: trulyNegativeCount, // Truly negative items only
       highSeverityIssues: client.accounts.filter((a) => {
         try {
           const issues = a.detectedIssues ? JSON.parse(a.detectedIssues) : [];
