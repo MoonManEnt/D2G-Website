@@ -825,7 +825,7 @@ const ReportCard = ({
         <div className="grid grid-cols-4 gap-1.5 mb-3">
           <div className="text-center p-1.5 bg-zinc-800/30 rounded-lg">
             <p className="text-sm font-bold text-white">{report.summary.totalAccounts}</p>
-            <p className="text-[9px] text-zinc-500">Accounts</p>
+            <p className="text-[9px] text-zinc-500">Creditors</p>
           </div>
           <div className="text-center p-1.5 bg-zinc-800/30 rounded-lg">
             <p className="text-sm font-bold text-red-400">{report.summary.negativeItems}</p>
@@ -1422,7 +1422,7 @@ export function CreditReportsPanel({
 
                       <div className="flex items-center gap-4 text-xs">
                         <span className="text-zinc-500">
-                          <span className="text-white font-medium">{report.summary.totalAccounts}</span> accounts
+                          <span className="text-white font-medium">{report.summary.totalAccounts}</span> creditors
                         </span>
                         <span className="text-zinc-500">
                           <span className="text-red-400 font-medium">{report.summary.negativeItems}</span>{" "}

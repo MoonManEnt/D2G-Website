@@ -153,8 +153,13 @@ export async function GET(
       );
       const allInquiries = parseInquiries(report.hardInquiries);
 
+      // Calculate unique creditors (accounts grouped by creditor name)
+      const uniqueCreditors = new Set(
+        allAccounts.map((a) => a.creditorName?.toUpperCase().trim()).filter(Boolean)
+      ).size;
+
       const summary: ReportSummary = {
-        totalAccounts: allAccounts.length,
+        totalAccounts: uniqueCreditors, // Show unique creditors instead of total entries
         openAccounts: allAccounts.filter((a) => a.accountStatus === "OPEN").length,
         closedAccounts: allAccounts.filter((a) => a.accountStatus === "CLOSED").length,
         negativeItems: negativeAccounts.length,
