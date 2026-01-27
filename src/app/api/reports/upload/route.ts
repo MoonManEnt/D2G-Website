@@ -6,6 +6,10 @@ import { v4 as uuid } from "uuid";
 import path from "path";
 import fs from "fs";
 import { parseAndAnalyzeReport } from "@/lib/report-parser";
+import { put } from "@vercel/blob";
+
+// Detect if running on Vercel (production)
+const isVercel = process.env.VERCEL === "1";
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // Allow up to 60 seconds for PDF processing
@@ -71,21 +75,35 @@ export async function POST(req: NextRequest) {
     const pdfBuffer = Buffer.from(arrayBuffer);
     const fileSize = pdfBuffer.length;
 
-    // Ensure uploads directory exists
-    const uploadsDir = path.join(process.cwd(), "uploads", "reports");
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-
     // Generate unique filename
     const fileId = uuid();
     const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
-    const storagePath = path.join(uploadsDir, `${fileId}-${safeFileName}`);
-    const relativePath = `uploads/reports/${fileId}-${safeFileName}`;
+    const blobName = `reports/${fileId}-${safeFileName}`;
 
-    // Write file to disk
-    fs.writeFileSync(storagePath, pdfBuffer);
-    console.log(`📂 [UPLOAD] File saved to: ${storagePath}`);
+    let relativePath: string;
+    let storageType: "LOCAL" | "VERCEL_BLOB";
+
+    if (isVercel) {
+      // Production: Use Vercel Blob storage
+      const blob = await put(blobName, pdfBuffer, {
+        access: "public",
+        contentType: "application/pdf",
+      });
+      relativePath = blob.url;
+      storageType = "VERCEL_BLOB";
+      console.log(`☁️ [UPLOAD] File saved to Vercel Blob: ${blob.url}`);
+    } else {
+      // Local: Use filesystem
+      const uploadsDir = path.join(process.cwd(), "uploads", "reports");
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+      const storagePath = path.join(uploadsDir, `${fileId}-${safeFileName}`);
+      relativePath = `uploads/reports/${fileId}-${safeFileName}`;
+      storageType = "LOCAL";
+      fs.writeFileSync(storagePath, pdfBuffer);
+      console.log(`📂 [UPLOAD] File saved to: ${storagePath}`);
+    }
 
     // Create database records in transaction
     const { storedFile, report } = await prisma.$transaction(async (tx) => {
@@ -97,7 +115,7 @@ export async function POST(req: NextRequest) {
           mimeType: "application/pdf",
           sizeBytes: fileSize,
           storagePath: relativePath,
-          storageType: "LOCAL",
+          storageType: storageType,
           organizationId,
         },
       });
