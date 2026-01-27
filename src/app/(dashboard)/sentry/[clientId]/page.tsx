@@ -58,15 +58,28 @@ async function validateClient(clientId: string, organizationId: string) {
       id: true,
       firstName: true,
       lastName: true,
-      _count: {
+      // Get the most recent report to check for accounts
+      reports: {
+        orderBy: { reportDate: "desc" },
+        take: 1,
         select: {
-          accounts: true,
+          _count: {
+            select: { accounts: true },
+          },
         },
       },
     },
   });
 
-  return client;
+  if (!client) return null;
+
+  // Return with account count from most recent report
+  return {
+    ...client,
+    _count: {
+      accounts: client.reports[0]?._count.accounts || 0,
+    },
+  };
 }
 
 export default async function SentryClientPage({ params }: PageProps) {

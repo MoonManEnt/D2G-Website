@@ -33,15 +33,28 @@ async function getClients(organizationId: string) {
       currentRound: true,
       _count: {
         select: {
-          accounts: true,
           sentryDisputes: true,
+        },
+      },
+      // Get the most recent report to show accurate account count
+      reports: {
+        orderBy: { reportDate: "desc" },
+        take: 1,
+        select: {
+          _count: {
+            select: { accounts: true },
+          },
         },
       },
     },
     orderBy: { updatedAt: "desc" },
   });
 
-  return clients;
+  // Transform to include account count from most recent report
+  return clients.map((client) => ({
+    ...client,
+    latestReportAccountCount: client.reports[0]?._count.accounts || 0,
+  }));
 }
 
 async function getSentryStats(organizationId: string) {
@@ -179,7 +192,7 @@ export default async function SentryPage() {
                       {client.firstName} {client.lastName}
                     </div>
                     <div className="text-xs text-slate-400">
-                      {client._count.accounts} accounts • {client._count.sentryDisputes} Sentry disputes
+                      {client.latestReportAccountCount} accounts • {client._count.sentryDisputes} Sentry disputes
                     </div>
                   </div>
                 </div>
