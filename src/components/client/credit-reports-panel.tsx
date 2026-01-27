@@ -1041,7 +1041,7 @@ export function CreditReportsPanel({
       const res = await fetch(`/api/clients/${clientId}/reports`);
       if (res.ok) {
         const data = await res.json();
-        setReports(data);
+        setReports(data.reports || []);
       }
     } catch (error) {
       console.error("Failed to fetch reports:", error);
@@ -1137,11 +1137,12 @@ export function CreditReportsPanel({
             const reportsRes = await fetch(`/api/clients/${clientId}/reports`);
             if (reportsRes.ok) {
               const data = await reportsRes.json();
-              const latestReport = data[0];
+              const reportsArray = data.reports || [];
+              const latestReport = reportsArray[0];
               if (latestReport?.status === "completed") {
                 clearInterval(checkParsing);
                 // Store data but don't show yet - wait for animation and modal to complete
-                setPendingReportsData(data);
+                setPendingReportsData(reportsArray);
               }
             }
           }, 2000);
