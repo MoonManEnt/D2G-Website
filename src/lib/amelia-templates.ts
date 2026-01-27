@@ -108,16 +108,19 @@ export function getDemandLanguage(round: number): string {
 
 export const ACCURACY_TEMPLATES: Record<number, Omit<RoundTemplate, "round" | "flow">> = {
   1: {
-    headline: "FACTUAL DISPUTE—Inaccurate accounts on my credit report.",
+    headline: "REQUEST TO INVESTIGATE INACCURATE REPORTING",
     statute: "FCRA Maximum Accuracy",
-    openingParagraph: `{bureauName} may be facing serious legal penalties. You are furnishing inaccurate information on my credit report which is stopping me from getting the credit I need to support my family. Because of your unreliable reporting habits, I am forced to work extra hours day in and day out… losing all my spare time (which I used to spend with my family). And all the extra stress, lost time, and unwanted pressure in my life is caused by the inaccurate items on my credit report.`,
+    openingParagraph: `I'm writing because the information being reported on my credit file is inaccurate, and it has been affecting my life in real ways. I've been unable to access credit I should qualify for, which has forced me to work extra hours and stretch myself thin just to cover basic needs. That means less time with my family and constant stress, all because my credit report is not reflecting the truth. This has been exhausting and unnecessary.
+
+After reviewing my report closely, I found multiple items that are not reporting accurately or consistently. Some information does not match my records, and some does not line up across the way it's being reported. When a credit report is accurate, it tells one clear story—right now, mine doesn't. I am requesting that you investigate each item listed below and verify whether it is being reported accurately and completely.
+
+Please investigate the disputed items and correct any information that is inaccurate, incomplete, or cannot be verified. I am not disputing my entire report—only the specific items listed—and I expect your reinvestigation to reflect what is actually true. Once your investigation is complete, please send me written results and an updated copy of my report showing any changes made.`,
     bodyParagraphs: [
-      `The information in this complaint is inaccurate because it reports different information across each consumer reporting agency (or CRA). However, the Fair Credit Reporting Act (or FCRA) requires {bureauName} to report my credit with maximum accuracy. What is maximum accuracy? Well, under the FCRA, this standard forces CRAs to report my credit 100% consistent across each agency, only after I inform you of the errors.`,
-      `And for this reason, if you do not modify or delete the accounts I am about to list in this complaint, you may have to pay a hefty fine (over a couple thousand) for the damages your misleading reporting has caused me. Here is a list of the items furnishing incorrect, plus the exact categories that are inaccurate:`,
+      `Here is the exact information furnishing inaccurate on my {bureauName} credit report:`,
     ],
-    accountListIntro: `You have 30 days from receiving this dispute to either correct these items… or… delete them from my credit report. I know I may sound a little blunt and direct, but you should know, my credit score controls almost all of my financial decisions… and without it I am going to struggle for a very long time. So all I ask of you is this: Please follow your legal duties and remove the inaccurate information from my credit report. I can assure you, it would work out best for the both of us.`,
-    demandSection: DEMAND_LANGUAGE.R1,
-    consumerStatement: `All items listed in this complaint are reporting incorrect information on my credit report. I have not been able to use my credit in a very long time and I am suffering each and every day because of it. Please remove this information ASAP so I can go back to living my normal (less stressful) life.`,
+    accountListIntro: `You have an opportunity to fix this without dragging it out. Delete the inaccurate information listed below and send me written confirmation, and I will consider this matter resolved. If you choose to keep publishing inaccuracies after receiving this notice, I am prepared to pursue all available remedies for the harm your reporting is causing.`,
+    demandSection: "Requested Corrections / Deletions:",
+    consumerStatement: `Consumer Statement: These inaccuracies have been holding me back for a long time. I'm asking you to investigate these items carefully and only report information that is accurate and truly tied to me. I want my credit file to reflect the truth so I can be evaluated fairly and move forward without these errors following me.`,
     includesScreenshots: false,
   },
 
