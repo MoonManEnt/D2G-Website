@@ -66,6 +66,29 @@ import {
 } from "@/lib/credit-dna";
 import { Progress } from "@/components/ui/progress";
 
+// Safe date formatting helper
+const safeFormatDate = (dateStr: string | null | undefined, fallback: string = "Unknown"): string => {
+  if (!dateStr) return fallback;
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return fallback;
+    return date.toLocaleDateString();
+  } catch {
+    return fallback;
+  }
+};
+
+const safeFormatDateTime = (dateStr: string | null | undefined, fallback: string = "Unknown"): string => {
+  if (!dateStr) return fallback;
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return fallback;
+    return `${date.toLocaleDateString()} at ${date.toLocaleTimeString()}`;
+  } catch {
+    return fallback;
+  }
+};
+
 interface ClientData {
   id: string;
   firstName: string;
@@ -766,7 +789,7 @@ export default function ClientDetailPage() {
                 {client.firstName} {client.lastName}
               </h1>
               <p className="text-slate-500 text-sm">
-                Client since {new Date(client.createdAt).toLocaleDateString()}
+                Client since {safeFormatDate(client.createdAt)}
               </p>
             </div>
           </div>
@@ -911,7 +934,7 @@ export default function ClientDetailPage() {
                 <p className="text-xs text-slate-500 mb-0.5">Date of Birth</p>
                 <p className="text-white">
                   {client.dateOfBirth
-                    ? new Date(client.dateOfBirth).toLocaleDateString()
+                    ? safeFormatDate(client.dateOfBirth)
                     : "Not provided"}
                 </p>
               </div>
@@ -1026,17 +1049,25 @@ export default function ClientDetailPage() {
 
                 {client.reports.map((report, index) => {
                   const isLatest = index === 0;
-                  const uploadDate = new Date(report.createdAt);
-                  const formattedDate = uploadDate.toLocaleDateString("en-US", {
-                    weekday: "short",
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  });
-                  const formattedTime = uploadDate.toLocaleTimeString("en-US", {
-                    hour: "numeric",
-                    minute: "2-digit",
-                  });
+                  let formattedDate = "Unknown date";
+                  let formattedTime = "";
+                  try {
+                    const uploadDate = new Date(report.createdAt);
+                    if (!isNaN(uploadDate.getTime())) {
+                      formattedDate = uploadDate.toLocaleDateString("en-US", {
+                        weekday: "short",
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      });
+                      formattedTime = uploadDate.toLocaleTimeString("en-US", {
+                        hour: "numeric",
+                        minute: "2-digit",
+                      });
+                    }
+                  } catch {
+                    // Keep defaults
+                  }
                   const fileSize = report.originalFile?.sizeBytes
                     ? (report.originalFile.sizeBytes / (1024 * 1024)).toFixed(2) + " MB"
                     : "Unknown size";
@@ -1574,8 +1605,7 @@ export default function ClientDetailPage() {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-white text-lg">Analysis Summary</CardTitle>
                   <CardDescription className="text-slate-400">
-                    Generated {new Date(dnaProfile.analyzedAt).toLocaleDateString()} at{" "}
-                    {new Date(dnaProfile.analyzedAt).toLocaleTimeString()}
+                    Generated {safeFormatDateTime(dnaProfile.analyzedAt)}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
