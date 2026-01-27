@@ -79,6 +79,7 @@ export async function GET(
           select: {
             id: true,
             cra: true,
+            creditorName: true,
             accountStatus: true,
             accountType: true,
             isDisputable: true,
