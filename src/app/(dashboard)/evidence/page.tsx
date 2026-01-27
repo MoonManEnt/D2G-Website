@@ -62,7 +62,11 @@ import {
   Type,
   Highlighter,
   Brain,
+  Camera,
+  Clock,
+  XCircle,
 } from "lucide-react";
+import { EvidenceCaptureModal } from "@/components/evidence/capture-modal";
 import { useToast } from "@/lib/use-toast";
 
 // ============================================================================
@@ -140,6 +144,37 @@ interface Exhibit {
   evidence: EvidenceItem;
   caption: string;
   notes: string;
+}
+
+interface PendingEvidenceItem {
+  id: string;
+  accountItemId: string;
+  reportId: string;
+  status: string;
+  createdAt: string;
+  accountItem: {
+    id: string;
+    creditorName: string;
+    maskedAccountId: string | null;
+    cra: string;
+    accountStatus: string;
+    balance: number | null;
+    detectedIssues: string | null;
+    issueCount: number;
+    sourcePageNum: number | null;
+    clientId: string;
+    client: {
+      id: string;
+      firstName: string;
+      lastName: string;
+    };
+  };
+  report: {
+    id: string;
+    reportDate: string;
+    parseStatus: string;
+    originalFileId: string;
+  };
 }
 
 interface Divergence {
@@ -257,6 +292,12 @@ export default function EvidencePage() {
   // Bureau comparison state
   const [comparisonEvidence, setComparisonEvidence] = useState<EvidenceItem | null>(null);
 
+  // Pending evidence state
+  const [pendingEvidence, setPendingEvidence] = useState<PendingEvidenceItem[]>([]);
+  const [loadingPending, setLoadingPending] = useState(false);
+  const [captureModalOpen, setCaptureModalOpen] = useState(false);
+  const [selectedPendingItem, setSelectedPendingItem] = useState<PendingEvidenceItem | null>(null);
+
   // Computed: check if selection is complete
   const hasSelection = Boolean(selectedClientId && selectedReportId);
 
@@ -340,6 +381,66 @@ export default function EvidencePage() {
   useEffect(() => {
     fetchEvidence();
   }, [fetchEvidence]);
+
+  // Fetch pending evidence
+  const fetchPendingEvidence = useCallback(async () => {
+    try {
+      setLoadingPending(true);
+      let url = "/api/evidence/pending?status=PENDING";
+      if (selectedClientId) url += `&clientId=${selectedClientId}`;
+      if (selectedReportId) url += `&reportId=${selectedReportId}`;
+
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        setPendingEvidence(data.items || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch pending evidence:", error);
+    } finally {
+      setLoadingPending(false);
+    }
+  }, [selectedClientId, selectedReportId]);
+
+  // Fetch pending evidence on mount and when selection changes
+  useEffect(() => {
+    fetchPendingEvidence();
+  }, [fetchPendingEvidence]);
+
+  // Handle dismissing pending evidence
+  const handleDismissPending = async (id: string) => {
+    try {
+      const res = await fetch("/api/evidence/pending", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status: "DISMISSED" }),
+      });
+      if (res.ok) {
+        setPendingEvidence((prev) => prev.filter((p) => p.id !== id));
+        toast({
+          title: "Dismissed",
+          description: "Pending evidence suggestion dismissed",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to dismiss pending evidence:", error);
+    }
+  };
+
+  // Handle capture completion
+  const handleCaptureComplete = async (pendingId: string) => {
+    try {
+      await fetch("/api/evidence/pending", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: pendingId, status: "CAPTURED" }),
+      });
+      setPendingEvidence((prev) => prev.filter((p) => p.id !== pendingId));
+      fetchEvidence(); // Refresh evidence list
+    } catch (error) {
+      console.error("Failed to mark pending as captured:", error);
+    }
+  };
 
   const confirmDelete = (evidenceId: string) => {
     setEvidenceToDelete(evidenceId);
@@ -640,6 +741,93 @@ export default function EvidencePage() {
         {/* LIBRARY TAB */}
         {/* ============================================================================ */}
         <TabsContent value="library" className="mt-6 space-y-6">
+          {/* Pending Evidence Captures */}
+          {pendingEvidence.length > 0 && (
+            <Card className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/30">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2 text-amber-400">
+                  <Clock className="w-5 h-5" />
+                  Pending Evidence Captures ({pendingEvidence.length})
+                </CardTitle>
+                <p className="text-sm text-slate-400">
+                  These accounts have detected issues. Capture evidence to support your disputes.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                  {pendingEvidence.slice(0, 6).map((item) => {
+                    const issues = item.accountItem.detectedIssues
+                      ? JSON.parse(item.accountItem.detectedIssues)
+                      : [];
+                    return (
+                      <div
+                        key={item.id}
+                        className="p-4 bg-slate-800/60 rounded-lg border border-slate-700/50 hover:border-amber-500/30 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-white truncate">
+                              {item.accountItem.creditorName}
+                            </p>
+                            <p className="text-xs text-slate-400">
+                              {item.accountItem.client.firstName} {item.accountItem.client.lastName}
+                            </p>
+                          </div>
+                          <Badge
+                            variant="outline"
+                            className={
+                              item.accountItem.cra === "TRANSUNION"
+                                ? "bg-sky-500/20 text-sky-400 border-sky-500/30"
+                                : item.accountItem.cra === "EXPERIAN"
+                                ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                                : "bg-red-500/20 text-red-400 border-red-500/30"
+                            }
+                          >
+                            {item.accountItem.cra.slice(0, 2)}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-slate-400 mb-3">
+                          <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-[10px]">
+                            {item.accountItem.issueCount} Issues
+                          </Badge>
+                          {issues.length > 0 && (
+                            <span className="truncate">{issues[0]?.description?.slice(0, 30)}...</span>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
+                            onClick={() => {
+                              setSelectedPendingItem(item);
+                              setCaptureModalOpen(true);
+                            }}
+                          >
+                            <Camera className="w-3 h-3 mr-1" />
+                            Capture
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-slate-400 hover:text-slate-300"
+                            onClick={() => handleDismissPending(item.id)}
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {pendingEvidence.length > 6 && (
+                  <p className="text-sm text-slate-400 mt-3 text-center">
+                    +{pendingEvidence.length - 6} more pending captures
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Stats Cards */}
           {stats && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -908,12 +1096,45 @@ export default function EvidencePage() {
             annotations={annotations}
             setAnnotations={setAnnotations}
             onBack={() => setActiveTab("library")}
-            onSave={(updatedAnnotations) => {
+            onSave={async (updatedAnnotations) => {
               setAnnotations(updatedAnnotations);
-              toast({
-                title: "Annotations Saved",
-                description: "Your annotations have been saved.",
-              });
+
+              // Persist annotations to the database
+              if (annotatorEvidence?.id) {
+                try {
+                  const response = await fetch("/api/evidence", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      id: annotatorEvidence.id,
+                      annotations: updatedAnnotations,
+                    }),
+                  });
+
+                  if (response.ok) {
+                    toast({
+                      title: "Annotations Saved",
+                      description: "Your annotations have been saved to the database.",
+                    });
+                    // Refresh evidence list to show updated data
+                    fetchEvidence();
+                  } else {
+                    throw new Error("Failed to save");
+                  }
+                } catch (error) {
+                  console.error("Error saving annotations:", error);
+                  toast({
+                    title: "Save Failed",
+                    description: "Annotations saved locally but failed to persist to database.",
+                    variant: "destructive",
+                  });
+                }
+              } else {
+                toast({
+                  title: "Annotations Saved",
+                  description: "Your annotations have been saved locally.",
+                });
+              }
             }}
           />
         </TabsContent>
@@ -1142,6 +1363,36 @@ export default function EvidencePage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Evidence Capture Modal for Pending Items */}
+      {selectedPendingItem && (
+        <EvidenceCaptureModal
+          open={captureModalOpen}
+          onOpenChange={(open) => {
+            setCaptureModalOpen(open);
+            if (!open) setSelectedPendingItem(null);
+          }}
+          account={{
+            id: selectedPendingItem.accountItem.id,
+            creditorName: selectedPendingItem.accountItem.creditorName,
+            maskedAccountId: selectedPendingItem.accountItem.maskedAccountId,
+            cra: selectedPendingItem.accountItem.cra,
+            detectedIssues: selectedPendingItem.accountItem.detectedIssues,
+            sourcePageNum: selectedPendingItem.accountItem.sourcePageNum,
+          }}
+          reportId={selectedPendingItem.reportId}
+          pdfUrl={`/api/reports/${selectedPendingItem.reportId}/pdf`}
+          onEvidenceCaptured={() => {
+            handleCaptureComplete(selectedPendingItem.id);
+            setCaptureModalOpen(false);
+            setSelectedPendingItem(null);
+            toast({
+              title: "Evidence Captured",
+              description: "Evidence has been saved successfully",
+            });
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -1161,7 +1412,7 @@ function EvidenceAnnotator({
   annotations: Annotation[];
   setAnnotations: React.Dispatch<React.SetStateAction<Annotation[]>>;
   onBack: () => void;
-  onSave: (annotations: Annotation[]) => void;
+  onSave: (annotations: Annotation[]) => void | Promise<void>;
 }) {
   const [activeTool, setActiveTool] = useState("select");
   const [activeColor, setActiveColor] = useState("#ef4444");

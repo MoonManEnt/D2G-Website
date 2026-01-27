@@ -19,6 +19,8 @@ interface PDFViewerProps {
   searchText?: string;
   onCapture?: (imageData: string, pageNumber: number) => void;
   highlightPages?: number[];
+  /** Initial page to navigate to when the PDF loads (1-indexed) */
+  initialPage?: number;
 }
 
 export function PDFViewer({
@@ -26,6 +28,7 @@ export function PDFViewer({
   searchText,
   onCapture,
   highlightPages = [],
+  initialPage,
 }: PDFViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -70,7 +73,11 @@ export function PDFViewer({
 
         setPdf(pdfDoc);
         setTotalPages(pdfDoc.numPages);
-        setCurrentPage(1);
+        // Use initialPage if provided and valid, otherwise start at page 1
+        const startPage = initialPage && initialPage > 0 && initialPage <= pdfDoc.numPages
+          ? initialPage
+          : 1;
+        setCurrentPage(startPage);
       } catch (err) {
         console.error("Error loading PDF:", err);
         setError(err instanceof Error ? err.message : "Failed to load PDF");

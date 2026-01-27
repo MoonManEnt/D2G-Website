@@ -30,6 +30,8 @@ interface CaptureModalProps {
     maskedAccountId: string | null;
     cra: string;
     detectedIssues?: string | null;
+    /** PDF page where this account was found (1-indexed) */
+    sourcePageNum?: number | null;
   };
   reportId: string;
   pdfUrl: string;
@@ -131,6 +133,7 @@ export function EvidenceCaptureModal({
               searchText={account.creditorName}
               onCapture={handleCapture}
               highlightPages={getHighlightPages()}
+              initialPage={account.sourcePageNum || undefined}
             />
           </div>
 

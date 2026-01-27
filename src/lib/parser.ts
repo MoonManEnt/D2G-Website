@@ -421,8 +421,10 @@ export function extractCreditScores(text: string): ExtractedCreditScores {
 
 /**
  * Main parsing function
+ * @param fullText - Full combined text from PDF
+ * @param pages - Optional array of page texts (0-indexed) for page tracking
  */
-export async function parseIdentityIQReport(fullText: string): Promise<ParseResult> {
+export async function parseIdentityIQReport(fullText: string, pages?: string[]): Promise<ParseResult> {
   const errors: ParseError[] = [];
   const warnings: ParseWarning[] = [];
   const accounts: ParsedAccountItem[] = [];
@@ -443,13 +445,13 @@ export async function parseIdentityIQReport(fullText: string): Promise<ParseResu
   }
 
   // Find account blocks by looking for creditor names followed by bureau headers
-  const accountBlocks = extractAccountBlocks(fullText);
+  const accountBlocks = extractAccountBlocks(fullText, pages);
 
   console.log(`Found ${accountBlocks.length} account blocks`);
 
   for (let i = 0; i < accountBlocks.length; i++) {
     const block = accountBlocks[i];
-    const parsedAccounts = parseAccountBlock(block.creditorName, block.text, i);
+    const parsedAccounts = parseAccountBlock(block.creditorName, block.text, i, block.pageNum, block.pageEnd);
 
     for (const account of parsedAccounts) {
       const fingerprint = generateFingerprint(account.creditorName, account.maskedAccountId);
@@ -500,13 +502,41 @@ interface AccountBlock {
   creditorName: string;
   text: string;
   startIndex: number;
+  /** 1-indexed page number where this account was found */
+  pageNum?: number;
+  /** End page if account spans multiple pages */
+  pageEnd?: number;
 }
 
 /**
  * Extract account blocks from the text
+ * @param text - Full combined text
+ * @param pages - Optional array of page texts (0-indexed) for page tracking
  */
-function extractAccountBlocks(text: string): AccountBlock[] {
+function extractAccountBlocks(text: string, pages?: string[]): AccountBlock[] {
   const blocks: AccountBlock[] = [];
+
+  // Build page boundary lookup if pages are provided
+  // Maps character index in combined text to page number (1-indexed)
+  let pageBoundaries: number[] = [];
+  if (pages && pages.length > 0) {
+    let currentIndex = 0;
+    for (let i = 0; i < pages.length; i++) {
+      pageBoundaries.push(currentIndex);
+      currentIndex += pages[i].length + 2; // +2 for "\n\n" separator
+    }
+  }
+
+  // Helper to find page number for a given character index
+  const getPageForIndex = (index: number): number => {
+    if (pageBoundaries.length === 0) return 1;
+    for (let i = pageBoundaries.length - 1; i >= 0; i--) {
+      if (index >= pageBoundaries[i]) {
+        return i + 1; // 1-indexed
+      }
+    }
+    return 1;
+  };
 
   // Pattern: CREDITOR_NAME followed by TransUnion Experian Equifax Account #:
   // Must start with a letter (not OK/numbers from payment history)
@@ -554,10 +584,16 @@ function extractAccountBlocks(text: string): AccountBlock[] {
     const end = i < uniqueMatches.length - 1 ? uniqueMatches[i + 1].startIndex : text.length;
     const blockText = text.substring(start, Math.min(end, start + 2000));
 
+    // Calculate page numbers
+    const pageNum = getPageForIndex(start);
+    const pageEnd = getPageForIndex(Math.min(end, start + 2000));
+
     blocks.push({
       creditorName: uniqueMatches[i].creditorName,
       text: blockText,
       startIndex: start,
+      pageNum,
+      pageEnd: pageEnd !== pageNum ? pageEnd : undefined,
     });
   }
 
@@ -567,7 +603,13 @@ function extractAccountBlocks(text: string): AccountBlock[] {
 /**
  * Parse a single account block into account items for each CRA
  */
-function parseAccountBlock(creditorName: string, blockText: string, blockIndex: number): ParsedAccountItem[] {
+function parseAccountBlock(
+  creditorName: string,
+  blockText: string,
+  blockIndex: number,
+  pageNum?: number,
+  pageEnd?: number
+): ParsedAccountItem[] {
   const accounts: ParsedAccountItem[] = [];
   const cras: CRA[] = [CRA.TRANSUNION, CRA.EXPERIAN, CRA.EQUIFAX];
 
@@ -652,6 +694,9 @@ function parseAccountBlock(creditorName: string, blockText: string, blockIndex: 
         blockIndex,
         originalBlock: blockText.substring(0, 500),
       },
+      // Page tracking
+      sourcePageNum: pageNum,
+      sourcePageEnd: pageEnd,
     });
   }
 

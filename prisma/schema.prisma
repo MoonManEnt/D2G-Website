@@ -33,6 +33,7 @@ model Organization {
   files                StoredFile[]
   users                User[]
   archiveSnapshots     ClientArchiveSnapshot[]
+  pendingEvidences     PendingEvidence[]
 
   @@index([slug])
   @@index([stripeCustomerId])
@@ -146,6 +147,7 @@ model CreditReport {
   originalFile    StoredFile    @relation("OriginalReport", fields: [originalFileId], references: [id])
   diffResults     DiffResult[]  @relation("NewReport")
   priorDiffs      DiffResult[]  @relation("PriorReport")
+  pendingEvidences PendingEvidence[]
 
   @@index([organizationId])
   @@index([clientId])
@@ -183,6 +185,9 @@ model AccountItem {
   detectedIssues   String?
   isDisputable     Boolean       @default(false)
   issueCount       Int           @default(0)
+  // Page tracking for evidence capture
+  sourcePageNum    Int?          // PDF page where account was found (1-indexed)
+  sourcePageEnd    Int?          // End page if spans multiple pages
   reportId         String
   organizationId   String
   clientId         String
@@ -195,6 +200,7 @@ model AccountItem {
   disputes         DisputeItem[]
   evidences        Evidence[]
   sentryDisputeItems SentryDisputeItem[]
+  pendingEvidences PendingEvidence[]
 
   @@unique([reportId, fingerprint, cra])
   @@index([organizationId])
@@ -449,6 +455,27 @@ model Evidence {
 
   @@index([organizationId])
   @@index([accountItemId])
+}
+
+// Pending evidence suggestions created during report parsing
+model PendingEvidence {
+  id              String       @id @default(uuid())
+  accountItemId   String
+  reportId        String
+  suggestedPages  String?      // JSON array of page numbers where account appears
+  status          String       @default("PENDING") // PENDING, CAPTURED, DISMISSED
+  organizationId  String
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  accountItem     AccountItem  @relation(fields: [accountItemId], references: [id], onDelete: Cascade)
+  report          CreditReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([accountItemId])
+  @@index([reportId])
+  @@index([organizationId])
+  @@index([status])
 }
 
 model StoredFile {

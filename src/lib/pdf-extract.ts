@@ -12,6 +12,8 @@ export interface PDFExtractionResult {
   text: string;
   pageCount: number;
   error?: string;
+  /** Array of text content per page (0-indexed). Useful for tracking which page content appears on. */
+  pages?: string[];
 }
 
 /**
@@ -44,8 +46,9 @@ export async function extractTextFromBuffer(buffer: Buffer): Promise<PDFExtracti
     const { text, totalPages } = await extractText(dataArray);
 
     // Handle array of strings (pages) or single string
-    const fullText = Array.isArray(text) ? text.join("\n\n") : text;
-    const pageCount = totalPages || 0;
+    const pages = Array.isArray(text) ? text : [text];
+    const fullText = pages.join("\n\n");
+    const pageCount = totalPages || pages.length;
 
     // Validations
     if (!fullText || fullText.trim().length === 0) {
@@ -53,6 +56,7 @@ export async function extractTextFromBuffer(buffer: Buffer): Promise<PDFExtracti
         success: false,
         text: "",
         pageCount: pageCount,
+        pages: [],
         error: "PDF appears to be empty or image-based (no selectable text found).",
       };
     }
@@ -65,6 +69,7 @@ export async function extractTextFromBuffer(buffer: Buffer): Promise<PDFExtracti
         success: false,
         text: fullText,
         pageCount: pageCount,
+        pages,
         error: "Extracted text is too short. The PDF might be an image scan.",
       };
     }
@@ -73,6 +78,7 @@ export async function extractTextFromBuffer(buffer: Buffer): Promise<PDFExtracti
       success: true,
       text: fullText,
       pageCount: pageCount,
+      pages,
     };
 
   } catch (error) {

@@ -145,8 +145,8 @@ export async function parseAndAnalyzeReport(options: ParseReportOptions): Promis
       };
     }
 
-    // Step 2: Parse the extracted text
-    const parseResult = await parseIdentityIQReport(extractionResult.text);
+    // Step 2: Parse the extracted text (passing pages for page tracking)
+    const parseResult = await parseIdentityIQReport(extractionResult.text, extractionResult.pages);
 
     if (!parseResult.success) {
       const errorMessage = parseResult.errors[0]?.message || "Failed to parse report";
@@ -206,6 +206,9 @@ export async function parseAndAnalyzeReport(options: ParseReportOptions): Promis
           issueCount: account.issues.length,
           detectedIssues: account.issues.length > 0 ? JSON.stringify(account.issues) : null,
           rawExtractedData: account.rawExtractedData ? JSON.stringify(account.rawExtractedData) : null,
+          // Page tracking for evidence capture
+          sourcePageNum: account.sourcePageNum || null,
+          sourcePageEnd: account.sourcePageEnd || null,
           reportId: reportId,
           organizationId,
           clientId,
@@ -225,6 +228,28 @@ export async function parseAndAnalyzeReport(options: ParseReportOptions): Promis
     });
 
     console.log(`[PARSER] Credit scores extracted: TU=${extractedScores.transunion}, EQ=${extractedScores.equifax}, EX=${extractedScores.experian}`);
+
+    // Step 5b: Create pending evidence suggestions for accounts with issues
+    const accountsWithIssues = await prisma.accountItem.findMany({
+      where: {
+        reportId,
+        issueCount: { gt: 0 },
+      },
+      select: { id: true },
+    });
+
+    if (accountsWithIssues.length > 0) {
+      await prisma.pendingEvidence.createMany({
+        data: accountsWithIssues.map(acc => ({
+          accountItemId: acc.id,
+          reportId,
+          organizationId,
+          status: "PENDING",
+        })),
+        skipDuplicates: true,
+      });
+      console.log(`[PARSER] Created ${accountsWithIssues.length} pending evidence suggestions`);
+    }
 
     // Step 6: Update report status to completed
     await prisma.creditReport.update({

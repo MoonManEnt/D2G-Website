@@ -231,6 +231,10 @@ export interface ParsedAccountItem {
   disputeComment?: string;
   confidenceScore: number;
   rawExtractedData?: Record<string, unknown>;
+
+  // Page tracking
+  sourcePageNum?: number; // PDF page where account was found (1-indexed)
+  sourcePageEnd?: number; // End page if spans multiple pages
 }
 
 export interface ParseResult {

@@ -106,6 +106,7 @@ interface ClientData {
     issueCount: number;
     detectedIssues: string | null;
     suggestedFlow: string | null;
+    sourcePageNum: number | null;
     reportId: string;
     evidences: Array<{
       id: string;
@@ -1820,6 +1821,7 @@ export default function ClientDetailPage() {
             maskedAccountId: selectedAccountForCapture.maskedAccountId,
             cra: selectedAccountForCapture.cra,
             detectedIssues: selectedAccountForCapture.detectedIssues,
+            sourcePageNum: selectedAccountForCapture.sourcePageNum,
           }}
           reportId={selectedAccountForCapture.reportId}
           pdfUrl={`/api/reports/${selectedAccountForCapture.reportId}/pdf`}

@@ -143,6 +143,76 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// PATCH /api/evidence - Update evidence (annotations, title, description)
+export async function PATCH(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { id, annotations, title, description } = body;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Evidence ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Verify evidence belongs to organization
+    const evidence = await prisma.evidence.findFirst({
+      where: {
+        id,
+        organizationId: session.user.organizationId,
+      },
+    });
+
+    if (!evidence) {
+      return NextResponse.json(
+        { error: "Evidence not found" },
+        { status: 404 }
+      );
+    }
+
+    // Build update data
+    const updateData: Record<string, unknown> = {};
+
+    if (annotations !== undefined) {
+      // Annotations should be a JSON string of annotation objects
+      updateData.annotations = typeof annotations === "string"
+        ? annotations
+        : JSON.stringify(annotations);
+    }
+
+    if (title !== undefined) {
+      updateData.title = title;
+    }
+
+    if (description !== undefined) {
+      updateData.description = description;
+    }
+
+    const updated = await prisma.evidence.update({
+      where: { id },
+      data: updateData,
+    });
+
+    return NextResponse.json({
+      success: true,
+      evidence: updated,
+    });
+  } catch (error) {
+    console.error("Error updating evidence:", error);
+    return NextResponse.json(
+      { error: "Failed to update evidence" },
+      { status: 500 }
+    );
+  }
+}
+
 // DELETE /api/evidence - Delete evidence by ID
 export async function DELETE(request: NextRequest) {
   try {

@@ -49,10 +49,20 @@ interface AccountForLetter {
   disputeReason?: string;
 }
 
+interface EvidenceAnnotation {
+  type: "rectangle" | "circle" | "arrow" | "text" | "highlight" | "redact";
+  text?: string;
+  color: string;
+}
+
 interface EvidenceItem {
   id: string;
   title?: string;
   description?: string;
+  /** Parsed annotations for this evidence */
+  annotations?: EvidenceAnnotation[];
+  /** Page number from the source document */
+  sourcePageNum?: number;
 }
 
 interface GenerationContext {
@@ -392,12 +402,51 @@ function generateEvidenceAppendix(evidence: EvidenceItem[]): string {
   appendix += `The following evidence is attached in support of this dispute:\n\n`;
 
   evidence.forEach((item, index) => {
-    appendix += `Exhibit ${String.fromCharCode(65 + index)}: `;
+    const exhibitLabel = String.fromCharCode(65 + index);
+    appendix += `Exhibit ${exhibitLabel}: `;
     appendix += item.title || `Evidence Item ${index + 1}`;
-    if (item.description) {
-      appendix += `\n   ${item.description}`;
+
+    if (item.sourcePageNum) {
+      appendix += ` (Source: Page ${item.sourcePageNum})`;
     }
-    appendix += `\n\n`;
+
+    appendix += `\n`;
+
+    if (item.description) {
+      appendix += `   Description: ${item.description}\n`;
+    }
+
+    // Include annotation details if present
+    if (item.annotations && item.annotations.length > 0) {
+      appendix += `   Annotations:\n`;
+
+      // Group annotations by type
+      const textAnnotations = item.annotations.filter(a => a.type === "text" && a.text);
+      const highlightCount = item.annotations.filter(a => a.type === "highlight").length;
+      const circleCount = item.annotations.filter(a => a.type === "circle").length;
+      const rectangleCount = item.annotations.filter(a => a.type === "rectangle").length;
+      const redactCount = item.annotations.filter(a => a.type === "redact").length;
+
+      // List text callouts
+      textAnnotations.forEach((ann, i) => {
+        appendix += `     - Callout ${i + 1}: "${ann.text}"\n`;
+      });
+
+      // Summarize visual annotations
+      const visualSummary: string[] = [];
+      if (highlightCount > 0) visualSummary.push(`${highlightCount} highlight(s)`);
+      if (circleCount > 0) visualSummary.push(`${circleCount} circle(s)`);
+      if (rectangleCount > 0) visualSummary.push(`${rectangleCount} box(es)`);
+      if (redactCount > 0) visualSummary.push(`${redactCount} redaction(s)`);
+
+      if (visualSummary.length > 0) {
+        appendix += `     - Visual markings: ${visualSummary.join(", ")}\n`;
+      }
+
+      appendix += `   See attached annotated image for visual reference.\n`;
+    }
+
+    appendix += `\n`;
   });
 
   return appendix;
