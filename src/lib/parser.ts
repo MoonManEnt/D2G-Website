@@ -384,6 +384,73 @@ export function extractCreditScores(text: string): ExtractedCreditScores {
     }
   }
 
+  // IdentityIQ specific: Look for scores near bureau headers
+  // Format can be: "TransUnion    Experian    Equifax" header row
+  // followed by:   "558          --          --" scores row (-- means no score)
+  if (!scores.transunion || !scores.equifax || !scores.experian) {
+    // Find the score summary section by looking for all three bureaus near each other
+    const bureauHeaderMatch = text.match(
+      /TransUnion[\s\S]{0,30}Experian[\s\S]{0,30}Equifax[\s\S]{0,200}/i
+    );
+
+    if (bureauHeaderMatch) {
+      const section = bureauHeaderMatch[0];
+      // Find all 3-digit numbers and "--" patterns in this section
+      const valuePattern = /(\d{3}|--|N\/A)/g;
+      const values = [...section.matchAll(valuePattern)].map(m => m[1]);
+
+      if (values.length >= 3) {
+        // First three values correspond to TransUnion, Experian, Equifax
+        const tuVal = values[0];
+        const exVal = values[1];
+        const eqVal = values[2];
+
+        if (tuVal && tuVal !== "--" && tuVal !== "N/A") {
+          const score = parseInt(tuVal, 10);
+          if (score >= 300 && score <= 850 && !scores.transunion) {
+            scores.transunion = score;
+          }
+        }
+        if (exVal && exVal !== "--" && exVal !== "N/A") {
+          const score = parseInt(exVal, 10);
+          if (score >= 300 && score <= 850 && !scores.experian) {
+            scores.experian = score;
+          }
+        }
+        if (eqVal && eqVal !== "--" && eqVal !== "N/A") {
+          const score = parseInt(eqVal, 10);
+          if (score >= 300 && score <= 850 && !scores.equifax) {
+            scores.equifax = score;
+          }
+        }
+      }
+    }
+  }
+
+  // IdentityIQ alternate format: Individual bureau blocks
+  // "TransUnion® VantageScore® 3.0" followed by score on next line
+  if (!scores.transunion) {
+    const tuBlockMatch = text.match(/TransUnion[®™\s]*VantageScore[®™\s]*[\d.]*[\s\n]+(\d{3})/i);
+    if (tuBlockMatch) {
+      const score = parseInt(tuBlockMatch[1], 10);
+      if (score >= 300 && score <= 850) scores.transunion = score;
+    }
+  }
+  if (!scores.experian) {
+    const exBlockMatch = text.match(/Experian[®™\s]*VantageScore[®™\s]*[\d.]*[\s\n]+(\d{3})/i);
+    if (exBlockMatch) {
+      const score = parseInt(exBlockMatch[1], 10);
+      if (score >= 300 && score <= 850) scores.experian = score;
+    }
+  }
+  if (!scores.equifax) {
+    const eqBlockMatch = text.match(/Equifax[®™\s]*VantageScore[®™\s]*[\d.]*[\s\n]+(\d{3})/i);
+    if (eqBlockMatch) {
+      const score = parseInt(eqBlockMatch[1], 10);
+      if (score >= 300 && score <= 850) scores.equifax = score;
+    }
+  }
+
   // Last resort: Look for "Your Score" or "Credit Score" followed by 3-digit number
   // and use context to determine bureau
   if (!scores.transunion && !scores.equifax && !scores.experian) {

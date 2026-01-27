@@ -118,6 +118,17 @@ export async function GET(
         (s.scoreDate.toISOString().split("T")[0] === report.reportDate.toISOString().split("T")[0])
       );
 
+      // Helper to check if account is truly negative (not just disputable)
+      const isTrulyNegative = (account: { accountStatus: string | null; detectedIssues: string | null }) => {
+        const status = account.accountStatus?.toUpperCase() || "";
+        // Only count as negative if it has actual derogatory status
+        const isDerogatory = ["DEROGATORY", "CHARGED_OFF", "COLLECTION", "CHARGEOFF"].includes(status);
+        // Or if it has actual late payment marks in detected issues
+        const hasLateMarks = account.detectedIssues?.includes("PAYMENT_HISTORY_LATE_MARKS") ||
+                            account.detectedIssues?.includes("LATE_PAYMENT_STATUS");
+        return isDerogatory || hasLateMarks;
+      };
+
       // Get bureau-specific data
       const getBureauData = (cra: string): BureauData => {
         const score = reportScores.find((s) => s.cra.toUpperCase() === cra.toUpperCase());
@@ -129,14 +140,14 @@ export async function GET(
         return {
           score: score?.score || null,
           accounts: accounts.length,
-          negatives: accounts.filter((a) => a.isDisputable || a.accountStatus === "DEROGATORY").length,
+          negatives: accounts.filter(isTrulyNegative).length,
           inquiries: inquiries.length,
         };
       };
 
       // Calculate summary
       const allAccounts = report.accounts;
-      const negativeAccounts = allAccounts.filter((a) => a.isDisputable || a.accountStatus === "DEROGATORY");
+      const negativeAccounts = allAccounts.filter(isTrulyNegative);
       const collections = allAccounts.filter(
         (a) => a.accountType?.toLowerCase().includes("collection") || a.accountStatus === "COLLECTION"
       );
@@ -174,9 +185,7 @@ export async function GET(
           return 0;
         };
 
-        const prevNegatives = prevReport.accounts.filter(
-          (a) => a.isDisputable || a.accountStatus === "DEROGATORY"
-        ).length;
+        const prevNegatives = prevReport.accounts.filter(isTrulyNegative).length;
         const prevInquiries = parseInquiries(prevReport.hardInquiries).length;
 
         changes = {
