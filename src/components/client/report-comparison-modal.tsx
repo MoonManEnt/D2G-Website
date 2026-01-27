@@ -127,8 +127,8 @@ const ChangeArrow = ({ value }: { value: number }) => {
 const ScoreChart = ({ reports }: { reports: CreditReportData[] }) => {
   const sortedReports = [...reports].reverse(); // Oldest first for chart
   const chartWidth = 500;
-  const chartHeight = 200;
-  const padding = { top: 20, right: 20, bottom: 40, left: 50 };
+  const chartHeight = 220;
+  const padding = { top: 45, right: 20, bottom: 35, left: 50 };
   const innerWidth = chartWidth - padding.left - padding.right;
   const innerHeight = chartHeight - padding.top - padding.bottom;
 
@@ -191,16 +191,23 @@ const ScoreChart = ({ reports }: { reports: CreditReportData[] }) => {
         Score Progression Over Time
       </h3>
 
-      <svg width="100%" viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="overflow-visible">
+      {/* Chart container with overflow control */}
+      <div className="relative w-full overflow-hidden" style={{ minHeight: '200px' }}>
+        <svg
+        width="100%"
+        viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+        preserveAspectRatio="xMidYMid meet"
+        style={{ maxWidth: '100%', height: 'auto' }}
+      >
         <g transform={`translate(${padding.left}, ${padding.top})`}>
-          {/* Grid lines */}
-          {[0, 0.25, 0.5, 0.75, 1].map((tick, i) => {
+          {/* Grid lines - show fewer lines for cleaner look */}
+          {[0, 0.5, 1].map((tick, i) => {
             const y = innerHeight * (1 - tick);
             const score = Math.round(minScore + scoreRange * tick);
             return (
               <g key={i}>
                 <line x1={0} y1={y} x2={innerWidth} y2={y} stroke="#27272a" strokeWidth={1} />
-                <text x={-10} y={y + 4} textAnchor="end" fill="#71717a" fontSize={10}>
+                <text x={-8} y={y + 4} textAnchor="end" fill="#71717a" fontSize={10}>
                   {score}
                 </text>
               </g>
@@ -222,49 +229,61 @@ const ScoreChart = ({ reports }: { reports: CreditReportData[] }) => {
           ))}
 
           {/* Lines for each bureau */}
-          {bureaus.map((bureau) => {
-            const points = sortedReports
+          {bureaus.map((bureau, bureauIndex) => {
+            const validPoints = sortedReports
               .map((r, i) => {
                 const score = r.bureaus?.[bureau.key]?.score;
                 if (score === null || score === undefined || isNaN(score)) return null;
-                return `${getX(i)},${getY(score)}`;
+                return { x: getX(i), y: getY(score), score, index: i };
               })
-              .filter(Boolean)
-              .join(" ");
+              .filter((p): p is { x: number; y: number; score: number; index: number } => p !== null);
 
             // Only render if we have at least one valid point
-            if (!points) return null;
+            if (validPoints.length === 0) return null;
+
+            const pointsStr = validPoints.map(p => `${p.x},${p.y}`).join(" ");
 
             return (
               <g key={bureau.key}>
-                <polyline
-                  points={points}
-                  fill="none"
-                  stroke={bureau.color}
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                {sortedReports.map((r, i) => {
-                  const score = r.bureaus?.[bureau.key]?.score;
-                  if (score === null || score === undefined || isNaN(score)) return null;
-                  return (
+                {validPoints.length > 1 && (
+                  <polyline
+                    points={pointsStr}
+                    fill="none"
+                    stroke={bureau.color}
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                )}
+                {validPoints.map((p, idx) => (
+                  <g key={`${bureau.key}-${p.index}`}>
                     <circle
-                      key={`${bureau.key}-${i}`}
-                      cx={getX(i)}
-                      cy={getY(score)}
-                      r={4}
+                      cx={p.x}
+                      cy={p.y}
+                      r={5}
                       fill={bureau.color}
                       stroke="#18181b"
                       strokeWidth={2}
                     />
-                  );
-                })}
+                    {/* Show score label on hover area - offset by bureau to prevent overlap */}
+                    <text
+                      x={p.x}
+                      y={p.y - 10 - (bureauIndex * 12)}
+                      textAnchor="middle"
+                      fill={bureau.color}
+                      fontSize={9}
+                      fontWeight="bold"
+                    >
+                      {p.score}
+                    </text>
+                  </g>
+                ))}
               </g>
             );
           })}
         </g>
       </svg>
+      </div>
 
       {/* Legend */}
       <div className="flex items-center justify-center gap-6 mt-4">
