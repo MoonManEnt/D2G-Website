@@ -11,6 +11,7 @@ export * from "./types";
 export { SentryDisputePage } from "./sentry-dispute-page";
 
 // Core components
+export { SentryReportSelector } from "./sentry-report-selector";
 export { SentryAccountSelector } from "./sentry-account-selector";
 export { SentryLetterBuilder } from "./sentry-letter-builder";
 export { SentryLetterPreview } from "./sentry-letter-preview";

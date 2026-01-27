@@ -5,6 +5,8 @@
  *
  * Main orchestrator component for the Sentry Dispute builder.
  * This is the primary UI for creating and managing Sentry disputes.
+ *
+ * Flow: Report Selection → Account Selection → Configure → Generate → Review
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -15,17 +17,16 @@ import {
   type SentryAnalysisForUI,
   SENTRY_CRA_COLORS,
   SENTRY_FLOW_COLORS,
-  SENTRY_STATUS_COLORS,
 } from "./types";
+import { SentryReportSelector } from "./sentry-report-selector";
 import { SentryAccountSelector } from "./sentry-account-selector";
 import { SentryLetterBuilder } from "./sentry-letter-builder";
 import { SentryAnalysisPanel } from "./sentry-analysis-panel";
 import { EOSCARCodeSelector } from "./eoscar-code-selector";
-import { Metro2FieldSelector } from "./metro2-field-selector";
 import { SuccessProbabilityGauge } from "./success-probability-gauge";
 import type { SentryCRA, SentryFlowType } from "@/types/sentry";
 
-type Step = "select" | "configure" | "generate" | "review";
+type Step = "reports" | "select" | "configure" | "generate" | "review";
 
 interface ClientData {
   id: string;
@@ -33,14 +34,40 @@ interface ClientData {
   lastName: string;
 }
 
+interface CreditReport {
+  id: string;
+  reportDate: string;
+  uploadedAt: string;
+  parseStatus: string;
+  pageCount: number;
+  sourceType: string;
+  scores?: {
+    transunion?: number;
+    equifax?: number;
+    experian?: number;
+  };
+  accountCount?: number;
+  bureauBreakdown?: {
+    transunion: number;
+    equifax: number;
+    experian: number;
+  };
+}
+
 export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
   // State
-  const [step, setStep] = useState<Step>("select");
+  const [step, setStep] = useState<Step>("reports");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Client and accounts
+  // Client data
   const [client, setClient] = useState<ClientData | null>(null);
+
+  // Reports
+  const [reports, setReports] = useState<CreditReport[]>([]);
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+
+  // Accounts
   const [accounts, setAccounts] = useState<SentryAccountForUI[]>([]);
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
 
@@ -48,33 +75,80 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
   const [selectedCRA, setSelectedCRA] = useState<SentryCRA>("TRANSUNION");
   const [selectedFlow, setSelectedFlow] = useState<SentryFlowType>("ACCURACY");
   const [selectedEOSCARCode, setSelectedEOSCARCode] = useState<string>("105");
-  const [selectedMetro2Fields, setSelectedMetro2Fields] = useState<string[]>([]);
 
   // Dispute and analysis
   const [currentDispute, setCurrentDispute] = useState<SentryDisputeForUI | null>(null);
   const [analysis, setAnalysis] = useState<SentryAnalysisForUI | null>(null);
   const [generating, setGenerating] = useState(false);
 
-  // Load client and accounts
+  // Load client data
   useEffect(() => {
-    async function loadData() {
+    async function loadClient() {
       try {
-        setLoading(true);
-        setError(null);
+        const res = await fetch(`/api/clients/${clientId}`);
+        if (!res.ok) throw new Error("Failed to load client");
+        const data = await res.json();
+        setClient(data.client);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load client");
+      }
+    }
+    loadClient();
+  }, [clientId]);
 
-        // Fetch client
-        const clientRes = await fetch(`/api/clients/${clientId}`);
-        if (!clientRes.ok) throw new Error("Failed to load client");
-        const clientData = await clientRes.json();
-        setClient(clientData.client);
+  // Load reports
+  const loadReports = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/clients/${clientId}/reports`);
+      if (!res.ok) throw new Error("Failed to load reports");
+      const data = await res.json();
 
-        // Fetch accounts
-        const accountsRes = await fetch(`/api/clients/${clientId}/accounts`);
-        if (!accountsRes.ok) throw new Error("Failed to load accounts");
-        const accountsData = await accountsRes.json();
+      const formattedReports: CreditReport[] = (data.reports || []).map(
+        (r: Record<string, unknown>) => ({
+          id: r.id,
+          reportDate: r.reportDate,
+          uploadedAt: r.uploadedAt,
+          parseStatus: r.parseStatus || "COMPLETED",
+          pageCount: r.pageCount || 0,
+          sourceType: r.sourceType || "IDENTITYIQ",
+          scores: r.scores,
+          accountCount: r.accountCount,
+          bureauBreakdown: r.bureauBreakdown,
+        })
+      );
 
-        // Transform to UI format
-        const uiAccounts: SentryAccountForUI[] = accountsData.accounts.map((acc: Record<string, unknown>) => ({
+      setReports(formattedReports);
+
+      // Auto-select the most recent report if available
+      if (formattedReports.length > 0 && !selectedReportId) {
+        setSelectedReportId(formattedReports[0].id);
+      }
+    } catch (err) {
+      console.error("Failed to load reports:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [clientId, selectedReportId]);
+
+  useEffect(() => {
+    loadReports();
+  }, [loadReports]);
+
+  // Load accounts when report is selected
+  const loadAccountsForReport = useCallback(async (reportId: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch accounts for the specific report
+      const res = await fetch(`/api/clients/${clientId}/accounts?reportId=${reportId}`);
+      if (!res.ok) throw new Error("Failed to load accounts");
+      const data = await res.json();
+
+      // Transform to UI format
+      const uiAccounts: SentryAccountForUI[] = (data.accounts || []).map(
+        (acc: Record<string, unknown>) => ({
           id: acc.id,
           creditorName: acc.creditorName,
           maskedAccountId: acc.maskedAccountId,
@@ -83,22 +157,47 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
           dateOpened: acc.dateOpened,
           cra: acc.cra,
           paymentStatus: acc.paymentStatus,
-          isCollection: String(acc.accountType || "").toLowerCase().includes("collection"),
+          isCollection: String(acc.accountType || "")
+            .toLowerCase()
+            .includes("collection"),
           detectedIssues: acc.detectedIssues
-            ? JSON.parse(String(acc.detectedIssues))
+            ? typeof acc.detectedIssues === "string"
+              ? JSON.parse(acc.detectedIssues)
+              : acc.detectedIssues
             : [],
-        }));
+        })
+      );
 
-        setAccounts(uiAccounts);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load data");
-      } finally {
-        setLoading(false);
-      }
+      setAccounts(uiAccounts);
+      setSelectedAccountIds([]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load accounts");
+    } finally {
+      setLoading(false);
     }
-
-    loadData();
   }, [clientId]);
+
+  // Handle report selection
+  const handleReportSelect = useCallback(
+    (reportId: string) => {
+      setSelectedReportId(reportId);
+      loadAccountsForReport(reportId);
+    },
+    [loadAccountsForReport]
+  );
+
+  // Handle new report uploaded
+  const handleReportUploaded = useCallback((report: CreditReport) => {
+    setReports((prev) => [report, ...prev]);
+  }, []);
+
+  // Continue from reports to account selection
+  const handleContinueFromReports = useCallback(() => {
+    if (selectedReportId) {
+      loadAccountsForReport(selectedReportId);
+      setStep("select");
+    }
+  }, [selectedReportId, loadAccountsForReport]);
 
   // Filter accounts by selected CRA
   const filteredAccounts = accounts.filter((a) => a.cra === selectedCRA);
@@ -156,7 +255,9 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
           },
           successPrediction: {
             probability: createData.sentry.successPrediction?.probability || 0.5,
-            probabilityPercent: Math.round((createData.sentry.successPrediction?.probability || 0.5) * 100),
+            probabilityPercent: Math.round(
+              (createData.sentry.successPrediction?.probability || 0.5) * 100
+            ),
             confidence: createData.sentry.successPrediction?.confidence || "MEDIUM",
             label: "",
             breakdown: [],
@@ -197,15 +298,9 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
 
       const data = await res.json();
 
-      // Update dispute with new content
       setCurrentDispute((prev) =>
         prev ? { ...prev, letterContent: data.letterContent } : null
       );
-
-      // Update analysis
-      if (data.sentry) {
-        // Update analysis state
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to regenerate");
     } finally {
@@ -214,27 +309,30 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
   }, [currentDispute, selectedEOSCARCode]);
 
   // Save letter edits
-  const handleSaveLetter = useCallback(async (content: string) => {
-    if (!currentDispute) return;
+  const handleSaveLetter = useCallback(
+    async (content: string) => {
+      if (!currentDispute) return;
 
-    try {
-      const res = await fetch(`/api/sentry/${currentDispute.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ letterContent: content }),
-      });
+      try {
+        const res = await fetch(`/api/sentry/${currentDispute.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ letterContent: content }),
+        });
 
-      if (!res.ok) {
-        throw new Error("Failed to save");
+        if (!res.ok) {
+          throw new Error("Failed to save");
+        }
+
+        setCurrentDispute((prev) =>
+          prev ? { ...prev, letterContent: content } : null
+        );
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to save");
       }
-
-      setCurrentDispute((prev) =>
-        prev ? { ...prev, letterContent: content } : null
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save");
-    }
-  }, [currentDispute]);
+    },
+    [currentDispute]
+  );
 
   // Launch dispute
   const handleLaunch = useCallback(async () => {
@@ -261,8 +359,8 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
     }
   }, [currentDispute]);
 
-  // Loading state
-  if (loading) {
+  // Loading state (only for initial load)
+  if (loading && step === "reports" && reports.length === 0) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
@@ -307,45 +405,102 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
             className="text-red-400 hover:text-red-300"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              <path
+                fillRule="evenodd"
+                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                clipRule="evenodd"
+              />
             </svg>
           </button>
         </div>
       )}
 
       {/* Step indicator */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 flex-wrap">
         {[
-          { key: "select" as Step, label: "1. Select Accounts" },
-          { key: "configure" as Step, label: "2. Configure" },
-          { key: "generate" as Step, label: "3. Generate" },
-          { key: "review" as Step, label: "4. Review & Send" },
-        ].map((s, i) => (
-          <button
-            key={s.key}
-            onClick={() => {
-              // Only allow going back
-              const steps: Step[] = ["select", "configure", "generate", "review"];
-              if (steps.indexOf(s.key) <= steps.indexOf(step)) {
-                setStep(s.key);
-              }
-            }}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
-              step === s.key
-                ? "bg-blue-500/20 text-blue-400"
-                : "text-slate-400 hover:text-slate-300"
-            }`}
-          >
-            {s.label}
-          </button>
-        ))}
+          { key: "reports" as Step, label: "1. Select Report" },
+          { key: "select" as Step, label: "2. Select Accounts" },
+          { key: "configure" as Step, label: "3. Configure" },
+          { key: "generate" as Step, label: "4. Generate" },
+          { key: "review" as Step, label: "5. Review & Send" },
+        ].map((s) => {
+          const steps: Step[] = ["reports", "select", "configure", "generate", "review"];
+          const currentIndex = steps.indexOf(step);
+          const thisIndex = steps.indexOf(s.key);
+          const isCompleted = thisIndex < currentIndex;
+          const isCurrent = step === s.key;
+
+          return (
+            <button
+              key={s.key}
+              onClick={() => {
+                if (thisIndex <= currentIndex) {
+                  setStep(s.key);
+                }
+              }}
+              disabled={thisIndex > currentIndex}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                isCurrent
+                  ? "bg-blue-500/20 text-blue-400"
+                  : isCompleted
+                  ? "text-emerald-400 hover:text-emerald-300"
+                  : "text-slate-500 cursor-not-allowed"
+              }`}
+            >
+              {isCompleted && (
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fillRule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              )}
+              {s.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Main content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left panel - Selection and configuration */}
+        {/* Left panel - Main content */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Step 1: CRA Selection */}
+          {/* Step 1: Report Selection */}
+          {step === "reports" && (
+            <>
+              <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-6">
+                <h2 className="text-lg font-semibold text-slate-200 mb-4">
+                  Select or Upload Credit Report
+                </h2>
+                <SentryReportSelector
+                  clientId={clientId}
+                  reports={reports}
+                  selectedReportId={selectedReportId}
+                  onReportSelect={handleReportSelect}
+                  onReportUploaded={handleReportUploaded}
+                  onRefreshReports={loadReports}
+                />
+              </div>
+
+              {/* Continue button */}
+              <div className="flex justify-end">
+                <button
+                  onClick={handleContinueFromReports}
+                  disabled={!selectedReportId}
+                  className={`px-6 py-2 rounded-lg text-sm transition-colors ${
+                    selectedReportId
+                      ? "bg-blue-500 text-white hover:bg-blue-600"
+                      : "bg-slate-700 text-slate-500 cursor-not-allowed"
+                  }`}
+                >
+                  Continue with Selected Report
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* Step 2: Account Selection */}
           {step === "select" && (
             <>
               {/* CRA tabs */}
@@ -373,15 +528,34 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
               </div>
 
               {/* Account selector */}
-              <SentryAccountSelector
-                accounts={filteredAccounts}
-                selectedIds={selectedAccountIds}
-                onSelectionChange={setSelectedAccountIds}
-                cra={selectedCRA}
-              />
+              {loading ? (
+                <div className="flex items-center justify-center h-48">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                </div>
+              ) : filteredAccounts.length > 0 ? (
+                <SentryAccountSelector
+                  accounts={filteredAccounts}
+                  selectedIds={selectedAccountIds}
+                  onSelectionChange={setSelectedAccountIds}
+                  cra={selectedCRA}
+                />
+              ) : (
+                <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-12 text-center">
+                  <p className="text-slate-400">No accounts found for {selectedCRA}</p>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Try selecting a different bureau or uploading a new report
+                  </p>
+                </div>
+              )}
 
-              {/* Continue button */}
-              <div className="flex justify-end">
+              {/* Navigation buttons */}
+              <div className="flex justify-between">
+                <button
+                  onClick={() => setStep("reports")}
+                  className="px-4 py-2 text-sm text-slate-400 hover:text-slate-300"
+                >
+                  ← Back to Reports
+                </button>
                 <button
                   onClick={() => setStep("configure")}
                   disabled={selectedAccountIds.length === 0}
@@ -397,45 +571,69 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
             </>
           )}
 
-          {/* Step 2: Configuration */}
+          {/* Step 3: Configuration */}
           {step === "configure" && (
             <>
               {/* Flow selection */}
               <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-4">
-                <h3 className="text-sm font-medium text-slate-300 mb-3">Dispute Flow</h3>
+                <h3 className="text-sm font-medium text-slate-300 mb-3">
+                  Dispute Flow
+                </h3>
                 <div className="grid grid-cols-2 gap-2">
-                  {(["ACCURACY", "COLLECTION", "CONSENT", "COMBO"] as SentryFlowType[]).map((flow) => {
-                    const colors = SENTRY_FLOW_COLORS[flow];
-                    return (
-                      <button
-                        key={flow}
-                        onClick={() => setSelectedFlow(flow)}
-                        className={`p-3 rounded-lg text-left transition-colors ${
-                          selectedFlow === flow
-                            ? `${colors.bg} ${colors.border} border`
-                            : "bg-slate-700/30 hover:bg-slate-700/50"
-                        }`}
-                      >
-                        <span className={`text-sm font-medium ${selectedFlow === flow ? colors.text : "text-slate-200"}`}>
-                          {flow}
-                        </span>
-                      </button>
-                    );
-                  })}
+                  {(["ACCURACY", "COLLECTION", "CONSENT", "COMBO"] as SentryFlowType[]).map(
+                    (flow) => {
+                      const colors = SENTRY_FLOW_COLORS[flow];
+                      return (
+                        <button
+                          key={flow}
+                          onClick={() => setSelectedFlow(flow)}
+                          className={`p-3 rounded-lg text-left transition-colors ${
+                            selectedFlow === flow
+                              ? `${colors.bg} ${colors.border} border`
+                              : "bg-slate-700/30 hover:bg-slate-700/50"
+                          }`}
+                        >
+                          <span
+                            className={`text-sm font-medium ${
+                              selectedFlow === flow ? colors.text : "text-slate-200"
+                            }`}
+                          >
+                            {flow}
+                          </span>
+                        </button>
+                      );
+                    }
+                  )}
                 </div>
               </div>
 
               {/* e-OSCAR Code */}
               <EOSCARCodeSelector
                 recommendations={[
-                  { code: "105", name: "Not mine", confidence: 0.85, reasoning: "Best for collections" },
-                  { code: "106", name: "Belongs to another", confidence: 0.7, reasoning: "Good for mixed files" },
+                  {
+                    code: "105",
+                    name: "Disputes dates",
+                    confidence: 0.85,
+                    reasoning: "Best for date discrepancies",
+                  },
+                  {
+                    code: "106",
+                    name: "Disputes amounts",
+                    confidence: 0.7,
+                    reasoning: "Good for balance disputes",
+                  },
+                  {
+                    code: "109",
+                    name: "Disputes payment history",
+                    confidence: 0.65,
+                    reasoning: "For late payment challenges",
+                  },
                 ]}
                 selectedCode={selectedEOSCARCode}
                 onCodeSelect={setSelectedEOSCARCode}
               />
 
-              {/* Continue button */}
+              {/* Navigation buttons */}
               <div className="flex justify-between">
                 <button
                   onClick={() => setStep("select")}
@@ -454,7 +652,7 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
             </>
           )}
 
-          {/* Step 3 & 4: Review */}
+          {/* Step 4 & 5: Review */}
           {(step === "generate" || step === "review") && currentDispute && (
             <>
               <SentryLetterBuilder
@@ -481,7 +679,9 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
                       : "bg-slate-700 text-slate-500 cursor-not-allowed"
                   }`}
                 >
-                  {currentDispute.status === "DRAFT" ? "Launch Dispute" : `Status: ${currentDispute.status}`}
+                  {currentDispute.status === "DRAFT"
+                    ? "Launch Dispute"
+                    : `Status: ${currentDispute.status}`}
                 </button>
               </div>
             </>
@@ -495,6 +695,16 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
             <h3 className="text-sm font-medium text-slate-300 mb-3">Quick Stats</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
+                <span className="text-slate-400">Reports Available</span>
+                <span className="text-slate-200">{reports.length}</span>
+              </div>
+              {selectedReportId && (
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Report Accounts</span>
+                  <span className="text-slate-200">{accounts.length}</span>
+                </div>
+              )}
+              <div className="flex justify-between">
                 <span className="text-slate-400">Selected Accounts</span>
                 <span className="text-slate-200">{selectedAccountIds.length}</span>
               </div>
@@ -504,7 +714,9 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">Flow</span>
-                <span className={SENTRY_FLOW_COLORS[selectedFlow].text}>{selectedFlow}</span>
+                <span className={SENTRY_FLOW_COLORS[selectedFlow].text}>
+                  {selectedFlow}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">e-OSCAR Code</span>
@@ -524,7 +736,7 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
           )}
 
           {/* Success gauge (if not in analysis) */}
-          {!analysis && step !== "select" && (
+          {!analysis && step !== "reports" && step !== "select" && (
             <SuccessProbabilityGauge
               probability={0.55}
               confidence="MEDIUM"
