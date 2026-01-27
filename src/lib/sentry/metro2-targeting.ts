@@ -238,12 +238,30 @@ export function generateMetro2DisputeLanguage(
   // Replace template variables
   language = language.replace("{reported_value}", reportedValue);
 
+  // Handle {correct_value} - if not provided and template requires it, use generic language
   if (correctValue) {
     language = language.replace("{correct_value}", correctValue);
+  } else if (language.includes("{correct_value}")) {
+    // Replace the entire phrase "should reflect {correct_value}" with simpler language
+    language = language.replace(
+      /should reflect \{correct_value\}/g,
+      "is inaccurate and should be corrected"
+    );
+    // Fallback for any remaining occurrences
+    language = language.replace("{correct_value}", "the accurate value");
   }
 
+  // Handle {month_year} - if not provided and template requires it, use generic language
   if (monthYear) {
     language = language.replace("{month_year}", monthYear);
+  } else if (language.includes("{month_year}")) {
+    // Replace with generic language about the reporting period
+    language = language.replace(
+      /for \{month_year\} is reported as/g,
+      "is reported as"
+    );
+    // Fallback for any remaining occurrences
+    language = language.replace("{month_year}", "the reporting period");
   }
 
   // Build reason suffix
@@ -425,23 +443,47 @@ export function getRecommendedFields(
 
 /**
  * Build a complete account list entry with Metro 2 targeting
+ * Uses bold formatting for account names and numbers
  */
 export function buildAccountListEntry(
   creditorName: string,
   maskedAccountId: string | undefined,
   fieldDisputes: Metro2FieldDispute[]
 ): string {
-  let entry = `• ${creditorName}`;
+  // Bold the creditor name
+  let entry = `• **${creditorName}**`;
   if (maskedAccountId) {
-    entry += ` (Account ending ${maskedAccountId})`;
+    // Bold the account number
+    entry += ` (Account ending **${maskedAccountId}**)`;
   }
   entry += "\n";
 
   for (const dispute of fieldDisputes) {
-    entry += `  - ${dispute.generatedLanguage}\n`;
+    // Bold the field name in the dispute language
+    const boldedLanguage = boldFieldName(dispute.field.name, dispute.generatedLanguage);
+    entry += `  - ${boldedLanguage}\n`;
   }
 
   return entry;
+}
+
+/**
+ * Bold the field name within dispute language
+ */
+function boldFieldName(fieldName: string, language: string): string {
+  // Replace the field name with bold version if it appears at the start
+  if (language.startsWith(`The ${fieldName}`)) {
+    return language.replace(`The ${fieldName}`, `The **${fieldName}**`);
+  }
+  // Also check for field name appearing anywhere
+  return language.replace(new RegExp(`\\b${escapeRegExp(fieldName)}\\b`, 'g'), `**${fieldName}**`);
+}
+
+/**
+ * Escape special regex characters
+ */
+function escapeRegExp(string: string): string {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /**

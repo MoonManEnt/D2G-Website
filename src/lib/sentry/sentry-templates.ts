@@ -72,6 +72,7 @@ export const TEMPLATE_VARIABLES = {
   // Previous dispute info (for rounds 2+)
   PREVIOUS_DISPUTE_DATE: "{{PREVIOUS_DISPUTE_DATE}}",
   CONFIRMATION_NUMBER: "{{CONFIRMATION_NUMBER}}",
+  CONFIRMATION_NUMBER_SECTION: "{{CONFIRMATION_NUMBER_SECTION}}",
 } as const;
 
 // =============================================================================
@@ -110,18 +111,17 @@ I am writing to request an investigation of the following information appearing 
 
 /**
  * Account list section with Metro 2 field targeting
+ * Note: Account list already includes field-level dispute details inline
  */
 function buildAccountSection(): SentryTemplateSection {
   return {
     id: "accounts",
     name: "Disputed Accounts",
     isRequired: true,
-    variables: ["ACCOUNT_LIST", "METRO2_FIELD_DISPUTES"],
+    variables: ["ACCOUNT_LIST"],
     content: `The following account(s) contain information that I believe to be inaccurate:
 
-{{ACCOUNT_LIST}}
-
-{{METRO2_FIELD_DISPUTES}}`,
+{{ACCOUNT_LIST}}`,
   };
 }
 
@@ -234,6 +234,7 @@ Enclosures:
 
 /**
  * Round 2+ follow-up section
+ * Note: CONFIRMATION_NUMBER is optional and will only appear if provided
  */
 function buildFollowUpSection(): SentryTemplateSection {
   return {
@@ -241,7 +242,7 @@ function buildFollowUpSection(): SentryTemplateSection {
     name: "Follow-Up Reference",
     isRequired: true,
     variables: ["PREVIOUS_DISPUTE_DATE", "CONFIRMATION_NUMBER"],
-    content: `This letter is a follow-up to my previous dispute submitted on {{PREVIOUS_DISPUTE_DATE}}. Reference number: {{CONFIRMATION_NUMBER}}.
+    content: `This letter is a follow-up to my previous dispute submitted on {{PREVIOUS_DISPUTE_DATE}}.{{CONFIRMATION_NUMBER_SECTION}}
 
 Despite my previous dispute, the information remains on my report and continues to be inaccurate. I am requesting that you conduct a new investigation with particular attention to the specific data elements I am disputing.
 

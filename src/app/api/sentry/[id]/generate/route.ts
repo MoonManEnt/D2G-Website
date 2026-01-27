@@ -81,6 +81,27 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       round: dispute.round as 1 | 2 | 3 | 4,
       accounts: dispute.items.map((item) => {
         const acc = item.accountItem;
+        // Parse detected issues from JSON string if present
+        let detectedIssues: { code: string; description: string; severity: string }[] = [];
+        if (acc.detectedIssues) {
+          try {
+            detectedIssues = JSON.parse(acc.detectedIssues);
+          } catch {
+            // Ignore parsing errors
+          }
+        }
+
+        // Build dispute reason from detected issues if not provided
+        let disputeReason = item.disputeReason;
+        if (!disputeReason && detectedIssues.length > 0) {
+          // Use the first high-severity issue, or first issue if no high-severity
+          const highSeverityIssue = detectedIssues.find(i => i.severity === "HIGH");
+          const primaryIssue = highSeverityIssue || detectedIssues[0];
+          if (primaryIssue) {
+            disputeReason = primaryIssue.description;
+          }
+        }
+
         return {
           id: acc.id,
           creditorName: acc.creditorName,
@@ -88,9 +109,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           accountType: acc.accountType || undefined,
           balance: acc.balance ? Number(acc.balance) : undefined,
           dateOpened: acc.dateOpened || undefined,
-          accountStatus: acc.paymentStatus || undefined,
+          accountStatus: acc.accountStatus || acc.paymentStatus || undefined,
           isCollection: acc.accountType?.toLowerCase().includes("collection"),
-          disputeReason: item.disputeReason || undefined,
+          disputeReason: disputeReason || undefined,
+          detectedIssues: detectedIssues.map(i => ({
+            code: i.code,
+            description: i.description,
+            severity: i.severity as "HIGH" | "MEDIUM" | "LOW",
+          })),
           cra: acc.cra as SentryCRA,
         };
       }),

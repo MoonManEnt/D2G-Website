@@ -19,6 +19,7 @@ import type {
   SentryFlowType,
   SentryRound,
   SentryAccountItem,
+  SentryDetectedIssue,
   Metro2FieldDispute,
   EOSCARRecommendation,
   OCRAnalysisResult,
@@ -76,6 +77,9 @@ export interface GenerationContext {
   // Previous dispute info (for rounds 2+)
   previousDisputeDate?: string;
   confirmationNumber?: string;
+
+  // Date options
+  backdateDays?: number; // Number of days to backdate the letter (default 30 for Round 1)
 }
 
 export interface GenerationResult {
@@ -109,14 +113,20 @@ export interface GenerationResult {
 // VARIABLE SUBSTITUTION
 // =============================================================================
 
-function formatDate(date?: Date | string): string {
-  if (!date) return new Date().toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
+function formatDate(date?: Date | string, backdateDays?: number): string {
+  let d: Date;
 
-  const d = typeof date === "string" ? new Date(date) : date;
+  if (!date) {
+    d = new Date();
+  } else {
+    d = typeof date === "string" ? new Date(date) : date;
+  }
+
+  // Apply backdate if specified
+  if (backdateDays && backdateDays > 0) {
+    d = new Date(d.getTime() - backdateDays * 24 * 60 * 60 * 1000);
+  }
+
   return d.toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",
@@ -124,10 +134,14 @@ function formatDate(date?: Date | string): string {
   });
 }
 
-function calculateDeadlineDate(): string {
-  const deadline = new Date();
-  deadline.setDate(deadline.getDate() + 30);
-  return formatDate(deadline);
+function calculateDeadlineDate(backdateDays?: number): string {
+  // Start from today minus backdate days, then add 30 days for the deadline
+  const letterDate = new Date();
+  if (backdateDays && backdateDays > 0) {
+    letterDate.setDate(letterDate.getDate() - backdateDays);
+  }
+  letterDate.setDate(letterDate.getDate() + 30);
+  return formatDate(letterDate);
 }
 
 function substituteVariables(
@@ -176,14 +190,15 @@ function substituteVariables(
     `${bureauAddress.address}\n${bureauAddress.city}, ${bureauAddress.state} ${bureauAddress.zip}`
   );
 
-  // Dates
+  // Dates - apply backdate for Round 1 letters (default 30 days)
+  const backdateDays = context.round === 1 ? (context.backdateDays ?? 30) : 0;
   result = result.replace(
     new RegExp(TEMPLATE_VARIABLES.CURRENT_DATE, "g"),
-    formatDate()
+    formatDate(undefined, backdateDays)
   );
   result = result.replace(
     new RegExp(TEMPLATE_VARIABLES.DEADLINE_DATE, "g"),
-    calculateDeadlineDate()
+    calculateDeadlineDate(backdateDays)
   );
 
   // Account info
@@ -211,10 +226,27 @@ function substituteVariables(
       context.previousDisputeDate
     );
   }
+
+  // Handle confirmation number section - only include if provided
   if (context.confirmationNumber) {
+    result = result.replace(
+      new RegExp(TEMPLATE_VARIABLES.CONFIRMATION_NUMBER_SECTION, "g"),
+      ` Reference number: ${context.confirmationNumber}.`
+    );
     result = result.replace(
       new RegExp(TEMPLATE_VARIABLES.CONFIRMATION_NUMBER, "g"),
       context.confirmationNumber
+    );
+  } else {
+    // Remove the confirmation number section placeholder if no number provided
+    result = result.replace(
+      new RegExp(TEMPLATE_VARIABLES.CONFIRMATION_NUMBER_SECTION, "g"),
+      ""
+    );
+    // Also remove any standalone confirmation number placeholders
+    result = result.replace(
+      new RegExp(TEMPLATE_VARIABLES.CONFIRMATION_NUMBER, "g"),
+      "[To be provided when received]"
     );
   }
 
@@ -324,35 +356,98 @@ export function generateSentryLetter(
   const allDiscrepancies: { field: string; language: string }[] = [];
 
   for (const account of context.accounts) {
-    // Get recommended fields based on account type
-    const recommendedFields = getRecommendedFields(
-      account.accountType,
-      account.isCollection
-    );
-
     const accountDisputes: Metro2FieldDispute[] = [];
 
-    // Create disputes for recommended fields
-    for (const field of recommendedFields) {
-      // Get the value from the account if available
-      let reportedValue = "as reported";
-      if (field.code === "BALANCE" && account.balance !== undefined) {
-        reportedValue = `$${account.balance.toLocaleString()}`;
-      } else if (field.code === "DOFD" && account.dofd) {
-        reportedValue = new Date(account.dofd).toLocaleDateString();
-      } else if (field.code === "ACCOUNT_STATUS" && account.accountStatus) {
-        reportedValue = account.accountStatus;
-      }
+    // PRIORITY 1: Use detected issues if available for account-specific disputes
+    if (account.detectedIssues && account.detectedIssues.length > 0) {
+      for (const issue of account.detectedIssues) {
+        // Map detected issue to Metro 2 field
+        let fieldCode = issue.suggestedMetro2Field;
+        if (!fieldCode) {
+          // Map common issue codes to Metro 2 fields
+          if (issue.code.includes("BALANCE") || issue.code.includes("AMOUNT")) {
+            fieldCode = "BALANCE";
+          } else if (issue.code.includes("DOFD") || issue.code.includes("DELINQUENCY")) {
+            fieldCode = "DOFD";
+          } else if (issue.code.includes("STATUS") || issue.code.includes("ACCOUNT_STATUS")) {
+            fieldCode = "ACCOUNT_STATUS";
+          } else if (issue.code.includes("DATE_OPENED") || issue.code.includes("OPEN_DATE")) {
+            fieldCode = "DATE_OPENED";
+          } else if (issue.code.includes("PAYMENT") || issue.code.includes("LATE")) {
+            fieldCode = "PAYMENT_RATING";
+          } else if (issue.code.includes("COLLECTION") || issue.code.includes("CREDITOR")) {
+            fieldCode = "ORIGINAL_CREDITOR";
+          } else {
+            // Default to most relevant field
+            fieldCode = "ACCOUNT_STATUS";
+          }
+        }
 
-      const dispute = createFieldDispute(
-        field.code,
-        reportedValue,
-        undefined,
-        account.disputeReason
+        // Get the reported value for context
+        let reportedValue: string | undefined;
+        if (fieldCode === "BALANCE" && account.balance !== undefined) {
+          reportedValue = `$${account.balance.toLocaleString()}`;
+        } else if (fieldCode === "DOFD" && account.dateOfFirstDelinquency) {
+          reportedValue = new Date(account.dateOfFirstDelinquency).toLocaleDateString();
+        } else if (fieldCode === "ACCOUNT_STATUS" && account.accountStatus) {
+          reportedValue = account.accountStatus;
+        }
+
+        const dispute = createFieldDispute(
+          fieldCode,
+          reportedValue || "the currently reported value",
+          undefined,
+          issue.description // Use the issue description as the reason
+        );
+
+        if (dispute) {
+          accountDisputes.push(dispute);
+        }
+      }
+    }
+
+    // PRIORITY 2: If no detected issues, use recommended fields based on account type
+    if (accountDisputes.length === 0) {
+      const recommendedFields = getRecommendedFields(
+        account.accountType,
+        account.isCollection
       );
 
-      if (dispute) {
-        accountDisputes.push(dispute);
+      // Only create disputes for fields where we have actual data
+      for (const field of recommendedFields) {
+        let reportedValue: string | undefined;
+        let correctValue: string | undefined;
+
+        if (field.code === "BALANCE" && account.balance !== undefined) {
+          reportedValue = `$${account.balance.toLocaleString()}`;
+        } else if (field.code === "DOFD" && account.dateOfFirstDelinquency) {
+          reportedValue = new Date(account.dateOfFirstDelinquency).toLocaleDateString();
+        } else if (field.code === "ACCOUNT_STATUS" && account.accountStatus) {
+          reportedValue = account.accountStatus;
+          if (account.accountStatus.toUpperCase() === "COLLECTION") {
+            correctValue = "Closed/Paid";
+          }
+        } else if (field.code === "DATE_OPENED" && account.dateOpened) {
+          reportedValue = new Date(account.dateOpened).toLocaleDateString();
+        } else if (field.code === "ORIGINAL_CREDITOR" && account.creditorName) {
+          reportedValue = account.creditorName;
+        }
+
+        // Skip fields where we don't have actual reported values
+        if (!reportedValue && !account.disputeReason) {
+          continue;
+        }
+
+        const dispute = createFieldDispute(
+          field.code,
+          reportedValue || "the currently reported value",
+          correctValue,
+          account.disputeReason
+        );
+
+        if (dispute) {
+          accountDisputes.push(dispute);
+        }
       }
     }
 
