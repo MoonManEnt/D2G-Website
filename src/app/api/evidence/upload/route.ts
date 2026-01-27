@@ -6,8 +6,10 @@ import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { v4 as uuid } from "uuid";
 import { validateBase64Image } from "@/lib/upload-validation";
+import { put } from "@vercel/blob";
 
 const EVIDENCE_DIR = process.env.EVIDENCE_DIR || "./public/evidence";
+const isVercel = process.env.VERCEL === "1";
 
 /**
  * POST /api/evidence/upload - Upload a CLIENT-CAPTURED screenshot as evidence
@@ -78,10 +80,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Report not found" }, { status: 404 });
     }
 
-    // Create evidence directory
-    const evidenceDir = join(EVIDENCE_DIR, session.user.organizationId, accountId);
-    await mkdir(evidenceDir, { recursive: true });
-
     // Extract base64 data and determine file extension
     const matches = imageData.match(/^data:image\/(\w+);base64,(.+)$/);
     if (!matches) {
@@ -97,10 +95,31 @@ export async function POST(request: NextRequest) {
     // Save the screenshot
     const evidenceId = uuid();
     const evidenceFileName = `${evidenceId}_page${pageNumber}.${extension}`;
-    const evidenceFilePath = join(evidenceDir, evidenceFileName);
-    const publicPath = `/evidence/${session.user.organizationId}/${accountId}/${evidenceFileName}`;
 
-    await writeFile(evidenceFilePath, imageBuffer);
+    let storagePath: string;
+    let storageType: string;
+    let publicPath: string;
+
+    if (isVercel) {
+      // Use Vercel Blob storage in production
+      const blobName = `evidence/${session.user.organizationId}/${accountId}/${evidenceFileName}`;
+      const blob = await put(blobName, imageBuffer, {
+        access: "public",
+        contentType: `image/${extension}`,
+      });
+      storagePath = blob.url;
+      storageType = "VERCEL_BLOB";
+      publicPath = blob.url;
+    } else {
+      // Use local filesystem in development
+      const evidenceDir = join(EVIDENCE_DIR, session.user.organizationId, accountId);
+      await mkdir(evidenceDir, { recursive: true });
+      const evidenceFilePath = join(evidenceDir, evidenceFileName);
+      await writeFile(evidenceFilePath, imageBuffer);
+      storagePath = evidenceFilePath;
+      storageType = "LOCAL";
+      publicPath = `/evidence/${session.user.organizationId}/${accountId}/${evidenceFileName}`;
+    }
 
     // Create stored file record for the screenshot
     const storedFile = await prisma.storedFile.create({
@@ -108,8 +127,8 @@ export async function POST(request: NextRequest) {
         filename: evidenceFileName,
         mimeType: `image/${extension}`,
         sizeBytes: imageBuffer.length,
-        storagePath: evidenceFilePath,
-        storageType: "LOCAL",
+        storagePath,
+        storageType,
         checksum: evidenceId,
         organizationId: session.user.organizationId,
       },
