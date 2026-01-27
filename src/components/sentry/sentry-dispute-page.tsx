@@ -15,6 +15,7 @@ import {
   type SentryAccountForUI,
   type SentryDisputeForUI,
   type SentryAnalysisForUI,
+  type ActionableRecommendationUI,
   SENTRY_CRA_COLORS,
   SENTRY_FLOW_COLORS,
 } from "./types";
@@ -260,8 +261,14 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
             ),
             confidence: createData.sentry.successPrediction?.confidence || "MEDIUM",
             label: "",
-            breakdown: [],
+            breakdown: createData.sentry.successPrediction?.breakdown || [],
             recommendations: createData.sentry.successPrediction?.recommendations || [],
+            actionableRecommendations: createData.sentry.successPrediction?.actionableRecommendations?.map(
+              (rec: ActionableRecommendationUI) => ({
+                ...rec,
+                status: rec.status || "PENDING",
+              })
+            ) || [],
           },
         };
         setAnalysis(analysisData);
@@ -356,6 +363,160 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to launch");
+    }
+  }, [currentDispute]);
+
+  // Apply actionable recommendation
+  const handleApplyRecommendation = useCallback(
+    async (recommendation: ActionableRecommendationUI) => {
+      if (!currentDispute) return;
+
+      try {
+        const res = await fetch(`/api/sentry/${currentDispute.id}/recommendations`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "apply",
+            recommendation,
+          }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Failed to apply recommendation");
+        }
+
+        const data = await res.json();
+
+        // Update letter content
+        if (data.updatedContent) {
+          setCurrentDispute((prev) =>
+            prev ? { ...prev, letterContent: data.updatedContent } : null
+          );
+        }
+
+        // Update success probability in analysis
+        if (data.newSuccessProbability !== undefined) {
+          setAnalysis((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  successPrediction: {
+                    ...prev.successPrediction,
+                    probability: data.newSuccessProbability,
+                    probabilityPercent: Math.round(data.newSuccessProbability * 100),
+                    actionableRecommendations:
+                      prev.successPrediction.actionableRecommendations?.map((r) =>
+                        r.id === recommendation.id ? { ...r, status: "APPLIED" as const } : r
+                      ),
+                  },
+                }
+              : null
+          );
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to apply recommendation");
+      }
+    },
+    [currentDispute]
+  );
+
+  // Revert a recommendation
+  const handleRevertRecommendation = useCallback(
+    async (recommendationId: string) => {
+      if (!currentDispute) return;
+
+      try {
+        const res = await fetch(`/api/sentry/${currentDispute.id}/recommendations`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "revert",
+            recommendationId,
+          }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Failed to revert recommendation");
+        }
+
+        const data = await res.json();
+
+        // Update letter content
+        if (data.updatedContent) {
+          setCurrentDispute((prev) =>
+            prev ? { ...prev, letterContent: data.updatedContent } : null
+          );
+        }
+
+        // Update recommendation status
+        setAnalysis((prev) =>
+          prev
+            ? {
+                ...prev,
+                successPrediction: {
+                  ...prev.successPrediction,
+                  actionableRecommendations:
+                    prev.successPrediction.actionableRecommendations?.map((r) =>
+                      r.id === recommendationId ? { ...r, status: "PENDING" as const } : r
+                    ),
+                },
+              }
+            : null
+        );
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to revert recommendation");
+      }
+    },
+    [currentDispute]
+  );
+
+  // Reset all recommendations
+  const handleResetRecommendations = useCallback(async () => {
+    if (!currentDispute) return;
+
+    try {
+      const res = await fetch(`/api/sentry/${currentDispute.id}/recommendations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "reset",
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to reset recommendations");
+      }
+
+      const data = await res.json();
+
+      // Update letter content
+      if (data.updatedContent) {
+        setCurrentDispute((prev) =>
+          prev ? { ...prev, letterContent: data.updatedContent } : null
+        );
+      }
+
+      // Reset all recommendation statuses
+      setAnalysis((prev) =>
+        prev
+          ? {
+              ...prev,
+              successPrediction: {
+                ...prev.successPrediction,
+                actionableRecommendations:
+                  prev.successPrediction.actionableRecommendations?.map((r) => ({
+                    ...r,
+                    status: "PENDING" as const,
+                  })),
+              },
+            }
+          : null
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to reset recommendations");
     }
   }, [currentDispute]);
 
@@ -738,9 +899,13 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
           {analysis && (
             <SentryAnalysisPanel
               analysis={analysis}
+              disputeId={currentDispute?.id}
               onApplyFixes={() => {
                 // Implement auto-fix
               }}
+              onApplyRecommendation={handleApplyRecommendation}
+              onRevertRecommendation={handleRevertRecommendation}
+              onResetRecommendations={handleResetRecommendations}
             />
           )}
 

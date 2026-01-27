@@ -185,6 +185,120 @@ export interface SuccessPrediction {
   confidence: "HIGH" | "MEDIUM" | "LOW";
   breakdown: SuccessFactor[];
   recommendations: string[];
+  actionableRecommendations?: ActionableRecommendation[];
+}
+
+// =============================================================================
+// ACTIONABLE RECOMMENDATION TYPES
+// =============================================================================
+
+export type RecommendationActionType =
+  | "ENABLE_METRO2"
+  | "DISABLE_METRO2"
+  | "CHANGE_EOSCAR_CODE"
+  | "APPLY_OCR_FIXES"
+  | "ADD_DOCUMENTATION"
+  | "ADD_LEGAL_CITATION"
+  | "REMOVE_INVALID_CITATION"
+  | "ADJUST_TONE";
+
+export type RecommendationStatus = "PENDING" | "APPLIED" | "DISMISSED" | "REVERTED";
+
+export interface ActionableRecommendation {
+  id: string;
+  type: RecommendationActionType;
+  title: string;
+  description: string;
+  potentialGain: string; // e.g., "+12-20%"
+  potentialGainValue: number; // Numeric value for sorting (e.g., 0.15)
+  priority: "HIGH" | "MEDIUM" | "LOW";
+  status: RecommendationStatus;
+
+  // Action payload - data needed to apply the recommendation
+  payload: RecommendationPayload;
+
+  // Preview of changes
+  previewBefore?: string;
+  previewAfter?: string;
+
+  // Tracking
+  appliedAt?: Date;
+  revertedAt?: Date;
+}
+
+export type RecommendationPayload =
+  | EnableMetro2Payload
+  | ChangeEOSCARPayload
+  | ApplyOCRFixesPayload
+  | AddDocumentationPayload
+  | AddCitationPayload
+  | RemoveCitationPayload
+  | AdjustTonePayload;
+
+export interface EnableMetro2Payload {
+  type: "ENABLE_METRO2" | "DISABLE_METRO2";
+  accountIds: string[];
+  suggestedFields?: string[]; // Metro 2 field codes to target
+}
+
+export interface ChangeEOSCARPayload {
+  type: "CHANGE_EOSCAR_CODE";
+  accountId: string;
+  currentCode: string;
+  suggestedCode: string;
+  suggestedCodeName: string;
+  reasoning: string;
+}
+
+export interface ApplyOCRFixesPayload {
+  type: "APPLY_OCR_FIXES";
+  fixes: {
+    original: string;
+    replacement: string;
+    location?: string;
+  }[];
+}
+
+export interface AddDocumentationPayload {
+  type: "ADD_DOCUMENTATION";
+  documentationType: "BUREAU_DISCREPANCY" | "PAYMENT_PROOF" | "POLICE_REPORT" | "ID_VERIFICATION";
+  description: string;
+  requiredFields?: string[];
+}
+
+export interface AddCitationPayload {
+  type: "ADD_LEGAL_CITATION";
+  statute: string;
+  name: string;
+  insertLocation: "OPENING" | "BODY" | "DEMAND";
+  citationText: string;
+}
+
+export interface RemoveCitationPayload {
+  type: "REMOVE_INVALID_CITATION";
+  statute: string;
+  reason: string;
+  replacementStatute?: string;
+  replacementText?: string;
+}
+
+export interface AdjustTonePayload {
+  type: "ADJUST_TONE";
+  currentLevel: number;
+  suggestedLevel: number;
+  reasoning: string;
+}
+
+// Applied recommendations tracking for a dispute
+export interface AppliedRecommendations {
+  disputeId: string;
+  originalLetterContent: string;
+  currentLetterContent: string;
+  appliedRecommendations: {
+    recommendationId: string;
+    appliedAt: Date;
+    letterContentAfter: string;
+  }[];
 }
 
 // =============================================================================

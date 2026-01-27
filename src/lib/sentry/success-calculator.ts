@@ -18,7 +18,12 @@ import type {
   SuccessFactor,
   SuccessPrediction,
   SuccessPredictionRequest,
+  ActionableRecommendation,
+  EnableMetro2Payload,
+  ChangeEOSCARPayload,
+  ApplyOCRFixesPayload,
 } from "@/types/sentry";
+import { v4 as uuidv4 } from "uuid";
 
 // =============================================================================
 // SUCCESS FACTOR DEFINITIONS
@@ -252,12 +257,14 @@ export function calculateSuccessProbability(
 
   // Generate recommendations
   const recommendations = generateRecommendations(breakdown, context);
+  const actionableRecommendations = generateActionableRecommendations(breakdown, context);
 
   return {
     probability: Math.min(1, Math.max(0, totalScore)),
     confidence,
     breakdown,
     recommendations,
+    actionableRecommendations,
   };
 }
 
@@ -330,6 +337,204 @@ function generateRecommendations(
   }
 
   return recommendations;
+}
+
+/**
+ * Extended context for actionable recommendations
+ */
+export interface ActionableRecommendationContext extends SuccessPredictionRequest {
+  disputeId?: string;
+  accountIds?: string[];
+  currentEoscarCodes?: { accountId: string; code: string }[];
+  ocrFindings?: { original: string; replacement: string; location?: string }[];
+  availableMetro2Fields?: string[];
+}
+
+/**
+ * Generate actionable recommendations that can be applied with a click
+ */
+export function generateActionableRecommendations(
+  breakdown: SuccessFactor[],
+  context: SuccessPredictionRequest | ActionableRecommendationContext
+): ActionableRecommendation[] {
+  const recommendations: ActionableRecommendation[] = [];
+  const extContext = context as ActionableRecommendationContext;
+
+  // Sort by potential improvement (weight × (1 - score))
+  const sortedFactors = [...breakdown].sort(
+    (a, b) => b.weight * (1 - b.score) - a.weight * (1 - a.score)
+  );
+
+  for (const factor of sortedFactors) {
+    if (factor.score >= 0.85) continue; // Already optimized
+
+    switch (factor.name) {
+      case "Dispute Specificity":
+        // Recommend enabling Metro 2 targeting
+        if (!context.hasMetro2Targeting) {
+          const payload: EnableMetro2Payload = {
+            type: "ENABLE_METRO2",
+            accountIds: extContext.accountIds || [],
+            suggestedFields: extContext.availableMetro2Fields || [
+              "BALANCE",
+              "PAYMENT_STATUS",
+              "DATE_OF_LAST_ACTIVITY",
+            ],
+          };
+
+          recommendations.push({
+            id: uuidv4(),
+            type: "ENABLE_METRO2",
+            title: "Enable Metro 2 Field Targeting",
+            description:
+              "Target specific Metro 2 data fields (Balance, Payment Status, Date of Last Activity) to force field-level verification instead of generic responses.",
+            potentialGain: "+12-20%",
+            potentialGainValue: 0.16,
+            priority: "HIGH",
+            status: "PENDING",
+            payload,
+            previewBefore: "The account information is inaccurate.",
+            previewAfter:
+              "The **BALANCE** field shows $2,450 but should reflect $0. The **PAYMENT STATUS** field incorrectly reports 120+ days late.",
+          });
+        }
+
+        // Recommend better e-OSCAR code
+        if (context.eoscarCode === "112" || !context.eoscarCode) {
+          const suggestedCode = getSuggestedEOSCARCode(context);
+          const payload: ChangeEOSCARPayload = {
+            type: "CHANGE_EOSCAR_CODE",
+            accountId: extContext.accountIds?.[0] || "",
+            currentCode: context.eoscarCode || "112",
+            suggestedCode: suggestedCode.code,
+            suggestedCodeName: suggestedCode.name,
+            reasoning: suggestedCode.reasoning,
+          };
+
+          recommendations.push({
+            id: uuidv4(),
+            type: "CHANGE_EOSCAR_CODE",
+            title: `Switch to e-OSCAR Code ${suggestedCode.code}`,
+            description: `Replace generic code 112 with "${suggestedCode.name}" (${suggestedCode.code}). ${suggestedCode.reasoning}`,
+            potentialGain: "+8-15%",
+            potentialGainValue: 0.12,
+            priority: "HIGH",
+            status: "PENDING",
+            payload,
+          });
+        }
+        break;
+
+      case "OCR Safety Score":
+        if (context.ocrSafetyScore < 70 && extContext.ocrFindings?.length) {
+          const payload: ApplyOCRFixesPayload = {
+            type: "APPLY_OCR_FIXES",
+            fixes: extContext.ocrFindings,
+          };
+
+          recommendations.push({
+            id: uuidv4(),
+            type: "APPLY_OCR_FIXES",
+            title: "Apply OCR Safety Fixes",
+            description: `Found ${extContext.ocrFindings.length} phrase(s) that may trigger frivolous flagging. Apply automatic replacements to reduce detection risk.`,
+            potentialGain: "+5-10%",
+            potentialGainValue: 0.08,
+            priority: "MEDIUM",
+            status: "PENDING",
+            payload,
+            previewBefore: extContext.ocrFindings[0]?.original,
+            previewAfter: extContext.ocrFindings[0]?.replacement,
+          });
+        }
+        break;
+
+      case "Documentation Strength":
+        if (!context.hasBureauDiscrepancy && !context.hasPaymentProof) {
+          recommendations.push({
+            id: uuidv4(),
+            type: "ADD_DOCUMENTATION",
+            title: "Add Cross-Bureau Discrepancy",
+            description:
+              "Document differences in how this account is reported across bureaus. Discrepancies prove at least one bureau has inaccurate data.",
+            potentialGain: "+10-15%",
+            potentialGainValue: 0.13,
+            priority: "MEDIUM",
+            status: "PENDING",
+            payload: {
+              type: "ADD_DOCUMENTATION",
+              documentationType: "BUREAU_DISCREPANCY",
+              description: "Compare account data across TransUnion, Experian, and Equifax",
+              requiredFields: ["balance", "dateOpened", "paymentStatus", "accountStatus"],
+            },
+          });
+        }
+        break;
+
+      case "Legal Citation Accuracy":
+        if (context.citationAccuracyScore < 0.8) {
+          recommendations.push({
+            id: uuidv4(),
+            type: "ADD_LEGAL_CITATION",
+            title: "Strengthen Legal Citations",
+            description:
+              "Add verified FCRA citations with supporting case law. Accurate citations demonstrate legal knowledge and increase credibility.",
+            potentialGain: "+5-8%",
+            potentialGainValue: 0.06,
+            priority: "LOW",
+            status: "PENDING",
+            payload: {
+              type: "ADD_LEGAL_CITATION",
+              statute: "15 U.S.C. § 1681e(b)",
+              name: "Maximum Possible Accuracy",
+              insertLocation: "BODY",
+              citationText:
+                "Under 15 U.S.C. § 1681e(b), consumer reporting agencies must follow reasonable procedures to assure maximum possible accuracy of consumer reports.",
+            },
+          });
+        }
+        break;
+    }
+  }
+
+  // Sort by potential gain (highest first)
+  recommendations.sort((a, b) => b.potentialGainValue - a.potentialGainValue);
+
+  // Return top 4 recommendations
+  return recommendations.slice(0, 4);
+}
+
+/**
+ * Get a suggested e-OSCAR code based on context
+ */
+function getSuggestedEOSCARCode(context: SuccessPredictionRequest): {
+  code: string;
+  name: string;
+  reasoning: string;
+} {
+  // Determine best code based on available context
+  if (context.hasBureauDiscrepancy) {
+    return {
+      code: "103",
+      name: "Not his/hers",
+      reasoning: "Cross-bureau discrepancies suggest data mixing or identity confusion.",
+    };
+  }
+
+  if (context.hasPaymentProof) {
+    return {
+      code: "106",
+      name: "Disputes present/previous Account Status",
+      reasoning: "Payment documentation supports challenging the reported account status.",
+    };
+  }
+
+  // Default to a common high-success code
+  return {
+    code: "102",
+    name: "Belongs to another person",
+    reasoning:
+      "Forces furnisher to verify account ownership rather than just confirming data exists.",
+  };
 }
 
 /**

@@ -15,6 +15,9 @@ import type {
   Metro2FieldDispute,
   SuccessFactor,
   LegalCitation,
+  ActionableRecommendation,
+  RecommendationActionType,
+  RecommendationStatus,
 } from "@/types/sentry";
 
 // =============================================================================
@@ -147,6 +150,20 @@ export interface SuccessPredictionUI {
   label: string;
   breakdown: SuccessFactorUI[];
   recommendations: string[];
+  actionableRecommendations?: ActionableRecommendationUI[];
+}
+
+export interface ActionableRecommendationUI {
+  id: string;
+  type: RecommendationActionType;
+  title: string;
+  description: string;
+  potentialGain: string;
+  potentialGainValue: number;
+  priority: "HIGH" | "MEDIUM" | "LOW";
+  status: RecommendationStatus;
+  previewBefore?: string;
+  previewAfter?: string;
 }
 
 export interface SuccessFactorUI {
@@ -181,7 +198,11 @@ export interface SentryAccountSelectorProps {
 
 export interface SentryAnalysisPanelProps {
   analysis: SentryAnalysisForUI;
+  disputeId?: string;
   onApplyFixes?: () => void;
+  onApplyRecommendation?: (recommendation: ActionableRecommendationUI) => Promise<void>;
+  onRevertRecommendation?: (recommendationId: string) => Promise<void>;
+  onResetRecommendations?: () => Promise<void>;
 }
 
 export interface EOSCARCodeSelectorProps {

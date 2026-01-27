@@ -67,6 +67,19 @@ export type {
   RecommendCodesRequest,
   ValidateCitationsRequest,
   SuccessPredictionRequest,
+  // Actionable Recommendation types
+  ActionableRecommendation,
+  RecommendationActionType,
+  RecommendationStatus,
+  RecommendationPayload,
+  EnableMetro2Payload,
+  ChangeEOSCARPayload,
+  ApplyOCRFixesPayload,
+  AddDocumentationPayload,
+  AddCitationPayload,
+  RemoveCitationPayload,
+  AdjustTonePayload,
+  AppliedRecommendations,
 } from "@/types/sentry";
 
 // =============================================================================
@@ -132,7 +145,23 @@ export {
   calculatePotentialImprovement,
   compareStrategies,
   getFactorWeights,
+  generateActionableRecommendations,
+  type ActionableRecommendationContext,
 } from "./success-calculator";
+
+// Recommendation Actions
+export {
+  applyRecommendation,
+  revertRecommendation,
+  resetAllRecommendations,
+  previewRecommendation,
+  calculateCombinedEffect,
+  createAppliedRecommendationsTracker,
+  updateAppliedRecommendationsTracker,
+  type ApplyRecommendationResult,
+  type RevertRecommendationResult,
+  type PreviewResult,
+} from "./recommendation-actions";
 
 // Letter Generation
 export {

@@ -4,19 +4,25 @@
  * SENTRY ANALYSIS PANEL
  *
  * Combined view of all Sentry intelligence analysis results.
+ * Now includes actionable recommendations powered by the Amelia Sentry Engine.
  */
 
 import { useState } from "react";
-import { type SentryAnalysisPanelProps } from "./types";
+import { type SentryAnalysisPanelProps, type ActionableRecommendationUI } from "./types";
 import { SuccessProbabilityGauge } from "./success-probability-gauge";
 import { OCRRiskAnalyzer } from "./ocr-risk-analyzer";
 import { LegalCitationChecker } from "./legal-citation-checker";
+import { ActionableRecommendationsPanel } from "./actionable-recommendations";
 
 type AnalysisTab = "overview" | "ocr" | "citations" | "success";
 
 export function SentryAnalysisPanel({
   analysis,
+  disputeId,
   onApplyFixes,
+  onApplyRecommendation,
+  onRevertRecommendation,
+  onResetRecommendations,
 }: SentryAnalysisPanelProps) {
   const [activeTab, setActiveTab] = useState<AnalysisTab>("overview");
 
@@ -82,7 +88,13 @@ export function SentryAnalysisPanel({
       {/* Content */}
       <div className="p-4">
         {activeTab === "overview" && (
-          <OverviewTab analysis={analysis} onApplyFixes={onApplyFixes} />
+          <OverviewTab
+            analysis={analysis}
+            onApplyFixes={onApplyFixes}
+            onApplyRecommendation={onApplyRecommendation}
+            onRevertRecommendation={onRevertRecommendation}
+            onResetRecommendations={onResetRecommendations}
+          />
         )}
 
         {activeTab === "ocr" && (
@@ -116,9 +128,15 @@ export function SentryAnalysisPanel({
 function OverviewTab({
   analysis,
   onApplyFixes,
+  onApplyRecommendation,
+  onRevertRecommendation,
+  onResetRecommendations,
 }: {
   analysis: SentryAnalysisPanelProps["analysis"];
   onApplyFixes?: () => void;
+  onApplyRecommendation?: (recommendation: ActionableRecommendationUI) => Promise<void>;
+  onRevertRecommendation?: (recommendationId: string) => Promise<void>;
+  onResetRecommendations?: () => Promise<void>;
 }) {
   const overallScore = Math.round(
     analysis.ocrScore * 0.3 +
@@ -221,20 +239,39 @@ function OverviewTab({
         </div>
       )}
 
-      {/* Top recommendations */}
-      {analysis.successPrediction.recommendations.length > 0 && (
-        <div>
-          <h4 className="text-xs font-medium text-slate-400 mb-2">Top Recommendations</h4>
-          <ul className="space-y-1">
-            {analysis.successPrediction.recommendations.slice(0, 3).map((rec, i) => (
-              <li key={i} className="text-xs text-slate-300 flex items-start gap-2">
-                <span className="text-blue-400">→</span>
-                {rec}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {/* Actionable Recommendations */}
+      {analysis.successPrediction.actionableRecommendations &&
+        analysis.successPrediction.actionableRecommendations.length > 0 &&
+        onApplyRecommendation && (
+          <ActionableRecommendationsPanel
+            recommendations={analysis.successPrediction.actionableRecommendations}
+            onApply={onApplyRecommendation}
+            onRevert={onRevertRecommendation}
+            onReset={onResetRecommendations}
+            hasAppliedRecommendations={
+              analysis.successPrediction.actionableRecommendations.some(
+                (r) => r.status === "APPLIED"
+              )
+            }
+          />
+        )}
+
+      {/* Text recommendations (fallback if no actionable recommendations or no callback) */}
+      {(!analysis.successPrediction.actionableRecommendations ||
+        !onApplyRecommendation) &&
+        analysis.successPrediction.recommendations.length > 0 && (
+          <div>
+            <h4 className="text-xs font-medium text-slate-400 mb-2">Top Recommendations</h4>
+            <ul className="space-y-1">
+              {analysis.successPrediction.recommendations.slice(0, 3).map((rec, i) => (
+                <li key={i} className="text-xs text-slate-300 flex items-start gap-2">
+                  <span className="text-blue-400">→</span>
+                  {rec}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
     </div>
   );
 }
