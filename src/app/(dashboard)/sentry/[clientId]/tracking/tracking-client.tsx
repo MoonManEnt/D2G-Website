@@ -1,0 +1,758 @@
+"use client";
+
+/**
+ * SENTRY TRACKING CLIENT COMPONENT
+ *
+ * Interactive tracking dashboard with:
+ * - Quick stats bar
+ * - Account tracking matrix
+ * - Pending actions
+ * - Recent activity
+ */
+
+import { useState, useEffect } from "react";
+import Link from "next/link";
+
+// Types
+interface BureauStatus {
+  round: number;
+  status: "NOT_STARTED" | "DRAFT" | "SENT" | "RESPONDED" | "RESOLVED";
+  outcome?: "DELETED" | "VERIFIED" | "UPDATED" | "NO_RESPONSE" | "STALL_LETTER" | null;
+  disputeId?: string;
+  disputeItemId?: string;
+  sentDate?: string;
+  responseDate?: string;
+  daysRemaining?: number;
+  isOverdue?: boolean;
+}
+
+interface AccountTracking {
+  accountId: string;
+  creditorName: string;
+  maskedAccountId: string;
+  transunion: BureauStatus;
+  experian: BureauStatus;
+  equifax: BureauStatus;
+  bestOutcome: "DELETED" | "VERIFIED" | "UPDATED" | "PENDING" | "NOT_STARTED";
+}
+
+interface QuickStats {
+  activeDisputes: number;
+  awaitingResponse: number;
+  overdue: number;
+  successRate: number;
+  totalDeleted: number;
+  totalDisputed: number;
+  byBureau: {
+    transunion: { active: number; deleted: number; total: number };
+    experian: { active: number; deleted: number; total: number };
+    equifax: { active: number; deleted: number; total: number };
+  };
+}
+
+interface RecentActivity {
+  id: string;
+  date: string;
+  type: "CREATED" | "SENT" | "RESPONSE" | "RESOLVED";
+  creditorName: string;
+  cra: string;
+  round: number;
+  outcome?: string;
+  disputeId: string;
+}
+
+interface PendingAction {
+  id: string;
+  type: "SEND_DRAFT" | "RECORD_RESPONSE" | "OVERDUE" | "START_NEXT_ROUND";
+  priority: "HIGH" | "MEDIUM" | "LOW";
+  creditorName: string;
+  cra: string;
+  round: number;
+  disputeId?: string;
+  accountId?: string;
+  message: string;
+  daysOverdue?: number;
+}
+
+interface TrackingData {
+  client: { id: string; name: string };
+  trackingMatrix: AccountTracking[];
+  quickStats: QuickStats;
+  recentActivity: RecentActivity[];
+  pendingActions: PendingAction[];
+}
+
+interface Props {
+  clientId: string;
+}
+
+export function SentryTrackingClient({ clientId }: Props) {
+  const [data, setData] = useState<TrackingData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"matrix" | "timeline" | "analytics">("matrix");
+
+  useEffect(() => {
+    fetchTrackingData();
+  }, [clientId]);
+
+  const fetchTrackingData = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/sentry/tracking?clientId=${clientId}`);
+      const json = await res.json();
+
+      if (!res.ok) {
+        throw new Error(json.error || "Failed to fetch tracking data");
+      }
+
+      setData(json);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load tracking data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-6 text-center">
+        <p className="text-red-400">{error || "Failed to load tracking data"}</p>
+        <button
+          onClick={fetchTrackingData}
+          className="mt-4 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Quick Stats Bar */}
+      <QuickStatsBar stats={data.quickStats} />
+
+      {/* Tabs */}
+      <div className="flex gap-2 border-b border-slate-700">
+        <button
+          onClick={() => setActiveTab("matrix")}
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+            activeTab === "matrix"
+              ? "text-blue-400 border-b-2 border-blue-400"
+              : "text-slate-400 hover:text-slate-200"
+          }`}
+        >
+          Account Matrix
+        </button>
+        <button
+          onClick={() => setActiveTab("timeline")}
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+            activeTab === "timeline"
+              ? "text-blue-400 border-b-2 border-blue-400"
+              : "text-slate-400 hover:text-slate-200"
+          }`}
+        >
+          Timeline
+        </button>
+        <button
+          onClick={() => setActiveTab("analytics")}
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+            activeTab === "analytics"
+              ? "text-blue-400 border-b-2 border-blue-400"
+              : "text-slate-400 hover:text-slate-200"
+          }`}
+        >
+          Analytics
+        </button>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === "matrix" && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Matrix - 2 columns */}
+          <div className="lg:col-span-2 space-y-6">
+            <AccountTrackingMatrix
+              accounts={data.trackingMatrix}
+              clientId={clientId}
+            />
+          </div>
+
+          {/* Sidebar - 1 column */}
+          <div className="space-y-6">
+            <PendingActionsPanel
+              actions={data.pendingActions}
+              clientId={clientId}
+              onRefresh={fetchTrackingData}
+            />
+            <RecentActivityPanel activities={data.recentActivity} />
+          </div>
+        </div>
+      )}
+
+      {activeTab === "timeline" && (
+        <TimelineView activities={data.recentActivity} />
+      )}
+
+      {activeTab === "analytics" && (
+        <AnalyticsView stats={data.quickStats} accounts={data.trackingMatrix} />
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// QUICK STATS BAR
+// ============================================================================
+
+function QuickStatsBar({ stats }: { stats: QuickStats }) {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-4">
+        <div className="text-2xl font-bold text-slate-200">{stats.activeDisputes}</div>
+        <div className="text-xs text-slate-400">Active Disputes</div>
+      </div>
+      <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-4">
+        <div className="text-2xl font-bold text-amber-400">{stats.awaitingResponse}</div>
+        <div className="text-xs text-slate-400">Awaiting Response</div>
+      </div>
+      <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-4">
+        <div className={`text-2xl font-bold ${stats.overdue > 0 ? "text-red-400" : "text-slate-400"}`}>
+          {stats.overdue}
+        </div>
+        <div className="text-xs text-slate-400">Overdue</div>
+      </div>
+      <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-4">
+        <div className="text-2xl font-bold text-emerald-400">{stats.successRate}%</div>
+        <div className="text-xs text-slate-400">
+          Success Rate ({stats.totalDeleted}/{stats.totalDisputed})
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// ACCOUNT TRACKING MATRIX
+// ============================================================================
+
+function AccountTrackingMatrix({
+  accounts,
+  clientId,
+}: {
+  accounts: AccountTracking[];
+  clientId: string;
+}) {
+  return (
+    <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden">
+      <div className="p-4 border-b border-slate-700/50">
+        <h2 className="text-lg font-semibold text-slate-200">Account Tracking Matrix</h2>
+        <p className="text-sm text-slate-400">Track progress across all bureaus and rounds</p>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="bg-slate-900/50">
+              <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                Account
+              </th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
+                TransUnion
+              </th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
+                Experian
+              </th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
+                Equifax
+              </th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">
+                Best
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-700/50">
+            {accounts.map((account) => (
+              <tr key={account.accountId} className="hover:bg-slate-700/20">
+                <td className="px-4 py-4">
+                  <div className="font-medium text-slate-200">{account.creditorName}</div>
+                  <div className="text-xs text-slate-500">...{account.maskedAccountId}</div>
+                </td>
+                <td className="px-4 py-3">
+                  <BureauStatusCell
+                    status={account.transunion}
+                    cra="TRANSUNION"
+                    clientId={clientId}
+                    accountId={account.accountId}
+                  />
+                </td>
+                <td className="px-4 py-3">
+                  <BureauStatusCell
+                    status={account.experian}
+                    cra="EXPERIAN"
+                    clientId={clientId}
+                    accountId={account.accountId}
+                  />
+                </td>
+                <td className="px-4 py-3">
+                  <BureauStatusCell
+                    status={account.equifax}
+                    cra="EQUIFAX"
+                    clientId={clientId}
+                    accountId={account.accountId}
+                  />
+                </td>
+                <td className="px-4 py-3 text-center">
+                  <OutcomeBadge outcome={account.bestOutcome} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Legend */}
+      <div className="p-4 border-t border-slate-700/50 bg-slate-900/30">
+        <div className="flex flex-wrap gap-4 text-xs text-slate-400">
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-slate-500"></span> Not Started
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-slate-400"></span> Draft
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-amber-400"></span> Sent/Waiting
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-blue-400"></span> Responded
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-emerald-400"></span> Deleted
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-red-400"></span> Verified
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BureauStatusCell({
+  status,
+  cra,
+  clientId,
+  accountId,
+}: {
+  status: BureauStatus;
+  cra: string;
+  clientId: string;
+  accountId: string;
+}) {
+  if (status.status === "NOT_STARTED") {
+    return (
+      <div className="text-center">
+        <Link
+          href={`/sentry/${clientId}?cra=${cra}&account=${accountId}`}
+          className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-slate-700/50 text-slate-400 rounded hover:bg-slate-600/50 hover:text-slate-200 transition-colors"
+        >
+          <span>Start</span>
+        </Link>
+      </div>
+    );
+  }
+
+  const getStatusColor = () => {
+    if (status.outcome === "DELETED") return "bg-emerald-400";
+    if (status.outcome === "VERIFIED") return "bg-red-400";
+    if (status.outcome === "UPDATED") return "bg-yellow-400";
+    if (status.status === "SENT") return status.isOverdue ? "bg-red-400" : "bg-amber-400";
+    if (status.status === "DRAFT") return "bg-slate-400";
+    if (status.status === "RESPONDED") return "bg-blue-400";
+    return "bg-slate-500";
+  };
+
+  const getStatusText = () => {
+    if (status.outcome) {
+      return status.outcome.charAt(0) + status.outcome.slice(1).toLowerCase();
+    }
+    if (status.status === "SENT") {
+      return status.isOverdue
+        ? `Overdue`
+        : `${status.daysRemaining}d`;
+    }
+    return status.status.charAt(0) + status.status.slice(1).toLowerCase();
+  };
+
+  return (
+    <div className="text-center">
+      <div className="inline-flex flex-col items-center gap-1">
+        <div className="flex items-center gap-1">
+          <span className={`w-2 h-2 rounded-full ${getStatusColor()}`}></span>
+          <span className="text-xs font-medium text-slate-300">R{status.round}</span>
+        </div>
+        <span className={`text-xs ${status.isOverdue ? "text-red-400" : "text-slate-400"}`}>
+          {getStatusText()}
+        </span>
+        {status.disputeId && (
+          <Link
+            href={`/sentry/${clientId}?dispute=${status.disputeId}`}
+            className="text-xs text-blue-400 hover:underline"
+          >
+            View
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function OutcomeBadge({ outcome }: { outcome: AccountTracking["bestOutcome"] }) {
+  const config = {
+    DELETED: { bg: "bg-emerald-500/20", text: "text-emerald-400", label: "Deleted" },
+    VERIFIED: { bg: "bg-red-500/20", text: "text-red-400", label: "Verified" },
+    UPDATED: { bg: "bg-yellow-500/20", text: "text-yellow-400", label: "Updated" },
+    PENDING: { bg: "bg-amber-500/20", text: "text-amber-400", label: "Pending" },
+    NOT_STARTED: { bg: "bg-slate-500/20", text: "text-slate-400", label: "-" },
+  };
+
+  const { bg, text, label } = config[outcome];
+
+  return (
+    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded ${bg} ${text}`}>
+      {label}
+    </span>
+  );
+}
+
+// ============================================================================
+// PENDING ACTIONS PANEL
+// ============================================================================
+
+function PendingActionsPanel({
+  actions,
+  clientId,
+  onRefresh,
+}: {
+  actions: PendingAction[];
+  clientId: string;
+  onRefresh: () => void;
+}) {
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case "HIGH":
+        return "border-l-red-500";
+      case "MEDIUM":
+        return "border-l-amber-500";
+      default:
+        return "border-l-slate-500";
+    }
+  };
+
+  const getActionIcon = (type: string) => {
+    switch (type) {
+      case "SEND_DRAFT":
+        return "📤";
+      case "RECORD_RESPONSE":
+        return "📋";
+      case "OVERDUE":
+        return "⚠️";
+      case "START_NEXT_ROUND":
+        return "🔄";
+      default:
+        return "•";
+    }
+  };
+
+  return (
+    <div className="bg-slate-800/50 rounded-xl border border-slate-700/50">
+      <div className="p-4 border-b border-slate-700/50 flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-semibold text-slate-200">Pending Actions</h3>
+          <p className="text-xs text-slate-400">{actions.length} items need attention</p>
+        </div>
+        <button
+          onClick={onRefresh}
+          className="p-1 hover:bg-slate-700 rounded transition-colors"
+          title="Refresh"
+        >
+          <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
+      </div>
+
+      <div className="divide-y divide-slate-700/50 max-h-80 overflow-y-auto">
+        {actions.length === 0 ? (
+          <div className="p-6 text-center text-slate-400 text-sm">
+            No pending actions
+          </div>
+        ) : (
+          actions.slice(0, 10).map((action) => (
+            <div
+              key={action.id}
+              className={`p-3 border-l-2 ${getPriorityColor(action.priority)} hover:bg-slate-700/20`}
+            >
+              <div className="flex items-start gap-2">
+                <span className="text-sm">{getActionIcon(action.type)}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-200 truncate">
+                    {action.creditorName}
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    {action.cra} • R{action.round} • {action.message}
+                  </p>
+                </div>
+                {action.disputeId && (
+                  <Link
+                    href={`/sentry/${clientId}?dispute=${action.disputeId}`}
+                    className="shrink-0 px-2 py-1 text-xs bg-blue-500/20 text-blue-400 rounded hover:bg-blue-500/30"
+                  >
+                    Action
+                  </Link>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// RECENT ACTIVITY PANEL
+// ============================================================================
+
+function RecentActivityPanel({ activities }: { activities: RecentActivity[] }) {
+  const getActivityIcon = (type: string, outcome?: string) => {
+    if (outcome === "DELETED") return "✅";
+    if (outcome === "VERIFIED") return "❌";
+    switch (type) {
+      case "CREATED":
+        return "●";
+      case "SENT":
+        return "✉️";
+      case "RESPONSE":
+        return "📬";
+      case "RESOLVED":
+        return "✓";
+      default:
+        return "•";
+    }
+  };
+
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
+  return (
+    <div className="bg-slate-800/50 rounded-xl border border-slate-700/50">
+      <div className="p-4 border-b border-slate-700/50">
+        <h3 className="text-sm font-semibold text-slate-200">Recent Activity</h3>
+      </div>
+
+      <div className="divide-y divide-slate-700/50 max-h-64 overflow-y-auto">
+        {activities.length === 0 ? (
+          <div className="p-6 text-center text-slate-400 text-sm">
+            No recent activity
+          </div>
+        ) : (
+          activities.map((activity) => (
+            <div key={activity.id} className="p-3 hover:bg-slate-700/20">
+              <div className="flex items-start gap-2">
+                <span className="text-sm mt-0.5">{getActivityIcon(activity.type, activity.outcome)}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-slate-200">
+                    <span className="font-medium">{activity.creditorName}</span>
+                    <span className="text-slate-400"> ({activity.cra})</span>
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    R{activity.round} • {activity.type.toLowerCase()}
+                    {activity.outcome && ` • ${activity.outcome.toLowerCase()}`}
+                  </p>
+                </div>
+                <span className="text-xs text-slate-500 shrink-0">
+                  {formatDate(activity.date)}
+                </span>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// TIMELINE VIEW
+// ============================================================================
+
+function TimelineView({ activities }: { activities: RecentActivity[] }) {
+  const groupedByDate = activities.reduce((acc, activity) => {
+    const date = new Date(activity.date).toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
+    if (!acc[date]) acc[date] = [];
+    acc[date].push(activity);
+    return acc;
+  }, {} as Record<string, RecentActivity[]>);
+
+  return (
+    <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-6">
+      <h2 className="text-lg font-semibold text-slate-200 mb-6">Timeline</h2>
+
+      {Object.entries(groupedByDate).map(([date, items]) => (
+        <div key={date} className="mb-8">
+          <h3 className="text-sm font-medium text-slate-400 mb-4 uppercase tracking-wider">
+            {date}
+          </h3>
+          <div className="space-y-4 border-l-2 border-slate-700 pl-4">
+            {items.map((item) => (
+              <div key={item.id} className="relative">
+                <div className="absolute -left-[21px] w-3 h-3 rounded-full bg-slate-700 border-2 border-slate-600"></div>
+                <div className="bg-slate-900/50 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-slate-200">{item.creditorName}</span>
+                    <span className="text-xs text-slate-500">
+                      {new Date(item.date).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-400 mt-1">
+                    {item.cra} • Round {item.round} • {item.type.toLowerCase()}
+                    {item.outcome && (
+                      <span className={`ml-2 ${
+                        item.outcome === "DELETED" ? "text-emerald-400" :
+                        item.outcome === "VERIFIED" ? "text-red-400" :
+                        "text-yellow-400"
+                      }`}>
+                        {item.outcome}
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      {activities.length === 0 && (
+        <div className="text-center text-slate-400 py-10">
+          No activity yet. Start a dispute to see timeline updates.
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// ANALYTICS VIEW
+// ============================================================================
+
+function AnalyticsView({
+  stats,
+  accounts,
+}: {
+  stats: QuickStats;
+  accounts: AccountTracking[];
+}) {
+  const bureauData = [
+    { name: "TransUnion", ...stats.byBureau.transunion, color: "bg-blue-500" },
+    { name: "Experian", ...stats.byBureau.experian, color: "bg-purple-500" },
+    { name: "Equifax", ...stats.byBureau.equifax, color: "bg-emerald-500" },
+  ];
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Bureau Performance */}
+      <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-6">
+        <h3 className="text-lg font-semibold text-slate-200 mb-4">Bureau Performance</h3>
+        <div className="space-y-4">
+          {bureauData.map((bureau) => {
+            const rate = bureau.total > 0 ? Math.round((bureau.deleted / bureau.total) * 100) : 0;
+            return (
+              <div key={bureau.name}>
+                <div className="flex items-center justify-between text-sm mb-1">
+                  <span className="text-slate-300">{bureau.name}</span>
+                  <span className="text-slate-400">
+                    {rate}% deletion rate ({bureau.deleted}/{bureau.total})
+                  </span>
+                </div>
+                <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full ${bureau.color} transition-all duration-500`}
+                    style={{ width: `${rate}%` }}
+                  ></div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Overall Stats */}
+      <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-6">
+        <h3 className="text-lg font-semibold text-slate-200 mb-4">Overall Statistics</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="text-center p-4 bg-slate-900/50 rounded-lg">
+            <div className="text-3xl font-bold text-emerald-400">{stats.totalDeleted}</div>
+            <div className="text-sm text-slate-400">Items Deleted</div>
+          </div>
+          <div className="text-center p-4 bg-slate-900/50 rounded-lg">
+            <div className="text-3xl font-bold text-slate-200">{stats.totalDisputed}</div>
+            <div className="text-sm text-slate-400">Total Disputed</div>
+          </div>
+          <div className="text-center p-4 bg-slate-900/50 rounded-lg">
+            <div className="text-3xl font-bold text-amber-400">{stats.awaitingResponse}</div>
+            <div className="text-sm text-slate-400">Awaiting Response</div>
+          </div>
+          <div className="text-center p-4 bg-slate-900/50 rounded-lg">
+            <div className="text-3xl font-bold text-blue-400">{accounts.length}</div>
+            <div className="text-sm text-slate-400">Accounts Tracked</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Outcome Breakdown */}
+      <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-6 md:col-span-2">
+        <h3 className="text-lg font-semibold text-slate-200 mb-4">Account Outcomes</h3>
+        <div className="grid grid-cols-5 gap-4">
+          {[
+            { label: "Deleted", outcome: "DELETED", color: "bg-emerald-500" },
+            { label: "Verified", outcome: "VERIFIED", color: "bg-red-500" },
+            { label: "Updated", outcome: "UPDATED", color: "bg-yellow-500" },
+            { label: "Pending", outcome: "PENDING", color: "bg-amber-500" },
+            { label: "Not Started", outcome: "NOT_STARTED", color: "bg-slate-500" },
+          ].map(({ label, outcome, color }) => {
+            const count = accounts.filter((a) => a.bestOutcome === outcome).length;
+            return (
+              <div key={outcome} className="text-center">
+                <div className={`w-full h-2 ${color} rounded-full mb-2`}></div>
+                <div className="text-2xl font-bold text-slate-200">{count}</div>
+                <div className="text-xs text-slate-400">{label}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
