@@ -186,7 +186,7 @@ export interface SentryLetterBuilderProps {
   disputeId: string;
   initialContent?: string;
   onSave: (content: string) => void;
-  onGenerate: () => void;
+  onGenerate: () => void | Promise<void>;
 }
 
 export interface SentryAccountSelectorProps {
@@ -241,6 +241,10 @@ export interface SuccessProbabilityGaugeProps {
   confidence: "HIGH" | "MEDIUM" | "LOW";
   breakdown?: SuccessFactorUI[];
   recommendations?: string[];
+  actionableRecommendations?: ActionableRecommendationUI[];
+  onApplyRecommendation?: (recommendation: ActionableRecommendationUI) => Promise<void>;
+  onRevertRecommendation?: (recommendationId: string) => Promise<void>;
+  onResetRecommendations?: () => Promise<void>;
 }
 
 export interface SentryLetterPreviewProps {

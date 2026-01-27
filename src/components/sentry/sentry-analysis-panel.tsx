@@ -118,6 +118,10 @@ export function SentryAnalysisPanel({
             confidence={analysis.successPrediction.confidence}
             breakdown={analysis.successPrediction.breakdown}
             recommendations={analysis.successPrediction.recommendations}
+            actionableRecommendations={analysis.successPrediction.actionableRecommendations}
+            onApplyRecommendation={onApplyRecommendation}
+            onRevertRecommendation={onRevertRecommendation}
+            onResetRecommendations={onResetRecommendations}
           />
         )}
       </div>

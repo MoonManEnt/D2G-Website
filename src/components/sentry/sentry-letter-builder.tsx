@@ -6,7 +6,7 @@
  * Interactive letter editor with real-time analysis.
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { type SentryLetterBuilderProps } from "./types";
 
 export function SentryLetterBuilder({
@@ -19,6 +19,15 @@ export function SentryLetterBuilder({
   const [isEditing, setIsEditing] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+
+  // Sync content when initialContent changes (e.g., after regeneration or applying recommendations)
+  useEffect(() => {
+    if (!isEditing && initialContent !== undefined) {
+      setContent(initialContent);
+      setHasChanges(false);
+    }
+  }, [initialContent, isEditing]);
 
   const handleContentChange = useCallback((newContent: string) => {
     setContent(newContent);
@@ -79,10 +88,25 @@ export function SentryLetterBuilder({
                 Edit
               </button>
               <button
-                onClick={onGenerate}
-                className="px-3 py-1.5 text-xs bg-emerald-500/20 text-emerald-400 rounded-lg hover:bg-emerald-500/30 transition-colors"
+                onClick={async () => {
+                  setIsRegenerating(true);
+                  try {
+                    await onGenerate();
+                  } finally {
+                    setIsRegenerating(false);
+                  }
+                }}
+                disabled={isRegenerating}
+                className="px-3 py-1.5 text-xs bg-emerald-500/20 text-emerald-400 rounded-lg hover:bg-emerald-500/30 transition-colors disabled:opacity-50 flex items-center gap-2"
               >
-                Regenerate
+                {isRegenerating ? (
+                  <>
+                    <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+                    Regenerating...
+                  </>
+                ) : (
+                  "Regenerate"
+                )}
               </button>
             </>
           )}

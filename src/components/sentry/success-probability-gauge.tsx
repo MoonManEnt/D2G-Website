@@ -4,20 +4,27 @@
  * SENTRY SUCCESS PROBABILITY GAUGE
  *
  * Visual gauge showing dispute success probability with factor breakdown.
+ * Now includes actionable recommendations with Accept & Apply buttons.
  */
 
 import { useState } from "react";
 import {
   type SuccessProbabilityGaugeProps,
   type SuccessFactorUI,
+  type ActionableRecommendationUI,
   getProbabilityColor,
 } from "./types";
+import { ActionableRecommendationsPanel } from "./actionable-recommendations";
 
 export function SuccessProbabilityGauge({
   probability,
   confidence,
   breakdown,
   recommendations,
+  actionableRecommendations,
+  onApplyRecommendation,
+  onRevertRecommendation,
+  onResetRecommendations,
 }: SuccessProbabilityGaugeProps) {
   const [showDetails, setShowDetails] = useState(false);
   const probabilityPercent = Math.round(probability * 100);
@@ -97,8 +104,20 @@ export function SuccessProbabilityGauge({
             </div>
           )}
 
-          {/* Recommendations */}
-          {recommendations && recommendations.length > 0 && (
+          {/* Actionable Recommendations */}
+          {actionableRecommendations && actionableRecommendations.length > 0 && onApplyRecommendation && (
+            <ActionableRecommendationsPanel
+              recommendations={actionableRecommendations}
+              onApply={onApplyRecommendation}
+              onRevert={onRevertRecommendation}
+              onReset={onResetRecommendations}
+              hasAppliedRecommendations={actionableRecommendations.some(r => r.status === "APPLIED")}
+            />
+          )}
+
+          {/* Text Recommendations (fallback when no actionable recommendations) */}
+          {(!actionableRecommendations || actionableRecommendations.length === 0 || !onApplyRecommendation) &&
+            recommendations && recommendations.length > 0 && (
             <div>
               <h4 className="text-xs font-medium text-slate-400 mb-2">Recommendations</h4>
               <ul className="space-y-1">

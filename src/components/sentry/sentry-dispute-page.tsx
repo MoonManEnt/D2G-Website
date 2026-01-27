@@ -305,9 +305,48 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
 
       const data = await res.json();
 
+      // Update letter content
       setCurrentDispute((prev) =>
         prev ? { ...prev, letterContent: data.letterContent } : null
       );
+
+      // Update analysis with new data from regeneration
+      if (data.sentry) {
+        const analysisData: SentryAnalysisForUI = {
+          ocrScore: data.sentry.ocrAnalysis?.score || 0,
+          ocrRisk: data.sentry.ocrAnalysis?.risk || "MEDIUM",
+          ocrFindings: data.sentry.ocrAnalysis?.findings || [],
+          citationValidation: {
+            isValid: data.sentry.citationValidation?.isValid ?? true,
+            validCitations: data.sentry.citationValidation?.validCitations || [],
+            invalidCitations: data.sentry.citationValidation?.invalidCitations || [],
+            warnings: data.sentry.citationValidation?.warnings || [],
+          },
+          eoscarRecommendations: data.sentry.eoscarRecommendations || [],
+          metro2Targeting: {
+            fieldsTargeted: data.sentry.metro2Targeting?.fieldsTargeted || 0,
+            disputes: data.sentry.metro2Targeting?.disputes || [],
+            discrepancies: data.sentry.metro2Targeting?.discrepancies || [],
+          },
+          successPrediction: {
+            probability: data.sentry.successPrediction?.probability || 0.5,
+            probabilityPercent: Math.round(
+              (data.sentry.successPrediction?.probability || 0.5) * 100
+            ),
+            confidence: data.sentry.successPrediction?.confidence || "MEDIUM",
+            label: "",
+            breakdown: data.sentry.successPrediction?.breakdown || [],
+            recommendations: data.sentry.successPrediction?.recommendations || [],
+            actionableRecommendations: data.sentry.successPrediction?.actionableRecommendations?.map(
+              (rec: ActionableRecommendationUI) => ({
+                ...rec,
+                status: rec.status || "PENDING",
+              })
+            ) || [],
+          },
+        };
+        setAnalysis(analysisData);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to regenerate");
     } finally {

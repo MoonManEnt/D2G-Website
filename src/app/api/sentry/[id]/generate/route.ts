@@ -307,6 +307,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           confidence: generationResult.successPrediction.confidence,
           breakdown: generationResult.successPrediction.breakdown,
           recommendations: generationResult.successPrediction.recommendations,
+          actionableRecommendations: generationResult.successPrediction.actionableRecommendations || [],
         },
         warnings: generationResult.warnings,
       },
