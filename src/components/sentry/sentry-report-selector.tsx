@@ -10,6 +10,18 @@
 import { useState, useCallback, useRef } from "react";
 import { format } from "date-fns";
 
+// Safe date formatting helper
+const safeFormatDate = (dateStr: string | null | undefined, formatStr: string = "MMM d, yyyy"): string => {
+  if (!dateStr) return "Unknown";
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "Unknown";
+    return format(date, formatStr);
+  } catch {
+    return "Unknown";
+  }
+};
+
 interface CreditReport {
   id: string;
   reportDate: string;
@@ -398,7 +410,7 @@ export function SentryReportSelector({
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-sm font-medium text-slate-200">
-                          {format(new Date(report.uploadedAt), "MMM d, yyyy")}
+                          {safeFormatDate(report.uploadedAt)}
                         </span>
                         <span
                           className={`px-2 py-0.5 text-xs rounded ${
