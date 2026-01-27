@@ -17,6 +17,7 @@ import {
   ChevronRight,
   BarChart3,
   Sparkles,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Clients", href: "/clients", icon: Users },
   { name: "Disputes", href: "/disputes", icon: Scale },
+  { name: "Sentry", href: "/sentry", icon: Shield },
   { name: "Evidence", href: "/evidence", icon: Image },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Settings", href: "/settings", icon: Settings },
