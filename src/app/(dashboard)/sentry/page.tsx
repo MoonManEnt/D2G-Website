@@ -36,13 +36,15 @@ async function getClients(organizationId: string) {
           sentryDisputes: true,
         },
       },
-      // Get the most recent report to show accurate account count
+      // Get accounts from most recent report to calculate unique creditors
       reports: {
         orderBy: { reportDate: "desc" },
         take: 1,
         select: {
-          _count: {
-            select: { accounts: true },
+          accounts: {
+            select: {
+              creditorName: true,
+            },
           },
         },
       },
@@ -50,11 +52,17 @@ async function getClients(organizationId: string) {
     orderBy: { updatedAt: "desc" },
   });
 
-  // Transform to include account count from most recent report
-  return clients.map((client) => ({
-    ...client,
-    latestReportAccountCount: client.reports[0]?._count.accounts || 0,
-  }));
+  // Transform to include unique creditor count from most recent report
+  return clients.map((client) => {
+    const accounts = client.reports[0]?.accounts || [];
+    const uniqueCreditors = new Set(
+      accounts.map((a) => a.creditorName?.toUpperCase().trim()).filter(Boolean)
+    ).size;
+    return {
+      ...client,
+      uniqueCreditorCount: uniqueCreditors,
+    };
+  });
 }
 
 async function getSentryStats(organizationId: string) {
@@ -192,7 +200,7 @@ export default async function SentryPage() {
                       {client.firstName} {client.lastName}
                     </div>
                     <div className="text-xs text-slate-400">
-                      {client.latestReportAccountCount} account entries • {client._count.sentryDisputes} Sentry disputes
+                      {client.uniqueCreditorCount} creditors • {client._count.sentryDisputes} Sentry disputes
                     </div>
                   </div>
                 </div>
