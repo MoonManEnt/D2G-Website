@@ -302,6 +302,48 @@ export function extractCreditScores(text: string): ExtractedCreditScores {
     return null;
   };
 
+  // ==========================================================================
+  // PRIORITY 1: IdentityIQ specific format (most accurate for 3-bureau reports)
+  // Format: "TransUnion Experian Equifax Credit Score: 558 642 -"
+  // ==========================================================================
+  const creditScoreMatch = text.match(
+    /TransUnion[\s\S]{0,20}Experian[\s\S]{0,20}Equifax[\s\S]{0,50}Credit\s*Score[:\s]+(\d{3}|-)\s+(\d{3}|-)\s+(\d{3}|-)/i
+  );
+
+  if (creditScoreMatch) {
+    const [, tuVal, exVal, eqVal] = creditScoreMatch;
+    console.log(`[PARSER] Found IdentityIQ score format: TU=${tuVal}, EX=${exVal}, EQ=${eqVal}`);
+
+    if (tuVal && tuVal !== "-") {
+      const score = parseInt(tuVal, 10);
+      if (score >= 300 && score <= 850) {
+        scores.transunion = score;
+      }
+    }
+    if (exVal && exVal !== "-") {
+      const score = parseInt(exVal, 10);
+      if (score >= 300 && score <= 850) {
+        scores.experian = score;
+      }
+    }
+    if (eqVal && eqVal !== "-") {
+      const score = parseInt(eqVal, 10);
+      if (score >= 300 && score <= 850) {
+        scores.equifax = score;
+      }
+    }
+
+    // If we found at least one score, return early - this format is authoritative
+    if (scores.transunion || scores.experian || scores.equifax) {
+      console.log(`[PARSER] Score extraction result: TU=${scores.transunion}, EQ=${scores.equifax}, EX=${scores.experian}`);
+      return scores;
+    }
+  }
+
+  // ==========================================================================
+  // PRIORITY 2: Individual bureau patterns (fallback for other report formats)
+  // ==========================================================================
+
   // TransUnion patterns (from most specific to least)
   const tuPatterns = [
     /TransUnion[®™]?\s*[:\-]?\s*(\d{3})/i,
@@ -384,42 +426,83 @@ export function extractCreditScores(text: string): ExtractedCreditScores {
     }
   }
 
-  // IdentityIQ specific: Look for scores near bureau headers
-  // Format can be: "TransUnion    Experian    Equifax" header row
-  // followed by:   "558          --          --" scores row (-- means no score)
+  // IdentityIQ specific format: "TransUnion Experian Equifax Credit Score: 558 642 -"
+  // This is the exact format used in IdentityIQ 3-bureau reports
   if (!scores.transunion || !scores.equifax || !scores.experian) {
-    // Find the score summary section by looking for all three bureaus near each other
+    // Look for "Credit Score:" followed by the three scores in TU, EX, EQ order
+    const creditScoreMatch = text.match(
+      /TransUnion[\s\S]{0,20}Experian[\s\S]{0,20}Equifax[\s\S]{0,50}Credit\s*Score[:\s]+(\d{3}|-)\s+(\d{3}|-)\s+(\d{3}|-)/i
+    );
+
+    if (creditScoreMatch) {
+      const [, tuVal, exVal, eqVal] = creditScoreMatch;
+      console.log(`[PARSER] Found IdentityIQ score format: TU=${tuVal}, EX=${exVal}, EQ=${eqVal}`);
+
+      if (tuVal && tuVal !== "-" && !scores.transunion) {
+        const score = parseInt(tuVal, 10);
+        if (score >= 300 && score <= 850) {
+          scores.transunion = score;
+        }
+      }
+      if (exVal && exVal !== "-" && !scores.experian) {
+        const score = parseInt(exVal, 10);
+        if (score >= 300 && score <= 850) {
+          scores.experian = score;
+        }
+      }
+      if (eqVal && eqVal !== "-" && !scores.equifax) {
+        const score = parseInt(eqVal, 10);
+        if (score >= 300 && score <= 850) {
+          scores.equifax = score;
+        }
+      }
+    }
+  }
+
+  // Fallback: Look for scores near bureau headers with more flexible matching
+  if (!scores.transunion || !scores.equifax || !scores.experian) {
     const bureauHeaderMatch = text.match(
       /TransUnion[\s\S]{0,30}Experian[\s\S]{0,30}Equifax[\s\S]{0,200}/i
     );
 
     if (bureauHeaderMatch) {
       const section = bureauHeaderMatch[0];
-      // Find all 3-digit numbers and "--" patterns in this section
-      const valuePattern = /(\d{3}|--|N\/A)/g;
-      const values = [...section.matchAll(valuePattern)].map(m => m[1]);
+      // Find all 3-digit numbers and "-" patterns (excluding dates like 01/20/2026)
+      // Only match standalone 3-digit numbers in valid score range
+      const valuePattern = /(?:^|[:\s])(\d{3})(?=\s|$|-)|(--)|(^-$)/gm;
+      const values: string[] = [];
+      let match;
+      while ((match = valuePattern.exec(section)) !== null) {
+        const val = match[1] || match[2] || match[3];
+        if (val) {
+          const num = parseInt(val, 10);
+          // Only include if it's a valid score range or a dash
+          if (val === "--" || val === "-" || (num >= 300 && num <= 850)) {
+            values.push(val);
+          }
+        }
+      }
 
       if (values.length >= 3) {
-        // First three values correspond to TransUnion, Experian, Equifax
         const tuVal = values[0];
         const exVal = values[1];
         const eqVal = values[2];
 
-        if (tuVal && tuVal !== "--" && tuVal !== "N/A") {
+        if (tuVal && tuVal !== "--" && tuVal !== "-" && !scores.transunion) {
           const score = parseInt(tuVal, 10);
-          if (score >= 300 && score <= 850 && !scores.transunion) {
+          if (score >= 300 && score <= 850) {
             scores.transunion = score;
           }
         }
-        if (exVal && exVal !== "--" && exVal !== "N/A") {
+        if (exVal && exVal !== "--" && exVal !== "-" && !scores.experian) {
           const score = parseInt(exVal, 10);
-          if (score >= 300 && score <= 850 && !scores.experian) {
+          if (score >= 300 && score <= 850) {
             scores.experian = score;
           }
         }
-        if (eqVal && eqVal !== "--" && eqVal !== "N/A") {
+        if (eqVal && eqVal !== "--" && eqVal !== "-" && !scores.equifax) {
           const score = parseInt(eqVal, 10);
-          if (score >= 300 && score <= 850 && !scores.equifax) {
+          if (score >= 300 && score <= 850) {
             scores.equifax = score;
           }
         }
