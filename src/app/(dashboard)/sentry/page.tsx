@@ -192,7 +192,7 @@ export default async function SentryPage() {
                       {client.firstName} {client.lastName}
                     </div>
                     <div className="text-xs text-slate-400">
-                      {client.latestReportAccountCount} accounts • {client._count.sentryDisputes} Sentry disputes
+                      {client.latestReportAccountCount} account entries • {client._count.sentryDisputes} Sentry disputes
                     </div>
                   </div>
                 </div>

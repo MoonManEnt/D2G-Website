@@ -207,7 +207,7 @@ export async function GET(
       };
     });
 
-    return NextResponse.json(formattedReports);
+    return NextResponse.json({ reports: formattedReports });
   } catch (error) {
     console.error("Error fetching client reports:", error);
     return NextResponse.json(
