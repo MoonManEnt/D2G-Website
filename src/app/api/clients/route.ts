@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { z } from "zod";
 import { withAuth } from "@/lib/api-middleware";
+import { encryptPIIFields, decryptPIIFields } from "@/lib/encryption";
+import { parsePaginationParams, buildPaginatedResponse } from "@/lib/pagination";
 
 const createClientSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -60,9 +62,17 @@ export const GET = withAuth(async (req, { organizationId }) => {
     where.segment = segment;
   }
 
+  // Parse pagination params (supports ?page=1&limit=20)
+  const pagination = parsePaginationParams(searchParams);
+
+  // Get total count for pagination metadata
+  const total = await prisma.client.count({ where });
+
   // Fetch clients with extended data for Command Center
   const clients = await prisma.client.findMany({
     where,
+    skip: pagination.skip,
+    take: pagination.limit,
     include: {
       _count: {
         select: {
@@ -160,7 +170,13 @@ export const GET = withAuth(async (req, { organizationId }) => {
     };
   });
 
-  return NextResponse.json(enrichedClients);
+  // Decrypt PII fields before returning
+  const decryptedClients = enrichedClients.map((client) =>
+    decryptPIIFields(client as Record<string, unknown>)
+  );
+
+  // Return paginated response (backwards-compatible: data array + pagination metadata)
+  return NextResponse.json(buildPaginatedResponse(decryptedClients, total, pagination));
 });
 
 // Get aggregate stats for Command Center header
@@ -243,11 +259,29 @@ export const POST = withAuth<CreateClientBody>(async (req, { session, body, orga
     }
   }
 
+  // Encrypt PII fields before storing
+  const encryptedPII = encryptPIIFields({
+    ssnLast4: body.ssnLast4,
+    phone: body.phone,
+    addressLine1: body.addressLine1,
+    addressLine2: body.addressLine2,
+    dateOfBirth: body.dateOfBirth,
+  });
+
   const client = await prisma.client.create({
     data: {
-      ...body,
+      firstName: body.firstName,
+      lastName: body.lastName,
       email: body.email || null,
+      phone: (encryptedPII.phone as string) || null,
+      addressLine1: (encryptedPII.addressLine1 as string) || null,
+      addressLine2: (encryptedPII.addressLine2 as string) || null,
+      city: body.city || null,
+      state: body.state || null,
+      zipCode: body.zipCode || null,
+      ssnLast4: (encryptedPII.ssnLast4 as string) || null,
       dateOfBirth: body.dateOfBirth ? new Date(body.dateOfBirth) : null,
+      notes: body.notes || null,
       organizationId,
       priority: body.priority || "STANDARD",
       segment: body.segment || "NEW",

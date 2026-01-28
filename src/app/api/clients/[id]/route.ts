@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { ArchiveService } from "@/lib/archive";
+import { encryptPIIFields, decryptPIIFields } from "@/lib/encryption";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -143,8 +144,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       totalEvidence: client.accounts.reduce((sum, a) => sum + a.evidences.length, 0),
     };
 
+    // Decrypt PII fields before returning
+    const decryptedClient = decryptPIIFields(transformedClient as Record<string, unknown>);
+
     return NextResponse.json({
-      client: transformedClient,
+      client: decryptedClient,
       summary,
     });
   } catch (error) {
@@ -180,25 +184,35 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Client not found" }, { status: 404 });
     }
 
+    // Encrypt PII fields before storing
+    const piiData = encryptPIIFields({
+      phone: body.phone || null,
+      addressLine1: body.addressLine1 || null,
+      addressLine2: body.addressLine2 || null,
+      ssnLast4: body.ssnLast4 || null,
+      dateOfBirth: body.dateOfBirth || null,
+    } as Record<string, unknown>);
+
     const updatedClient = await prisma.client.update({
       where: { id: clientId },
       data: {
         firstName: body.firstName,
         lastName: body.lastName,
         email: body.email || null,
-        phone: body.phone || null,
-        addressLine1: body.addressLine1 || null,
-        addressLine2: body.addressLine2 || null,
+        phone: piiData.phone as string | null,
+        addressLine1: piiData.addressLine1 as string | null,
+        addressLine2: piiData.addressLine2 as string | null,
         city: body.city || null,
         state: body.state || null,
         zipCode: body.zipCode || null,
-        ssnLast4: body.ssnLast4 || null,
+        ssnLast4: piiData.ssnLast4 as string | null,
         dateOfBirth: body.dateOfBirth ? new Date(body.dateOfBirth) : null,
         notes: body.notes || null,
       },
     });
 
-    return NextResponse.json(updatedClient);
+    // Decrypt before returning
+    return NextResponse.json(decryptPIIFields(updatedClient as Record<string, unknown>));
   } catch (error) {
     console.error("Error updating client:", error);
     return NextResponse.json(

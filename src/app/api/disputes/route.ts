@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { withAuth, trackUsage } from "@/lib/api-middleware";
 import { getDisputeReasonFromIssueCode } from "@/lib/dispute-templates";
 import { format } from "date-fns";
+import { parsePaginationParams, buildPaginatedResponse } from "@/lib/pagination";
 import {
   generateLetter,
   type ClientPersonalInfo,
@@ -24,17 +25,24 @@ export const GET = withAuth(async (req, ctx) => {
     // Support filtering by clientId
     const { searchParams } = new URL(req.url);
     const clientId = searchParams.get("clientId");
+    const pagination = parsePaginationParams(searchParams);
+
+    const where = {
+      organizationId: ctx.organizationId,
+      ...(clientId && { clientId }),
+      // Only show disputes for active, non-archived clients
+      client: {
+        isActive: true,
+        archivedAt: null,
+      },
+    };
+
+    const total = await prisma.dispute.count({ where });
 
     const disputes = await prisma.dispute.findMany({
-      where: {
-        organizationId: ctx.organizationId,
-        ...(clientId && { clientId }),
-        // Only show disputes for active, non-archived clients
-        client: {
-          isActive: true,
-          archivedAt: null,
-        },
-      },
+      where,
+      skip: pagination.skip,
+      take: pagination.limit,
       include: {
         client: {
           select: {
@@ -84,7 +92,7 @@ export const GET = withAuth(async (req, ctx) => {
       })),
     }));
 
-    return NextResponse.json(transformedDisputes);
+    return NextResponse.json(buildPaginatedResponse(transformedDisputes, total, pagination));
   } catch (error) {
     console.error("Error fetching disputes:", error);
     return NextResponse.json(

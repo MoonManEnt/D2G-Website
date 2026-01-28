@@ -131,7 +131,8 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
     fetch("/api/clients")
       .then((r) => r.ok ? r.json() : [])
       .then((data) => {
-        setClients(Array.isArray(data) ? data : data.clients || []);
+        // Handle paginated { data, pagination } and legacy array responses
+        setClients(Array.isArray(data) ? data : data.data || data.clients || []);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -141,7 +142,9 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
     fetch("/api/disputes")
       .then((r) => r.ok ? r.json() : [])
       .then((data) => {
-        const mapped = (Array.isArray(data) ? data : [])
+        // Handle paginated { data, pagination } and legacy array responses
+        const rawData = Array.isArray(data) ? data : data.data || [];
+        const mapped = rawData
           .filter((d: { _count?: { items: number } }) => (d._count?.items || 0) > 0) // Only show disputes with items
           .map((d: {
             id: string;

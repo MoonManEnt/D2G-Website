@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { parsePaginationParams, buildPaginatedResponse } from "@/lib/pagination";
 
 // GET /api/evidence - List all evidence for organization
 export async function GET(request: NextRequest) {
@@ -55,8 +56,13 @@ export async function GET(request: NextRequest) {
       };
     }
 
+    const pagination = parsePaginationParams(searchParams);
+    const total = await prisma.evidence.count({ where: whereClause });
+
     const evidence = await prisma.evidence.findMany({
       where: whereClause,
+      skip: pagination.skip,
+      take: pagination.limit,
       include: {
         accountItem: {
           select: {
@@ -133,7 +139,10 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    return NextResponse.json({ evidence, stats });
+    return NextResponse.json({
+      ...buildPaginatedResponse(evidence, total, pagination),
+      stats,
+    });
   } catch (error) {
     console.error("Error fetching evidence:", error);
     return NextResponse.json(

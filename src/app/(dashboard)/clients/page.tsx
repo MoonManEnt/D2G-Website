@@ -1189,7 +1189,8 @@ export default function ClientsPage() {
       const res = await fetch(`/api/clients?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
-        setClients(data);
+        // Handle both paginated { data, pagination } and legacy array responses
+        setClients(Array.isArray(data) ? data : data.data || []);
       }
     } catch (error) {
       console.error("Failed to fetch clients:", error);

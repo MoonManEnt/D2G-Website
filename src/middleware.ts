@@ -82,22 +82,25 @@ const securityHeaders = {
   "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
 };
 
-// Content Security Policy
-const cspDirectives = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https:",
-  "font-src 'self' data:",
-  "connect-src 'self' https://api.stripe.com https://*.sentry.io https://vercel.com https://*.vercel.com https://blob.vercel-storage.com https://*.blob.vercel-storage.com https://*.public.blob.vercel-storage.com",
-  "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-  // Only upgrade to HTTPS in production
-  ...(process.env.NODE_ENV === "production" ? ["upgrade-insecure-requests"] : []),
-].join("; ");
+// Content Security Policy - Nonce-based for scripts, hash-based for styles
+// Next.js injects inline scripts for hydration, so we use a per-request nonce
+function buildCSP(nonce: string): string {
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://js.stripe.com`,
+    `style-src 'self' 'nonce-${nonce}'`,
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data:",
+    "connect-src 'self' https://api.stripe.com https://*.sentry.io https://vercel.com https://*.vercel.com https://blob.vercel-storage.com https://*.blob.vercel-storage.com https://*.public.blob.vercel-storage.com",
+    "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    // Only upgrade to HTTPS in production
+    ...(process.env.NODE_ENV === "production" ? ["upgrade-insecure-requests"] : []),
+  ].join("; ");
+}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -180,16 +183,23 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Generate a per-request nonce for CSP
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+
   // Create response and add security headers
-  const response = NextResponse.next();
+  const response = NextResponse.next({
+    headers: {
+      "x-nonce": nonce,
+    },
+  });
 
   // Add security headers
   Object.entries(securityHeaders).forEach(([key, value]) => {
     response.headers.set(key, value);
   });
 
-  // Add CSP header
-  response.headers.set("Content-Security-Policy", cspDirectives);
+  // Add nonce-based CSP header
+  response.headers.set("Content-Security-Policy", buildCSP(nonce));
 
   // Add CORS headers for API routes
   if (pathname.startsWith("/api/")) {
