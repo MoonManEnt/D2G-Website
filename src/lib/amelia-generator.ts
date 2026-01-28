@@ -18,6 +18,7 @@
 
 import {
   type FlowType,
+  type LetterStructure,
   type TemplateVariables,
   getTemplate,
   getDemandLanguage,
@@ -27,8 +28,10 @@ import {
   COLLECTION_TEMPLATES,
   CONSENT_TEMPLATES,
   LATE_PAYMENT_TEMPLATES,
+  LETTER_STRUCTURE_DESCRIPTIONS,
 } from "./amelia-templates";
-export type { FlowType } from "./amelia-templates";
+export type { FlowType, LetterStructure } from "./amelia-templates";
+export { LETTER_STRUCTURE_DESCRIPTIONS } from "./amelia-templates";
 import {
   type ClientPersonalInfo,
   type DisputeAccount,
@@ -75,6 +78,8 @@ export interface LetterGenerationInput {
   previousRoundContext?: NextRoundContext;
   // AMELIA Doctrine: Personal info disputes persist until removed from report
   activePersonalInfoDisputes?: ActivePersonalInfoDispute[];
+  // Letter structure: DAMAGES_FIRST (default) or FACTS_FIRST
+  letterStructure?: LetterStructure;
 }
 
 export interface GeneratedLetter {
@@ -94,6 +99,8 @@ export interface GeneratedLetter {
     previousAddresses: string[];
     hardInquiries: HardInquiry[];
   };
+  // Letter structure used (DAMAGES_FIRST or FACTS_FIRST)
+  letterStructure: LetterStructure;
 }
 
 // =============================================================================
@@ -530,6 +537,7 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
     creditorNames,
     previousRoundContext,
     activePersonalInfoDisputes,
+    letterStructure = "DAMAGES_FIRST", // Default to emotional lead
   } = input;
 
   const craInfo = CRA_ADDRESSES[cra];
@@ -658,7 +666,9 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
   // Closing
   const closing = generateClosing(client.fullName);
 
-  // Assemble the complete letter
+  // Assemble the complete letter based on structure preference
+  // DAMAGES_FIRST: Personal impact → Legal facts → Account list → Penalty
+  // FACTS_FIRST: Legal facts → Personal impact → Account list → Penalty
   const letterParts = [
     header,
     "",
@@ -666,15 +676,33 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
     "",
     `Dear ${craInfo.name},`,
     "",
-    openingParagraph,
-    "",
-    ...bodyParagraphs.map(p => p + "\n"),
+  ];
+
+  // Structure-dependent body assembly
+  if (letterStructure === "FACTS_FIRST") {
+    // FACTS_FIRST: Legal basis first, then personal impact
+    letterParts.push(
+      ...bodyParagraphs.map(p => p + "\n"),
+      openingParagraph,
+      ""
+    );
+  } else {
+    // DAMAGES_FIRST (default): Personal impact first, then legal basis
+    letterParts.push(
+      openingParagraph,
+      "",
+      ...bodyParagraphs.map(p => p + "\n")
+    );
+  }
+
+  // Common sections (same for both structures)
+  letterParts.push(
     accountList,
     accountListIntro ? accountListIntro + "\n\n" : "",
     demandSection,
     "",
-    correctionsSection,
-  ];
+    correctionsSection
+  );
 
   if (personalInfoSection) {
     letterParts.push(personalInfoSection);
@@ -733,6 +761,7 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
       previousAddresses: disputedAddresses,
       hardInquiries: disputedInquiries,
     },
+    letterStructure,
   };
 }
 

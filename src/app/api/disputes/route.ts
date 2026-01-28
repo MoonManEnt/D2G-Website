@@ -108,7 +108,7 @@ export const GET = withAuth(async (req, ctx) => {
 export const POST = withAuth(async (req, ctx) => {
   try {
     const body = await req.json();
-    const { clientId, cra, flow, accountIds, tone } = body;
+    const { clientId, cra, flow, accountIds, tone, letterStructure } = body;
 
     // Validate required fields
     if (!clientId || !cra || !flow || !accountIds || accountIds.length === 0) {
@@ -332,7 +332,8 @@ export const POST = withAuth(async (req, ctx) => {
       usedContentHashes: usedHashSet,
       lastDisputeDate: lastDisputeDateStr,
       activePersonalInfoDisputes,
-      // TODO: Add toneOverride support to AMELIA generator
+      // Letter structure: DAMAGES_FIRST (default) or FACTS_FIRST
+      letterStructure: letterStructure === "FACTS_FIRST" ? "FACTS_FIRST" : "DAMAGES_FIRST",
     });
 
     // Store the content hash
@@ -362,7 +363,8 @@ export const POST = withAuth(async (req, ctx) => {
           statute: generatedLetter.statute,
           includesScreenshots: generatedLetter.includesScreenshots,
           personalInfoDisputed: generatedLetter.personalInfoDisputed,
-          ameliaVersion: "2.2",
+          letterStructure: generatedLetter.letterStructure,
+          ameliaVersion: "2.3", // Bumped for structure toggle feature
         }),
       },
       include: {
@@ -455,6 +457,7 @@ export const POST = withAuth(async (req, ctx) => {
         letterDate: generatedLetter.letterDate.toISOString(),
         effectiveFlow: generatedLetter.effectiveFlow,
         statute: generatedLetter.statute,
+        letterStructure: generatedLetter.letterStructure,
         personalInfoDisputed: {
           previousNames: generatedLetter.personalInfoDisputed.previousNames.length,
           previousAddresses: generatedLetter.personalInfoDisputed.previousAddresses.length,

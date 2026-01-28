@@ -38,6 +38,7 @@ import {
   type CreditDNAProfile,
   type DNAClassification,
 } from "@/lib/credit-dna";
+import { type LetterStructure, LETTER_STRUCTURE_DESCRIPTIONS } from "@/lib/amelia-generator";
 
 interface Client {
   id: string;
@@ -123,6 +124,8 @@ export function CreateDisputeWizard({
   const [dnaLoading, setDnaLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [ameliaInsights, setAmeliaInsights] = useState<AmeliaInsight | null>(null);
+  // Letter structure toggle: DAMAGES_FIRST (emotional lead) vs FACTS_FIRST (legal lead)
+  const [letterStructure, setLetterStructure] = useState<LetterStructure>("DAMAGES_FIRST");
 
   // Reset form when closed
   useEffect(() => {
@@ -135,6 +138,7 @@ export function CreateDisputeWizard({
       setNegativeAccounts([]);
       setClientDNA(null);
       setAmeliaInsights(null);
+      setLetterStructure("DAMAGES_FIRST");
     }
   }, [open]);
 
@@ -217,6 +221,7 @@ export function CreateDisputeWizard({
           cra: selectedCRA,
           flow: selectedFlow,
           accountIds: selectedAccounts,
+          letterStructure, // Include letter structure preference
         }),
       });
 
@@ -575,6 +580,36 @@ export function CreateDisputeWizard({
                       <p className="text-xs text-slate-400 mb-1">Dispute Type</p>
                       <p className="font-medium text-white">{selectedFlow}</p>
                     </div>
+                  </div>
+
+                  {/* Letter Structure Toggle */}
+                  <div className="p-4 bg-slate-800/50 rounded-xl">
+                    <p className="text-xs text-slate-400 mb-3">Letter Structure</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(["DAMAGES_FIRST", "FACTS_FIRST"] as LetterStructure[]).map((structure) => (
+                        <button
+                          key={structure}
+                          onClick={() => setLetterStructure(structure)}
+                          className={`p-3 rounded-lg border text-left transition-all ${
+                            letterStructure === structure
+                              ? "bg-violet-500/20 border-violet-500/50"
+                              : "bg-slate-700/50 border-slate-600 hover:border-slate-500"
+                          }`}
+                        >
+                          <p className={`text-sm font-medium ${
+                            letterStructure === structure ? "text-violet-300" : "text-white"
+                          }`}>
+                            {LETTER_STRUCTURE_DESCRIPTIONS[structure].name}
+                          </p>
+                          <p className="text-xs text-slate-400 mt-1">
+                            {LETTER_STRUCTURE_DESCRIPTIONS[structure].description}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-slate-500 mt-2">
+                      Both structures use unique, randomly-generated content that can never be compared.
+                    </p>
                   </div>
 
                   <div className="p-4 bg-slate-800/50 rounded-xl">

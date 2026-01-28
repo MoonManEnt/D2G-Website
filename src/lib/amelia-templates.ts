@@ -4,14 +4,18 @@
  * Complete template library for all dispute flows and rounds.
  * These templates follow the exact structure from the provided documents.
  *
- * STRUCTURE (Internal - never shown in output):
+ * STRUCTURE OPTIONS (User selectable):
+ * - DAMAGES_FIRST: DAMAGES → FACTS → PENALTY (default, emotional lead)
+ * - FACTS_FIRST: FACTS → DAMAGES → PENALTY (legal lead)
+ *
+ * STRUCTURE COMPONENTS (Internal - never shown in output):
  * - Header: Client info + CRA address + date
  * - Headline: Bold subject with statute reference
- * - DAMAGES: Opening impact paragraph
- * - STORY/FACTS: Narrative with legal basis
+ * - DAMAGES: Opening impact paragraph (personal suffering)
+ * - STORY/FACTS: Narrative with legal basis (statute violations)
  * - Account List: Items being disputed
  * - Demand: Request for deletion (escalates naturally)
- * - Consumer Statement: Emotional close
+ * - Consumer Statement: Emotional close with PENALTY warning
  * - Screenshots: Reference for R2+
  *
  * TONE ESCALATION:
@@ -21,6 +25,11 @@
  * R4: Warning ("will shake your legal department")
  * R5-7: Demanding (specific statute demands)
  * R8+: Litigation ready ("$20K-$30K loss", "Federal Court")
+ *
+ * RANDOMIZATION (eOSCAR Resistant):
+ * - Stories are PROCEDURALLY GENERATED from 1000s of components
+ * - 50+ scenarios × 100+ variables × 20+ structures = MILLIONS of unique combinations
+ * - No two clients EVER receive the same letter content
  */
 
 import type { CRA } from "@/types";
@@ -30,6 +39,34 @@ import type { CRA } from "@/types";
 // =============================================================================
 
 export type FlowType = "ACCURACY" | "COLLECTION" | "CONSENT" | "COMBO";
+
+/**
+ * Letter Structure Options
+ *
+ * Controls the paragraph order in the letter body:
+ * - DAMAGES_FIRST: Opens with personal impact, then legal facts (default, more emotional)
+ * - FACTS_FIRST: Opens with legal violations, then personal impact (more formal/legal)
+ *
+ * Both structures include:
+ * 1. Header (client info, CRA address, date)
+ * 2. Headline (subject + statute)
+ * 3. [VARIES] Main body paragraphs
+ * 4. Account list
+ * 5. Demand section
+ * 6. Consumer statement (always ends with penalty warning)
+ */
+export type LetterStructure = "DAMAGES_FIRST" | "FACTS_FIRST";
+
+export const LETTER_STRUCTURE_DESCRIPTIONS: Record<LetterStructure, { name: string; description: string }> = {
+  DAMAGES_FIRST: {
+    name: "Emotional Lead (Recommended)",
+    description: "Opens with personal impact and suffering, then presents legal facts. More persuasive for initial disputes.",
+  },
+  FACTS_FIRST: {
+    name: "Legal Lead",
+    description: "Opens with legal violations and statute citations, then describes personal impact. More formal approach.",
+  },
+};
 
 export interface TemplateVariables {
   clientFirstName: string;
