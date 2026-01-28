@@ -29,11 +29,13 @@ export async function GET(
     const cra = searchParams.get("cra");
     const disputableOnly = searchParams.get("disputableOnly") === "true";
 
-    // Verify client belongs to organization
+    // Verify client belongs to organization and is active
     const client = await prisma.client.findFirst({
       where: {
         id: clientId,
         organizationId: session.user.organizationId,
+        isActive: true,
+        archivedAt: null,
       },
     });
 

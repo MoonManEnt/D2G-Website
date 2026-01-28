@@ -247,6 +247,8 @@ export async function GET(
       where: {
         id: clientId,
         organizationId: session.user.organizationId,
+        isActive: true,
+        archivedAt: null,
       },
       include: {
         creditScores: { orderBy: { scoreDate: "desc" }, take: 10 },
@@ -320,6 +322,8 @@ export async function POST(
       where: {
         id: clientId,
         organizationId,
+        isActive: true,
+        archivedAt: null,
       },
       include: {
         creditScores: { orderBy: { scoreDate: "desc" }, take: 10 },

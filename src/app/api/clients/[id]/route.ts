@@ -296,12 +296,22 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       };
 
       // Delete in order to handle foreign key constraints
-      // 1. Delete dispute items first
+      // 1. Delete dispute round history
+      await prisma.disputeRoundHistory.deleteMany({
+        where: { clientId }
+      });
+
+      // 2. Delete documents linked to disputes
+      await prisma.document.deleteMany({
+        where: { dispute: { clientId } }
+      });
+
+      // 3. Delete dispute items
       await prisma.disputeItem.deleteMany({
         where: { dispute: { clientId } }
       });
 
-      // 2. Delete disputes
+      // 4. Delete disputes
       await prisma.dispute.deleteMany({
         where: { clientId }
       });
@@ -383,7 +393,32 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         where: { clientId }
       });
 
-      // 16. Finally delete the client
+      // 16. Delete Amelia content hashes
+      await prisma.ameliaContentHash.deleteMany({
+        where: { clientId }
+      });
+
+      // 17. Delete personal info disputes
+      await prisma.personalInfoDispute.deleteMany({
+        where: { clientId }
+      });
+
+      // 18. Delete client portal access
+      await prisma.clientPortalAccess.deleteMany({
+        where: { clientId }
+      });
+
+      // 19. Delete reminders
+      await prisma.reminder.deleteMany({
+        where: { clientId }
+      });
+
+      // 20. Delete archive snapshots
+      await prisma.clientArchiveSnapshot.deleteMany({
+        where: { clientId }
+      });
+
+      // 21. Finally delete the client
       await prisma.client.delete({
         where: { id: clientId }
       });

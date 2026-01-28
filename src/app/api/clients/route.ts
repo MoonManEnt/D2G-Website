@@ -215,9 +215,12 @@ export const HEAD = withAuth(async (req, { organizationId }) => {
     }),
   ]);
 
-  // Calculate average success rate
+  // Calculate average success rate (only for active clients)
   const disputes = await prisma.dispute.findMany({
-    where: { organizationId },
+    where: {
+      organizationId,
+      client: { isActive: true, archivedAt: null },
+    },
     include: {
       items: {
         select: { outcome: true },

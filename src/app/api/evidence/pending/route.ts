@@ -26,14 +26,17 @@ export async function GET(req: NextRequest) {
     const reportId = searchParams.get("reportId");
     const status = searchParams.get("status") || "PENDING";
 
-    // Build query
+    // Build query — only include pending evidence for active (non-deleted) clients
     const where: any = {
       organizationId: session.user.organizationId,
       status,
+      accountItem: {
+        client: { isActive: true, archivedAt: null },
+      },
     };
 
     if (clientId) {
-      where.accountItem = { clientId };
+      where.accountItem.clientId = clientId;
     }
 
     if (reportId) {

@@ -34,6 +34,7 @@ export async function GET(request: Request) {
     // - Has any balance (potential for disputes)
     const whereClause: any = {
       organizationId: session.user.organizationId,
+      client: { isActive: true, archivedAt: null },
       OR: [
         { isDisputable: true },
         { issueCount: { gt: 0 } },

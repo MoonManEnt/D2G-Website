@@ -27,12 +27,16 @@ export async function GET(request: NextRequest) {
       whereClause.accountItemId = accountId;
     }
 
+    // Only show evidence for active (non-archived, non-deleted) clients
+    const activeClientFilter = { client: { isActive: true, archivedAt: null } };
+
     // If filtering by reportId, get all accounts for that report
     if (reportId) {
       const reportAccounts = await prisma.accountItem.findMany({
         where: {
           organizationId: session.user.organizationId,
           reportId: reportId,
+          report: activeClientFilter,
         },
         select: { id: true },
       });
@@ -47,12 +51,26 @@ export async function GET(request: NextRequest) {
           organizationId: session.user.organizationId,
           report: {
             clientId: clientId,
+            ...activeClientFilter,
           },
         },
         select: { id: true },
       });
       whereClause.accountItemId = {
         in: clientAccounts.map((a) => a.id),
+      };
+    }
+    // No specific filter — still exclude evidence from deleted/archived clients
+    else {
+      const activeAccounts = await prisma.accountItem.findMany({
+        where: {
+          organizationId: session.user.organizationId,
+          ...activeClientFilter,
+        },
+        select: { id: true },
+      });
+      whereClause.accountItemId = {
+        in: activeAccounts.map((a) => a.id),
       };
     }
 
