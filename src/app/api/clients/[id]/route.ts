@@ -306,24 +306,39 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         where: { clientId }
       });
 
-      // 3. Delete evidence
+      // 3. Delete sentry dispute items (references account items)
+      await prisma.sentryDisputeItem.deleteMany({
+        where: { accountItem: { clientId } }
+      });
+
+      // 4. Delete sentry disputes
+      await prisma.sentryDispute.deleteMany({
+        where: { clientId }
+      });
+
+      // 5. Delete pending evidence (references account items)
+      await prisma.pendingEvidence.deleteMany({
+        where: { accountItem: { clientId } }
+      });
+
+      // 6. Delete evidence
       await prisma.evidence.deleteMany({
         where: { accountItem: { clientId } }
       });
 
-      // 4. Delete account items
+      // 7. Delete account items
       await prisma.accountItem.deleteMany({
         where: { clientId }
       });
 
-      // 5. Get report IDs to delete stored files
+      // 8. Get report IDs to delete stored files
       const reports = await prisma.creditReport.findMany({
         where: { clientId },
         select: { id: true, originalFileId: true }
       });
       const fileIds = reports.map(r => r.originalFileId).filter(Boolean) as string[];
 
-      // 6. Delete diff results
+      // 9. Delete diff results
       const reportIds = reports.map(r => r.id);
       if (reportIds.length > 0) {
         await prisma.diffResult.deleteMany({
@@ -336,39 +351,39 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         });
       }
 
-      // 7. Delete credit reports
+      // 10. Delete credit reports
       await prisma.creditReport.deleteMany({
         where: { clientId }
       });
 
-      // 8. Delete stored files
+      // 11. Delete stored files
       if (fileIds.length > 0) {
         await prisma.storedFile.deleteMany({
           where: { id: { in: fileIds } }
         });
       }
 
-      // 9. Delete client documents
+      // 12. Delete client documents
       await prisma.clientDocument.deleteMany({
         where: { clientId }
       });
 
-      // 10. Delete credit DNA
+      // 13. Delete credit DNA
       await prisma.creditDNA.deleteMany({
         where: { clientId }
       });
 
-      // 11. Delete credit scores
+      // 14. Delete credit scores
       await prisma.creditScore.deleteMany({
         where: { clientId }
       });
 
-      // 12. Delete communications
+      // 15. Delete communications
       await prisma.communication.deleteMany({
         where: { clientId }
       });
 
-      // 13. Finally delete the client
+      // 16. Finally delete the client
       await prisma.client.delete({
         where: { id: clientId }
       });
