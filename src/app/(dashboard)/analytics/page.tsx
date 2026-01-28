@@ -199,47 +199,80 @@ export default function AnalyticsPage() {
 
       {/* KPI Cards - 6 columns */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 relative z-10">
-        <KPICard
-          icon={<Users className="w-6 h-6" />}
-          value={data.summary.clientCount}
-          label="Total Clients"
-          trend={`+${Math.floor(data.summary.clientCount * 0.25)} this month`}
-          trendUp={true}
-        />
-        <KPICard
-          icon={<Send className="w-6 h-6" />}
-          value={data.summary.activeDisputeCount + data.summary.resolvedDisputeCount}
-          label="Total Disputes"
-          trend={`+${Math.floor((data.summary.activeDisputeCount + data.summary.resolvedDisputeCount) * 0.24)} this month`}
-          trendUp={true}
-        />
-        <KPICard
-          icon={<CheckCircle2 className="w-6 h-6" />}
-          value={data.summary.totalItemsDeleted || data.summary.resolvedDisputeCount}
-          label="Items Deleted"
-          trend={`+${Math.floor((data.summary.totalItemsDeleted || data.summary.resolvedDisputeCount) * 0.13)} this month`}
-          trendUp={true}
-          accent="emerald"
-        />
-        <KPICard
-          icon={<TrendingUp className="w-6 h-6" />}
-          value={`${data.summary.overallSuccessRate || data.summary.resolutionRate}%`}
-          label="Success Rate"
-          trend="-3% from last month"
-          trendUp={false}
-          accent="amber"
-        />
-        <KPICard
-          icon={<Target className="w-6 h-6" />}
-          value={`+${data.summary.avgScoreImprovement || 68}`}
-          label="Avg Score Improvement"
-          accent="emerald"
-        />
-        <KPICard
-          icon={<Clock className="w-6 h-6" />}
-          value={`${data.summary.avgCompletionMonths || (data.summary.avgResolutionDays / 30).toFixed(1)}mo`}
-          label="Avg Completion Time"
-        />
+        {(() => {
+          // Calculate real month-over-month trends from monthly data
+          const trends = data.monthlyTrends || [];
+          const currentMonth = trends.length > 0 ? trends[trends.length - 1] : null;
+          const prevMonth = trends.length > 1 ? trends[trends.length - 2] : null;
+
+          const disputeChange = currentMonth && prevMonth
+            ? currentMonth.disputes - prevMonth.disputes : null;
+          const deletedChange = currentMonth && prevMonth
+            ? currentMonth.deleted - prevMonth.deleted : null;
+
+          const currentRate = data.summary.overallSuccessRate || data.summary.resolutionRate;
+          const prevRate = prevMonth ? prevMonth.successRate : null;
+          const rateChange = prevRate !== null && prevRate > 0
+            ? currentRate - prevRate : null;
+
+          const totalDisputes = data.summary.activeDisputeCount + data.summary.resolvedDisputeCount;
+          const totalDeleted = data.summary.totalItemsDeleted || data.summary.resolvedDisputeCount;
+          const scoreImprovement = data.summary.avgScoreImprovement || 0;
+          const completionMonths = data.summary.avgCompletionMonths || (data.summary.avgResolutionDays > 0 ? Number((data.summary.avgResolutionDays / 30).toFixed(1)) : 0);
+          const hasData = data.summary.clientCount > 0;
+
+          return (
+            <>
+              <KPICard
+                icon={<Users className="w-6 h-6" />}
+                value={data.summary.clientCount}
+                label="Total Clients"
+                trend={currentMonth && currentMonth.clients > 0 ? `+${currentMonth.clients} this month` : undefined}
+                trendUp={true}
+              />
+              <KPICard
+                icon={<Send className="w-6 h-6" />}
+                value={totalDisputes}
+                label="Total Disputes"
+                trend={disputeChange !== null && disputeChange !== 0
+                  ? `${disputeChange > 0 ? "+" : ""}${disputeChange} from last month`
+                  : undefined}
+                trendUp={disputeChange !== null ? disputeChange >= 0 : undefined}
+              />
+              <KPICard
+                icon={<CheckCircle2 className="w-6 h-6" />}
+                value={totalDeleted}
+                label="Items Deleted"
+                trend={deletedChange !== null && deletedChange !== 0
+                  ? `${deletedChange > 0 ? "+" : ""}${deletedChange} from last month`
+                  : undefined}
+                trendUp={deletedChange !== null ? deletedChange >= 0 : undefined}
+                accent="emerald"
+              />
+              <KPICard
+                icon={<TrendingUp className="w-6 h-6" />}
+                value={hasData ? `${currentRate}%` : "0%"}
+                label="Success Rate"
+                trend={rateChange !== null && rateChange !== 0
+                  ? `${rateChange > 0 ? "+" : ""}${rateChange}% from last month`
+                  : undefined}
+                trendUp={rateChange !== null ? rateChange >= 0 : undefined}
+                accent="amber"
+              />
+              <KPICard
+                icon={<Target className="w-6 h-6" />}
+                value={scoreImprovement > 0 ? `+${scoreImprovement}` : hasData ? "0" : "--"}
+                label="Avg Score Improvement"
+                accent="emerald"
+              />
+              <KPICard
+                icon={<Clock className="w-6 h-6" />}
+                value={completionMonths > 0 ? `${completionMonths}mo` : hasData ? "0mo" : "--"}
+                label="Avg Completion Time"
+              />
+            </>
+          );
+        })()}
       </div>
 
       {/* Charts Row 1 - Monthly Trends + Success by CRA */}
@@ -251,7 +284,7 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="h-44 flex items-end justify-between gap-2">
-              {(data.monthlyTrends || generateMockMonthlyTrends(data)).map((month, i) => (
+              {(data.monthlyTrends || []).map((month, i) => (
                 <div key={i} className="flex-1 flex flex-col items-center">
                   <div className="w-full flex gap-1 h-36 items-end">
                     <div
@@ -291,7 +324,7 @@ export default function AnalyticsPage() {
             <div className="space-y-4">
               {(data.successByCRA
                 ? Object.entries(data.successByCRA)
-                : data.charts.disputesByCRA.map(cra => [cra.name, { sent: cra.value, deleted: Math.floor(cra.value * 0.57), verified: Math.floor(cra.value * 0.35), noResponse: Math.floor(cra.value * 0.08), rate: 57 }] as [string, { sent: number; deleted: number; verified: number; noResponse: number; rate: number }])
+                : []
               ).map(([cra, stats]) => {
                 const craData = stats;
                 const colorMap: Record<string, string> = {
@@ -333,25 +366,45 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {Object.entries(data.clientFunnel || generateMockFunnel(data)).map(([stage, count], i) => {
-                const width = 100 - (i * 8);
-                const hue = 260 - i * 25;
-                return (
-                  <div key={stage} className="flex items-center gap-3">
-                    <span className="w-20 text-[11px] text-slate-400 text-right capitalize">
-                      {stage.replace(/([A-Z])/g, ' $1')}
-                    </span>
-                    <div className="flex-1">
-                      <div
-                        className="h-7 rounded flex items-center px-3"
-                        style={{ width: `${width}%`, background: `hsl(${hue}, 70%, 50%)` }}
-                      >
-                        <span className="text-xs font-semibold text-white">{count}</span>
+              {(() => {
+                const funnel = data.clientFunnel || {};
+                const entries = Object.entries(funnel);
+                const maxCount = Math.max(...entries.map(([, c]) => c as number), 1);
+                const totalClients = entries.reduce((sum, [, c]) => sum + (c as number), 0);
+
+                if (totalClients === 0) {
+                  return (
+                    <div className="text-center py-6 text-slate-500 text-sm">
+                      No clients in pipeline
+                    </div>
+                  );
+                }
+
+                return entries.map(([stage, count], i) => {
+                  const numCount = count as number;
+                  const width = numCount > 0 ? Math.max((numCount / maxCount) * 100, 8) : 0;
+                  const hue = 260 - i * 25;
+                  return (
+                    <div key={stage} className="flex items-center gap-3">
+                      <span className="w-20 text-[11px] text-slate-400 text-right capitalize">
+                        {stage.replace(/([A-Z])/g, ' $1')}
+                      </span>
+                      <div className="flex-1">
+                        {numCount > 0 ? (
+                          <div
+                            className="h-7 rounded flex items-center px-3"
+                            style={{ width: `${width}%`, background: `hsl(${hue}, 70%, 50%)` }}
+                          >
+                            <span className="text-xs font-semibold text-white">{numCount}</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-600 pl-1">0</span>
+                        )}
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                });
+              })()}
             </div>
           </CardContent>
         </Card>
@@ -365,7 +418,7 @@ export default function AnalyticsPage() {
             <div className="space-y-3">
               {(data.successByFlow
                 ? Object.entries(data.successByFlow)
-                : data.charts.disputesByFlow.map(flow => [flow.name, { total: flow.value, success: Math.floor(flow.value * 0.55), rate: 55 }] as [string, { total: number; success: number; rate: number }])
+                : []
               ).map(([flow, stats]) => {
                 const flowData = stats;
                 const colorMap: Record<string, { bg: string; text: string }> = {
@@ -402,7 +455,7 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {(data.roundPerformance || generateMockRoundPerformance(data)).map((round) => (
+              {(data.roundPerformance || []).map((round) => (
                 <div key={round.round}>
                   <div className="flex justify-between mb-1.5">
                     <span className="text-[13px] font-semibold text-white">{round.round}</span>
@@ -434,7 +487,7 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2.5">
-              {(data.topPerformingItems || generateMockItemTypes()).map((item, i) => (
+              {(data.topPerformingItems || []).map((item, i) => (
                 <div key={i} className="flex items-center gap-3 p-2.5 bg-slate-900/50 rounded-lg">
                   <div className="w-7 h-7 rounded-md bg-slate-700/50 flex items-center justify-center text-[11px] font-semibold text-slate-400">
                     #{i + 1}
@@ -496,31 +549,45 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2.5">
-              {(data.recentActivity || generateMockActivity(data.recentDisputes)).map((activity, i) => {
-                const iconConfig: Record<string, { icon: string; bg: string; color: string }> = {
-                  deletion: { icon: "✓", bg: "rgba(16, 185, 129, 0.15)", color: "#10b981" },
-                  violation: { icon: "⚖", bg: "rgba(139, 92, 246, 0.15)", color: "#8b5cf6" },
-                  sent: { icon: "📤", bg: "rgba(59, 130, 246, 0.15)", color: "#3b82f6" },
-                  response: { icon: "📬", bg: "rgba(245, 158, 11, 0.15)", color: "#f59e0b" },
-                };
-                const config = iconConfig[activity.type] || iconConfig.response;
-                return (
-                  <div key={i} className="flex items-start gap-3">
-                    <div
-                      className="w-8 h-8 rounded-lg flex items-center justify-center text-sm shrink-0"
-                      style={{ backgroundColor: config.bg, color: config.color }}
-                    >
-                      {config.icon}
+              {(() => {
+                const activities = data.recentActivity && data.recentActivity.length > 0
+                  ? data.recentActivity
+                  : [];
+
+                if (activities.length === 0) {
+                  return (
+                    <div className="text-center py-6 text-slate-500 text-sm">
+                      No recent activity
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <span className="block text-xs text-white">
-                        <strong>{activity.client}</strong> - {activity.details}
-                      </span>
-                      <span className="text-[11px] text-slate-500">{activity.date}</span>
+                  );
+                }
+
+                return activities.map((activity, i) => {
+                  const iconConfig: Record<string, { icon: string; bg: string; color: string }> = {
+                    deletion: { icon: "✓", bg: "rgba(16, 185, 129, 0.15)", color: "#10b981" },
+                    violation: { icon: "⚖", bg: "rgba(139, 92, 246, 0.15)", color: "#8b5cf6" },
+                    sent: { icon: "📤", bg: "rgba(59, 130, 246, 0.15)", color: "#3b82f6" },
+                    response: { icon: "📬", bg: "rgba(245, 158, 11, 0.15)", color: "#f59e0b" },
+                  };
+                  const config = iconConfig[activity.type] || iconConfig.response;
+                  return (
+                    <div key={i} className="flex items-start gap-3">
+                      <div
+                        className="w-8 h-8 rounded-lg flex items-center justify-center text-sm shrink-0"
+                        style={{ backgroundColor: config.bg, color: config.color }}
+                      >
+                        {config.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="block text-xs text-white">
+                          <strong>{activity.client}</strong> - {activity.details}
+                        </span>
+                        <span className="text-[11px] text-slate-500">{activity.date}</span>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                });
+              })()}
             </div>
           </CardContent>
         </Card>
@@ -674,68 +741,6 @@ function KPICard({
   );
 }
 
-// ============================================================================
-// Helper functions to generate mock data from existing data
-// ============================================================================
-
-function generateMockMonthlyTrends(data: AnalyticsData) {
-  const months = ["Aug", "Sep", "Oct", "Nov", "Dec", "Jan"];
-  const totalDisputes = data.summary.activeDisputeCount + data.summary.resolvedDisputeCount;
-  return months.map((month, i) => ({
-    month,
-    clients: Math.floor(data.summary.clientCount * (0.3 + i * 0.14)),
-    disputes: Math.floor(totalDisputes * (0.08 + i * 0.18)),
-    deleted: Math.floor(data.summary.resolvedDisputeCount * (0.08 + i * 0.15)),
-    successRate: data.summary.resolutionRate + Math.floor(Math.random() * 10 - 5),
-  }));
-}
-
-function generateMockFunnel(data: AnalyticsData) {
-  return {
-    intake: Math.floor(data.summary.clientCount * 0.1),
-    analysis: Math.floor(data.summary.clientCount * 0.17),
-    round1: Math.floor(data.summary.clientCount * 0.26),
-    round2: Math.floor(data.summary.clientCount * 0.13),
-    round3: Math.floor(data.summary.clientCount * 0.09),
-    round4: Math.floor(data.summary.clientCount * 0.04),
-    maintenance: Math.floor(data.summary.clientCount * 0.17),
-    completed: Math.floor(data.summary.clientCount * 0.04),
-  };
-}
-
-function generateMockRoundPerformance(data: AnalyticsData) {
-  const total = data.summary.activeDisputeCount + data.summary.resolvedDisputeCount;
-  return [
-    { round: "R1", sent: total, deleted: Math.floor(total * 0.27), rate: 27 },
-    { round: "R2", sent: Math.floor(total * 0.57), deleted: Math.floor(total * 0.18), rate: 31 },
-    { round: "R3", sent: Math.floor(total * 0.29), deleted: Math.floor(total * 0.08), rate: 27 },
-    { round: "R4", sent: Math.floor(total * 0.12), deleted: Math.floor(total * 0.05), rate: 39 },
-  ];
-}
-
-function generateMockItemTypes() {
-  return [
-    { type: "Medical Collections", deleted: 23, total: 28, rate: 82 },
-    { type: "Utility Collections", deleted: 15, total: 19, rate: 79 },
-    { type: "Credit Card Charge-offs", deleted: 18, total: 32, rate: 56 },
-    { type: "Auto Loans", deleted: 8, total: 18, rate: 44 },
-    { type: "Student Loans", deleted: 2, total: 12, rate: 17 },
-  ];
-}
-
-function generateMockActivity(recentDisputes: AnalyticsData["recentDisputes"]) {
-  if (!recentDisputes || recentDisputes.length === 0) {
-    return [
-      { date: new Date().toISOString().split("T")[0], type: "sent", client: "Client", details: "No recent activity" },
-    ];
-  }
-  return recentDisputes.slice(0, 5).map((d) => ({
-    date: new Date(d.createdAt).toISOString().split("T")[0],
-    type: d.status === "RESOLVED" ? "deletion" : d.status === "SENT" ? "sent" : "response",
-    client: d.clientName,
-    details: `${d.flow} ${d.status.toLowerCase()} - ${d.cra}`,
-  }));
-}
 
 // ============================================================================
 // Loading Skeleton
