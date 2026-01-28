@@ -718,3 +718,299 @@ export const CRA_ADDRESSES = {
 } as const;
 
 export type CRAName = keyof typeof CRA_ADDRESSES;
+
+// ============================================================================
+// EXHIBIT PACKAGE PDF GENERATION
+// ============================================================================
+
+export interface ExhibitItem {
+  label: string; // "A", "B", "C", etc.
+  caption: string;
+  creditorName?: string;
+  evidenceType: string;
+  imageBase64?: string; // Base64 encoded image (data:image/png;base64,... or raw)
+  imageUrl?: string; // URL to fetch image from
+  notes?: string;
+}
+
+export interface ExhibitPackageData {
+  title?: string;
+  clientName?: string;
+  disputeId?: string;
+  generatedDate: Date;
+  exhibits: ExhibitItem[];
+}
+
+/**
+ * Generate an Exhibit Package PDF with embedded evidence images.
+ *
+ * Creates a professional PDF with:
+ * - Cover page with index of exhibits
+ * - One page per exhibit with embedded image
+ * - Captions and labels
+ */
+export async function generateExhibitPackagePDF(
+  data: ExhibitPackageData
+): Promise<Uint8Array> {
+  const pdfDoc = await PDFDocument.create();
+  pdfDoc.registerFontkit(fontkit);
+
+  // Embed fonts
+  const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  // ========================================================================
+  // COVER PAGE
+  // ========================================================================
+  const coverPage = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+  let yPosition = PAGE_HEIGHT - MARGIN_TOP;
+
+  // Title
+  const title = data.title || "EXHIBIT PACKAGE";
+  coverPage.drawText(title, {
+    x: MARGIN_LEFT,
+    y: yPosition,
+    size: 18,
+    font: helveticaBold,
+    color: BLACK,
+  });
+  yPosition -= 30;
+
+  // Date and reference
+  coverPage.drawText(`Date: ${format(data.generatedDate, "MMMM d, yyyy")}`, {
+    x: MARGIN_LEFT,
+    y: yPosition,
+    size: 11,
+    font: helvetica,
+    color: GRAY,
+  });
+  yPosition -= 16;
+
+  if (data.clientName) {
+    coverPage.drawText(`Client: ${data.clientName}`, {
+      x: MARGIN_LEFT,
+      y: yPosition,
+      size: 11,
+      font: helvetica,
+      color: GRAY,
+    });
+    yPosition -= 16;
+  }
+
+  if (data.disputeId) {
+    coverPage.drawText(`Reference: ${data.disputeId}`, {
+      x: MARGIN_LEFT,
+      y: yPosition,
+      size: 11,
+      font: helvetica,
+      color: GRAY,
+    });
+    yPosition -= 16;
+  }
+
+  yPosition -= 30;
+
+  // Index of Exhibits header
+  coverPage.drawText("Index of Exhibits", {
+    x: MARGIN_LEFT,
+    y: yPosition,
+    size: 14,
+    font: helveticaBold,
+    color: BLACK,
+  });
+  yPosition -= 25;
+
+  // Draw index items
+  for (const exhibit of data.exhibits) {
+    const indexLine = `Exhibit ${exhibit.label}: ${exhibit.caption || exhibit.creditorName || "Evidence"}`;
+    coverPage.drawText(indexLine, {
+      x: MARGIN_LEFT + 20,
+      y: yPosition,
+      size: 11,
+      font: helvetica,
+      color: DARK_GRAY,
+    });
+    yPosition -= 18;
+
+    // Prevent overflow
+    if (yPosition < MARGIN_BOTTOM + 50) {
+      break;
+    }
+  }
+
+  // ========================================================================
+  // EXHIBIT PAGES
+  // ========================================================================
+  for (const exhibit of data.exhibits) {
+    const exhibitPage = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+    let pageY = PAGE_HEIGHT - MARGIN_TOP;
+
+    // Exhibit header bar
+    const headerHeight = 40;
+    exhibitPage.drawRectangle({
+      x: MARGIN_LEFT,
+      y: PAGE_HEIGHT - MARGIN_TOP - headerHeight,
+      width: PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT,
+      height: headerHeight,
+      color: rgb(0.15, 0.15, 0.15),
+    });
+
+    // Exhibit label
+    exhibitPage.drawText(`EXHIBIT ${exhibit.label}`, {
+      x: MARGIN_LEFT + 15,
+      y: PAGE_HEIGHT - MARGIN_TOP - 28,
+      size: 18,
+      font: helveticaBold,
+      color: rgb(1, 1, 1),
+    });
+
+    pageY -= headerHeight + 20;
+
+    // Creditor name if available
+    if (exhibit.creditorName) {
+      exhibitPage.drawText(exhibit.creditorName, {
+        x: MARGIN_LEFT,
+        y: pageY,
+        size: 12,
+        font: helveticaBold,
+        color: BLACK,
+      });
+      pageY -= 18;
+    }
+
+    // Evidence type
+    exhibitPage.drawText(`Type: ${exhibit.evidenceType}`, {
+      x: MARGIN_LEFT,
+      y: pageY,
+      size: 10,
+      font: helvetica,
+      color: GRAY,
+    });
+    pageY -= 25;
+
+    // Image area dimensions
+    const imageAreaWidth = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;
+    const imageAreaHeight = 400; // Max height for image
+
+    // Embed image if available
+    if (exhibit.imageBase64) {
+      try {
+        let embeddedImage;
+
+        // Handle different base64 formats
+        if (exhibit.imageBase64.includes("data:image/png")) {
+          const base64Data = exhibit.imageBase64.split(",")[1];
+          embeddedImage = await pdfDoc.embedPng(Buffer.from(base64Data, "base64"));
+        } else if (
+          exhibit.imageBase64.includes("data:image/jpeg") ||
+          exhibit.imageBase64.includes("data:image/jpg")
+        ) {
+          const base64Data = exhibit.imageBase64.split(",")[1];
+          embeddedImage = await pdfDoc.embedJpg(Buffer.from(base64Data, "base64"));
+        } else {
+          // Assume raw base64 PNG
+          embeddedImage = await pdfDoc.embedPng(Buffer.from(exhibit.imageBase64, "base64"));
+        }
+
+        // Calculate scaled dimensions to fit
+        const imgDims = embeddedImage.scale(1);
+        let drawWidth = imageAreaWidth;
+        let drawHeight = (imageAreaWidth / imgDims.width) * imgDims.height;
+
+        // If too tall, scale by height instead
+        if (drawHeight > imageAreaHeight) {
+          drawHeight = imageAreaHeight;
+          drawWidth = (imageAreaHeight / imgDims.height) * imgDims.width;
+        }
+
+        // Center the image horizontally
+        const xOffset = MARGIN_LEFT + (imageAreaWidth - drawWidth) / 2;
+
+        exhibitPage.drawImage(embeddedImage, {
+          x: xOffset,
+          y: pageY - drawHeight,
+          width: drawWidth,
+          height: drawHeight,
+        });
+
+        pageY -= drawHeight + 20;
+      } catch (imageError) {
+        console.error(`Failed to embed image for Exhibit ${exhibit.label}:`, imageError);
+
+        // Draw placeholder for failed image
+        exhibitPage.drawRectangle({
+          x: MARGIN_LEFT,
+          y: pageY - 200,
+          width: imageAreaWidth,
+          height: 200,
+          borderColor: GRAY,
+          borderWidth: 1,
+        });
+
+        exhibitPage.drawText("Image could not be loaded", {
+          x: MARGIN_LEFT + imageAreaWidth / 2 - 80,
+          y: pageY - 105,
+          size: 12,
+          font: helvetica,
+          color: GRAY,
+        });
+
+        pageY -= 220;
+      }
+    } else {
+      // No image - draw placeholder
+      exhibitPage.drawRectangle({
+        x: MARGIN_LEFT,
+        y: pageY - 200,
+        width: imageAreaWidth,
+        height: 200,
+        borderColor: GRAY,
+        borderWidth: 1,
+      });
+
+      exhibitPage.drawText("No image available", {
+        x: MARGIN_LEFT + imageAreaWidth / 2 - 60,
+        y: pageY - 105,
+        size: 12,
+        font: helvetica,
+        color: GRAY,
+      });
+
+      pageY -= 220;
+    }
+
+    // Caption
+    if (exhibit.caption) {
+      exhibitPage.drawText(exhibit.caption, {
+        x: MARGIN_LEFT,
+        y: pageY,
+        size: 10,
+        font: helvetica,
+        color: DARK_GRAY,
+      });
+      pageY -= 18;
+    }
+
+    // Notes
+    if (exhibit.notes) {
+      exhibitPage.drawText(`Notes: ${exhibit.notes}`, {
+        x: MARGIN_LEFT,
+        y: pageY,
+        size: 9,
+        font: helvetica,
+        color: GRAY,
+      });
+    }
+
+    // Page footer with exhibit reference
+    exhibitPage.drawText(`Exhibit ${exhibit.label} - Page ${pdfDoc.getPageCount()}`, {
+      x: PAGE_WIDTH / 2 - 50,
+      y: MARGIN_BOTTOM - 20,
+      size: 9,
+      font: helvetica,
+      color: GRAY,
+    });
+  }
+
+  return pdfDoc.save();
+}

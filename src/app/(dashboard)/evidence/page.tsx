@@ -67,6 +67,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { EvidenceCaptureModal } from "@/components/evidence/capture-modal";
+import { EvidenceImage, useEvidenceImageUrl } from "@/components/evidence/evidence-image";
 import { useToast } from "@/lib/use-toast";
 
 // ============================================================================
@@ -308,10 +309,12 @@ export default function EvidencePage() {
       const res = await fetch("/api/clients");
       if (res.ok) {
         const data = await res.json();
-        setClients(data);
+        // Defensive check: ensure data is an array
+        setClients(Array.isArray(data) ? data : []);
       }
     } catch (error) {
       console.error("Failed to fetch clients:", error);
+      setClients([]);
     } finally {
       setLoadingClients(false);
     }
@@ -324,10 +327,12 @@ export default function EvidencePage() {
       const res = await fetch(`/api/clients/${clientId}/reports`);
       if (res.ok) {
         const data = await res.json();
-        setReports(data);
+        // Defensive check: ensure data is an array
+        setReports(Array.isArray(data) ? data : []);
       }
     } catch (error) {
       console.error("Failed to fetch reports:", error);
+      setReports([]);
     } finally {
       setLoadingReports(false);
     }
@@ -347,11 +352,13 @@ export default function EvidencePage() {
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        setEvidence(data.evidence);
-        setStats(data.stats);
+        // Defensive checks: ensure arrays
+        setEvidence(Array.isArray(data.evidence) ? data.evidence : []);
+        setStats(data.stats || null);
       }
     } catch (error) {
       console.error("Failed to fetch evidence:", error);
+      setEvidence([]);
       toast({
         title: "Error",
         description: "Failed to load evidence",
@@ -1602,55 +1609,33 @@ function EvidenceAnnotator({
           className="rounded-lg overflow-hidden shadow-lg"
           style={{ transform: `scale(${zoom})`, transformOrigin: "top left" }}
         >
-          {/* Placeholder for actual canvas/image */}
-          <div className="w-[800px] h-[600px] bg-slate-100 relative">
-            {/* Mock credit report table */}
-            <div className="absolute inset-0 p-4">
-              <div className="bg-slate-800 text-white p-3 rounded-t-lg font-bold">
-                {evidence.accountItem?.creditorName || "ACCOUNT"}
+          {/* Actual captured evidence image */}
+          <div className="min-w-[800px] min-h-[600px] bg-slate-100 relative">
+            {evidence.renderedFile?.id ? (
+              <EvidenceImage
+                fileId={evidence.renderedFile.id}
+                alt={`Evidence: ${evidence.accountItem?.creditorName || "Captured Screenshot"}`}
+                className="w-full h-auto"
+                containerClassName="w-full h-full"
+              />
+            ) : (
+              /* Fallback: Show account summary if no rendered image */
+              <div className="absolute inset-0 p-4">
+                <div className="bg-slate-800 text-white p-3 rounded-t-lg font-bold">
+                  {evidence.accountItem?.creditorName || "ACCOUNT"}
+                </div>
+                <div className="bg-white border border-slate-300 p-8 text-center">
+                  <Image className="w-16 h-16 mx-auto text-slate-400 mb-4" />
+                  <p className="text-slate-600 mb-2">No captured image available</p>
+                  <p className="text-sm text-slate-400">
+                    Capture evidence from the client page to annotate
+                  </p>
+                </div>
               </div>
-              <div className="bg-white border border-slate-300">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-100">
-                    <tr>
-                      <th className="p-2 text-left border">Field</th>
-                      <th className="p-2 text-center border">TransUnion</th>
-                      <th className="p-2 text-center border">Experian</th>
-                      <th className="p-2 text-center border">Equifax</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td className="p-2 border text-slate-600">Account #</td>
-                      <td className="p-2 border text-center">11**</td>
-                      <td className="p-2 border text-center">-</td>
-                      <td className="p-2 border text-center">430015XXXX****</td>
-                    </tr>
-                    <tr className="bg-red-50">
-                      <td className="p-2 border text-slate-600">Balance</td>
-                      <td className="p-2 border text-center font-medium">$29,778.00</td>
-                      <td className="p-2 border text-center">-</td>
-                      <td className="p-2 border text-center font-medium">$29,621.00</td>
-                    </tr>
-                    <tr>
-                      <td className="p-2 border text-slate-600">Status</td>
-                      <td className="p-2 border text-center">Open</td>
-                      <td className="p-2 border text-center">-</td>
-                      <td className="p-2 border text-center">Open</td>
-                    </tr>
-                    <tr className="bg-amber-50">
-                      <td className="p-2 border text-slate-600">Comments</td>
-                      <td className="p-2 border text-center text-xs">Dispute resolved; customer disagrees</td>
-                      <td className="p-2 border text-center">-</td>
-                      <td className="p-2 border text-center text-xs">Consumer disputes after resolution</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            )}
 
-            {/* Render annotations */}
-            {annotations.map((ann, i) => (
+            {/* Render annotations overlay */}
+            {(annotations || []).map((ann, i) => (
               <div
                 key={ann.id}
                 onClick={() => setSelectedAnnotation(i)}
@@ -1823,11 +1808,66 @@ function ExhibitBuilder({
 }) {
   const [showPreview, setShowPreview] = useState(false);
   const [draggedItem, setDraggedItem] = useState<{ item: EvidenceItem | Exhibit; type: "evidence" | "exhibit" } | null>(null);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+  const { toast } = useToast();
 
   // Get unused evidence
   const unusedEvidence = availableEvidence.filter(
     (ev) => !exhibits.some((ex) => ex.evidenceId === ev.id)
   );
+
+  // Generate PDF handler
+  const handleGeneratePdf = async () => {
+    if (exhibits.length === 0) return;
+
+    setGeneratingPdf(true);
+    try {
+      const response = await fetch("/api/evidence/exhibits/pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          exhibits: exhibits.map((ex) => ({
+            id: ex.id,
+            label: ex.label,
+            caption: ex.caption,
+            evidenceId: ex.evidenceId,
+          })),
+          title: "Evidence Exhibit Package",
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to generate PDF");
+      }
+
+      // Download the PDF
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `exhibit-package-${Date.now()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "PDF Generated",
+        description: `Exhibit package with ${exhibits.length} exhibit(s) downloaded successfully`,
+        variant: "success",
+      });
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast({
+        title: "Generation Failed",
+        description: error instanceof Error ? error.message : "Failed to generate exhibit PDF",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingPdf(false);
+    }
+  };
 
   const removeExhibit = (exhibitId: string) => {
     setExhibits((prev) => {
@@ -1940,12 +1980,22 @@ function ExhibitBuilder({
               Preview
             </Button>
             <Button
+              onClick={handleGeneratePdf}
               size="sm"
               className="bg-purple-600 hover:bg-purple-700"
-              disabled={exhibits.length === 0}
+              disabled={exhibits.length === 0 || generatingPdf}
             >
-              <Download className="w-4 h-4 mr-2" />
-              Generate PDF
+              {generatingPdf ? (
+                <>
+                  <div className="w-4 h-4 mr-2 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 mr-2" />
+                  Generate PDF
+                </>
+              )}
             </Button>
           </div>
         </div>
@@ -1967,8 +2017,18 @@ function ExhibitBuilder({
               </div>
 
               {/* Thumbnail */}
-              <div className="w-20 bg-slate-900/50 flex items-center justify-center shrink-0">
-                <div className="text-2xl">{getTypeIcon(exhibit.evidence.evidenceType)}</div>
+              <div className="w-20 bg-slate-900/50 flex items-center justify-center shrink-0 overflow-hidden">
+                {exhibit.evidence.renderedFile?.id ? (
+                  <EvidenceImage
+                    fileId={exhibit.evidence.renderedFile.id}
+                    alt={`Exhibit ${exhibit.label}`}
+                    className="w-full h-full object-cover"
+                    containerClassName="w-full h-full"
+                    showPlaceholder={false}
+                  />
+                ) : (
+                  <div className="text-2xl">{getTypeIcon(exhibit.evidence.evidenceType)}</div>
+                )}
               </div>
 
               {/* Content */}
@@ -2101,19 +2161,30 @@ function ExhibitBuilder({
               </div>
 
               {/* Exhibit Pages */}
-              {exhibits.map((ex) => (
+              {(exhibits || []).map((ex) => (
                 <div key={ex.id} className="bg-white rounded-lg overflow-hidden">
                   <div className="bg-slate-900 text-white text-center py-2 font-bold tracking-widest">
                     EXHIBIT {ex.label}
                   </div>
                   <div className="p-8">
-                    <div className="h-64 bg-slate-100 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center">
-                      <div className="text-4xl mb-2">{ex.evidence.evidenceType === "SCREENSHOT" ? "📷" : "📄"}</div>
-                      <p className="font-semibold text-slate-700">{ex.evidence.accountItem?.creditorName}</p>
-                      <p className="text-sm text-slate-500">
-                        {ex.evidence.evidenceType === "SCREENSHOT" ? "Screenshot" : "Text Extract"}
-                      </p>
-                    </div>
+                    {ex.evidence.renderedFile?.id ? (
+                      <div className="h-64 bg-slate-100 rounded-lg overflow-hidden">
+                        <EvidenceImage
+                          fileId={ex.evidence.renderedFile.id}
+                          alt={`Exhibit ${ex.label}: ${ex.evidence.accountItem?.creditorName || "Evidence"}`}
+                          className="w-full h-full object-contain"
+                          containerClassName="w-full h-full"
+                        />
+                      </div>
+                    ) : (
+                      <div className="h-64 bg-slate-100 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center">
+                        <FileText className="w-12 h-12 text-slate-400 mb-2" />
+                        <p className="font-semibold text-slate-700">{ex.evidence.accountItem?.creditorName}</p>
+                        <p className="text-sm text-slate-500">
+                          {ex.evidence.evidenceType === "SCREENSHOT" ? "Screenshot" : "Text Extract"}
+                        </p>
+                      </div>
+                    )}
                   </div>
                   <div className="px-8 pb-4 text-center text-sm text-slate-500 italic border-t border-slate-200 pt-4">
                     {ex.caption}
