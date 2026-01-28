@@ -2,6 +2,10 @@ const { withSentryConfig } = require("@sentry/nextjs");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  eslint: {
+    // ESLint runs in CI via GitHub Actions; don't block Vercel builds
+    ignoreDuringBuilds: true,
+  },
   experimental: {
     serverComponentsExternalPackages: ['pdfjs-dist', 'unpdf', 'require-in-the-middle'],
     serverActions: {
