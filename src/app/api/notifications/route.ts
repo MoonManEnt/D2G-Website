@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/api-middleware";
 import { NotificationService } from "@/lib/notifications";
+import { notificationActionSchema } from "@/lib/api-validation-schemas";
 
 /**
  * GET /api/notifications - Get notifications for the current user
@@ -64,7 +65,14 @@ export const GET = withAuth(async (req, ctx) => {
 export const POST = withAuth(async (req, ctx) => {
   try {
     const body = await req.json();
-    const { action, notificationId } = body;
+    const parsed = notificationActionSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+    const { action, notificationId } = parsed.data;
 
     if (action === "markAllRead") {
       await NotificationService.markAllAsRead(ctx.userId);

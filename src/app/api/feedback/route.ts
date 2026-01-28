@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { feedbackSchema } from "@/lib/api-validation-schemas";
 
 // POST /api/feedback - Submit feedback
 export async function POST(request: NextRequest) {
@@ -16,6 +17,13 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
     const body = await request.json();
 
+    const parsed = feedbackSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
     const {
       type,
       rating,
@@ -24,15 +32,7 @@ export async function POST(request: NextRequest) {
       timestamp,
       userAgent,
       screenSize,
-    } = body;
-
-    // Validate required fields
-    if (!type || !comment) {
-      return NextResponse.json(
-        { error: "Type and comment are required" },
-        { status: 400 }
-      );
-    }
+    } = parsed.data;
 
     // Create feedback record
     const feedback = await prisma.betaFeedback.create({

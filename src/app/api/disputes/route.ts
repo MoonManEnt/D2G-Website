@@ -16,6 +16,7 @@ import {
   getLastDisputeDate,
   recordDisputedItems,
 } from "@/lib/personal-info-dispute-service";
+import { createDisputeBodySchema } from "@/lib/api-validation-schemas";
 
 // GET /api/disputes - List all disputes
 export const GET = withAuth(async (req, ctx) => {
@@ -108,31 +109,14 @@ export const GET = withAuth(async (req, ctx) => {
 export const POST = withAuth(async (req, ctx) => {
   try {
     const body = await req.json();
-    const { clientId, cra, flow, accountIds, tone, letterStructure } = body;
-
-    // Validate required fields
-    if (!clientId || !cra || !flow || !accountIds || accountIds.length === 0) {
+    const parsed = createDisputeBodySchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "clientId, cra, flow, and accountIds are required" },
+        { error: "Validation failed", details: parsed.error.flatten() },
         { status: 400 }
       );
     }
-
-    // Validate CRA
-    if (!["TRANSUNION", "EXPERIAN", "EQUIFAX"].includes(cra)) {
-      return NextResponse.json(
-        { error: "Invalid CRA. Must be TRANSUNION, EXPERIAN, or EQUIFAX" },
-        { status: 400 }
-      );
-    }
-
-    // Validate flow
-    if (!["ACCURACY", "COLLECTION", "CONSENT", "COMBO"].includes(flow)) {
-      return NextResponse.json(
-        { error: "Invalid flow. Must be ACCURACY, COLLECTION, CONSENT, or COMBO" },
-        { status: 400 }
-      );
-    }
+    const { clientId, cra, flow, accountIds, tone, letterStructure } = parsed.data;
 
     // Get client info
     const client = await prisma.client.findFirst({

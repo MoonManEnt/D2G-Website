@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { sentryResponseSchema, sentryResponseUpdateSchema } from "@/lib/api-validation-schemas";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -28,32 +29,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { outcomes, responseNotes, confirmationNumber } = body;
-
-    // Validate outcomes array
-    if (!outcomes || !Array.isArray(outcomes) || outcomes.length === 0) {
+    const parsed = sentryResponseSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "outcomes array is required with at least one item" },
+        { error: "Validation failed", details: parsed.error.flatten() },
         { status: 400 }
       );
     }
-
-    // Validate each outcome
-    const validOutcomes = ["DELETED", "VERIFIED", "UPDATED", "NO_RESPONSE", "STALL_LETTER"];
-    for (const outcome of outcomes) {
-      if (!outcome.itemId || !outcome.outcome) {
-        return NextResponse.json(
-          { error: "Each outcome must have itemId and outcome" },
-          { status: 400 }
-        );
-      }
-      if (!validOutcomes.includes(outcome.outcome)) {
-        return NextResponse.json(
-          { error: `Invalid outcome: ${outcome.outcome}. Must be one of: ${validOutcomes.join(", ")}` },
-          { status: 400 }
-        );
-      }
-    }
+    const { outcomes, responseNotes, confirmationNumber } = parsed.data;
 
     // Get the dispute
     const dispute = await prisma.sentryDispute.findFirst({
@@ -181,11 +164,14 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { itemId, outcome, responseNotes } = body;
-
-    if (!itemId) {
-      return NextResponse.json({ error: "itemId is required" }, { status: 400 });
+    const parsedUpdate = sentryResponseUpdateSchema.safeParse(body);
+    if (!parsedUpdate.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: parsedUpdate.error.flatten() },
+        { status: 400 }
+      );
     }
+    const { itemId, outcome, responseNotes } = parsedUpdate.data;
 
     // Verify dispute and item belong to organization
     const dispute = await prisma.sentryDispute.findFirst({

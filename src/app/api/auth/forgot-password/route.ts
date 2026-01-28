@@ -2,19 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { randomBytes } from "crypto";
 import { sendPasswordResetEmail } from "@/lib/email";
+import { forgotPasswordSchema } from "@/lib/api-validation-schemas";
 
 // POST /api/auth/forgot-password - Request password reset
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email } = body;
-
-    if (!email) {
+    const parsed = forgotPasswordSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Email is required" },
+        { error: "Validation failed", details: parsed.error.flatten() },
         { status: 400 }
       );
     }
+    const { email } = parsed.data;
 
     // Find user by email
     const user = await prisma.user.findUnique({

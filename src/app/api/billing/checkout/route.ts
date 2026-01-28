@@ -7,6 +7,7 @@ import {
   getOrCreateCustomer,
   STRIPE_PRICES,
 } from "@/lib/stripe";
+import { checkoutSchema } from "@/lib/api-validation-schemas";
 
 // POST /api/billing/checkout - Create a checkout session
 export async function POST(request: NextRequest) {
@@ -18,14 +19,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { plan, interval } = body; // plan: "PRO", interval: "monthly" | "yearly"
-
-    if (plan !== "PRO") {
+    const parsed = checkoutSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Invalid plan selected" },
+        { error: "Validation failed", details: parsed.error.flatten() },
         { status: 400 }
       );
     }
+    const { plan, interval } = parsed.data;
 
     // Get price ID
     const priceId =

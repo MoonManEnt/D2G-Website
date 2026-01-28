@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { orgResetSchema } from "@/lib/api-validation-schemas";
 
 /**
  * POST /api/organization/reset - Reset all organization data
@@ -27,14 +28,13 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { confirmationPhrase } = body;
-
-    // Require confirmation phrase
-    if (confirmationPhrase !== "DELETE ALL MY DATA") {
+    const parsed = orgResetSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
         {
           error: "Invalid confirmation phrase",
           required: "DELETE ALL MY DATA",
+          details: parsed.error.flatten(),
         },
         { status: 400 }
       );

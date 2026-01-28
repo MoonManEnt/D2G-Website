@@ -5,11 +5,14 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 interface OnboardingContextType {
   showWelcome: boolean;
   dismissWelcome: () => void;
+  tourActive: boolean;
+  completeTour: () => void;
 }
 
 const OnboardingContext = createContext<OnboardingContextType | null>(null);
 
 const STORAGE_KEY = "dispute2go_welcome_shown";
+const TOUR_STORAGE_KEY = "dispute2go_tour_completed";
 
 interface OnboardingProviderProps {
   children: ReactNode;
@@ -17,11 +20,19 @@ interface OnboardingProviderProps {
 
 export function OnboardingProvider({ children }: OnboardingProviderProps) {
   const [showWelcome, setShowWelcome] = useState(false);
+  const [tourActive, setTourActive] = useState(false);
+  const [tourCompleted, setTourCompleted] = useState(false);
 
   // Load saved state from localStorage
   useEffect(() => {
     if (typeof window !== "undefined") {
       const welcomeShown = localStorage.getItem(STORAGE_KEY);
+      const tourDone = localStorage.getItem(TOUR_STORAGE_KEY);
+
+      if (tourDone) {
+        setTourCompleted(true);
+      }
+
       if (!welcomeShown) {
         // New user - show welcome
         setShowWelcome(true);
@@ -34,6 +45,21 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
     if (typeof window !== "undefined") {
       localStorage.setItem(STORAGE_KEY, "true");
     }
+    // After welcome modal is dismissed, start the guided tour if not completed
+    if (!tourCompleted) {
+      // Small delay to let the welcome modal animate out
+      setTimeout(() => {
+        setTourActive(true);
+      }, 500);
+    }
+  };
+
+  const completeTour = () => {
+    setTourActive(false);
+    setTourCompleted(true);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(TOUR_STORAGE_KEY, "true");
+    }
   };
 
   return (
@@ -41,6 +67,8 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
       value={{
         showWelcome,
         dismissWelcome,
+        tourActive,
+        completeTour,
       }}
     >
       {children}

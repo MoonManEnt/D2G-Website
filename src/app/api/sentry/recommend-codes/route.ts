@@ -15,6 +15,7 @@ import {
   getCodesForFlow,
 } from "@/lib/sentry/eoscar-engine";
 import type { SentryFlowType, SentryCRA } from "@/types/sentry";
+import { sentryRecommendCodesSchema } from "@/lib/api-validation-schemas";
 
 // =============================================================================
 // POST /api/sentry/recommend-codes - Get e-OSCAR recommendations
@@ -23,23 +24,14 @@ import type { SentryFlowType, SentryCRA } from "@/types/sentry";
 export const POST = withAuth(async (req, ctx) => {
   try {
     const body = await req.json();
-    const { accountIds, flow = "ACCURACY", includeAllCodes = false } = body;
-
-    if (!accountIds || !Array.isArray(accountIds) || accountIds.length === 0) {
+    const parsed = sentryRecommendCodesSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "accountIds array is required" },
+        { error: "Validation failed", details: parsed.error.flatten() },
         { status: 400 }
       );
     }
-
-    // Validate flow
-    const validFlows: SentryFlowType[] = ["ACCURACY", "COLLECTION", "CONSENT", "COMBO"];
-    if (!validFlows.includes(flow)) {
-      return NextResponse.json(
-        { error: "Invalid flow. Must be ACCURACY, COLLECTION, CONSENT, or COMBO" },
-        { status: 400 }
-      );
-    }
+    const { accountIds, flow, includeAllCodes } = parsed.data;
 
     // Fetch accounts from database
     const accounts = await prisma.accountItem.findMany({

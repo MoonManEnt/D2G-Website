@@ -18,6 +18,7 @@ import {
   BarChart3,
   Sparkles,
   Shield,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -26,13 +27,13 @@ import { useState, useEffect } from "react";
 import { useBrandingOptional } from "@/components/branding";
 import { Avatar } from "@/components/profile";
 
-const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Clients", href: "/clients", icon: Users },
-  { name: "Disputes", href: "/disputes", icon: Scale },
-  { name: "Sentry", href: "/sentry", icon: Shield },
-  { name: "Evidence", href: "/evidence", icon: Image },
-  { name: "Analytics", href: "/analytics", icon: BarChart3 },
+const navigation: { name: string; href: string; icon: typeof LayoutDashboard; tourId?: string }[] = [
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, tourId: "dashboard" },
+  { name: "Clients", href: "/clients", icon: Users, tourId: "clients" },
+  { name: "Disputes", href: "/disputes", icon: Scale, tourId: "disputes" },
+  { name: "Sentry", href: "/sentry", icon: Shield, tourId: "sentry" },
+  { name: "Evidence", href: "/evidence", icon: Image, tourId: "evidence" },
+  { name: "Analytics", href: "/analytics", icon: BarChart3, tourId: "analytics" },
   { name: "Settings", href: "/settings", icon: Settings },
   { name: "Billing", href: "/billing", icon: CreditCard },
 ];
@@ -248,6 +249,7 @@ export function Sidebar({ user }: SidebarProps) {
                       href={item.href}
                       onClick={() => setMobileMenuOpen(false)}
                       className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors"
+                      {...(item.tourId ? { "data-tour": `${item.tourId}-mobile` } : {})}
                       style={
                         isActive
                           ? {
@@ -301,6 +303,23 @@ export function Sidebar({ user }: SidebarProps) {
           <LogoDisplay />
         </div>
 
+        {/* Search hint */}
+        <div className="px-4 pt-3 pb-1">
+          <button
+            onClick={() => {
+              const event = new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true });
+              document.dispatchEvent(event);
+            }}
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-400 bg-slate-800/50 hover:bg-slate-800 rounded-lg border border-slate-700/50 transition-colors"
+          >
+            <Search className="w-3.5 h-3.5" />
+            <span className="flex-1 text-left">Search...</span>
+            <kbd className="px-1.5 py-0.5 text-[10px] bg-slate-700/50 rounded border border-slate-600/50 font-mono">
+              {"\u2318"}K
+            </kbd>
+          </button>
+        </div>
+
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {navigation.map((item, i) => {
@@ -320,6 +339,7 @@ export function Sidebar({ user }: SidebarProps) {
                 <Link
                   href={item.href}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all relative"
+                  {...(item.tourId ? { "data-tour": item.tourId } : {})}
                   style={
                     isActive
                       ? {

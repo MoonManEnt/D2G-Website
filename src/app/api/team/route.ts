@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { hash } from "bcryptjs";
+import { teamMemberSchema } from "@/lib/api-validation-schemas";
 
 // Role definitions
 const ROLES = {
@@ -151,19 +152,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { email, name, role = "SPECIALIST" } = body;
-
-    if (!email || !name) {
+    const parsed = teamMemberSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Email and name are required" },
+        { error: "Validation failed", details: parsed.error.flatten() },
         { status: 400 }
       );
     }
-
-    // Validate role
-    if (!Object.values(ROLES).includes(role)) {
-      return NextResponse.json({ error: "Invalid role" }, { status: 400 });
-    }
+    const { email, name, role } = parsed.data;
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({

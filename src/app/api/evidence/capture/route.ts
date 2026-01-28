@@ -6,6 +6,7 @@ import { readFile, writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { v4 as uuid } from "uuid";
 import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
+import { evidenceCaptureSchema } from "@/lib/api-validation-schemas";
 
 // Set worker source for pdfjs
 const workerPath = join(process.cwd(), "node_modules/pdfjs-dist/build/pdf.worker.mjs");
@@ -44,14 +45,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { accountId, reportId } = body;
-
-    if (!accountId || !reportId) {
+    const parsed = evidenceCaptureSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "accountId and reportId are required" },
+        { error: "Validation failed", details: parsed.error.flatten() },
         { status: 400 }
       );
     }
+    const { accountId, reportId } = parsed.data;
 
     // Verify account belongs to organization
     const account = await prisma.accountItem.findFirst({

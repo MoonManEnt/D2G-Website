@@ -14,6 +14,7 @@ import {
   type GenerationContext,
 } from "@/lib/sentry/sentry-generator";
 import type { SentryCRA, SentryFlowType } from "@/types/sentry";
+import { sentryGenerateSchema } from "@/lib/api-validation-schemas";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -28,7 +29,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const session = await getServerSession(authOptions);
     const { id } = await params;
     const body = await request.json();
-    const { eoscarCodeOverride, customLanguage, templateId } = body;
+    const parsed = sentryGenerateSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+    const { eoscarCodeOverride, customLanguage, templateId } = parsed.data;
 
     if (!session?.user?.organizationId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

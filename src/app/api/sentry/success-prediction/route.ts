@@ -17,6 +17,7 @@ import {
   getFactorWeights,
 } from "@/lib/sentry/success-calculator";
 import type { SuccessPredictionRequest } from "@/types/sentry";
+import { sentrySuccessPredictionSchema } from "@/lib/api-validation-schemas";
 
 // =============================================================================
 // POST /api/sentry/success-prediction - Calculate success probability
@@ -25,6 +26,13 @@ import type { SuccessPredictionRequest } from "@/types/sentry";
 export const POST = withAuth(async (req, ctx) => {
   try {
     const body = await req.json();
+    const parsed = sentrySuccessPredictionSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
     const {
       // Full prediction request
       accountAge,
@@ -46,7 +54,7 @@ export const POST = withAuth(async (req, ctx) => {
       compareMode,
       strategy1,
       strategy2,
-    } = body;
+    } = parsed.data;
 
     // Handle comparison mode
     if (compareMode && strategy1 && strategy2) {

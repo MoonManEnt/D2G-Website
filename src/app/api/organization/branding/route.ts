@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { defaultBranding, BrandingSettings } from "@/types/branding";
+import { orgBrandingSchema } from "@/lib/api-validation-schemas";
 
 // GET - Fetch branding settings
 export async function GET() {
@@ -62,55 +63,15 @@ export async function PATCH(request: NextRequest) {
 
     const updates = await request.json();
 
-    // Validate updates (basic validation)
-    const allowedKeys: (keyof BrandingSettings)[] = [
-      "logoUrl",
-      "logoText",
-      "faviconUrl",
-      "primaryColor",
-      "primaryHoverColor",
-      "accentColor",
-      "sidebarBgColor",
-      "sidebarTextColor",
-      "sidebarActiveColor",
-      "companyName",
-      "companyAddress",
-      "companyPhone",
-      "companyEmail",
-      "companyWebsite",
-      "emailHeaderColor",
-      "emailFooterText",
-      "customCss",
-    ];
-
-    const sanitizedUpdates: Partial<BrandingSettings> = {};
-    for (const key of Object.keys(updates)) {
-      if (allowedKeys.includes(key as keyof BrandingSettings)) {
-        sanitizedUpdates[key as keyof BrandingSettings] = updates[key];
-      }
+    // Validate updates with Zod schema
+    const parsed = orgBrandingSchema.safeParse(updates);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: parsed.error.flatten() },
+        { status: 400 }
+      );
     }
-
-    // Validate color format
-    const colorKeys = [
-      "primaryColor",
-      "primaryHoverColor",
-      "accentColor",
-      "sidebarBgColor",
-      "sidebarTextColor",
-      "sidebarActiveColor",
-      "emailHeaderColor",
-    ];
-    const hexColorRegex = /^#[0-9a-fA-F]{6}$/;
-
-    for (const key of colorKeys) {
-      const value = sanitizedUpdates[key as keyof BrandingSettings];
-      if (value && typeof value === "string" && !hexColorRegex.test(value)) {
-        return NextResponse.json(
-          { error: `Invalid color format for ${key}. Use hex format (e.g., #3b82f6)` },
-          { status: 400 }
-        );
-      }
-    }
+    const sanitizedUpdates: Partial<BrandingSettings> = parsed.data;
 
     // Validate logo URL size (if base64, limit to ~2MB)
     if (

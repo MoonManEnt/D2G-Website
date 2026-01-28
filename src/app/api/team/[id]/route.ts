@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { hash } from "bcryptjs";
+import { updateTeamMemberSchema } from "@/lib/api-validation-schemas";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -128,7 +129,14 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     const body = await request.json();
-    const { name, role, isActive, profilePicture } = body;
+    const parsed = updateTeamMemberSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+    const { name, role, isActive, profilePicture } = parsed.data;
 
     // Build update data
     const updateData: Record<string, unknown> = {};

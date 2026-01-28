@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { updateProfileSchema } from "@/lib/api-validation-schemas";
 
 // GET /api/user/profile - Get current user's profile
 export async function GET() {
@@ -54,15 +55,14 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name } = body;
-
-    // Validate input
-    if (name !== undefined && (typeof name !== "string" || name.trim().length < 2)) {
+    const parsed = updateProfileSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Name must be at least 2 characters" },
+        { error: "Validation failed", details: parsed.error.flatten() },
         { status: 400 }
       );
     }
+    const { name } = parsed.data;
 
     // Update user
     const updatedUser = await prisma.user.update({

@@ -15,6 +15,7 @@ import {
   type DisputeOutcome,
   type StallTactic,
 } from "@/lib/dispute-intelligence";
+import { disputeResponseBodySchema } from "@/lib/api-validation-schemas";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -157,11 +158,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     const body = await request.json();
+    const parsed = disputeResponseBodySchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
     const {
       disputeItemId,
       outcome,
       responseDate,
-      responseMethod = "MAIL",
+      responseMethod,
       stallTactic,
       stallDetails,
       updateType,
@@ -170,24 +178,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       verificationMethod,
       furnisherResponse,
       notes,
-    } = body;
-
-    // Validate required fields
-    if (!disputeItemId || !outcome || !responseDate) {
-      return NextResponse.json(
-        { error: "Missing required fields: disputeItemId, outcome, responseDate" },
-        { status: 400 }
-      );
-    }
-
-    // Validate outcome type
-    const validOutcomes = ["DELETED", "VERIFIED", "UPDATED", "NO_RESPONSE", "STALL_LETTER"];
-    if (!validOutcomes.includes(outcome)) {
-      return NextResponse.json(
-        { error: `Invalid outcome. Must be one of: ${validOutcomes.join(", ")}` },
-        { status: 400 }
-      );
-    }
+    } = parsed.data;
 
     // Verify dispute belongs to user's organization
     const dispute = await prisma.dispute.findFirst({

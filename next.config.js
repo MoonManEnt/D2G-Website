@@ -3,7 +3,7 @@ const { withSentryConfig } = require("@sentry/nextjs");
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    serverComponentsExternalPackages: ['pdfjs-dist', 'unpdf'],
+    serverComponentsExternalPackages: ['pdfjs-dist', 'unpdf', 'require-in-the-middle'],
     serverActions: {
       bodySizeLimit: '100mb',
     },
@@ -18,6 +18,12 @@ const nextConfig = {
 
     // Handle pdfjs worker
     config.resolve.alias.canvas = false;
+
+    // Suppress OpenTelemetry/require-in-the-middle critical dependency warnings
+    config.module = {
+      ...config.module,
+      exprContextCritical: false,
+    };
 
     return config;
   },

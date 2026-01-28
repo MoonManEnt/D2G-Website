@@ -7,6 +7,7 @@ import { join } from "path";
 import { v4 as uuid } from "uuid";
 import { validateBase64Image } from "@/lib/upload-validation";
 import { put } from "@vercel/blob";
+import { evidenceUploadSchema } from "@/lib/api-validation-schemas";
 
 const EVIDENCE_DIR = process.env.EVIDENCE_DIR || "./public/evidence";
 const isVercel = process.env.VERCEL === "1";
@@ -35,14 +36,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { accountId, reportId, imageData, pageNumber, description } = body;
-
-    if (!accountId || !reportId || !imageData || !pageNumber) {
+    const parsed = evidenceUploadSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "accountId, reportId, imageData, and pageNumber are required" },
+        { error: "Validation failed", details: parsed.error.flatten() },
         { status: 400 }
       );
     }
+    const { accountId, reportId, imageData, pageNumber, description } = parsed.data;
 
     // Validate base64 image data using unified validation
     const validation = validateBase64Image(imageData);

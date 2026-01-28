@@ -1,26 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { resetPasswordSchema } from "@/lib/api-validation-schemas";
 
 // POST /api/auth/reset-password - Reset password with token
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { token, newPassword } = body;
-
-    if (!token || !newPassword) {
+    const parsed = resetPasswordSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Token and new password are required" },
+        { error: "Validation failed", details: parsed.error.flatten() },
         { status: 400 }
       );
     }
-
-    if (newPassword.length < 8) {
-      return NextResponse.json(
-        { error: "Password must be at least 8 characters" },
-        { status: 400 }
-      );
-    }
+    const { token, newPassword } = parsed.data;
 
     // Find valid token
     const resetToken = await prisma.passwordResetToken.findUnique({

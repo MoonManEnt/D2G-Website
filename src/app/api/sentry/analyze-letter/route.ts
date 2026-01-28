@@ -17,6 +17,7 @@ import {
 } from "@/lib/sentry/ocr-detector";
 import { validateCitations, getRecommendedCitations } from "@/lib/sentry/legal-validator";
 import type { CitationApplicability } from "@/types/sentry";
+import { sentryAnalyzeLetterSchema } from "@/lib/api-validation-schemas";
 
 // =============================================================================
 // POST /api/sentry/analyze-letter - Analyze any letter text
@@ -25,30 +26,14 @@ import type { CitationApplicability } from "@/types/sentry";
 export const POST = withAuth(async (req, ctx) => {
   try {
     const body = await req.json();
-    const { letterContent, targetType = "CRA", applyFixes = false } = body;
-
-    if (!letterContent || typeof letterContent !== "string") {
+    const parsed = sentryAnalyzeLetterSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "letterContent is required and must be a string" },
+        { error: "Validation failed", details: parsed.error.flatten() },
         { status: 400 }
       );
     }
-
-    if (letterContent.length < 100) {
-      return NextResponse.json(
-        { error: "Letter content is too short for meaningful analysis" },
-        { status: 400 }
-      );
-    }
-
-    // Validate target type
-    const validTargetTypes: CitationApplicability[] = ["CRA", "FURNISHER", "COLLECTOR"];
-    if (!validTargetTypes.includes(targetType)) {
-      return NextResponse.json(
-        { error: "Invalid targetType. Must be CRA, FURNISHER, or COLLECTOR" },
-        { status: 400 }
-      );
-    }
+    const { letterContent, targetType, applyFixes } = parsed.data;
 
     // 1. OCR Analysis
     const ocrAnalysis = analyzeOCRRisk(letterContent);

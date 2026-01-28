@@ -16,6 +16,7 @@ import {
   type GenerationContext,
 } from "@/lib/sentry/sentry-generator";
 import type { SentryCRA, SentryFlowType } from "@/types/sentry";
+import { sentryCreateSchema } from "@/lib/api-validation-schemas";
 
 // =============================================================================
 // GET /api/sentry - List all Sentry disputes
@@ -112,39 +113,22 @@ export const GET = withAuth(async (req, ctx) => {
 export const POST = withAuth(async (req, ctx) => {
   try {
     const body = await req.json();
+    const parsed = sentryCreateSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
     const {
       clientId,
       cra,
       flow,
       accountIds,
-      generateLetter = true,
+      generateLetter,
       eoscarCodeOverride,
       customLanguage,
-    } = body;
-
-    // Validate required fields
-    if (!clientId || !cra || !flow || !accountIds || accountIds.length === 0) {
-      return NextResponse.json(
-        { error: "clientId, cra, flow, and accountIds are required" },
-        { status: 400 }
-      );
-    }
-
-    // Validate CRA
-    if (!["TRANSUNION", "EXPERIAN", "EQUIFAX"].includes(cra)) {
-      return NextResponse.json(
-        { error: "Invalid CRA. Must be TRANSUNION, EXPERIAN, or EQUIFAX" },
-        { status: 400 }
-      );
-    }
-
-    // Validate flow
-    if (!["ACCURACY", "COLLECTION", "CONSENT", "COMBO"].includes(flow)) {
-      return NextResponse.json(
-        { error: "Invalid flow. Must be ACCURACY, COLLECTION, CONSENT, or COMBO" },
-        { status: 400 }
-      );
-    }
+    } = parsed.data;
 
     // Get client info
     const client = await prisma.client.findFirst({

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { updateDocumentSchema } from "@/lib/api-validation-schemas";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -65,7 +66,14 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     const body = await request.json();
-    const { content, approvalStatus } = body;
+    const parsed = updateDocumentSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+    const { content, approvalStatus } = parsed.data;
 
     // Verify document belongs to organization
     const existingDocument = await prisma.document.findFirst({

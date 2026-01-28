@@ -16,6 +16,7 @@ import {
   suggestCitationFix,
 } from "@/lib/sentry/legal-validator";
 import type { CitationApplicability } from "@/types/sentry";
+import { sentryValidateCitationsSchema } from "@/lib/api-validation-schemas";
 
 // =============================================================================
 // POST /api/sentry/validate-citations - Validate citations in text
@@ -24,23 +25,14 @@ import type { CitationApplicability } from "@/types/sentry";
 export const POST = withAuth(async (req, ctx) => {
   try {
     const body = await req.json();
-    const { text, targetType = "CRA", useCase } = body;
-
-    if (!text || typeof text !== "string") {
+    const parsed = sentryValidateCitationsSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "text is required and must be a string" },
+        { error: "Validation failed", details: parsed.error.flatten() },
         { status: 400 }
       );
     }
-
-    // Validate target type
-    const validTargetTypes: CitationApplicability[] = ["CRA", "FURNISHER", "COLLECTOR"];
-    if (!validTargetTypes.includes(targetType)) {
-      return NextResponse.json(
-        { error: "Invalid targetType. Must be CRA, FURNISHER, or COLLECTOR" },
-        { status: 400 }
-      );
-    }
+    const { text, targetType, useCase } = parsed.data;
 
     // Validate citations
     const validationResult = validateCitations(text, targetType);

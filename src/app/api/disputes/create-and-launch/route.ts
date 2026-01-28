@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { withAuth, trackUsage } from "@/lib/api-middleware";
 import { getDisputeReasonFromIssueCode } from "@/lib/dispute-templates";
+import { disputeCreateAndLaunchSchema } from "@/lib/api-validation-schemas";
 
 // =============================================================================
 // POST /api/disputes/create-and-launch - Create dispute AND mark as SENT atomically
@@ -15,38 +16,14 @@ import { getDisputeReasonFromIssueCode } from "@/lib/dispute-templates";
 export const POST = withAuth(async (req, ctx) => {
   try {
     const body = await req.json();
-    const { clientId, cra, flow, accountIds, letterContent, contentHash } = body;
-
-    // Validate required fields
-    if (!clientId || !cra || !flow || !accountIds || accountIds.length === 0) {
+    const parsed = disputeCreateAndLaunchSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "clientId, cra, flow, and accountIds are required" },
+        { error: "Validation failed", details: parsed.error.flatten() },
         { status: 400 }
       );
     }
-
-    if (!letterContent) {
-      return NextResponse.json(
-        { error: "letterContent is required" },
-        { status: 400 }
-      );
-    }
-
-    // Validate CRA
-    if (!["TRANSUNION", "EXPERIAN", "EQUIFAX"].includes(cra)) {
-      return NextResponse.json(
-        { error: "Invalid CRA. Must be TRANSUNION, EXPERIAN, or EQUIFAX" },
-        { status: 400 }
-      );
-    }
-
-    // Validate flow
-    if (!["ACCURACY", "COLLECTION", "CONSENT", "COMBO"].includes(flow)) {
-      return NextResponse.json(
-        { error: "Invalid flow. Must be ACCURACY, COLLECTION, CONSENT, or COMBO" },
-        { status: 400 }
-      );
-    }
+    const { clientId, cra, flow, accountIds, letterContent, contentHash } = parsed.data;
 
     // Get client info
     const client = await prisma.client.findFirst({

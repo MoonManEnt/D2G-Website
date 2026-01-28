@@ -13,6 +13,7 @@ import {
   type DisputeFlow,
 } from "@/lib/ai-rules-engine";
 import { captureError } from "@/lib/errors";
+import { disputeAiSchema } from "@/lib/api-validation-schemas";
 
 /**
  * POST /api/disputes/ai - AI-powered dispute creation
@@ -33,14 +34,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { clientId, accountIds, options } = body;
-
-    if (!clientId || !accountIds || accountIds.length === 0) {
+    const parsed = disputeAiSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "clientId and accountIds are required" },
+        { error: "Validation failed", details: parsed.error.flatten() },
         { status: 400 }
       );
     }
+    const { clientId, accountIds, options } = parsed.data;
 
     // Get client info
     const client = await prisma.client.findFirst({
