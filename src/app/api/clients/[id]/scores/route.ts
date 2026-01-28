@@ -4,6 +4,8 @@ import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 // Schema for adding a credit score
 const createScoreSchema = z.object({
   cra: z.enum(["TRANSUNION", "EXPERIAN", "EQUIFAX"]),

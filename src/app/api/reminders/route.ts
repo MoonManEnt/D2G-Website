@@ -4,6 +4,8 @@ import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const createReminderSchema = z.object({
   clientId: z.string().uuid(),
   disputeId: z.string().uuid().optional(),

@@ -5,6 +5,8 @@ import prisma from "@/lib/prisma";
 import { hash } from "bcryptjs";
 import { updateTeamMemberSchema } from "@/lib/api-validation-schemas";
 
+export const dynamic = "force-dynamic";
+
 interface RouteParams {
   params: Promise<{ id: string }>;
 }

@@ -8,6 +8,8 @@ import { v4 as uuid } from "uuid";
 import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
 import { evidenceCaptureSchema } from "@/lib/api-validation-schemas";
 
+export const dynamic = "force-dynamic";
+
 // Set worker source for pdfjs
 const workerPath = join(process.cwd(), "node_modules/pdfjs-dist/build/pdf.worker.mjs");
 GlobalWorkerOptions.workerSrc = workerPath;

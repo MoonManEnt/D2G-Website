@@ -30,6 +30,8 @@ import {
   recordDisputedItems,
 } from "@/lib/personal-info-dispute-service";
 
+export const dynamic = "force-dynamic";
+
 interface RouteParams {
   params: Promise<{ id: string }>;
 }

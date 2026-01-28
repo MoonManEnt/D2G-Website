@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { updateProfileSchema } from "@/lib/api-validation-schemas";
 
+export const dynamic = "force-dynamic";
+
 // GET /api/user/profile - Get current user's profile
 export async function GET() {
   try {

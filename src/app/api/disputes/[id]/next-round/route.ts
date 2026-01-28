@@ -25,6 +25,8 @@ import {
 import type { NextRoundContext } from "@/lib/dispute-intelligence/types";
 import { CRA } from "@/types";
 
+export const dynamic = "force-dynamic";
+
 interface RouteParams {
   params: Promise<{ id: string }>;
 }

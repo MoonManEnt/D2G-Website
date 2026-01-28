@@ -18,6 +18,8 @@ import {
 import type { CitationApplicability } from "@/types/sentry";
 import { sentryValidateCitationsSchema } from "@/lib/api-validation-schemas";
 
+export const dynamic = "force-dynamic";
+
 // =============================================================================
 // POST /api/sentry/validate-citations - Validate citations in text
 // =============================================================================

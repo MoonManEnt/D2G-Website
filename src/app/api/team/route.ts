@@ -5,6 +5,8 @@ import prisma from "@/lib/prisma";
 import { hash } from "bcryptjs";
 import { teamMemberSchema } from "@/lib/api-validation-schemas";
 
+export const dynamic = "force-dynamic";
+
 // Role definitions
 const ROLES = {
   OWNER: "OWNER",

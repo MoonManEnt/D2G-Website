@@ -5,6 +5,8 @@ import { withAuth } from "@/lib/api-middleware";
 import { encryptPIIFields, decryptPIIFields } from "@/lib/encryption";
 import { parsePaginationParams, buildPaginatedResponse } from "@/lib/pagination";
 
+export const dynamic = "force-dynamic";
+
 const createClientSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),

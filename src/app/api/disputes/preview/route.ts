@@ -17,6 +17,8 @@ import {
 } from "@/lib/personal-info-dispute-service";
 import { disputePreviewSchema } from "@/lib/api-validation-schemas";
 
+export const dynamic = "force-dynamic";
+
 // =============================================================================
 // POST /api/disputes/preview - Generate AMELIA letter preview WITHOUT creating dispute
 // =============================================================================

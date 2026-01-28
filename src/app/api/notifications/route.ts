@@ -3,6 +3,8 @@ import { withAuth } from "@/lib/api-middleware";
 import { NotificationService } from "@/lib/notifications";
 import { notificationActionSchema } from "@/lib/api-validation-schemas";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/notifications - Get notifications for the current user
  *

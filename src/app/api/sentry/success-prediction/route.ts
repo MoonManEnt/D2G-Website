@@ -19,6 +19,8 @@ import {
 import type { SuccessPredictionRequest } from "@/types/sentry";
 import { sentrySuccessPredictionSchema } from "@/lib/api-validation-schemas";
 
+export const dynamic = "force-dynamic";
+
 // =============================================================================
 // POST /api/sentry/success-prediction - Calculate success probability
 // =============================================================================

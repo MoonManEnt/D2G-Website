@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { createPortalSession } from "@/lib/stripe";
 
+export const dynamic = "force-dynamic";
+
 // POST /api/billing/portal - Create a billing portal session
 export async function POST() {
   try {

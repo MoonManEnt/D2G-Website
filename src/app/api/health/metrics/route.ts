@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/api-middleware";
 import { getMetricsSummary } from "@/lib/performance";
 
+export const dynamic = "force-dynamic";
+
 export const GET = withAuth(async () => {
   const summary = getMetricsSummary();
 

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { withAuth } from "@/lib/api-middleware";
 
+export const dynamic = "force-dynamic";
+
 // =============================================================================
 // DELETE /api/disputes/cleanup-drafts - Delete orphaned DRAFT disputes
 // =============================================================================

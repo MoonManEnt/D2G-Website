@@ -15,6 +15,8 @@ import {
 import { captureError } from "@/lib/errors";
 import { disputeAiSchema } from "@/lib/api-validation-schemas";
 
+export const dynamic = "force-dynamic";
+
 /**
  * POST /api/disputes/ai - AI-powered dispute creation
  *

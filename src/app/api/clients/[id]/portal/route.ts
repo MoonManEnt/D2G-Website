@@ -6,6 +6,8 @@ import bcrypt from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
 import { sendPortalInviteEmail } from "@/lib/email";
 
+export const dynamic = "force-dynamic";
+
 // GET /api/clients/[id]/portal - Get client portal access status
 export async function GET(
   request: NextRequest,

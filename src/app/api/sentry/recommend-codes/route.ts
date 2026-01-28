@@ -17,6 +17,8 @@ import {
 import type { SentryFlowType, SentryCRA } from "@/types/sentry";
 import { sentryRecommendCodesSchema } from "@/lib/api-validation-schemas";
 
+export const dynamic = "force-dynamic";
+
 // =============================================================================
 // POST /api/sentry/recommend-codes - Get e-OSCAR recommendations
 // =============================================================================

@@ -10,6 +10,8 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { generateExhibitPackagePDF, ExhibitItem } from "@/lib/pdf-generate";
 
+export const dynamic = "force-dynamic";
+
 interface ExhibitInput {
   id: string;
   label: string;

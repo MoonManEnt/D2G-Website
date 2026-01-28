@@ -19,6 +19,8 @@ import {
 } from "@/lib/personal-info-dispute-service";
 import { createDisputeBodySchema } from "@/lib/api-validation-schemas";
 
+export const dynamic = "force-dynamic";
+
 // GET /api/disputes - List all disputes
 export const GET = withAuth(async (req, ctx) => {
   try {

@@ -11,6 +11,8 @@ import {
   type DisputeAccountForLetter,
 } from "@/lib/docx-generator";
 
+export const dynamic = "force-dynamic";
+
 interface RouteParams {
   params: Promise<{ id: string }>;
 }

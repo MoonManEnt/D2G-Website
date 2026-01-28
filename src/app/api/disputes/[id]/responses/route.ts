@@ -17,6 +17,8 @@ import {
 } from "@/lib/dispute-intelligence";
 import { disputeResponseBodySchema } from "@/lib/api-validation-schemas";
 
+export const dynamic = "force-dynamic";
+
 interface RouteParams {
   params: Promise<{ id: string }>;
 }

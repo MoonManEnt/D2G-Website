@@ -9,6 +9,8 @@ import {
 } from "@/lib/stripe";
 import { checkoutSchema } from "@/lib/api-validation-schemas";
 
+export const dynamic = "force-dynamic";
+
 // POST /api/billing/checkout - Create a checkout session
 export async function POST(request: NextRequest) {
   try {

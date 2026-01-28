@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { orgResetSchema } from "@/lib/api-validation-schemas";
 
+export const dynamic = "force-dynamic";
+
 /**
  * POST /api/organization/reset - Reset all organization data
  *

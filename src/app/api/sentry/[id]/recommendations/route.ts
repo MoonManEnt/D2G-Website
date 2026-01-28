@@ -26,6 +26,8 @@ import type {
   SuccessPredictionRequest,
 } from "@/types/sentry";
 
+export const dynamic = "force-dynamic";
+
 interface RouteParams {
   params: Promise<{ id: string }>;
 }

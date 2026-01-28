@@ -5,6 +5,8 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { del } from "@vercel/blob";
 
+export const dynamic = "force-dynamic";
+
 interface RouteParams {
     params: Promise<{ id: string }>;
 }

@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import type { DNAClassification, CreditDNAProfile } from "@/lib/credit-dna/types";
 
+export const dynamic = "force-dynamic";
+
 const CLASSIFICATION_DESCRIPTIONS: Record<string, string> = {
   THIN_FILE_REBUILDER: "Few accounts with limited history. Focus on building positive tradelines alongside disputes.",
   THICK_FILE_DEROG: "Many accounts with heavy derogatory items. Aggressive dispute strategy recommended.",

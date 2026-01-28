@@ -9,6 +9,8 @@ import { validateBase64Image } from "@/lib/upload-validation";
 import { put } from "@vercel/blob";
 import { evidenceUploadSchema } from "@/lib/api-validation-schemas";
 
+export const dynamic = "force-dynamic";
+
 const EVIDENCE_DIR = process.env.EVIDENCE_DIR || "./public/evidence";
 const isVercel = process.env.VERCEL === "1";
 

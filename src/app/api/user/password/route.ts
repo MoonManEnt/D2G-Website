@@ -5,6 +5,8 @@ import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { changePasswordSchema } from "@/lib/api-validation-schemas";
 
+export const dynamic = "force-dynamic";
+
 // POST /api/user/password - Change password
 export async function POST(request: NextRequest) {
   try {

@@ -19,6 +19,8 @@ import { validateCitations, getRecommendedCitations } from "@/lib/sentry/legal-v
 import type { CitationApplicability } from "@/types/sentry";
 import { sentryAnalyzeLetterSchema } from "@/lib/api-validation-schemas";
 
+export const dynamic = "force-dynamic";
+
 // =============================================================================
 // POST /api/sentry/analyze-letter - Analyze any letter text
 // =============================================================================

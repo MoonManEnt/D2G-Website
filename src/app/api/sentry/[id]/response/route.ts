@@ -11,6 +11,8 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { sentryResponseSchema, sentryResponseUpdateSchema } from "@/lib/api-validation-schemas";
 
+export const dynamic = "force-dynamic";
+
 interface RouteParams {
   params: Promise<{ id: string }>;
 }

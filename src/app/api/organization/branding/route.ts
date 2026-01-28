@@ -5,6 +5,8 @@ import prisma from "@/lib/prisma";
 import { defaultBranding, BrandingSettings } from "@/types/branding";
 import { orgBrandingSchema } from "@/lib/api-validation-schemas";
 
+export const dynamic = "force-dynamic";
+
 // GET - Fetch branding settings
 export async function GET() {
   try {

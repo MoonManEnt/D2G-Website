@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { parsePaginationParams, buildPaginatedResponse } from "@/lib/pagination";
 
+export const dynamic = "force-dynamic";
+
 // GET /api/evidence - List all evidence for organization
 export async function GET(request: NextRequest) {
   try {

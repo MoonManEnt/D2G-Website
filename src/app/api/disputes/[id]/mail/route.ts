@@ -19,6 +19,8 @@ import {
 } from "@/lib/pdf-generate";
 import { format } from "date-fns";
 
+export const dynamic = "force-dynamic";
+
 interface RouteParams {
   params: Promise<{ id: string }>;
 }

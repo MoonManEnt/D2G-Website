@@ -4,6 +4,8 @@ import { withAuth, trackUsage } from "@/lib/api-middleware";
 import { getDisputeReasonFromIssueCode } from "@/lib/dispute-templates";
 import { disputeCreateAndLaunchSchema } from "@/lib/api-validation-schemas";
 
+export const dynamic = "force-dynamic";
+
 // =============================================================================
 // POST /api/disputes/create-and-launch - Create dispute AND mark as SENT atomically
 // =============================================================================

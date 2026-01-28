@@ -18,6 +18,8 @@ import {
 import type { SentryCRA, SentryFlowType } from "@/types/sentry";
 import { sentryCreateSchema } from "@/lib/api-validation-schemas";
 
+export const dynamic = "force-dynamic";
+
 // =============================================================================
 // GET /api/sentry - List all Sentry disputes
 // =============================================================================

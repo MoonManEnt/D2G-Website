@@ -11,6 +11,8 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { feedbackSchema } from "@/lib/api-validation-schemas";
 
+export const dynamic = "force-dynamic";
+
 // POST /api/feedback - Submit feedback
 export async function POST(request: NextRequest) {
   try {

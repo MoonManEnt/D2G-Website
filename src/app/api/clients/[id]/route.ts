@@ -5,6 +5,8 @@ import prisma from "@/lib/prisma";
 import { ArchiveService } from "@/lib/archive";
 import { encryptPIIFields, decryptPIIFields } from "@/lib/encryption";
 
+export const dynamic = "force-dynamic";
+
 interface RouteParams {
   params: Promise<{ id: string }>;
 }

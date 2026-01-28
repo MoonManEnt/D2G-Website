@@ -60,6 +60,8 @@ import {
   DisputeCreationError,
 } from "@/lib/dispute-creation";
 
+export const dynamic = "force-dynamic";
+
 /**
  * POST /api/disputes/unified - Create disputes using unified flow
  */

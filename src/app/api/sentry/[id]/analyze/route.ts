@@ -25,6 +25,8 @@ import { recommendCodesForAccount } from "@/lib/sentry/eoscar-engine";
 import { getRecommendedFields } from "@/lib/sentry/metro2-targeting";
 import type { SentryFlowType, SentryCRA, SuccessPredictionRequest } from "@/types/sentry";
 
+export const dynamic = "force-dynamic";
+
 interface RouteParams {
   params: Promise<{ id: string }>;
 }

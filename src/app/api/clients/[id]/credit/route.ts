@@ -12,6 +12,8 @@ import {
   isCreditMonitoringAvailable,
 } from "@/lib/credit-monitoring";
 
+export const dynamic = "force-dynamic";
+
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
