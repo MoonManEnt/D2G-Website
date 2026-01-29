@@ -19,7 +19,11 @@ import {
   AlertTriangle,
   Timer,
   Send,
+  User,
+  MapPin,
+  Eye,
 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/lib/use-toast";
 import { CRA_COLORS, type ParsedAccountWithIssues, type CFPBComplaint } from "./types";
 
@@ -96,12 +100,26 @@ function CopyableField({ label, value, isLarge, onCopy }: CopyableFieldProps) {
   );
 }
 
+interface HardInquiry {
+  id: string;
+  creditorName: string;
+  inquiryDate: string;
+  bureau?: string;
+}
+
+interface PersonalInfo {
+  previousNames?: string[];
+  previousAddresses?: string[];
+}
+
 interface CFPBViewProps {
   accounts: ParsedAccountWithIssues[];
   selectedCRA: string;
   onSelectCRA: (cra: string) => void;
   clientName?: string;
   clientId?: string;
+  hardInquiries?: HardInquiry[];
+  personalInfo?: PersonalInfo;
 }
 
 const CRAS = ["TRANSUNION", "EXPERIAN", "EQUIFAX"] as const;
@@ -114,14 +132,28 @@ const getFCRADaysRemaining = (sentDate?: string) => {
   return Math.ceil((deadline.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
 };
 
-export function CFPBView({ accounts, selectedCRA, onSelectCRA, clientName, clientId }: CFPBViewProps) {
+export function CFPBView({
+  accounts,
+  selectedCRA,
+  onSelectCRA,
+  clientName,
+  clientId,
+  hardInquiries = [],
+  personalInfo,
+}: CFPBViewProps) {
   const { toast } = useToast();
   const [generating, setGenerating] = useState(false);
   const [complaint, setComplaint] = useState<CFPBComplaint | null>(null);
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
+  const [selectedInquiries, setSelectedInquiries] = useState<string[]>([]);
+  const [selectedPersonalItems, setSelectedPersonalItems] = useState<{
+    names: string[];
+    addresses: string[];
+  }>({ names: [], addresses: [] });
   const [copied, setCopied] = useState(false);
   const [accountsWithHistory, setAccountsWithHistory] = useState<AccountWithHistory[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [activeItemTab, setActiveItemTab] = useState<"accounts" | "inquiries" | "personal">("accounts");
 
   // Fetch dispute history for accounts
   useEffect(() => {
@@ -190,8 +222,12 @@ export function CFPBView({ accounts, selectedCRA, onSelectCRA, clientName, clien
   const selectedAccountDetails = accountsWithHistory.filter((a) => selectedAccounts.includes(a.id));
 
   const generateComplaint = async () => {
-    if (selectedAccounts.length === 0) {
-      toast({ title: "Select Accounts", description: "Please select at least one account to include in the complaint", variant: "destructive" });
+    const hasAccounts = selectedAccounts.length > 0;
+    const hasInquiries = selectedInquiries.length > 0;
+    const hasPersonalItems = selectedPersonalItems.names.length > 0 || selectedPersonalItems.addresses.length > 0;
+
+    if (!hasAccounts && !hasInquiries && !hasPersonalItems) {
+      toast({ title: "Select Items", description: "Please select at least one item to include in the complaint", variant: "destructive" });
       return;
     }
 
@@ -246,14 +282,61 @@ export function CFPBView({ accounts, selectedCRA, onSelectCRA, clientName, clien
         ? new Date(earliestDispute.sentDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
         : "recently";
 
+      // Build inquiry list if any selected
+      const selectedInquiryDetails = hardInquiries.filter(inq => selectedInquiries.includes(inq.id));
+      const inquiryList = selectedInquiryDetails.length > 0
+        ? selectedInquiryDetails.map((inq, i) => {
+            const inquiryDate = new Date(inq.inquiryDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+            return `${i + 1}. ${inq.creditorName} - Inquiry Date: ${inquiryDate}
+   Issue: Unauthorized hard inquiry - I did not provide written consent for this credit pull`;
+          }).join("\n\n")
+        : "";
+
+      // Build personal info list if any selected
+      const personalInfoItems: string[] = [];
+      if (selectedPersonalItems.names.length > 0) {
+        personalInfoItems.push(...selectedPersonalItems.names.map((name, i) =>
+          `${i + 1}. Previous Name: "${name}" - This name variation is inaccurate and should be removed`
+        ));
+      }
+      if (selectedPersonalItems.addresses.length > 0) {
+        const offset = selectedPersonalItems.names.length;
+        personalInfoItems.push(...selectedPersonalItems.addresses.map((addr, i) =>
+          `${offset + i + 1}. Previous Address: "${addr}" - This address is inaccurate and should be removed`
+        ));
+      }
+      const personalInfoList = personalInfoItems.join("\n\n");
+
       // Generate contextual narrative
-      let narrative = `I am filing this complaint because ${companyName} has failed to properly investigate my dispute regarding inaccurate information on my credit report.
+      let narrative = `I am filing this complaint because ${companyName} has failed to properly investigate my dispute regarding inaccurate information on my credit report.\n\n`;
 
-I first submitted a formal dispute letter via certified mail on ${firstDisputeDate} regarding the following accounts that are reporting inaccurately:
+      if (hasAccounts && accountList) {
+        narrative += `I first submitted a formal dispute letter via certified mail on ${firstDisputeDate} regarding the following accounts that are reporting inaccurately:\n\n${accountList}\n\n`;
+      }
 
-${accountList}
+      if (hasInquiries && inquiryList) {
+        narrative += `UNAUTHORIZED HARD INQUIRIES:
+
+The following hard inquiries appear on my credit report without my written consent as required under 15 U.S.C. § 1681b(c)(1) and the FCRA's permissible purpose requirements:
+
+${inquiryList}
+
+Under the Fair Credit Reporting Act, a creditor must have a permissible purpose AND written consent to pull my credit. I did not apply for credit with these companies and did not provide written authorization for these inquiries.
 
 `;
+      }
+
+      if (hasPersonalItems && personalInfoList) {
+        narrative += `INACCURATE PERSONAL INFORMATION:
+
+The following personal information is being reported inaccurately on my credit file and needs to be corrected or removed:
+
+${personalInfoList}
+
+Under 15 U.S.C. § 1681e(b), ${companyName} is required to follow reasonable procedures to assure maximum possible accuracy of the information concerning the individual. This outdated/inaccurate personal information does not meet this standard.
+
+`;
+      }
 
       if (hasOverdue) {
         narrative += `CRITICAL: ${companyName} has VIOLATED the Fair Credit Reporting Act by failing to complete their investigation within the legally mandated 30-day period. This is a clear violation of 15 U.S.C. § 1681i(a)(1).
@@ -325,6 +408,30 @@ ${complaint.desiredResolution}`;
     setSelectedAccounts((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
+  };
+
+  const toggleInquiry = (id: string) => {
+    setSelectedInquiries((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const togglePersonalName = (name: string) => {
+    setSelectedPersonalItems((prev) => ({
+      ...prev,
+      names: prev.names.includes(name)
+        ? prev.names.filter((x) => x !== name)
+        : [...prev.names, name],
+    }));
+  };
+
+  const togglePersonalAddress = (address: string) => {
+    setSelectedPersonalItems((prev) => ({
+      ...prev,
+      addresses: prev.addresses.includes(address)
+        ? prev.addresses.filter((x) => x !== address)
+        : [...prev.addresses, address],
+    }));
   };
 
   // Handler for copying individual fields
@@ -405,14 +512,44 @@ ${complaint.desiredResolution}`;
           </div>
         </Card>
 
-        {/* Account Selection with Dispute History */}
+        {/* Item Selection with Tabs */}
         <Card className="bg-slate-800/60 border-slate-700/50 p-4">
-          <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-            <FileText className="w-4 h-4" />
-            Accounts to Include
-            {loadingHistory && <Loader2 className="w-3 h-3 animate-spin text-slate-400" />}
-          </h3>
-          <div className="space-y-2 max-h-[300px] overflow-y-auto">
+          <Tabs value={activeItemTab} onValueChange={(v) => setActiveItemTab(v as typeof activeItemTab)}>
+            <TabsList className="bg-slate-700/50 w-full justify-start mb-3">
+              <TabsTrigger value="accounts" className="text-xs flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5" />
+                Accounts
+                {selectedAccounts.length > 0 && (
+                  <Badge className="ml-1 text-[10px] h-4 px-1 bg-purple-500/30 text-purple-300">{selectedAccounts.length}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="inquiries" className="text-xs flex items-center gap-1.5">
+                <Eye className="w-3.5 h-3.5" />
+                Inquiries
+                {selectedInquiries.length > 0 && (
+                  <Badge className="ml-1 text-[10px] h-4 px-1 bg-purple-500/30 text-purple-300">{selectedInquiries.length}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="personal" className="text-xs flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5" />
+                Personal Info
+                {(selectedPersonalItems.names.length + selectedPersonalItems.addresses.length) > 0 && (
+                  <Badge className="ml-1 text-[10px] h-4 px-1 bg-purple-500/30 text-purple-300">
+                    {selectedPersonalItems.names.length + selectedPersonalItems.addresses.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Accounts Tab */}
+            <TabsContent value="accounts" className="mt-0">
+              {loadingHistory && (
+                <div className="flex items-center gap-2 text-xs text-slate-400 mb-2">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Loading dispute history...
+                </div>
+              )}
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
             {accountsWithHistory.map((acc) => {
               // Get disputes for selected CRA
               const craDisputes = acc.disputeHistory.filter(d => d.cra === selectedCRA);
@@ -534,19 +671,140 @@ ${complaint.desiredResolution}`;
                 </label>
               );
             })}
-            {accountsWithHistory.length === 0 && (
-              <p className="text-sm text-slate-500 text-center py-4">
-                No accounts available
-              </p>
-            )}
-          </div>
+              {accountsWithHistory.length === 0 && (
+                <p className="text-sm text-slate-500 text-center py-4">
+                  No accounts available
+                </p>
+              )}
+              </div>
+            </TabsContent>
+
+            {/* Inquiries Tab */}
+            <TabsContent value="inquiries" className="mt-0">
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {hardInquiries.length > 0 ? (
+                  hardInquiries.map((inquiry) => (
+                    <label
+                      key={inquiry.id}
+                      className={cn(
+                        "block p-3 rounded-lg cursor-pointer transition-all",
+                        selectedInquiries.includes(inquiry.id)
+                          ? "bg-purple-500/15 ring-1 ring-purple-500/30"
+                          : "bg-slate-700/30 hover:bg-slate-700/50"
+                      )}
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <Checkbox
+                          checked={selectedInquiries.includes(inquiry.id)}
+                          onCheckedChange={() => toggleInquiry(inquiry.id)}
+                          className="mt-0.5 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span className="block text-sm font-medium text-white truncate">
+                            {inquiry.creditorName}
+                          </span>
+                          <span className="block text-xs text-slate-500">
+                            Inquiry Date: {new Date(inquiry.inquiryDate).toLocaleDateString()}
+                          </span>
+                          {inquiry.bureau && (
+                            <Badge className="mt-1 text-[10px] px-1.5 bg-slate-600/30 text-slate-300">
+                              {inquiry.bureau}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </label>
+                  ))
+                ) : (
+                  <p className="text-sm text-slate-500 text-center py-4">
+                    No hard inquiries found
+                  </p>
+                )}
+              </div>
+            </TabsContent>
+
+            {/* Personal Info Tab */}
+            <TabsContent value="personal" className="mt-0">
+              <div className="space-y-4 max-h-[300px] overflow-y-auto">
+                {/* Previous Names */}
+                {personalInfo?.previousNames && personalInfo.previousNames.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-slate-400 mb-2 flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5" />
+                      Previous Names
+                    </h4>
+                    <div className="space-y-2">
+                      {personalInfo.previousNames.map((name, idx) => (
+                        <label
+                          key={`name-${idx}`}
+                          className={cn(
+                            "block p-3 rounded-lg cursor-pointer transition-all",
+                            selectedPersonalItems.names.includes(name)
+                              ? "bg-purple-500/15 ring-1 ring-purple-500/30"
+                              : "bg-slate-700/30 hover:bg-slate-700/50"
+                          )}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <Checkbox
+                              checked={selectedPersonalItems.names.includes(name)}
+                              onCheckedChange={() => togglePersonalName(name)}
+                              className="data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
+                            />
+                            <span className="text-sm text-white">{name}</span>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Previous Addresses */}
+                {personalInfo?.previousAddresses && personalInfo.previousAddresses.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-slate-400 mb-2 flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5" />
+                      Previous Addresses
+                    </h4>
+                    <div className="space-y-2">
+                      {personalInfo.previousAddresses.map((address, idx) => (
+                        <label
+                          key={`addr-${idx}`}
+                          className={cn(
+                            "block p-3 rounded-lg cursor-pointer transition-all",
+                            selectedPersonalItems.addresses.includes(address)
+                              ? "bg-purple-500/15 ring-1 ring-purple-500/30"
+                              : "bg-slate-700/30 hover:bg-slate-700/50"
+                          )}
+                        >
+                          <div className="flex items-start gap-2.5">
+                            <Checkbox
+                              checked={selectedPersonalItems.addresses.includes(address)}
+                              onCheckedChange={() => togglePersonalAddress(address)}
+                              className="mt-0.5 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
+                            />
+                            <span className="text-sm text-white">{address}</span>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {(!personalInfo?.previousNames?.length && !personalInfo?.previousAddresses?.length) && (
+                  <p className="text-sm text-slate-500 text-center py-4">
+                    No personal information to dispute
+                  </p>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
         </Card>
 
         {/* Generate Button */}
         <Button
           className="w-full bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-600 hover:to-blue-400 text-white py-3"
           onClick={generateComplaint}
-          disabled={generating || selectedAccounts.length === 0}
+          disabled={generating || (selectedAccounts.length === 0 && selectedInquiries.length === 0 && selectedPersonalItems.names.length === 0 && selectedPersonalItems.addresses.length === 0)}
         >
           {generating ? (
             <>

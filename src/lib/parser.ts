@@ -237,6 +237,10 @@ const STATUS_MAP: Record<string, AccountStatus> = {
   "charged-off": AccountStatus.CHARGED_OFF,
   "chargeoff/collection": AccountStatus.CHARGED_OFF,
   "charged off/collection": AccountStatus.CHARGED_OFF,
+  "collection/chargeoff": AccountStatus.CHARGED_OFF,
+  "collection/charged off": AccountStatus.CHARGED_OFF,
+  "collection/charge off": AccountStatus.CHARGED_OFF,
+  "collection/charge-off": AccountStatus.CHARGED_OFF,
   "profit and loss writeoff": AccountStatus.CHARGED_OFF,
   "profit and loss": AccountStatus.CHARGED_OFF,
   "write off": AccountStatus.CHARGED_OFF,
@@ -891,6 +895,20 @@ function mapAccountStatus(statusText: string | undefined): AccountStatus {
   if (!statusText) return AccountStatus.UNKNOWN;
   const normalized = statusText.toLowerCase().trim();
 
+  // PRIORITY 1: Check for chargeoff keywords FIRST
+  // This ensures "Collection/Chargeoff" or "Collection/Charged Off" → CHARGED_OFF
+  // Only pure "Collection" without chargeoff keywords → COLLECTION
+  if (
+    normalized.includes("chargeoff") ||
+    normalized.includes("charge off") ||
+    normalized.includes("charged off") ||
+    normalized.includes("charge-off") ||
+    normalized.includes("charged-off")
+  ) {
+    return AccountStatus.CHARGED_OFF;
+  }
+
+  // PRIORITY 2: Check STATUS_MAP for exact/partial matches
   for (const [key, value] of Object.entries(STATUS_MAP)) {
     if (normalized.includes(key)) {
       return value;

@@ -20,6 +20,8 @@ import {
   CheckSquare,
   Square,
   MessageSquareText,
+  Layers,
+  List,
 } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
 
@@ -32,6 +34,8 @@ import { RoundFlowView } from "./round-flow-view";
 import { CFPBView } from "./cfpb-view";
 import { AmeliaInsightsPanel } from "./amelia-insights-panel";
 import { LetterEditorModal } from "./letter-editor-modal";
+import { EOSCARWarningBanner } from "./eoscar-warning-banner";
+import { CreditorGroupedView } from "./creditor-grouped-view";
 import type { AmeliaInsight } from "./amelia-insights-panel";
 
 // Types
@@ -66,6 +70,7 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
   const [selectedFlow, setSelectedFlow] = useState("ACCURACY");
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
   const [parsedAccounts, setParsedAccounts] = useState<ParsedAccountWithIssues[]>([]);
+  const [viewMode, setViewMode] = useState<"list" | "grouped">("list");
 
   // AI state
   const [ameliaInsights, setAmeliaInsights] = useState<AmeliaInsight | null>(null);
@@ -662,7 +667,11 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
     totalAccounts: parsedAccounts.length,
     highPriority: parsedAccounts.filter((a) => Array.isArray(a.detectedIssues) && a.detectedIssues.some((i) => i.severity === "HIGH")).length,
     collections: parsedAccounts.filter((a) => a.accountStatus === "Collection" || a.accountStatus === "COLLECTION").length,
-    totalBalance: parsedAccounts.reduce((sum, a) => sum + (a.balance || 0), 0),
+    totalBalance: parsedAccounts.reduce((sum, a) => {
+      const balance = typeof a.balance === 'number' ? a.balance :
+                      typeof a.balance === 'string' ? parseFloat(a.balance) : 0;
+      return sum + (isNaN(balance) ? 0 : balance);
+    }, 0),
   };
 
   return (
@@ -824,6 +833,33 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
+                    {/* View Mode Toggle */}
+                    <div className="flex items-center bg-slate-700/50 rounded-lg p-0.5 mr-2">
+                      <button
+                        onClick={() => setViewMode("list")}
+                        className={cn(
+                          "flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-colors",
+                          viewMode === "list"
+                            ? "bg-slate-600 text-white"
+                            : "text-slate-400 hover:text-white"
+                        )}
+                      >
+                        <List className="w-3.5 h-3.5" />
+                        List
+                      </button>
+                      <button
+                        onClick={() => setViewMode("grouped")}
+                        className={cn(
+                          "flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-colors",
+                          viewMode === "grouped"
+                            ? "bg-slate-600 text-white"
+                            : "text-slate-400 hover:text-white"
+                        )}
+                      >
+                        <Layers className="w-3.5 h-3.5" />
+                        Grouped
+                      </button>
+                    </div>
                     {/* Selection count */}
                     {parsedAccounts.length > 0 && (
                       <span className="text-xs text-slate-400">
@@ -876,6 +912,13 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
                       </p>
                     )}
                   </div>
+                ) : viewMode === "grouped" ? (
+                  <CreditorGroupedView
+                    accounts={parsedAccounts}
+                    selectedAccounts={selectedAccounts}
+                    onToggleAccount={toggleAccount}
+                    selectedCRA={selectedCRA}
+                  />
                 ) : (
                   <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
                     {/* Available accounts first (no active disputes) */}
@@ -1049,6 +1092,9 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
                 </Card>
               )}
 
+              {/* e-OSCAR Warning Banner */}
+              <EOSCARWarningBanner selectedAccountCount={selectedAccounts.length} />
+
               {/* Action Button - Single step creates dispute & generates letter for review */}
               <div className="flex gap-3">
                 <Button
@@ -1139,6 +1185,16 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
             onSelectCRA={setSelectedCRA}
             clientName={client ? `${client.firstName} ${client.lastName}` : undefined}
             clientId={selectedClientId || undefined}
+            hardInquiries={client?.hardInquiries?.map((inq, idx) => ({
+              id: `inq-${idx}`,
+              creditorName: inq.creditorName || "Unknown",
+              inquiryDate: inq.inquiryDate || new Date().toISOString(),
+              bureau: inq.cra,
+            })) || []}
+            personalInfo={{
+              previousNames: client?.previousNames || [],
+              previousAddresses: client?.previousAddresses || [],
+            }}
           />
         </TabsContent>
 
