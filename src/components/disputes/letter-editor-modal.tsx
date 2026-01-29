@@ -208,9 +208,9 @@ export function LetterEditorModal({
       else if (p.toLowerCase().includes("demand") || p.toLowerCase().includes("investigate")) {
         demandHeadline = p;
       }
-      // Account list (numbered items)
-      else if (p.match(/^\d\./m) || p.includes("Account #") || p.includes("Account:")) {
-        accountsList = p;
+      // Account list (numbered items) - append multiple accounts
+      else if (p.match(/^\d\./m) || p.includes("Account #") || p.includes("Account:") || p.includes("Account Name:")) {
+        accountsList += (accountsList ? "\n\n" : "") + p;
       }
       // Personal info section (previous names, addresses, hard inquiries)
       else if (p.toUpperCase().includes("PREVIOUS NAME") ||
