@@ -105,6 +105,14 @@ export async function applyRecommendation(
         );
         break;
 
+      case "ADD_DOCUMENTATION":
+        updatedLetterContent = applyAddDocumentation(
+          currentLetterContent,
+          recommendation.payload,
+          accounts
+        );
+        break;
+
       default:
         return {
           success: false,
@@ -461,6 +469,78 @@ function applyAddCitation(
   }
 
   return updatedContent;
+}
+
+/**
+ * Add documentation language (e.g., cross-bureau discrepancy) to the letter
+ */
+function applyAddDocumentation(
+  letterContent: string,
+  payload: unknown,
+  accounts: SentryAccountItem[]
+): string {
+  const docPayload = payload as {
+    type: string;
+    documentationType: string;
+    description: string;
+    requiredFields: string[];
+  };
+
+  let updatedContent = letterContent;
+
+  // Find the accounts section to add documentation after it
+  const accountsSectionEnd = letterContent.search(/\n\n(?=I request|Please investigate|Under the|I am exercising)/i);
+
+  if (accountsSectionEnd === -1) {
+    // Fallback: add before the closing section
+    const closingIndex = letterContent.lastIndexOf("\n\nSincerely");
+    if (closingIndex !== -1) {
+      const documentationText = buildDocumentationText(docPayload.documentationType, accounts);
+      updatedContent =
+        letterContent.slice(0, closingIndex) +
+        `\n\n${documentationText}` +
+        letterContent.slice(closingIndex);
+    }
+    return updatedContent;
+  }
+
+  // Build documentation paragraph based on type
+  const documentationText = buildDocumentationText(docPayload.documentationType, accounts);
+
+  // Insert after accounts section
+  updatedContent =
+    letterContent.slice(0, accountsSectionEnd) +
+    `\n\n${documentationText}` +
+    letterContent.slice(accountsSectionEnd);
+
+  return updatedContent;
+}
+
+/**
+ * Build documentation text based on type
+ */
+function buildDocumentationText(documentationType: string, accounts: SentryAccountItem[]): string {
+  switch (documentationType) {
+    case "BUREAU_DISCREPANCY":
+      const creditorNames = [...new Set(accounts.map(a => a.creditorName))].slice(0, 3);
+      return `**Cross-Bureau Discrepancy Notice:**
+
+I have obtained my credit reports from all three major credit bureaus (TransUnion, Experian, and Equifax) and have identified significant discrepancies in how the account(s) listed above are being reported. These inconsistencies between bureaus demonstrate that at least one (and possibly all) of the credit bureaus is reporting inaccurate information.
+
+The discrepancies include but are not limited to: varying balances, different dates of last activity, inconsistent payment statuses, and conflicting account statuses across bureaus. Under 15 U.S.C. § 1681e(b), you are required to follow reasonable procedures to assure maximum possible accuracy. The existence of these discrepancies between bureaus is prima facie evidence that your reporting procedures have failed.
+
+I demand that you conduct a thorough investigation and reconcile these discrepancies by verifying the actual account data with the original creditor${creditorNames.length > 0 ? ` (${creditorNames.join(', ')})` : ''}.`;
+
+    case "PAYMENT_PROOF":
+      return `**Payment Documentation:**
+
+I have documentation proving that payments were made on the disputed account(s) that are not reflected in your current reporting. I am prepared to provide copies of canceled checks, bank statements, or other payment verification upon request. Your failure to accurately report my payment history is a violation of the Fair Credit Reporting Act.`;
+
+    default:
+      return `**Documentation Notice:**
+
+I have additional documentation supporting my dispute that demonstrates the inaccuracy of the information currently reported. Please conduct a thorough investigation to verify the accuracy of this account.`;
+  }
 }
 
 /**

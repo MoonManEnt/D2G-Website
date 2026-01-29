@@ -213,31 +213,29 @@ function RecommendationCard({
   return (
     <div className={`rounded-lg border bg-slate-800/30 transition-colors ${colors.card}`}>
       {/* Header */}
-      <div className="p-3">
-        <div className="flex items-start gap-3">
-          {/* Icon */}
-          <div className={`p-2 rounded-lg ${colors.badge.replace('text-', 'text-').replace('bg-', 'bg-').replace('/20', '/30')}`}>
+      <div className="p-4">
+        {/* Top row: Icon and gain badge */}
+        <div className="flex items-center justify-between mb-3">
+          <div className={`p-2 rounded-lg flex-shrink-0 ${colors.badge.replace('text-', 'text-').replace('bg-', 'bg-').replace('/20', '/30')}`}>
             {icon}
           </div>
-
-          {/* Content */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h5 className="text-sm font-medium text-slate-200 truncate">
-                {recommendation.title}
-              </h5>
-              <span className={`px-2 py-0.5 text-xs rounded-full border ${colors.badge}`}>
-                {recommendation.potentialGain}
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 line-clamp-2">
-              {recommendation.description}
-            </p>
-          </div>
+          <span className={`px-2.5 py-1 text-xs font-medium rounded-full border whitespace-nowrap ${colors.badge}`}>
+            {recommendation.potentialGain}
+          </span>
         </div>
 
+        {/* Title */}
+        <h5 className="text-sm font-medium text-slate-200 mb-2 leading-tight">
+          {recommendation.title}
+        </h5>
+
+        {/* Description */}
+        <p className="text-xs text-slate-400 leading-relaxed mb-4">
+          {recommendation.description}
+        </p>
+
         {/* Actions */}
-        <div className="flex items-center justify-between mt-3">
+        <div className="flex items-center justify-between pt-3 border-t border-slate-700/50">
           <button
             onClick={onToggleExpand}
             className="text-xs text-slate-400 hover:text-slate-300 transition-colors flex items-center gap-1"

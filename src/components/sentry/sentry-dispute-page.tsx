@@ -1002,7 +1002,21 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
               {selectedReportId && (
                 <div className="flex justify-between">
                   <span className="text-slate-400">Disputable Accounts</span>
-                  <span className="text-slate-200">{accounts.filter(a => a.isCollection || (a.detectedIssues && a.detectedIssues.length > 0)).length}</span>
+                  <span className="text-slate-200">{accounts.filter(a => {
+                    // Match the criteria from /api/accounts/negative
+                    // Account is disputable if ANY of these are true:
+                    if (a.isCollection) return true;
+                    if (a.detectedIssues && a.detectedIssues.length > 0) return true;
+                    // Check paymentStatus for negative indicators
+                    const payStatus = (a.paymentStatus || "").toLowerCase();
+                    if (payStatus.includes("late") ||
+                        payStatus.includes("delinquent") ||
+                        payStatus.includes("chargeoff") ||
+                        payStatus.includes("charge off") ||
+                        payStatus.includes("collection") ||
+                        payStatus.includes("past due")) return true;
+                    return false;
+                  }).length}</span>
                 </div>
               )}
               <div className="flex justify-between">
@@ -1026,8 +1040,8 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
             </div>
           </div>
 
-          {/* Analysis panel */}
-          {analysis && (
+          {/* Analysis panel - only show on review step */}
+          {analysis && step === "review" && (
             <SentryAnalysisPanel
               analysis={analysis}
               disputeId={currentDispute?.id}

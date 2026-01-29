@@ -68,19 +68,19 @@ export function SentryAnalysisPanel({
   return (
     <div className="bg-slate-900/50 rounded-xl border border-slate-800">
       {/* Tabs */}
-      <div className="flex border-b border-slate-800">
+      <div className="flex border-b border-slate-800 overflow-x-auto">
         {tabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex items-center gap-2 px-4 py-3 text-sm transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-3 text-xs font-medium whitespace-nowrap flex-shrink-0 transition-colors ${
               activeTab === tab.key
                 ? "text-blue-400 border-b-2 border-blue-400 -mb-px"
                 : "text-slate-400 hover:text-slate-300"
             }`}
           >
             {tab.icon}
-            {tab.label}
+            <span className="hidden sm:inline">{tab.label}</span>
           </button>
         ))}
       </div>
