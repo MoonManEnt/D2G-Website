@@ -216,7 +216,7 @@ export async function GET(req: Request) {
       // Monthly dispute and client data for trends
       getMonthlyTrends(organizationId, Math.min(months, 12)),
 
-      // Recent events for activity feed
+      // Recent events for activity feed (fetch more to allow filtering)
       prisma.eventLog.findMany({
         where: {
           organizationId,
@@ -243,7 +243,7 @@ export async function GET(req: Request) {
           },
         },
         orderBy: { createdAt: "desc" },
-        take: 10,
+        take: 50, // Fetch more to allow filtering by active clients
       }),
 
       // Dispute items by account type for success breakdown
@@ -424,48 +424,111 @@ export async function GET(req: Request) {
       cfpbComplaints: 0, // Would need separate tracking
     };
 
-    // Recent Activity from events
-    const recentActivity = recentEvents.slice(0, 6).map(event => {
-      const data = event.eventData ? JSON.parse(event.eventData) : {};
-      let activityType = "response";
-      let details = "";
+    // Recent Activity from events - filter by active clients and show client names
+    // First, collect all target IDs by type to batch-check active status (filter out nulls)
+    const clientTargetIds = recentEvents
+      .filter(e => e.targetType === "Client" && e.targetId)
+      .map(e => e.targetId as string);
+    const disputeTargetIds = recentEvents
+      .filter(e => e.targetType === "Dispute" && e.targetId)
+      .map(e => e.targetId as string);
+    const reportTargetIds = recentEvents
+      .filter(e => e.targetType === "CreditReport" && e.targetId)
+      .map(e => e.targetId as string);
 
-      switch (event.eventType) {
-        case "DISPUTE_CREATED":
-          activityType = "sent";
-          details = `${data.flow || "Dispute"} created - ${data.cra || "CRA"}`;
-          break;
-        case "DISPUTE_SENT":
-          activityType = "sent";
-          details = `Dispute sent to ${data.cra || "CRA"}`;
-          break;
-        case "DISPUTE_RESOLVED":
-          activityType = "deletion";
-          details = `Dispute resolved - ${data.outcome || "complete"}`;
-          break;
-        case "RESPONSE_RECORDED":
-          activityType = data.outcome === "DELETED" ? "deletion" : "response";
-          details = `Response: ${data.outcome || "recorded"}`;
-          break;
-        case "REPORT_UPLOADED":
-          activityType = "response";
-          details = "Credit report uploaded";
-          break;
-        case "CLIENT_CREATED":
-          activityType = "response";
-          details = "New client added";
-          break;
-        default:
-          details = event.eventType.replace(/_/g, " ").toLowerCase();
-      }
+    // Fetch active status for each target type
+    const [activeClients, disputesWithClients, reportsWithClients] = await Promise.all([
+      clientTargetIds.length > 0
+        ? prisma.client.findMany({
+            where: { id: { in: clientTargetIds }, isActive: true, archivedAt: null },
+            select: { id: true, firstName: true, lastName: true },
+          })
+        : Promise.resolve([]),
+      disputeTargetIds.length > 0
+        ? prisma.dispute.findMany({
+            where: { id: { in: disputeTargetIds }, client: { isActive: true, archivedAt: null } },
+            include: { client: { select: { firstName: true, lastName: true } } },
+          })
+        : Promise.resolve([]),
+      reportTargetIds.length > 0
+        ? prisma.creditReport.findMany({
+            where: { id: { in: reportTargetIds }, client: { isActive: true, archivedAt: null } },
+            include: { client: { select: { firstName: true, lastName: true } } },
+          })
+        : Promise.resolve([]),
+    ]);
 
-      return {
-        date: format(event.createdAt, "MMM d"),
-        type: activityType,
-        client: event.actor?.name || "System",
-        details,
-      };
-    });
+    // Build lookup maps
+    const activeClientMap = new Map(activeClients.map(c => [c.id, `${c.firstName} ${c.lastName}`]));
+    const disputeClientMap = new Map(disputesWithClients.map(d => [d.id, `${d.client.firstName} ${d.client.lastName}`]));
+    const reportClientMap = new Map(reportsWithClients.map(r => [r.id, `${r.client.firstName} ${r.client.lastName}`]));
+
+    // Filter events to only those with active clients and transform
+    const recentActivity = recentEvents
+      .filter(event => {
+        // Check if the target's client is still active
+        if (!event.targetId) return false; // Skip events without targets
+        if (event.targetType === "Client") {
+          return activeClientMap.has(event.targetId);
+        } else if (event.targetType === "Dispute") {
+          return disputeClientMap.has(event.targetId);
+        } else if (event.targetType === "CreditReport") {
+          return reportClientMap.has(event.targetId);
+        }
+        return false; // Skip events with unknown target types
+      })
+      .slice(0, 6)
+      .map(event => {
+        const data = event.eventData ? JSON.parse(event.eventData) : {};
+        let activityType = "response";
+        let details = "";
+
+        // Get client name from the target lookup or eventData
+        let clientName = data.clientName || "Unknown Client";
+        if (event.targetType === "Client" && event.targetId) {
+          clientName = activeClientMap.get(event.targetId) || clientName;
+        } else if (event.targetType === "Dispute" && event.targetId) {
+          clientName = disputeClientMap.get(event.targetId) || clientName;
+        } else if (event.targetType === "CreditReport" && event.targetId) {
+          clientName = reportClientMap.get(event.targetId) || clientName;
+        }
+
+        switch (event.eventType) {
+          case "DISPUTE_CREATED":
+            activityType = "sent";
+            details = `${data.flow || "Dispute"} created - ${data.cra || "CRA"}`;
+            break;
+          case "DISPUTE_SENT":
+            activityType = "sent";
+            details = `Dispute sent to ${data.cra || "CRA"}`;
+            break;
+          case "DISPUTE_RESOLVED":
+            activityType = "deletion";
+            details = `Dispute resolved - ${data.outcome || "complete"}`;
+            break;
+          case "RESPONSE_RECORDED":
+            activityType = data.outcome === "DELETED" ? "deletion" : "response";
+            details = `Response: ${data.outcome || "recorded"}`;
+            break;
+          case "REPORT_UPLOADED":
+            activityType = "response";
+            details = "Credit report uploaded";
+            break;
+          case "CLIENT_CREATED":
+            activityType = "response";
+            details = "New client added";
+            break;
+          default:
+            details = event.eventType.replace(/_/g, " ").toLowerCase();
+        }
+
+        return {
+          date: format(event.createdAt, "MMM d"),
+          type: activityType,
+          client: clientName,
+          details,
+        };
+      });
 
     // Monthly Trends (transform data for frontend)
     const monthlyTrends = monthlyData.map(m => ({
