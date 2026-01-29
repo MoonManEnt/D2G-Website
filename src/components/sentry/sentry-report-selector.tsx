@@ -10,13 +10,18 @@
 import { useState, useCallback, useRef } from "react";
 import { format } from "date-fns";
 
-// Safe date formatting helper
-const safeFormatDate = (dateStr: string | null | undefined, formatStr: string = "MMM d, yyyy"): string => {
+// Safe date formatting helper - includes time for recent uploads
+const safeFormatDate = (dateStr: string | null | undefined, includeTime: boolean = false): string => {
   if (!dateStr) return "Unknown";
   try {
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return "Unknown";
-    return format(date, formatStr);
+
+    // Include time for uploaded dates
+    if (includeTime) {
+      return format(date, "MMM d, yyyy 'at' h:mm a");
+    }
+    return format(date, "MMM d, yyyy");
   } catch {
     return "Unknown";
   }
@@ -83,6 +88,7 @@ export function SentryReportSelector({
   onRefreshReports,
 }: SentryReportSelectorProps) {
   const [uploadStep, setUploadStep] = useState<UploadStep>("idle");
+  const [recentUpload, setRecentUpload] = useState<{ timestamp: Date; reportId: string } | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [parsingStage, setParsingStage] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -151,14 +157,16 @@ export function SentryReportSelector({
           accountCount: data.accountsParsed || 0,
         };
 
+        // Track the recent upload with timestamp
+        setRecentUpload({ timestamp: new Date(), reportId: newReport.id });
+
         onReportUploaded(newReport);
         onReportSelect(newReport.id);
 
-        // Reset after delay
+        // Refresh reports list but DON'T reset uploadStep - keep showing Amelia message
         setTimeout(() => {
-          setUploadStep("idle");
           onRefreshReports();
-        }, 2000);
+        }, 1000);
       } catch (err) {
         setUploadStep("error");
         setError(err instanceof Error ? err.message : "Upload failed");
@@ -359,6 +367,13 @@ export function SentryReportSelector({
               </p>
             </div>
 
+            {/* Upload timestamp */}
+            {recentUpload && (
+              <p className="mt-3 text-xs text-slate-400">
+                Uploaded: {format(recentUpload.timestamp, "MMMM d, yyyy 'at' h:mm a")}
+              </p>
+            )}
+
             {/* Upload new report button */}
             <button
               onClick={(e) => {
@@ -366,6 +381,7 @@ export function SentryReportSelector({
                 setUploadStep("idle");
                 setUploadProgress(0);
                 setParsingStage(0);
+                setRecentUpload(null);
               }}
               className="mt-4 px-4 py-2 bg-slate-700/50 text-slate-300 rounded-lg text-sm hover:bg-slate-600/50 transition-colors border border-slate-600/50"
             >
@@ -462,17 +478,17 @@ export function SentryReportSelector({
                       </div>
 
                       {/* Source type and dates */}
-                      <div className="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                      <div className="flex items-center gap-2 text-xs text-slate-400 mb-1 flex-wrap">
                         <span className="px-1.5 py-0.5 bg-slate-700/50 rounded text-slate-300">
                           {formatSourceType(report.sourceType)}
                         </span>
                         <span className="text-slate-500">•</span>
                         <span>
-                          Report: {safeFormatDate(report.reportDate)}
+                          Report: {safeFormatDate(report.reportDate, false)}
                         </span>
                         <span className="text-slate-500">•</span>
                         <span>
-                          Uploaded: {safeFormatDate(report.uploadedAt)}
+                          Uploaded: {safeFormatDate(report.uploadedAt, true)}
                         </span>
                       </div>
 
