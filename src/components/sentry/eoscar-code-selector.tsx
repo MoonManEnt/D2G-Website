@@ -179,9 +179,13 @@ export function EOSCARCodeSelector({
 
       {/* Tip */}
       <div className="mt-4 pt-4 border-t border-slate-700/50">
-        <p className="text-xs text-slate-500">
-          <strong className="text-slate-400">Tip:</strong> Avoid code 112 (Generic) - it has the lowest verification priority and highest batch-verification rate.
-        </p>
+        <div className="relative px-4 py-3 rounded-lg bg-gradient-to-r from-amber-500/5 via-amber-500/10 to-amber-500/5 border border-amber-500/20 text-center">
+          {/* Glow effect */}
+          <div className="absolute inset-0 rounded-lg bg-amber-500/5 blur-sm animate-pulse" />
+          <p className="relative text-xs text-amber-300/90">
+            <strong className="text-amber-400">Tip:</strong> Avoid code 112 (Generic) - it has the lowest verification priority and highest batch-verification rate.
+          </p>
+        </div>
       </div>
     </div>
   );

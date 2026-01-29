@@ -22,6 +22,17 @@ const safeFormatDate = (dateStr: string | null | undefined, formatStr: string = 
   }
 };
 
+// Format source type for display
+const formatSourceType = (sourceType: string | undefined): string => {
+  if (!sourceType) return "Manual Upload";
+  const type = sourceType.toUpperCase();
+  if (type === "IDIQ" || type === "IDENTITYIQ") return "IDIQ";
+  if (type === "MANUAL" || type === "UPLOAD") return "Manual Upload";
+  if (type === "SMARTCREDIT") return "SmartCredit";
+  if (type === "PRIVACYGUARD") return "PrivacyGuard";
+  return sourceType;
+};
+
 interface CreditReport {
   id: string;
   reportDate: string;
@@ -44,6 +55,7 @@ interface CreditReport {
 
 interface SentryReportSelectorProps {
   clientId: string;
+  clientName?: string;
   reports: CreditReport[];
   selectedReportId: string | null;
   onReportSelect: (reportId: string) => void;
@@ -63,6 +75,7 @@ const PARSING_STAGES = [
 
 export function SentryReportSelector({
   clientId,
+  clientName,
   reports,
   selectedReportId,
   onReportSelect,
@@ -317,7 +330,7 @@ export function SentryReportSelector({
 
         {/* Complete state */}
         {uploadStep === "complete" && (
-          <div className="py-4">
+          <div className="py-6">
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-500/20 flex items-center justify-center">
               <svg
                 className="w-8 h-8 text-emerald-400"
@@ -333,9 +346,31 @@ export function SentryReportSelector({
                 />
               </svg>
             </div>
-            <p className="text-emerald-400 font-medium">
+            <p className="text-emerald-400 font-medium mb-3">
               Report uploaded and parsed!
             </p>
+
+            {/* Amelia Sentry Engine message */}
+            <div className="mt-4 px-4 py-3 bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-purple-500/10 rounded-lg border border-purple-500/20">
+              <p className="text-sm text-slate-300 leading-relaxed">
+                <span className="text-purple-400 font-semibold">Amelia Sentry</span> is now analyzing your report.
+                Our intelligent engine will identify disputable items, detect inconsistencies across bureaus,
+                and craft strategic dispute letters tailored to maximize your success.
+              </p>
+            </div>
+
+            {/* Upload new report button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setUploadStep("idle");
+                setUploadProgress(0);
+                setParsingStage(0);
+              }}
+              className="mt-4 px-4 py-2 bg-slate-700/50 text-slate-300 rounded-lg text-sm hover:bg-slate-600/50 transition-colors border border-slate-600/50"
+            >
+              Upload Different Report
+            </button>
           </div>
         )}
 
@@ -408,9 +443,10 @@ export function SentryReportSelector({
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
+                      {/* Client name and status */}
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-sm font-medium text-slate-200">
-                          {safeFormatDate(report.uploadedAt)}
+                          {clientName || "Client Report"}
                         </span>
                         <span
                           className={`px-2 py-0.5 text-xs rounded ${
@@ -422,6 +458,21 @@ export function SentryReportSelector({
                           }`}
                         >
                           {report.parseStatus}
+                        </span>
+                      </div>
+
+                      {/* Source type and dates */}
+                      <div className="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                        <span className="px-1.5 py-0.5 bg-slate-700/50 rounded text-slate-300">
+                          {formatSourceType(report.sourceType)}
+                        </span>
+                        <span className="text-slate-500">•</span>
+                        <span>
+                          Report: {safeFormatDate(report.reportDate)}
+                        </span>
+                        <span className="text-slate-500">•</span>
+                        <span>
+                          Uploaded: {safeFormatDate(report.uploadedAt)}
                         </span>
                       </div>
 

@@ -82,6 +82,24 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
   const [analysis, setAnalysis] = useState<SentryAnalysisForUI | null>(null);
   const [generating, setGenerating] = useState(false);
 
+  // Success probability state (dynamic calculation by Amelia Sentry Engine)
+  const [successProbability, setSuccessProbability] = useState<{
+    probability: number;
+    confidence: "HIGH" | "MEDIUM" | "LOW";
+    recommendations: string[];
+    breakdown?: Array<{
+      name: string;
+      score: number;
+      weight: number;
+      contribution: number;
+      explanation: string;
+    }>;
+  }>({
+    probability: 0.55,
+    confidence: "MEDIUM",
+    recommendations: [],
+  });
+
   // Load client data
   useEffect(() => {
     async function loadClient() {
@@ -202,6 +220,79 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
 
   // Filter accounts by selected CRA
   const filteredAccounts = accounts.filter((a) => a.cra === selectedCRA);
+
+  // Calculate success probability dynamically based on selections (Amelia Sentry Engine)
+  useEffect(() => {
+    // Only calculate when we have selections and are past the reports step
+    if (selectedAccountIds.length === 0 || step === "reports" || step === "select") {
+      return;
+    }
+
+    const calculateProbability = async () => {
+      try {
+        // Get selected account details for analysis
+        const selectedAccounts = accounts.filter(a => selectedAccountIds.includes(a.id));
+
+        // Calculate average account age and get first furnisher
+        const avgAccountAge = selectedAccounts.length > 0
+          ? Math.round(selectedAccounts.reduce((sum, a) => {
+              if (!a.dateOpened) return sum + 24; // Default 2 years
+              const opened = new Date(a.dateOpened);
+              const months = Math.floor((Date.now() - opened.getTime()) / (1000 * 60 * 60 * 24 * 30));
+              return sum + months;
+            }, 0) / selectedAccounts.length)
+          : 24;
+
+        const furnisherName = selectedAccounts[0]?.creditorName || "Unknown";
+
+        // Determine factors based on flow and e-OSCAR code
+        const hasSpecificCode = selectedEOSCARCode !== "112";
+        const hasMetro2Targeting = selectedFlow === "ACCURACY" || selectedFlow === "COLLECTION";
+        // Check if any selected accounts have detected issues that may indicate discrepancies
+        const hasBureauDiscrepancy = selectedAccounts.some(a =>
+          a.detectedIssues && a.detectedIssues.some(issue =>
+            issue.description.toLowerCase().includes("discrepancy") ||
+            issue.description.toLowerCase().includes("inconsistent") ||
+            issue.code === "BUREAU_DISCREPANCY"
+          )
+        );
+
+        // Call success prediction API
+        const res = await fetch("/api/sentry/success-prediction", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            accountAge: avgAccountAge,
+            furnisherName,
+            hasMetro2Targeting,
+            eoscarCode: selectedEOSCARCode,
+            hasPoliceReport: false,
+            hasBureauDiscrepancy,
+            hasPaymentProof: false,
+            citationAccuracyScore: 0.85, // Default good citation score
+            ocrSafetyScore: 75, // Default safe OCR score
+          }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.prediction) {
+            setSuccessProbability({
+              probability: data.prediction.probability,
+              confidence: data.prediction.confidence,
+              recommendations: data.prediction.recommendations || [],
+              breakdown: data.prediction.breakdown,
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to calculate success probability:", err);
+        // Keep default values on error
+      }
+    };
+
+    calculateProbability();
+  }, [selectedAccountIds, selectedEOSCARCode, selectedFlow, selectedCRA, step, accounts]);
 
   // Create dispute and generate letter
   const handleGenerate = useCallback(async () => {
@@ -625,7 +716,7 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
       )}
 
       {/* Step indicator */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center justify-center gap-2 flex-wrap">
         {[
           { key: "reports" as Step, label: "1. Select Report" },
           { key: "select" as Step, label: "2. Select Accounts" },
@@ -684,6 +775,7 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
                 </h2>
                 <SentryReportSelector
                   clientId={clientId}
+                  clientName={client ? `${client.firstName} ${client.lastName}` : undefined}
                   reports={reports}
                   selectedReportId={selectedReportId}
                   onReportSelect={handleReportSelect}
@@ -909,8 +1001,8 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
               </div>
               {selectedReportId && (
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Report Accounts</span>
-                  <span className="text-slate-200">{accounts.length}</span>
+                  <span className="text-slate-400">Disputable Accounts</span>
+                  <span className="text-slate-200">{accounts.filter(a => a.isCollection || (a.detectedIssues && a.detectedIssues.length > 0)).length}</span>
                 </div>
               )}
               <div className="flex justify-between">
@@ -948,15 +1040,18 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
             />
           )}
 
-          {/* Success gauge (if not in analysis) */}
+          {/* Success gauge (if not in analysis) - Powered by Amelia Sentry Engine */}
           {!analysis && step !== "reports" && step !== "select" && (
             <SuccessProbabilityGauge
-              probability={0.55}
-              confidence="MEDIUM"
-              recommendations={[
-                "Add Metro 2 field targeting for +15% potential",
-                "Use specific e-OSCAR codes instead of generic 112",
-              ]}
+              probability={successProbability.probability}
+              confidence={successProbability.confidence}
+              recommendations={successProbability.recommendations.length > 0
+                ? successProbability.recommendations
+                : [
+                    "Add Metro 2 field targeting for +15% potential",
+                    "Use specific e-OSCAR codes instead of generic 112",
+                  ]}
+              breakdown={successProbability.breakdown}
             />
           )}
         </div>
