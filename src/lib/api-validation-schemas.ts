@@ -16,6 +16,35 @@ const disputeOutcomeEnum = z.enum([
 const citationTargetEnum = z.enum(["CRA", "FURNISHER", "COLLECTOR"]);
 const teamRoleEnum = z.enum(["OWNER", "ADMIN", "SPECIALIST", "VIEWER"]);
 
+/**
+ * Unique account IDs array with duplicate detection
+ * Prevents the same account from being added twice to a dispute
+ */
+const uniqueAccountIdsArray = z
+  .array(z.string().uuid("Invalid account ID"))
+  .min(1, "At least one account is required")
+  .refine(
+    (ids) => new Set(ids).size === ids.length,
+    {
+      message: "Duplicate account IDs detected. Each account can only be included once in a dispute.",
+    }
+  );
+
+// =============================================================================
+// DISPUTE CODE LOOKUP
+// =============================================================================
+
+/**
+ * Validate and lookup dispute by human-readable code
+ * Format: D2GO-YYYYMMDD-XXX (Disputes) or STY-YYYYMMDD-XXX (Sentry)
+ */
+export const disputeCodeLookupSchema = z.object({
+  code: z.string().regex(
+    /^(D2GO|STY)-\d{8}-\d{3}$/,
+    "Invalid dispute code format. Expected: D2GO-YYYYMMDD-XXX or STY-YYYYMMDD-XXX"
+  ),
+});
+
 // =============================================================================
 // AUTH SCHEMAS
 // =============================================================================
@@ -40,9 +69,7 @@ export const createDisputeBodySchema = z.object({
   clientId: z.string().uuid("Invalid client ID"),
   cra: craEnum,
   flow: flowEnum,
-  accountIds: z
-    .array(z.string().uuid("Invalid account ID"))
-    .min(1, "At least one account is required"),
+  accountIds: uniqueAccountIdsArray,
   tone: z.string().optional(),
   letterStructure: z.enum(["FACTS_FIRST", "DAMAGES_FIRST"]).optional(),
 });
@@ -83,9 +110,7 @@ export const disputeResponseBodySchema = z.object({
  */
 export const disputeAiSchema = z.object({
   clientId: z.string().uuid("Invalid client ID"),
-  accountIds: z
-    .array(z.string().uuid("Invalid account ID"))
-    .min(1, "At least one account is required"),
+  accountIds: uniqueAccountIdsArray,
   options: z
     .object({
       useAI: z.boolean().optional(),
@@ -103,9 +128,7 @@ export const disputePreviewSchema = z.object({
   clientId: z.string().uuid("Invalid client ID"),
   cra: craEnum,
   flow: flowEnum,
-  accountIds: z
-    .array(z.string().uuid("Invalid account ID"))
-    .min(1, "At least one account is required"),
+  accountIds: uniqueAccountIdsArray,
 });
 
 /**
@@ -115,9 +138,7 @@ export const disputeCreateAndLaunchSchema = z.object({
   clientId: z.string().uuid("Invalid client ID"),
   cra: craEnum,
   flow: flowEnum,
-  accountIds: z
-    .array(z.string().uuid("Invalid account ID"))
-    .min(1, "At least one account is required"),
+  accountIds: uniqueAccountIdsArray,
   letterContent: z.string().min(1, "Letter content is required"),
   contentHash: z.string().optional(),
 });
@@ -133,9 +154,7 @@ export const sentryCreateSchema = z.object({
   clientId: z.string().uuid("Invalid client ID"),
   cra: craEnum,
   flow: flowEnum,
-  accountIds: z
-    .array(z.string().uuid("Invalid account ID"))
-    .min(1, "At least one account is required"),
+  accountIds: uniqueAccountIdsArray,
   generateLetter: z.boolean().default(true),
   eoscarCodeOverride: z.string().optional(),
   customLanguage: z.string().optional(),
@@ -189,9 +208,7 @@ export const sentryResponseUpdateSchema = z.object({
  * POST /api/sentry/recommend-codes - Get e-OSCAR code recommendations
  */
 export const sentryRecommendCodesSchema = z.object({
-  accountIds: z
-    .array(z.string().uuid("Invalid account ID"))
-    .min(1, "At least one account ID is required"),
+  accountIds: uniqueAccountIdsArray,
   flow: flowEnum.default("ACCURACY"),
   includeAllCodes: z.boolean().default(false),
 });
@@ -441,6 +458,7 @@ export const changePasswordSchema = z.object({
 // TYPE EXPORTS
 // =============================================================================
 
+export type DisputeCodeLookupInput = z.infer<typeof disputeCodeLookupSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type CreateDisputeBodyInput = z.infer<typeof createDisputeBodySchema>;

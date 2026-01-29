@@ -17,6 +17,8 @@ import {
 } from "@/lib/sentry/sentry-generator";
 import type { SentryCRA, SentryFlowType } from "@/types/sentry";
 import { sentryCreateSchema } from "@/lib/api-validation-schemas";
+import { generateDisputeCode } from "@/lib/dispute-id-generator";
+import { checkAccountAvailability } from "@/lib/account-lock-service";
 
 export const dynamic = "force-dynamic";
 
@@ -160,6 +162,32 @@ export const POST = withAuth(async (req, ctx) => {
       );
     }
 
+    // Check account availability - prevent adding locked accounts
+    const availability = await checkAccountAvailability(accountIds, cra, ctx.organizationId);
+    if (availability.locked.length > 0) {
+      return NextResponse.json(
+        {
+          error: "Some accounts are unavailable",
+          code: "ACCOUNTS_LOCKED",
+          details: {
+            message: "One or more accounts are already in active disputes and cannot be added.",
+            lockedAccounts: availability.locked.map((l) => ({
+              accountId: l.accountId,
+              creditorName: l.creditorName,
+              lockedBy: l.lockedBy ? {
+                disputeCode: l.lockedBy.disputeCode,
+                system: l.lockedBy.system,
+                status: l.lockedBy.status,
+                round: l.lockedBy.round,
+              } : null,
+            })),
+            availableAccounts: availability.available,
+          },
+        },
+        { status: 409 }
+      );
+    }
+
     // Determine round number PER ACCOUNT - accounts never disputed start at Round 1
     // Check if any of the selected accounts are already in a DRAFT dispute
     const existingDraftWithAccounts = await prisma.sentryDispute.findFirst({
@@ -234,6 +262,9 @@ export const POST = withAuth(async (req, ctx) => {
     // Next round is max + 1, or 1 if no previous disputes for these accounts
     const round = maxPreviousRound + 1;
 
+    // Generate human-readable dispute code
+    const { code: disputeCode } = await generateDisputeCode("SENTRY");
+
     // Create the Sentry dispute with items
     const dispute = await prisma.sentryDispute.create({
       data: {
@@ -243,6 +274,7 @@ export const POST = withAuth(async (req, ctx) => {
         flow,
         round,
         status: "DRAFT",
+        disputeCode,
         items: {
           create: accounts.map((account) => {
             let disputeReason = "Information requires verification";
@@ -391,6 +423,7 @@ export const POST = withAuth(async (req, ctx) => {
         targetType: "SentryDispute",
         targetId: dispute.id,
         eventData: JSON.stringify({
+          disputeCode,
           cra,
           flow,
           round,

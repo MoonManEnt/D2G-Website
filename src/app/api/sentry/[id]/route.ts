@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { unlockAccountsForDispute } from "@/lib/account-lock-service";
 
 export const dynamic = "force-dynamic";
 
@@ -245,6 +246,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       // Set resolved date
       if (body.status === "RESOLVED") {
         updateData.resolvedAt = new Date();
+        // Unlock accounts when dispute is resolved
+        await unlockAccountsForDispute(id, "SENTRY");
       }
     }
 
@@ -367,6 +370,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         { status: 400 }
       );
     }
+
+    // Unlock any accounts locked by this dispute
+    await unlockAccountsForDispute(id, "SENTRY");
 
     // Delete the dispute (cascades to items and analysis)
     await prisma.sentryDispute.delete({

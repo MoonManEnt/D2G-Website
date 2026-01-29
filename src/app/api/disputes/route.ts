@@ -18,6 +18,8 @@ import {
   recordDisputedItems,
 } from "@/lib/personal-info-dispute-service";
 import { createDisputeBodySchema } from "@/lib/api-validation-schemas";
+import { generateDisputeCode } from "@/lib/dispute-id-generator";
+import { checkAccountAvailability } from "@/lib/account-lock-service";
 
 export const dynamic = "force-dynamic";
 
@@ -156,6 +158,32 @@ export const POST = withAuth(async (req, ctx) => {
       );
     }
 
+    // Check account availability - prevent adding locked accounts
+    const availability = await checkAccountAvailability(accountIds, cra, ctx.organizationId);
+    if (availability.locked.length > 0) {
+      return NextResponse.json(
+        {
+          error: "Some accounts are unavailable",
+          code: "ACCOUNTS_LOCKED",
+          details: {
+            message: "One or more accounts are already in active disputes and cannot be added.",
+            lockedAccounts: availability.locked.map((l) => ({
+              accountId: l.accountId,
+              creditorName: l.creditorName,
+              lockedBy: l.lockedBy ? {
+                disputeCode: l.lockedBy.disputeCode,
+                system: l.lockedBy.system,
+                status: l.lockedBy.status,
+                round: l.lockedBy.round,
+              } : null,
+            })),
+            availableAccounts: availability.available,
+          },
+        },
+        { status: 409 }
+      );
+    }
+
     // Determine the next round number for this client/CRA combination
     const lastDispute = await prisma.dispute.findFirst({
       where: { clientId, cra },
@@ -183,6 +211,9 @@ export const POST = withAuth(async (req, ctx) => {
 
     const round = (lastDispute?.round || 0) + 1;
 
+    // Generate human-readable dispute code
+    const { code: disputeCode } = await generateDisputeCode("DISPUTE");
+
     // Create the dispute with items
     const dispute = await prisma.dispute.create({
       data: {
@@ -192,6 +223,7 @@ export const POST = withAuth(async (req, ctx) => {
         flow,
         round,
         status: "DRAFT",
+        disputeCode,
         items: {
           create: accounts.map((account) => {
             let disputeReason = "Information is inaccurate and requires verification";
@@ -403,6 +435,7 @@ export const POST = withAuth(async (req, ctx) => {
         targetType: "Dispute",
         targetId: dispute.id,
         eventData: JSON.stringify({
+          disputeCode,
           cra,
           flow,
           round,
@@ -427,6 +460,7 @@ export const POST = withAuth(async (req, ctx) => {
       success: true,
       dispute: {
         id: updatedDispute.id,
+        disputeCode: updatedDispute.disputeCode,
         clientId: updatedDispute.clientId,
         client: updatedDispute.client,
         cra: updatedDispute.cra,

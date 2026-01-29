@@ -180,6 +180,11 @@ model AccountItem {
   suggestedFlow    String?
   currentRound     Int           @default(0)
   flowLockedAt     DateTime?
+  // Dispute locking fields - prevents concurrent disputes
+  isLockedInDispute   Boolean    @default(false)
+  lockedByDisputeId   String?    // ID of the locking dispute
+  lockedBySystem      String?    // "DISPUTE" or "SENTRY"
+  lockedAt            DateTime?  // When locked
   rawExtractedData String?
   // Issues detected during parsing (JSON array)
   detectedIssues   String?
@@ -208,6 +213,8 @@ model AccountItem {
   @@index([fingerprint])
   @@index([confidenceLevel])
   @@index([isConfirmed])
+  @@index([isLockedInDispute])
+  @@index([lockedByDisputeId])
 }
 
 model DiffResult {
@@ -250,6 +257,7 @@ model Dispute {
   round            Int
   cra              String
   status           String        @default("DRAFT")
+  disputeCode      String?       @unique // Human-readable code: D2GO-YYYYMMDD-XXX
   letterContent    String?       // AI-generated letter content
   referenceNumber  String?       // Reference number for tracking
   aiStrategy       String?       // JSON: AI-generated strategy and recommendations
@@ -274,6 +282,7 @@ model Dispute {
   @@index([status])
   @@index([cra, round])
   @@index([mailedLetterId])
+  @@index([disputeCode])
 }
 
 model DisputeItem {
@@ -1002,6 +1011,7 @@ model SentryDispute {
   flow                String   // ACCURACY, COLLECTION, CONSENT, COMBO
   round               Int      @default(1)
   status              String   @default("DRAFT") // DRAFT, SENT, RESPONDED, RESOLVED
+  disputeCode         String?  @unique // Human-readable code: STY-YYYYMMDD-XXX
 
   // Letter content
   letterContent       String?  @db.Text
@@ -1030,6 +1040,7 @@ model SentryDispute {
   @@index([organizationId])
   @@index([status])
   @@index([cra, round])
+  @@index([disputeCode])
 }
 
 model SentryDisputeItem {
@@ -1122,4 +1133,21 @@ model SentryCodeOutcome {
   @@index([code])
   @@index([furnisherName])
   @@index([sentryDisputeId])
+}
+
+// =============================================================================
+// DISPUTE SEQUENCE - Atomic counter for human-readable dispute codes
+// =============================================================================
+// Generates codes like D2GO-20250128-001 (Disputes) and STY-20250128-042 (Sentry)
+// Uses database-level atomicity to prevent race conditions
+
+model DisputeSequence {
+  id            String   @id @default(uuid())
+  dateKey       String   // Format: YYYYMMDD
+  system        String   // "DISPUTE" or "SENTRY"
+  lastSequence  Int      @default(0)
+  updatedAt     DateTime @updatedAt
+
+  @@unique([dateKey, system])
+  @@index([dateKey])
 }

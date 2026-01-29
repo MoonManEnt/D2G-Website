@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { updateDisputeSchema } from "@/lib/api-validation-schemas";
+import { unlockAccountsForDispute } from "@/lib/account-lock-service";
 
 export const dynamic = "force-dynamic";
 
@@ -132,6 +133,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       }
       if (status === "RESOLVED" && !existingDispute.resolvedAt) {
         updateData.resolvedAt = new Date();
+        // Unlock accounts when dispute is resolved
+        await unlockAccountsForDispute(disputeId, "DISPUTE");
       }
     }
 
@@ -211,6 +214,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         { status: 400 }
       );
     }
+
+    // Unlock any accounts locked by this dispute
+    await unlockAccountsForDispute(disputeId, "DISPUTE");
 
     // Delete dispute items first
     await prisma.disputeItem.deleteMany({

@@ -9,6 +9,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { sentryLaunchSchema } from "@/lib/api-validation-schemas";
+import { lockAccountsForDispute, buildLockErrorMessage } from "@/lib/account-lock-service";
 
 export const dynamic = "force-dynamic";
 
@@ -145,17 +146,40 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       },
     });
 
-    // Lock the disputed accounts (mark as under dispute)
-    const accountIds = dispute.items.map((item) => item.accountItemId);
-    await prisma.accountItem.updateMany({
-      where: {
-        id: { in: accountIds },
-      },
-      data: {
-        // Add a flag or update status to indicate under dispute
-        // This prevents the same account from being disputed simultaneously
-      },
-    });
+    // Lock the disputed accounts atomically before finalizing
+    const accountIds = dispute.items.map((item) => item.accountItem.id);
+    const lockResult = await lockAccountsForDispute(
+      accountIds,
+      dispute.id,
+      "SENTRY",
+      dispute.cra,
+      session.user.organizationId
+    );
+
+    if (!lockResult.success) {
+      // Rollback the status change if locking fails
+      await prisma.sentryDispute.update({
+        where: { id },
+        data: {
+          status: "DRAFT",
+          sentDate: null,
+          deadlineDate: null,
+        },
+      });
+
+      return NextResponse.json(
+        {
+          error: "Cannot launch dispute - some accounts are locked",
+          code: "ACCOUNTS_LOCKED",
+          details: {
+            message: buildLockErrorMessage(lockResult.failedAccounts),
+            failedAccounts: lockResult.failedAccounts,
+            lockedAccounts: lockResult.lockedAccounts,
+          },
+        },
+        { status: 409 }
+      );
+    }
 
     // Track the e-OSCAR code outcomes for future ML improvement
     for (const item of dispute.items) {

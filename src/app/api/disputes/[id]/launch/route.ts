@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { lockAccountsForDispute, buildLockErrorMessage } from "@/lib/account-lock-service";
 
 export const dynamic = 'force-dynamic';
 
@@ -66,6 +67,31 @@ export async function POST(
       return NextResponse.json(
         { error: "Dispute has already been launched" },
         { status: 400 }
+      );
+    }
+
+    // Lock accounts atomically before launching
+    const accountIds = dispute.items.map((item) => item.accountItem.id);
+    const lockResult = await lockAccountsForDispute(
+      accountIds,
+      dispute.id,
+      "DISPUTE",
+      dispute.cra,
+      session.user.organizationId
+    );
+
+    if (!lockResult.success) {
+      return NextResponse.json(
+        {
+          error: "Cannot launch dispute - some accounts are locked",
+          code: "ACCOUNTS_LOCKED",
+          details: {
+            message: buildLockErrorMessage(lockResult.failedAccounts),
+            failedAccounts: lockResult.failedAccounts,
+            lockedAccounts: lockResult.lockedAccounts,
+          },
+        },
+        { status: 409 }
       );
     }
 
