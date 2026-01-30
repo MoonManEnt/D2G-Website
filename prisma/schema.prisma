@@ -34,6 +34,7 @@ model Organization {
   users                User[]
   archiveSnapshots     ClientArchiveSnapshot[]
   pendingEvidences     PendingEvidence[]
+  vendors              Vendor[]
 
   @@index([slug])
   @@index([stripeCustomerId])
@@ -91,6 +92,11 @@ model Client {
   totalDisputesSent       Int                 @default(0)           // Running count of disputes sent
   totalItemsDeleted       Int                 @default(0)           // Running count of items deleted
 
+  // Income fields for credit readiness analysis
+  statedIncome            Float?              // Annual stated income
+  statedIncomeType        String?             // SALARY, HOURLY, SELF_EMPLOYED, RETIREMENT, OTHER
+  incomeUpdatedAt         DateTime?           // When income was last stated/updated
+
   // Archive fields for 90-day retention
   archivedAt              DateTime?           // When client was archived (null = active)
   archiveReason           String?             // Why archived (manual, inactive, etc.)
@@ -110,6 +116,7 @@ model Client {
   archiveSnapshot         ClientArchiveSnapshot?
   personalInfoDisputes    PersonalInfoDispute[]
   sentryDisputes          SentryDispute[]
+  readinessAnalyses       CreditReadinessAnalysis[]
 
   @@index([organizationId])
   @@index([lastName, firstName])
@@ -264,8 +271,9 @@ model Dispute {
   createdAt        DateTime      @default(now())
   approvedAt       DateTime?
   sentDate         DateTime?     // When the letter was officially sent
-  mailedLetterId   String?       // Lob letter ID
+  mailedLetterId   String?       // Lob or DocuPost letter ID
   mailedAt         DateTime?     // When mailed via physical mail
+  mailProvider     String?       // DOCUPOST or LOB
   respondedAt      DateTime?
   resolvedAt       DateTime?
   responseNotes    String?
@@ -1024,6 +1032,12 @@ model SentryDispute {
   ocrRiskScore        Int?     // 0-100
   successProbability  Float?   // 0-1
 
+  // Physical mail tracking
+  mailedLetterId      String?  // DocuPost or Lob letter ID
+  mailedAt            DateTime?
+  mailProvider        String?  // DOCUPOST or LOB
+  mailServiceLevel    String?  // standard, certified, certified_return_receipt
+
   // Dates
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
@@ -1150,4 +1164,133 @@ model DisputeSequence {
 
   @@unique([dateKey, system])
   @@index([dateKey])
+}
+
+// =============================================================================
+// CREDIT READINESS ANALYSIS - Approval likelihood across FICO models
+// =============================================================================
+
+model CreditReadinessAnalysis {
+  id                    String   @id @default(uuid())
+  clientId              String
+  organizationId        String
+
+  // Input context
+  productType           String   // MORTGAGE, AUTO, CREDIT_CARD, PERSONAL_LOAN, BUSINESS_LOC, GENERAL
+  statedIncome          Float?
+  reasonForApplying     String?
+
+  // Score analysis
+  relevantScoreModel    String   // Which FICO model is used for this product
+  relevantScore         Int?     // The score from that model
+  triMergeMiddle        Int?     // For mortgage: middle of FICO 2, 4, 5
+
+  // Approval analysis
+  approvalLikelihood    Int      // 0-100
+  approvalTier          String   // LIKELY, POSSIBLE, UNLIKELY, NOT_READY
+  approvalExplanation   String   @db.Text
+
+  // DTI analysis
+  estimatedDTI          Float?
+  maxRecommendedDTI     Float?
+
+  // Action plan and findings (JSON)
+  actionPlan            String   @db.Text  // JSON: ActionPlanStep[]
+  findings              String   @db.Text  // JSON: detailed findings
+  recommendations       String   @db.Text  // JSON: improvement recommendations
+  scoreGapAnalysis      String   @db.Text  // JSON: score gap breakdown
+
+  // Vendor recommendations (links to Vendor Rules Engine)
+  vendorRecommendations String   @default("[]") // JSON: matched vendor recommendations
+
+  // Metadata
+  computeTimeMs         Int      @default(0)
+  version               String   @default("1.0.0")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  client                Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([organizationId])
+  @@index([productType])
+  @@index([createdAt])
+}
+
+// =============================================================================
+// VENDOR/PARTNER MANAGEMENT - Configurable vendor partnerships
+// =============================================================================
+
+model Vendor {
+  id              String   @id @default(uuid())
+  organizationId  String
+  name            String
+  description     String?  @db.Text
+  category        String   // CREDIT_REPAIR, DEBT_MANAGEMENT, FINANCIAL_COACHING, CREDIT_MONITORING, CREDIT_BUILDER, OTHER
+  logoUrl         String?
+  websiteUrl      String?
+  affiliateUrl    String?  // Base affiliate URL
+  affiliateCode   String?  // Tracking code
+  contactName     String?
+  contactEmail    String?
+  isActive        Boolean  @default(true)
+  commissionType  String?  // FLAT, PERCENTAGE, TIERED
+  commissionValue Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  rules           VendorRule[]
+  referrals       VendorReferral[]
+
+  @@index([organizationId])
+  @@index([category])
+  @@index([isActive])
+}
+
+model VendorRule {
+  id                    String   @id @default(uuid())
+  vendorId              String
+  name                  String
+  description           String?
+  priority              Int      @default(0)  // Higher = checked first
+  isActive              Boolean  @default(true)
+  conditions            String   @db.Text     // JSON: Array of RuleCondition
+  recommendationTitle   String
+  recommendationBody    String   @db.Text
+  recommendationCTA     String?
+  customAffiliateUrl    String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  vendor                Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([vendorId])
+  @@index([isActive])
+  @@index([priority])
+}
+
+model VendorReferral {
+  id              String    @id @default(uuid())
+  vendorId        String
+  clientId        String
+  organizationId  String
+  triggerType     String    // READINESS_ANALYSIS, ACTION_PLAN, MANUAL, PORTAL_VIEW
+  triggerEntityId String?
+  ruleId          String?
+  status          String    @default("RECOMMENDED") // RECOMMENDED, CLICKED, CONVERTED, EXPIRED
+  clickedAt       DateTime?
+  convertedAt     DateTime?
+  commissionEarned Float?
+  affiliateUrl    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  vendor          Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([vendorId])
+  @@index([clientId])
+  @@index([organizationId])
+  @@index([status])
+  @@index([createdAt])
 }

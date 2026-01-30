@@ -17,6 +17,7 @@ import {
   CRA_ADDRESSES,
   CRAName,
 } from "@/lib/pdf-generate";
+import { sendMail, MailProvider } from "@/lib/mail-provider";
 import { format } from "date-fns";
 
 export const dynamic = "force-dynamic";
@@ -83,16 +84,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check if mail service is available
-    if (!isMailServiceAvailable()) {
-      return NextResponse.json(
-        { error: "Physical mail service is not configured" },
-        { status: 503 }
-      );
-    }
-
     const body = await request.json();
     const {
+      provider: requestedProvider = "DOCUPOST",
       color = false,
       doubleSided = true,
       mailType = "usps_first_class",
@@ -100,6 +94,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       scheduledDate,
       verifyAddressFirst = true,
     } = body;
+
+    // Check if mail service is available (for Lob provider)
+    const selectedProvider: MailProvider = (requestedProvider as MailProvider) || "DOCUPOST";
+    if (selectedProvider === "LOB" && !isMailServiceAvailable()) {
+      return NextResponse.json(
+        { error: "Physical mail service is not configured" },
+        { status: 503 }
+      );
+    }
 
     // Fetch dispute with client and items
     const dispute = await prisma.dispute.findFirst({
@@ -152,6 +155,69 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    const clientName = `${client.firstName} ${client.lastName}`;
+    const cra = dispute.cra as CRAName;
+
+    // =========================================================================
+    // DocuPost Provider Path
+    // =========================================================================
+    if (selectedProvider === "DOCUPOST") {
+      // Prepare HTML content from letter text
+      const rawLetterContent = dispute.letterContent || "";
+      const htmlContent = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><style>body{font-family:Arial,sans-serif;font-size:12px;line-height:1.5;margin:40px;}</style></head>
+<body>
+<pre style="white-space:pre-wrap;font-family:Arial,sans-serif;font-size:12px;line-height:1.5;">${rawLetterContent}</pre>
+</body>
+</html>`.slice(0, 9000);
+
+      const docuPostResult = await sendMail({
+        cra: dispute.cra,
+        clientName,
+        clientAddress,
+        clientCity,
+        clientState,
+        clientZip,
+        htmlContent,
+        certified: !!extraService,
+        returnReceipt: extraService === "certified_return_receipt",
+        color,
+        doubleSided,
+        description: `Dispute Letter - ${clientName} - ${cra}`,
+        provider: "DOCUPOST",
+      });
+
+      if (!docuPostResult.success) {
+        return NextResponse.json(
+          { error: docuPostResult.error || "Failed to send letter via DocuPost" },
+          { status: 500 }
+        );
+      }
+
+      // Update dispute with mailing info
+      await prisma.dispute.update({
+        where: { id: disputeId },
+        data: {
+          status: "SENT",
+          mailedLetterId: docuPostResult.letterId,
+          mailedAt: new Date(),
+          sentDate: new Date(),
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        letterId: docuPostResult.letterId,
+        provider: "DOCUPOST",
+        mailProvider: "DOCUPOST",
+      });
+    }
+
+    // =========================================================================
+    // Lob Provider Path (existing logic)
+    // =========================================================================
+
     // Verify address if requested
     if (verifyAddressFirst) {
       const verification = await verifyAddress({
@@ -179,11 +245,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Generate the PDF
-    const cra = dispute.cra as CRAName;
     const craAddress = CRA_ADDRESSES[cra] || CRA_ADDRESSES.EQUIFAX;
 
     const letterData: DisputeLetterData = {
-      clientName: `${client.firstName} ${client.lastName}`,
+      clientName,
       clientAddress,
       clientCity,
       clientState,
@@ -222,12 +287,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const result = await sendDisputeLetter({
       letterPdf: Buffer.from(pdfBytes),
       cra: cra as CRAType,
-      clientName: `${client.firstName} ${client.lastName}`,
+      clientName,
       clientAddress,
       clientCity,
       clientState,
       clientZip,
-      description: `Dispute Letter - ${client.firstName} ${client.lastName} - ${cra}`,
+      description: `Dispute Letter - ${clientName} - ${cra}`,
       color,
       doubleSided,
       mailType,
@@ -268,6 +333,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       trackingUrl: result.trackingUrl,
       testMode: result.testMode,
       pricing,
+      provider: "LOB",
+      mailProvider: "LOB",
     });
   } catch (error) {
     console.error("Error sending mail:", error);

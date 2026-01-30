@@ -455,9 +455,40 @@ export const changePasswordSchema = z.object({
 });
 
 // =============================================================================
+// MAIL SENDING SCHEMAS
+// =============================================================================
+
+/**
+ * POST /api/disputes/[id]/mail or /api/sentry/[id]/mail - Mail sending options
+ */
+export const mailSendSchema = z.object({
+  provider: z.enum(["LOB", "DOCUPOST"]).default("DOCUPOST"),
+  color: z.boolean().default(false),
+  doubleSided: z.boolean().default(true),
+  certified: z.boolean().default(false),
+  returnReceipt: z.boolean().default(false),
+});
+
+// =============================================================================
+// CREDIT READINESS SCHEMAS
+// =============================================================================
+
+/**
+ * POST /api/credit-readiness - Analyze credit readiness
+ */
+export const creditReadinessSchema = z.object({
+  productType: z.enum(["MORTGAGE", "AUTO", "CREDIT_CARD", "PERSONAL_LOAN", "BUSINESS_LOC", "GENERAL"]),
+  statedIncome: z.number().positive().optional(),
+  incomeType: z.enum(["SALARY", "HOURLY", "SELF_EMPLOYED", "RETIREMENT", "OTHER"]).optional(),
+  reasonForApplying: z.string().max(500).optional(),
+});
+
+// =============================================================================
 // TYPE EXPORTS
 // =============================================================================
 
+export type MailSendInput = z.infer<typeof mailSendSchema>;
+export type CreditReadinessInput = z.infer<typeof creditReadinessSchema>;
 export type DisputeCodeLookupInput = z.infer<typeof disputeCodeLookupSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
@@ -488,3 +519,166 @@ export type UpdateDocumentInput = z.infer<typeof updateDocumentSchema>;
 export type FeedbackInput = z.infer<typeof feedbackSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+
+// =============================================================================
+// VENDOR SCHEMAS
+// =============================================================================
+
+const vendorCategoryEnum = z.enum([
+  "CREDIT_REPAIR",
+  "DEBT_MANAGEMENT",
+  "FINANCIAL_COACHING",
+  "CREDIT_MONITORING",
+  "CREDIT_BUILDER",
+  "OTHER",
+]);
+
+const commissionTypeEnum = z.enum(["FLAT", "PERCENTAGE", "TIERED"]);
+
+/**
+ * POST /api/vendors - Create a vendor
+ */
+export const createVendorSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  description: z.string().optional(),
+  category: vendorCategoryEnum,
+  logoUrl: z.string().url("Invalid logo URL").optional().or(z.literal("")),
+  websiteUrl: z.string().url("Invalid website URL").optional().or(z.literal("")),
+  affiliateUrl: z.string().url("Invalid affiliate URL").optional().or(z.literal("")),
+  affiliateCode: z.string().optional(),
+  contactName: z.string().optional(),
+  contactEmail: z.string().email("Invalid contact email").optional().or(z.literal("")),
+  isActive: z.boolean().default(true),
+  commissionType: commissionTypeEnum.optional(),
+  commissionValue: z.number().min(0).optional(),
+});
+
+/**
+ * PATCH /api/vendors/[id] - Update a vendor
+ */
+export const updateVendorSchema = z.object({
+  name: z.string().min(1).optional(),
+  description: z.string().optional().nullable(),
+  category: vendorCategoryEnum.optional(),
+  logoUrl: z.string().url("Invalid logo URL").optional().nullable().or(z.literal("")),
+  websiteUrl: z.string().url("Invalid website URL").optional().nullable().or(z.literal("")),
+  affiliateUrl: z.string().url("Invalid affiliate URL").optional().nullable().or(z.literal("")),
+  affiliateCode: z.string().optional().nullable(),
+  contactName: z.string().optional().nullable(),
+  contactEmail: z.string().email("Invalid contact email").optional().nullable().or(z.literal("")),
+  isActive: z.boolean().optional(),
+  commissionType: commissionTypeEnum.optional().nullable(),
+  commissionValue: z.number().min(0).optional().nullable(),
+});
+
+// =============================================================================
+// VENDOR RULE SCHEMAS
+// =============================================================================
+
+const ruleConditionFieldEnum = z.enum([
+  "credit_score_min",
+  "credit_score_max",
+  "credit_score_avg",
+  "has_collections",
+  "collection_count_min",
+  "collection_balance_min",
+  "has_charge_offs",
+  "charge_off_count_min",
+  "total_debt_min",
+  "total_debt_max",
+  "account_count_min",
+  "account_count_max",
+  "dispute_stage",
+  "dna_classification",
+  "health_score_min",
+  "health_score_max",
+  "improvement_potential_min",
+  "utilization_min",
+  "utilization_max",
+  "has_income",
+  "income_min",
+  "income_max",
+  "readiness_product_type",
+  "approval_likelihood_max",
+  "inquiry_count_min",
+]);
+
+const ruleConditionOperatorEnum = z.enum([
+  "equals",
+  "not_equals",
+  "greater_than",
+  "less_than",
+  "in",
+  "not_in",
+  "between",
+]);
+
+const ruleConditionSchema = z.object({
+  field: ruleConditionFieldEnum,
+  operator: ruleConditionOperatorEnum,
+  value: z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]),
+  valueEnd: z.number().optional(),
+});
+
+/**
+ * POST /api/vendors/[id]/rules - Create a vendor rule
+ */
+export const createVendorRuleSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  description: z.string().optional(),
+  priority: z.number().int().min(0).default(0),
+  isActive: z.boolean().default(true),
+  conditions: z.array(ruleConditionSchema).min(1, "At least one condition is required"),
+  recommendationTitle: z.string().min(1, "Recommendation title is required"),
+  recommendationBody: z.string().min(1, "Recommendation body is required"),
+  recommendationCTA: z.string().optional(),
+  customAffiliateUrl: z.string().url("Invalid URL").optional().or(z.literal("")),
+});
+
+/**
+ * PATCH /api/vendors/[id]/rules/[ruleId] - Update a vendor rule
+ */
+export const updateVendorRuleSchema = z.object({
+  name: z.string().min(1).optional(),
+  description: z.string().optional().nullable(),
+  priority: z.number().int().min(0).optional(),
+  isActive: z.boolean().optional(),
+  conditions: z.array(ruleConditionSchema).min(1).optional(),
+  recommendationTitle: z.string().min(1).optional(),
+  recommendationBody: z.string().min(1).optional(),
+  recommendationCTA: z.string().optional().nullable(),
+  customAffiliateUrl: z.string().url("Invalid URL").optional().nullable().or(z.literal("")),
+});
+
+// =============================================================================
+// REFERRAL SCHEMAS
+// =============================================================================
+
+const referralTriggerTypeEnum = z.enum([
+  "READINESS_ANALYSIS",
+  "ACTION_PLAN",
+  "MANUAL",
+  "PORTAL_VIEW",
+]);
+
+/**
+ * POST /api/referrals - Track a referral
+ */
+export const trackReferralSchema = z.object({
+  vendorId: z.string().uuid("Invalid vendor ID"),
+  clientId: z.string().uuid("Invalid client ID"),
+  triggerType: referralTriggerTypeEnum,
+  triggerEntityId: z.string().optional(),
+  ruleId: z.string().uuid("Invalid rule ID").optional(),
+  affiliateUrl: z.string().url("Invalid affiliate URL").optional(),
+});
+
+// =============================================================================
+// VENDOR TYPE EXPORTS
+// =============================================================================
+
+export type CreateVendorInput = z.infer<typeof createVendorSchema>;
+export type UpdateVendorInput = z.infer<typeof updateVendorSchema>;
+export type CreateVendorRuleInput = z.infer<typeof createVendorRuleSchema>;
+export type UpdateVendorRuleInput = z.infer<typeof updateVendorRuleSchema>;
+export type TrackReferralInput = z.infer<typeof trackReferralSchema>;
