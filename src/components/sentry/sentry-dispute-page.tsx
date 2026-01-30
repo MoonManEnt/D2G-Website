@@ -10,6 +10,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+import { Mail } from "lucide-react";
 import {
   type SentryDisputePageProps,
   type SentryAccountForUI,
@@ -25,6 +26,7 @@ import { SentryLetterBuilder } from "./sentry-letter-builder";
 import { SentryAnalysisPanel } from "./sentry-analysis-panel";
 import { EOSCARCodeSelector } from "./eoscar-code-selector";
 import { SuccessProbabilityGauge } from "./success-probability-gauge";
+import { MailSendDialog } from "@/components/disputes/mail-send-dialog";
 import type { SentryCRA, SentryFlowType } from "@/types/sentry";
 
 type Step = "reports" | "select" | "configure" | "generate" | "review";
@@ -81,6 +83,7 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
   const [currentDispute, setCurrentDispute] = useState<SentryDisputeForUI | null>(null);
   const [analysis, setAnalysis] = useState<SentryAnalysisForUI | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [mailDialogOpen, setMailDialogOpen] = useState(false);
 
   // Success probability state (dynamic calculation by Amelia Sentry Engine)
   const [successProbability, setSuccessProbability] = useState<{
@@ -971,19 +974,30 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
                 >
                   ← Back to Configure
                 </button>
-                <button
-                  onClick={handleLaunch}
-                  disabled={currentDispute.status !== "DRAFT"}
-                  className={`px-6 py-2 rounded-lg text-sm transition-colors ${
-                    currentDispute.status === "DRAFT"
-                      ? "bg-emerald-500 text-white hover:bg-emerald-600"
-                      : "bg-slate-700 text-slate-500 cursor-not-allowed"
-                  }`}
-                >
-                  {currentDispute.status === "DRAFT"
-                    ? "Launch Dispute"
-                    : `Status: ${currentDispute.status}`}
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleLaunch}
+                    disabled={currentDispute.status !== "DRAFT"}
+                    className={`px-6 py-2 rounded-lg text-sm transition-colors ${
+                      currentDispute.status === "DRAFT"
+                        ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                        : "bg-slate-700 text-slate-500 cursor-not-allowed"
+                    }`}
+                  >
+                    {currentDispute.status === "DRAFT"
+                      ? "Launch Dispute"
+                      : `Status: ${currentDispute.status}`}
+                  </button>
+                  {currentDispute.status === "SENT" && (
+                    <button
+                      onClick={() => setMailDialogOpen(true)}
+                      className="px-6 py-2 rounded-lg text-sm transition-colors bg-blue-500 text-white hover:bg-blue-600 flex items-center gap-2"
+                    >
+                      <Mail className="w-4 h-4" />
+                      Send via Mail
+                    </button>
+                  )}
+                </div>
               </div>
             </>
           )}
@@ -1070,6 +1084,21 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
           )}
         </div>
       </div>
+
+      {/* Mail Send Dialog */}
+      {currentDispute && (
+        <MailSendDialog
+          open={mailDialogOpen}
+          onOpenChange={setMailDialogOpen}
+          disputeId={currentDispute.id}
+          disputeType="SENTRY"
+          clientName={client ? `${client.firstName} ${client.lastName}` : "Client"}
+          cra={selectedCRA}
+          onSuccess={() => {
+            // Optionally refresh dispute data
+          }}
+        />
+      )}
     </div>
   );
 }

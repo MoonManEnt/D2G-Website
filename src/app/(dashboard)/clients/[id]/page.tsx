@@ -994,6 +994,10 @@ export default function ClientDetailPage() {
             <Dna className="w-4 h-4" />
             Credit DNA
           </TabsTrigger>
+          <TabsTrigger value="readiness" className="gap-2 data-[state=active]:bg-slate-700">
+            <Target className="w-4 h-4" />
+            Readiness
+          </TabsTrigger>
         </TabsList>
 
         {/* Negative Items Tab */}
@@ -1633,6 +1637,48 @@ export default function ClientDetailPage() {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        {/* Readiness Tab */}
+        <TabsContent value="readiness" className="mt-4 flex-1 overflow-auto space-y-4">
+          <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Target className="w-5 h-5 text-blue-400" />
+                Credit Readiness Analysis
+              </h3>
+              <Link
+                href={`/clients/${clientId}/readiness`}
+                className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1"
+              >
+                Full Analysis
+                <ChevronRight className="w-4 h-4" />
+              </Link>
+            </div>
+            <p className="text-slate-400 text-sm mb-4">
+              Analyze approval likelihood across different credit products using FICO scoring models,
+              DTI ratios, and comprehensive credit profile data.
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {[
+                { label: "Mortgage", desc: "FICO 2/4/5" },
+                { label: "Auto Loan", desc: "FICO Auto 8" },
+                { label: "Credit Card", desc: "FICO Bankcard 8" },
+                { label: "Personal Loan", desc: "FICO 8" },
+                { label: "Business LOC", desc: "Highest Score" },
+                { label: "General", desc: "FICO 8 Baseline" },
+              ].map((product) => (
+                <Link
+                  key={product.label}
+                  href={`/clients/${clientId}/readiness`}
+                  className="bg-slate-700/30 rounded-lg p-3 hover:bg-slate-700/50 transition-colors"
+                >
+                  <span className="text-sm font-medium text-slate-200">{product.label}</span>
+                  <p className="text-xs text-slate-400 mt-1">{product.desc}</p>
+                </Link>
+              ))}
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
 

@@ -15,12 +15,14 @@ import {
   AlertTriangle,
   Lock,
   Clock,
+  Mail,
 } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
 import { CRAProgressHeader, calculateCRAStatus } from "./cra-progress-header";
 import { BulkActionBar } from "./bulk-action-bar";
 import { detectFlowsPerCRA, type DisputeFlow } from "@/lib/flow-detector";
 import { LetterEditorModal } from "./letter-editor-modal";
+import { MailSendDialog } from "./mail-send-dialog";
 
 interface AccountItem {
   id: string;
@@ -47,6 +49,7 @@ interface Dispute {
 
 interface DisputeCommandCenterProps {
   clientId: string;
+  clientName?: string;
   accounts: AccountItem[];
   existingDisputes: Dispute[];
   onDisputeCreated?: () => void;
@@ -60,6 +63,7 @@ const CRA_COLORS = {
 
 export function DisputeCommandCenter({
   clientId,
+  clientName,
   accounts,
   existingDisputes,
   onDisputeCreated,
@@ -107,6 +111,11 @@ export function DisputeCommandCenter({
   } | null>(null);
   const [launching, setLaunching] = useState(false);
   const [downloading, setDownloading] = useState(false);
+
+  // Mail dialog state
+  const [mailDialogOpen, setMailDialogOpen] = useState(false);
+  const [mailDisputeId, setMailDisputeId] = useState<string | null>(null);
+  const [mailDisputeCRA, setMailDisputeCRA] = useState<string>("TRANSUNION");
 
   // Group accounts by normalized creditor name
   const accountGroups = useMemo(() => {
@@ -401,6 +410,13 @@ export function DisputeCommandCenter({
     }
   };
 
+  // Open mail dialog for a dispute
+  const openMailDialog = (disputeId: string, cra: string) => {
+    setMailDisputeId(disputeId);
+    setMailDisputeCRA(cra);
+    setMailDialogOpen(true);
+  };
+
   // Toggle creditor expansion
   const toggleCreditorExpanded = (creditorName: string) => {
     setExpandedCreditors((prev) => {
@@ -633,6 +649,58 @@ export function DisputeCommandCenter({
         creatingCRA={creatingCRA}
       />
 
+      {/* Sent Disputes - Mail Actions */}
+      {existingDisputes.filter((d) => d.status === "SENT" || d.status === "RESPONDED").length > 0 && (
+        <Card className="bg-slate-800/50 border-slate-700/50">
+          <CardContent className="p-5">
+            <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+              <Mail className="w-4 h-4 text-blue-400" />
+              Active Disputes
+            </h3>
+            <div className="space-y-2">
+              {existingDisputes
+                .filter((d) => d.status === "SENT" || d.status === "RESPONDED")
+                .map((dispute) => {
+                  const craColor = CRA_COLORS[dispute.cra as keyof typeof CRA_COLORS];
+                  return (
+                    <div
+                      key={dispute.id}
+                      className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Badge
+                          className={cn(
+                            "text-[10px]",
+                            craColor?.bg,
+                            craColor?.text
+                          )}
+                        >
+                          {dispute.cra}
+                        </Badge>
+                        <span className="text-sm text-slate-300">
+                          Round {dispute.round}
+                        </span>
+                        <Badge className="text-[10px] bg-purple-500/20 text-purple-400">
+                          {dispute.status}
+                        </Badge>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openMailDialog(dispute.id, dispute.cra)}
+                        className="gap-1.5 border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20"
+                      >
+                        <Mail className="w-3.5 h-3.5" />
+                        Mail Letter
+                      </Button>
+                    </div>
+                  );
+                })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Letter Editor Modal */}
       <LetterEditorModal
         open={letterModalOpen}
@@ -646,6 +714,21 @@ export function DisputeCommandCenter({
         onDownload={handleDownloadLetter}
         downloading={downloading}
       />
+
+      {/* Mail Send Dialog */}
+      {mailDisputeId && (
+        <MailSendDialog
+          open={mailDialogOpen}
+          onOpenChange={setMailDialogOpen}
+          disputeId={mailDisputeId}
+          disputeType="DISPUTE"
+          clientName={clientName || "Client"}
+          cra={mailDisputeCRA}
+          onSuccess={() => {
+            onDisputeCreated?.();
+          }}
+        />
+      )}
     </div>
   );
 }
