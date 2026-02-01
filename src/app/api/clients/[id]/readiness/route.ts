@@ -303,11 +303,16 @@ export const POST = withAuth(
             scoreGapFactors: result.scoreGap.factors,
             estimatedTimeToTarget: result.scoreGap.estimatedTimeToTarget,
             dtiDetails: result.dti?.details ?? null,
+            cfpbTier: result.cfpbTier,
+            confidenceLevel: result.confidenceLevel,
+            readinessFactors: result.readinessFactors,
+            hardDisqualifications: result.hardDisqualifications,
+            ltv: result.ltv,
           }),
           scoreGapAnalysis: JSON.stringify(result.scoreGap),
           vendorRecommendations: JSON.stringify(vendorRecommendations),
           computeTimeMs,
-          version: "1.0.0",
+          version: "2.0.0",
         },
       });
 

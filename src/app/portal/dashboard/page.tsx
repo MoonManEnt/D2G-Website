@@ -17,6 +17,10 @@ import {
   User,
   ArrowUp,
   ArrowDown,
+  Target,
+  Sparkles,
+  ExternalLink,
+  ChevronRight,
 } from "lucide-react";
 import { usePortal } from "../portal-context";
 
@@ -45,12 +49,40 @@ interface DashboardData {
     resolved: number;
     remaining: number;
   };
+  readiness: {
+    productType: string;
+    approvalLikelihood: number;
+    approvalTier: string;
+    explanation: string;
+    scoreModel: string;
+    relevantScore: number | null;
+    estimatedDTI: number | null;
+    topActions: Array<{
+      stepNumber: number;
+      title: string;
+      priority: string;
+      category: string;
+    }>;
+    analyzedAt: string;
+  } | null;
   recentActivity: Array<{
     id: string;
     type: string;
     description: string;
     date: string;
   }>;
+}
+
+interface PortalRecommendation {
+  vendorId: string;
+  vendorName: string;
+  vendorCategory: string;
+  affiliateUrl: string | null;
+  ruleId: string;
+  recommendationTitle: string;
+  recommendationBody: string;
+  recommendationCTA: string | null;
+  customAffiliateUrl: string | null;
 }
 
 const CRA_COLORS = {
@@ -70,6 +102,34 @@ const STATUS_COLORS: Record<string, string> = {
   CLOSED: "bg-slate-500/20 text-slate-400",
 };
 
+const TIER_COLORS: Record<string, { bg: string; text: string; label: string }> = {
+  LIKELY: { bg: "bg-emerald-500/20", text: "text-emerald-400", label: "Likely Approved" },
+  POSSIBLE: { bg: "bg-amber-500/20", text: "text-amber-400", label: "Possible Approval" },
+  UNLIKELY: { bg: "bg-orange-500/20", text: "text-orange-400", label: "Unlikely" },
+  NOT_READY: { bg: "bg-red-500/20", text: "text-red-400", label: "Not Ready" },
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  CREDIT_REPAIR: "bg-purple-500/20 text-purple-400",
+  DEBT_MANAGEMENT: "bg-blue-500/20 text-blue-400",
+  FINANCIAL_COACHING: "bg-amber-500/20 text-amber-400",
+  CREDIT_MONITORING: "bg-cyan-500/20 text-cyan-400",
+  CREDIT_BUILDER: "bg-emerald-500/20 text-emerald-400",
+  OTHER: "bg-slate-500/20 text-slate-400",
+};
+
+function formatProductType(type: string): string {
+  const labels: Record<string, string> = {
+    MORTGAGE: "Mortgage",
+    AUTO: "Auto Loan",
+    CREDIT_CARD: "Credit Card",
+    PERSONAL_LOAN: "Personal Loan",
+    BUSINESS_LOC: "Business LOC",
+    GENERAL: "General",
+  };
+  return labels[type] || type;
+}
+
 function getScoreLabel(score: number): { label: string; color: string } {
   if (score >= 800) return { label: "Exceptional", color: "text-emerald-400" };
   if (score >= 740) return { label: "Very Good", color: "text-green-400" };
@@ -82,16 +142,15 @@ export default function PortalDashboardPage() {
   const { user, organization, logout } = usePortal();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<DashboardData | null>(null);
+  const [recommendations, setRecommendations] = useState<PortalRecommendation[]>([]);
 
   useEffect(() => {
+    const token = localStorage.getItem("portal_token");
+    const headers = { Authorization: `Bearer ${token}` };
+
     const fetchDashboard = async () => {
       try {
-        const res = await fetch("/api/portal/dashboard", {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("portal_token")}`,
-          },
-        });
-
+        const res = await fetch("/api/portal/dashboard", { headers });
         if (res.ok) {
           const dashboardData = await res.json();
           setData(dashboardData);
@@ -103,7 +162,20 @@ export default function PortalDashboardPage() {
       }
     };
 
+    const fetchRecommendations = async () => {
+      try {
+        const res = await fetch("/api/portal/recommendations", { headers });
+        if (res.ok) {
+          const recData = await res.json();
+          setRecommendations(recData.recommendations || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch recommendations:", error);
+      }
+    };
+
     fetchDashboard();
+    fetchRecommendations();
   }, []);
 
   if (loading) {
@@ -333,6 +405,167 @@ export default function PortalDashboardPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Credit Readiness Summary */}
+        {data?.readiness && (
+          <Card className="bg-slate-800/50 border-slate-700 mt-6">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Target className="w-5 h-5 text-blue-400" />
+                    Credit Readiness
+                  </CardTitle>
+                  <CardDescription className="text-slate-400">
+                    {formatProductType(data.readiness.productType)} approval analysis
+                  </CardDescription>
+                </div>
+                <Badge className={TIER_COLORS[data.readiness.approvalTier]?.bg + " " + TIER_COLORS[data.readiness.approvalTier]?.text}>
+                  {TIER_COLORS[data.readiness.approvalTier]?.label || data.readiness.approvalTier}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {/* Approval Gauge */}
+              <div className="flex items-center gap-6 mb-4">
+                <div className="relative w-20 h-20">
+                  <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
+                    <circle
+                      cx="40" cy="40" r="34"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="6"
+                      className="text-slate-700"
+                    />
+                    <circle
+                      cx="40" cy="40" r="34"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="6"
+                      strokeDasharray={`${(data.readiness.approvalLikelihood / 100) * 213.6} 213.6`}
+                      strokeLinecap="round"
+                      className={
+                        data.readiness.approvalLikelihood >= 70 ? "text-emerald-400" :
+                        data.readiness.approvalLikelihood >= 40 ? "text-amber-400" :
+                        "text-red-400"
+                      }
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-lg font-bold text-white">{data.readiness.approvalLikelihood}%</span>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-slate-300 leading-relaxed">
+                    {data.readiness.explanation}
+                  </p>
+                  <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
+                    <span>Model: {data.readiness.scoreModel}</span>
+                    {data.readiness.relevantScore && (
+                      <span>Score: {data.readiness.relevantScore}</span>
+                    )}
+                    {data.readiness.estimatedDTI !== null && (
+                      <span>DTI: {Math.round(data.readiness.estimatedDTI)}%</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Top Action Steps */}
+              {data.readiness.topActions.length > 0 && (
+                <div className="border-t border-slate-700 pt-4">
+                  <p className="text-xs text-slate-400 mb-3 font-medium uppercase tracking-wider">Next Steps</p>
+                  <div className="space-y-2">
+                    {data.readiness.topActions.map((action) => (
+                      <div
+                        key={action.stepNumber}
+                        className="flex items-center gap-3 p-2 bg-slate-700/30 rounded-lg"
+                      >
+                        <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs text-blue-400 font-medium">{action.stepNumber}</span>
+                        </div>
+                        <span className="text-sm text-slate-300">{action.title}</span>
+                        <Badge className="ml-auto text-[10px] bg-slate-600/50 text-slate-400">
+                          {action.priority}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Vendor Recommendations */}
+        {recommendations.length > 0 && (
+          <Card className="bg-slate-800/50 border-slate-700 mt-6">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-amber-400" />
+                Recommended Services
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                Personalized recommendations based on your credit profile
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {recommendations.map((rec) => {
+                  const url = rec.customAffiliateUrl || rec.affiliateUrl;
+                  const catColor = CATEGORY_COLORS[rec.vendorCategory] || CATEGORY_COLORS.OTHER;
+
+                  return (
+                    <div
+                      key={`${rec.vendorId}-${rec.ruleId}`}
+                      className="p-4 bg-slate-700/30 rounded-lg border border-slate-600/30 hover:border-slate-600/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="font-medium text-white">{rec.vendorName}</span>
+                        <Badge className={`text-[10px] ${catColor}`}>
+                          {rec.vendorCategory.replace(/_/g, " ")}
+                        </Badge>
+                      </div>
+                      <p className="text-sm font-semibold text-slate-200 mb-1">
+                        {rec.recommendationTitle}
+                      </p>
+                      <p className="text-sm text-slate-400 leading-relaxed">
+                        {rec.recommendationBody}
+                      </p>
+                      {rec.recommendationCTA && url && (
+                        <Button
+                          size="sm"
+                          className="mt-3 gap-2"
+                          onClick={async () => {
+                            try {
+                              await fetch("/api/portal/recommendations", {
+                                method: "POST",
+                                headers: {
+                                  "Content-Type": "application/json",
+                                  Authorization: `Bearer ${localStorage.getItem("portal_token")}`,
+                                },
+                                body: JSON.stringify({
+                                  vendorId: rec.vendorId,
+                                  triggerType: "PORTAL_VIEW",
+                                }),
+                              });
+                            } catch {
+                              // Tracking failure shouldn't block the user
+                            }
+                            window.open(url, "_blank", "noopener,noreferrer");
+                          }}
+                        >
+                          {rec.recommendationCTA}
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Footer */}
         <div className="mt-12 text-center">

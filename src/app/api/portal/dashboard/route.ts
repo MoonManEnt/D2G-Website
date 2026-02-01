@@ -126,6 +126,56 @@ export async function GET(request: NextRequest) {
       remaining: negativeAccounts.length - resolvedAccounts.length,
     };
 
+    // Fetch latest credit readiness analysis
+    const readinessAnalysis = await prisma.creditReadinessAnalysis.findFirst({
+      where: {
+        clientId,
+        organizationId: client.organizationId,
+      },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        productType: true,
+        approvalLikelihood: true,
+        approvalTier: true,
+        approvalExplanation: true,
+        relevantScoreModel: true,
+        relevantScore: true,
+        estimatedDTI: true,
+        actionPlan: true,
+        createdAt: true,
+      },
+    });
+
+    // Parse action plan steps (only first 3 for portal summary)
+    let readinessSummary = null;
+    if (readinessAnalysis) {
+      let actionSteps: Array<{ stepNumber: number; title: string; priority: string; category: string }> = [];
+      try {
+        const fullPlan = JSON.parse(readinessAnalysis.actionPlan);
+        actionSteps = (fullPlan || []).slice(0, 3).map((step: { stepNumber: number; title: string; priority: string; category: string }) => ({
+          stepNumber: step.stepNumber,
+          title: step.title,
+          priority: step.priority,
+          category: step.category,
+        }));
+      } catch {
+        // Ignore parse errors
+      }
+
+      readinessSummary = {
+        productType: readinessAnalysis.productType,
+        approvalLikelihood: readinessAnalysis.approvalLikelihood,
+        approvalTier: readinessAnalysis.approvalTier,
+        explanation: readinessAnalysis.approvalExplanation,
+        scoreModel: readinessAnalysis.relevantScoreModel,
+        relevantScore: readinessAnalysis.relevantScore,
+        estimatedDTI: readinessAnalysis.estimatedDTI ? Number(readinessAnalysis.estimatedDTI) : null,
+        topActions: actionSteps,
+        analyzedAt: readinessAnalysis.createdAt.toISOString(),
+      };
+    }
+
     return NextResponse.json({
       creditScores: {
         latest: latestScores,
@@ -133,6 +183,7 @@ export async function GET(request: NextRequest) {
       },
       disputes: disputeStats,
       negativeItems: negativeItemsStats,
+      readiness: readinessSummary,
       recentActivity: [],
     });
   } catch (error) {

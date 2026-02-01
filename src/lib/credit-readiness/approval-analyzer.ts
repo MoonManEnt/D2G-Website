@@ -15,11 +15,23 @@
 import type {
   ApprovalAnalysisResult,
   ApprovalTier,
+  CFPBTier,
+  ConfidenceLevel,
   CreditDataInput,
   Finding,
+  HardDisqualification,
+  LTVResult,
   ProductType,
+  ReadinessFactors,
 } from "./types";
-import { PRODUCT_SCORING_PROFILES, getRelevantScore } from "./scoring-models";
+import {
+  PRODUCT_SCORING_PROFILES,
+  getRelevantScore,
+  classifyCFPBTier,
+  normalizeScoreTo100,
+  normalizeDTITo100,
+  normalizeLTVTo100,
+} from "./scoring-models";
 import { calculateDTI } from "./dti-calculator";
 import { analyzeScoreGap } from "./score-gap-analyzer";
 import { generateActionPlan } from "./action-plan-generator";
@@ -37,36 +49,70 @@ export function analyzeApprovalLikelihood(
   // Step 1: Get the relevant score for this product type
   const scoreResult = getRelevantScore(creditData.creditScores, productType);
 
-  // Step 2: Calculate DTI if income is provided and product has maxDTI
+  // Step 2: Calculate DTI if income is provided
   let dtiResult = null;
-  if (creditData.statedIncome && creditData.statedIncome > 0 && profile.maxDTI) {
+  if (creditData.statedIncome && creditData.statedIncome > 0) {
     dtiResult = calculateDTI(
       creditData.accounts,
       creditData.statedIncome,
-      profile.maxDTI
+      profile.maxDTI,
+      productType
     );
   }
 
-  // Step 3: Determine approval tier based on score vs ranges
-  const approvalTier = determineApprovalTier(scoreResult.score, profile.minimumScoreRanges);
+  // Step 3: Calculate LTV if applicable (secured products)
+  let ltvResult: LTVResult | null = null;
+  if (creditData.ltvInput && profile.factorWeights.ltv > 0) {
+    ltvResult = calculateLTV(creditData.ltvInput.loanAmount, creditData.ltvInput.assetValue, productType);
+  }
 
-  // Step 4: Calculate approval likelihood (0-100)
-  const approvalLikelihood = calculateApprovalLikelihood(
+  // Step 4: Classify CFPB tier
+  const cfpbTier = classifyCFPBTier(scoreResult.score);
+
+  // Step 5: Check hard disqualification rules
+  const hardDisqualifications = checkHardDisqualifications(
     scoreResult.score,
-    profile.minimumScoreRanges,
     dtiResult,
-    creditData
+    creditData,
+    productType
   );
 
-  // Step 5: Generate findings
+  // Step 6: Calculate multi-factor readiness score
+  const readinessFactors = calculateReadinessFactors(
+    scoreResult.score,
+    dtiResult?.estimatedDTI ?? null,
+    ltvResult?.ltv ?? null,
+    creditData,
+    profile.factorWeights
+  );
+
+  // Step 7: Determine approval likelihood & tier
+  let approvalLikelihood: number;
+  let approvalTier: ApprovalTier;
+
+  if (hardDisqualifications.length > 0) {
+    approvalLikelihood = Math.min(readinessFactors.compositeScore, 15);
+    approvalTier = "NOT_READY";
+  } else {
+    approvalLikelihood = readinessFactors.compositeScore;
+    approvalTier = determineApprovalTier(approvalLikelihood);
+  }
+
+  // Step 8: Determine confidence level
+  const confidenceLevel = determineConfidenceLevel(creditData, scoreResult.confidence);
+
+  // Step 9: Generate findings
   const findings = generateFindings(
     scoreResult.score,
     profile,
     dtiResult,
-    creditData
+    ltvResult,
+    creditData,
+    cfpbTier,
+    hardDisqualifications
   );
 
-  // Step 6: Score gap analysis
+  // Step 10: Score gap analysis
   const targetScore = profile.minimumScoreRanges.good;
   const scoreGap = analyzeScoreGap(
     scoreResult.score ?? 0,
@@ -75,7 +121,7 @@ export function analyzeApprovalLikelihood(
     creditData
   );
 
-  // Step 7: Generate action plan
+  // Step 11: Generate action plan
   const actionPlan = generateActionPlan(
     productType,
     creditData,
@@ -83,7 +129,7 @@ export function analyzeApprovalLikelihood(
     dtiResult
   );
 
-  // Step 8: Build explanation
+  // Step 12: Build explanation
   const explanation = buildExplanation(
     productType,
     profile,
@@ -91,19 +137,28 @@ export function analyzeApprovalLikelihood(
     approvalTier,
     approvalLikelihood,
     dtiResult,
+    ltvResult,
     creditData,
-    findings
+    findings,
+    cfpbTier,
+    confidenceLevel,
+    hardDisqualifications
   );
 
   return {
     productType,
     approvalLikelihood,
     approvalTier,
+    cfpbTier,
+    confidenceLevel,
     explanation,
     relevantScoreModel: scoreResult.model,
     relevantScore: scoreResult.score,
     triMergeMiddle: scoreResult.triMergeMiddle,
     dti: dtiResult,
+    ltv: ltvResult,
+    readinessFactors,
+    hardDisqualifications,
     scoreGap,
     findings,
     actionPlan,
@@ -111,156 +166,293 @@ export function analyzeApprovalLikelihood(
 }
 
 // =============================================================================
-// APPROVAL TIER DETERMINATION
+// MULTI-FACTOR READINESS FORMULA
 // =============================================================================
 
-function determineApprovalTier(
+/**
+ * Calculate composite readiness score using the multi-factor weighted formula:
+ * READINESS_SCORE = (Credit_Factor × W1) + (DTI_Factor × W2) + (LTV_Factor × W3) + (History_Factor × W4)
+ *
+ * Each factor is normalized to 0-100, then weighted per product type.
+ */
+function calculateReadinessFactors(
   score: number | null,
-  ranges: { excellent: number; good: number; fair: number; poor: number }
-): ApprovalTier {
-  if (score === null) return "NOT_READY";
-  if (score >= ranges.good) return "LIKELY";
-  if (score >= ranges.fair) return "POSSIBLE";
-  if (score >= ranges.poor) return "UNLIKELY";
+  dti: number | null,
+  ltv: number | null,
+  creditData: CreditDataInput,
+  weights: { credit: number; dti: number; ltv: number; history: number }
+): ReadinessFactors {
+  const creditFactor = normalizeScoreTo100(score);
+  const dtiFactor = normalizeDTITo100(dti);
+  const ltvFactor = normalizeLTVTo100(ltv);
+  const historyFactor = calculateHistoryFactor(creditData);
+
+  // If LTV weight is 0 (unsecured products), redistribute its weight
+  const effectiveWeights = { ...weights };
+  if (effectiveWeights.ltv === 0) {
+    // LTV not applicable - distribute LTV weight proportionally to other factors
+    const nonLtvTotal = effectiveWeights.credit + effectiveWeights.dti + effectiveWeights.history;
+    if (nonLtvTotal > 0) {
+      effectiveWeights.credit = effectiveWeights.credit / nonLtvTotal;
+      effectiveWeights.dti = effectiveWeights.dti / nonLtvTotal;
+      effectiveWeights.history = effectiveWeights.history / nonLtvTotal;
+    }
+  }
+
+  const compositeScore = Math.round(
+    creditFactor * effectiveWeights.credit +
+    dtiFactor * effectiveWeights.dti +
+    ltvFactor * effectiveWeights.ltv +
+    historyFactor * effectiveWeights.history
+  );
+
+  return {
+    creditFactor,
+    dtiFactor,
+    ltvFactor,
+    historyFactor,
+    weights: effectiveWeights,
+    compositeScore: Math.max(0, Math.min(100, compositeScore)),
+  };
+}
+
+/**
+ * Calculate a 0-100 history factor based on:
+ * - Payment history (proportion of clean accounts)
+ * - Account age (average age vs 7-year ideal)
+ * - Credit mix diversity
+ * - Collections/derogatories penalty
+ */
+function calculateHistoryFactor(creditData: CreditDataInput): number {
+  if (creditData.accounts.length === 0) return 20;
+
+  let score = 0;
+
+  // Payment history (0-40 points): proportion of non-disputable accounts
+  const totalAccounts = creditData.accounts.length;
+  const cleanAccounts = creditData.accounts.filter(a => !a.isDisputable).length;
+  const cleanRatio = totalAccounts > 0 ? cleanAccounts / totalAccounts : 0;
+  score += Math.round(cleanRatio * 40);
+
+  // Account age (0-30 points): average age vs 7-year ideal (84 months)
+  let totalAge = 0;
+  let accountsWithDates = 0;
+  const now = Date.now();
+  for (const account of creditData.accounts) {
+    if (account.dateOpened) {
+      const ageMonths = (now - new Date(account.dateOpened).getTime()) / (1000 * 60 * 60 * 24 * 30.44);
+      totalAge += ageMonths;
+      accountsWithDates++;
+    }
+  }
+  const avgAgeMonths = accountsWithDates > 0 ? totalAge / accountsWithDates : 0;
+  const agePct = Math.min(1, avgAgeMonths / 84);
+  score += Math.round(agePct * 30);
+
+  // Credit mix (0-15 points): diversity of account types
+  const types = new Set<string>();
+  for (const account of creditData.accounts) {
+    const type = (account.accountType || "").toLowerCase();
+    if (type.includes("revolving") || type.includes("credit card")) types.add("revolving");
+    else if (type.includes("installment") || type.includes("auto") || type.includes("student")) types.add("installment");
+    else if (type.includes("mortgage") || type.includes("real estate")) types.add("mortgage");
+    else if (!type.includes("collection") && type) types.add("other");
+  }
+  score += Math.min(15, types.size * 5);
+
+  // Account count bonus (0-15 points): having enough accounts
+  const accountCountPct = Math.min(1, creditData.accounts.length / 8);
+  score += Math.round(accountCountPct * 15);
+
+  return Math.max(0, Math.min(100, score));
+}
+
+// =============================================================================
+// LTV CALCULATION
+// =============================================================================
+
+function calculateLTV(
+  loanAmount: number,
+  assetValue: number,
+  productType: ProductType
+): LTVResult {
+  if (assetValue <= 0) {
+    return { ltv: 100, status: "CRITICAL", details: "Unable to calculate LTV: asset value is zero or not provided." };
+  }
+
+  const ltv = (loanAmount / assetValue) * 100;
+  let status: LTVResult["status"];
+  let details: string;
+
+  if (productType === "MORTGAGE") {
+    if (ltv <= 80) {
+      status = "GOOD";
+      details = `LTV of ${ltv.toFixed(1)}% is excellent. No PMI required at 80% or below.`;
+    } else if (ltv <= 90) {
+      status = "ACCEPTABLE";
+      details = `LTV of ${ltv.toFixed(1)}% requires private mortgage insurance (PMI) but is within acceptable limits.`;
+    } else if (ltv <= 97) {
+      status = "HIGH";
+      details = `LTV of ${ltv.toFixed(1)}% is high. Maximum conventional LTV is 97% with PMI. Consider a larger down payment.`;
+    } else {
+      status = "CRITICAL";
+      details = `LTV of ${ltv.toFixed(1)}% exceeds the 97% maximum for conventional mortgages. A larger down payment is required.`;
+    }
+  } else {
+    // Auto and other secured products
+    if (ltv <= 80) {
+      status = "GOOD";
+      details = `LTV of ${ltv.toFixed(1)}% is well within acceptable limits.`;
+    } else if (ltv <= 100) {
+      status = "ACCEPTABLE";
+      details = `LTV of ${ltv.toFixed(1)}% is typical for this product type.`;
+    } else if (ltv <= 120) {
+      status = "HIGH";
+      details = `LTV of ${ltv.toFixed(1)}% means the loan exceeds the asset value. Approval may require strong credit.`;
+    } else {
+      status = "CRITICAL";
+      details = `LTV of ${ltv.toFixed(1)}% is significantly underwater. Most lenders will not approve at this ratio.`;
+    }
+  }
+
+  return { ltv: Math.round(ltv * 10) / 10, status, details };
+}
+
+// =============================================================================
+// HARD DISQUALIFICATION RULES
+// =============================================================================
+
+/**
+ * Check for conditions that should trigger automatic "Not Ready" status
+ * regardless of composite score.
+ */
+function checkHardDisqualifications(
+  score: number | null,
+  dtiResult: { status: string; estimatedDTI: number } | null,
+  creditData: CreditDataInput,
+  productType: ProductType
+): HardDisqualification[] {
+  const disqualifications: HardDisqualification[] = [];
+  const profile = PRODUCT_SCORING_PROFILES[productType];
+
+  // 1. Credit score below product minimum
+  if (score !== null && score < profile.minimumScoreRanges.poor) {
+    disqualifications.push({
+      reason: "Credit score below minimum",
+      detail: `Score of ${score} is below the minimum threshold of ${profile.minimumScoreRanges.poor} for ${profile.displayName}.`,
+    });
+  }
+
+  // 2. DTI above product maximum
+  const maxDTI = profile.dtiThresholds?.max ?? profile.maxDTI ?? 50;
+  if (dtiResult && dtiResult.estimatedDTI > maxDTI) {
+    disqualifications.push({
+      reason: "DTI exceeds maximum",
+      detail: `DTI of ${dtiResult.estimatedDTI.toFixed(1)}% exceeds the ${maxDTI}% maximum for ${profile.displayName}.`,
+    });
+  }
+
+  // 3. Recent bankruptcy
+  if (creditData.hasBankruptcy && creditData.bankruptcyDischargeDate) {
+    const dischargeDate = new Date(creditData.bankruptcyDischargeDate);
+    const yearsSinceDischarge = (Date.now() - dischargeDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+
+    if (creditData.bankruptcyType === "CHAPTER_7") {
+      const waitYears = productType === "MORTGAGE" ? 4 : 2;
+      if (yearsSinceDischarge < waitYears) {
+        disqualifications.push({
+          reason: "Recent Chapter 7 bankruptcy",
+          detail: `Chapter 7 bankruptcy discharged ${yearsSinceDischarge.toFixed(1)} years ago. Most lenders require ${waitYears}+ years for ${profile.displayName}.`,
+          waitPeriod: `${waitYears} years from discharge`,
+        });
+      }
+    } else if (creditData.bankruptcyType === "CHAPTER_13") {
+      const waitYears = productType === "MORTGAGE" ? 2 : 1;
+      if (yearsSinceDischarge < waitYears) {
+        disqualifications.push({
+          reason: "Recent Chapter 13 bankruptcy",
+          detail: `Chapter 13 bankruptcy discharged ${yearsSinceDischarge.toFixed(1)} years ago. Most lenders require ${waitYears}+ years for ${profile.displayName}.`,
+          waitPeriod: `${waitYears} years from discharge`,
+        });
+      }
+    }
+  }
+
+  // 4. Recent foreclosure (primarily for mortgage)
+  if (creditData.hasForeclosure && creditData.foreclosureDate) {
+    const foreclosureDate = new Date(creditData.foreclosureDate);
+    const yearsSince = (Date.now() - foreclosureDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+    const waitYears = productType === "MORTGAGE" ? 7 : 3;
+
+    if (yearsSince < waitYears) {
+      disqualifications.push({
+        reason: "Recent foreclosure",
+        detail: `Foreclosure ${yearsSince.toFixed(1)} years ago. Most lenders require ${waitYears}+ years for ${profile.displayName}.`,
+        waitPeriod: `${waitYears} years from foreclosure`,
+      });
+    }
+  }
+
+  // 5. Active collections for prime products (MORTGAGE, CREDIT_CARD with good score ranges)
+  if (productType === "MORTGAGE" || productType === "CREDIT_CARD") {
+    const activeCollections = creditData.accounts.filter(a => {
+      const type = (a.accountType || "").toLowerCase();
+      const status = a.accountStatus.toLowerCase();
+      return (type.includes("collection") || status.includes("collection")) && (a.balance ?? 0) > 0;
+    });
+    if (activeCollections.length > 0 && score !== null && score >= 660) {
+      // For prime-level scores, active collections are a hard stop for most lenders
+      disqualifications.push({
+        reason: "Active collections on prime application",
+        detail: `${activeCollections.length} active collection(s) with outstanding balances. Most prime lenders require collection resolution before approval.`,
+      });
+    }
+  }
+
+  return disqualifications;
+}
+
+// =============================================================================
+// APPROVAL TIER DETERMINATION (from composite score)
+// =============================================================================
+
+function determineApprovalTier(compositeScore: number): ApprovalTier {
+  if (compositeScore >= 70) return "LIKELY";
+  if (compositeScore >= 50) return "POSSIBLE";
+  if (compositeScore >= 30) return "UNLIKELY";
   return "NOT_READY";
 }
 
 // =============================================================================
-// APPROVAL LIKELIHOOD CALCULATION
+// CONFIDENCE LEVEL DETERMINATION
 // =============================================================================
 
 /**
- * Calculate the approval likelihood score (0-100).
- *
- * Base likelihood from score tier:
- * - Score >= excellent: 85-95
- * - Score >= good:      65-80
- * - Score >= fair:      35-55
- * - Score >= poor:      15-30
- * - Below poor:         5-15
- *
- * Then apply modifiers:
- * - DTI penalty: -5 to -25 depending on severity
- * - Derogatory account penalty: -2 per derogatory item (max -20)
- * - Collection penalty: -5 per collection (max -25)
- * - Inquiry penalty: -1 per excess inquiry over 3 (max -10)
- * - Long credit history bonus: +5
- * - Good payment history bonus: +5
- * - Low utilization bonus: +5
+ * Determine confidence level based on available data:
+ * - HIGH: All three bureau scores + full income/debt data
+ * - MEDIUM: Single bureau score + estimated income
+ * - LOW: Estimated score + limited financial data
  */
-function calculateApprovalLikelihood(
-  score: number | null,
-  ranges: { excellent: number; good: number; fair: number; poor: number },
-  dtiResult: { status: string; estimatedDTI: number } | null,
-  creditData: CreditDataInput
-): number {
-  if (score === null) return 5;
+function determineConfidenceLevel(
+  creditData: CreditDataInput,
+  scoreConfidence: number
+): ConfidenceLevel {
+  const bureauCount = new Set(creditData.creditScores.map(s => s.cra)).size;
+  const hasFullIncome = creditData.statedIncome != null && creditData.statedIncome > 0;
+  const hasMonthlyPayments = creditData.accounts.some(a => a.monthlyPayment !== null && a.monthlyPayment > 0);
 
-  // Base likelihood from score tier
-  let likelihood: number;
-  if (score >= ranges.excellent) {
-    // Linearly scale from 85 to 95 between good and 850
-    const pct = Math.min(1, (score - ranges.excellent) / (850 - ranges.excellent));
-    likelihood = 85 + pct * 10;
-  } else if (score >= ranges.good) {
-    const pct = (score - ranges.good) / (ranges.excellent - ranges.good);
-    likelihood = 65 + pct * 15;
-  } else if (score >= ranges.fair) {
-    const pct = (score - ranges.fair) / (ranges.good - ranges.fair);
-    likelihood = 35 + pct * 20;
-  } else if (score >= ranges.poor) {
-    const pct = (score - ranges.poor) / (ranges.fair - ranges.poor);
-    likelihood = 15 + pct * 15;
-  } else {
-    const pct = Math.max(0, (score - 300) / (ranges.poor - 300));
-    likelihood = 5 + pct * 10;
+  // HIGH: 3 bureaus + full income data
+  if (bureauCount >= 3 && hasFullIncome && hasMonthlyPayments && scoreConfidence >= 80) {
+    return "HIGH";
   }
 
-  // --- NEGATIVE MODIFIERS ---
-
-  // DTI penalty
-  if (dtiResult) {
-    switch (dtiResult.status) {
-      case "BORDERLINE":
-        likelihood -= 5;
-        break;
-      case "HIGH":
-        likelihood -= 15;
-        break;
-      case "CRITICAL":
-        likelihood -= 25;
-        break;
-    }
+  // MEDIUM: at least 1 bureau + some income data
+  if (bureauCount >= 1 && (hasFullIncome || creditData.accounts.length > 3) && scoreConfidence >= 60) {
+    return "MEDIUM";
   }
 
-  // Collection accounts penalty
-  const collections = creditData.accounts.filter(a => {
-    const type = (a.accountType || "").toLowerCase();
-    const status = a.accountStatus.toLowerCase();
-    return type.includes("collection") || status.includes("collection");
-  });
-  likelihood -= Math.min(25, collections.length * 5);
-
-  // Charge-off penalty
-  const chargeOffs = creditData.accounts.filter(a => {
-    const status = a.accountStatus.toLowerCase();
-    return status.includes("charge") || status === "charged_off";
-  });
-  likelihood -= Math.min(15, chargeOffs.length * 5);
-
-  // General derogatory items penalty (other negative items)
-  const otherNegative = creditData.accounts.filter(a => {
-    const type = (a.accountType || "").toLowerCase();
-    const status = a.accountStatus.toLowerCase();
-    return (
-      a.isDisputable &&
-      !type.includes("collection") &&
-      !status.includes("collection") &&
-      !status.includes("charge")
-    );
-  });
-  likelihood -= Math.min(20, otherNegative.length * 2);
-
-  // Inquiry penalty (excess over 3)
-  const excessInquiries = Math.max(0, (creditData.inquiryCount ?? 0) - 3);
-  likelihood -= Math.min(10, excessInquiries * 1.5);
-
-  // --- POSITIVE MODIFIERS ---
-
-  // Long credit history bonus
-  const hasOldAccounts = creditData.accounts.some(a => {
-    if (!a.dateOpened) return false;
-    const ageMs = Date.now() - new Date(a.dateOpened).getTime();
-    const ageYears = ageMs / (1000 * 60 * 60 * 24 * 365.25);
-    return ageYears >= 5;
-  });
-  if (hasOldAccounts) {
-    likelihood += 5;
-  }
-
-  // Good payment history bonus (few disputable accounts relative to total)
-  const totalAccounts = creditData.accounts.length;
-  const disputableCount = creditData.accounts.filter(a => a.isDisputable).length;
-  if (totalAccounts > 3 && disputableCount / totalAccounts < 0.2) {
-    likelihood += 5;
-  }
-
-  // Low utilization bonus
-  let totalBalance = 0;
-  let totalLimit = 0;
-  for (const account of creditData.accounts) {
-    if (account.creditLimit && account.creditLimit > 0 && account.balance !== null) {
-      totalBalance += account.balance;
-      totalLimit += account.creditLimit;
-    }
-  }
-  const overallUtil = totalLimit > 0 ? (totalBalance / totalLimit) * 100 : 0;
-  if (overallUtil < 30 && totalLimit > 0) {
-    likelihood += 5;
-  }
-
-  // Clamp to 0-100
-  return Math.max(0, Math.min(100, Math.round(likelihood)));
+  // LOW: estimated scores or limited data
+  return "LOW";
 }
 
 // =============================================================================
@@ -271,9 +463,61 @@ function generateFindings(
   score: number | null,
   profile: ReturnType<typeof PRODUCT_SCORING_PROFILES extends Record<string, infer R> ? () => R : never>,
   dtiResult: { status: string; estimatedDTI: number; maxRecommendedDTI: number } | null,
-  creditData: CreditDataInput
+  ltvResult: LTVResult | null,
+  creditData: CreditDataInput,
+  cfpbTier: CFPBTier,
+  hardDisqualifications: HardDisqualification[]
 ): Finding[] {
   const findings: Finding[] = [];
+
+  // Hard disqualification findings (highest priority)
+  for (const disq of hardDisqualifications) {
+    findings.push({
+      category: "Hard Disqualification",
+      severity: "CRITICAL",
+      title: disq.reason,
+      detail: disq.detail,
+      impact: disq.waitPeriod
+        ? `Must wait ${disq.waitPeriod} before applying`
+        : "Must be resolved before applying",
+    });
+  }
+
+  // CFPB tier finding
+  if (score !== null) {
+    const tierLabels: Record<CFPBTier, string> = {
+      SUPER_PRIME: "Super-Prime",
+      PRIME: "Prime",
+      NEAR_PRIME: "Near-Prime",
+      SUBPRIME: "Subprime",
+      DEEP_SUBPRIME: "Deep Subprime",
+    };
+    const tierSeverity: Record<CFPBTier, Finding["severity"]> = {
+      SUPER_PRIME: "POSITIVE",
+      PRIME: "POSITIVE",
+      NEAR_PRIME: "WARNING",
+      SUBPRIME: "NEGATIVE",
+      DEEP_SUBPRIME: "CRITICAL",
+    };
+
+    findings.push({
+      category: "CFPB Credit Tier",
+      severity: tierSeverity[cfpbTier],
+      title: `${tierLabels[cfpbTier]} Credit Tier (${score})`,
+      detail: cfpbTier === "SUPER_PRIME"
+        ? `Score of ${score} places you in the Super-Prime tier (720+). Best rates on all products.`
+        : cfpbTier === "PRIME"
+        ? `Score of ${score} places you in the Prime tier (660-719). Good rates, most products available.`
+        : cfpbTier === "NEAR_PRIME"
+        ? `Score of ${score} places you in the Near-Prime tier (620-659). Minimum for conventional mortgage. Higher rates likely.`
+        : cfpbTier === "SUBPRIME"
+        ? `Score of ${score} places you in the Subprime tier (580-619). FHA mortgage minimum. Limited product access.`
+        : `Score of ${score} places you in the Deep Subprime tier (below 580). Very limited options available.`,
+      impact: cfpbTier === "SUPER_PRIME" || cfpbTier === "PRIME"
+        ? "Competitive rates and broad product access"
+        : "Score improvement needed for better rates and product access",
+    });
+  }
 
   // Score finding
   if (score !== null) {
@@ -368,6 +612,27 @@ function generateFindings(
         });
         break;
     }
+  }
+
+  // LTV finding
+  if (ltvResult) {
+    const ltvSeverity: Record<LTVResult["status"], Finding["severity"]> = {
+      GOOD: "POSITIVE",
+      ACCEPTABLE: "WARNING",
+      HIGH: "NEGATIVE",
+      CRITICAL: "CRITICAL",
+    };
+    findings.push({
+      category: "Loan-to-Value",
+      severity: ltvSeverity[ltvResult.status],
+      title: `LTV Ratio: ${ltvResult.ltv.toFixed(1)}%`,
+      detail: ltvResult.details,
+      impact: ltvResult.status === "GOOD"
+        ? "Strong collateral position"
+        : ltvResult.status === "ACCEPTABLE"
+        ? "Additional costs (PMI) may apply"
+        : "LTV is a significant concern for approval",
+    });
   }
 
   // Collection accounts finding
@@ -505,8 +770,12 @@ function buildExplanation(
   approvalTier: string,
   approvalLikelihood: number,
   dtiResult: { status: string; estimatedDTI: number } | null,
+  ltvResult: LTVResult | null,
   creditData: CreditDataInput,
-  findings: Finding[]
+  findings: Finding[],
+  cfpbTier: CFPBTier,
+  confidenceLevel: ConfidenceLevel,
+  hardDisqualifications: HardDisqualification[]
 ): string {
   const parts: string[] = [];
 
@@ -516,10 +785,26 @@ function buildExplanation(
     `${profile.description}\n`
   );
 
+  // Confidence indicator
+  const confidenceLabels: Record<ConfidenceLevel, string> = {
+    HIGH: "High (3+ bureau scores + full income data)",
+    MEDIUM: "Medium (limited bureau data or estimated income)",
+    LOW: "Low (estimated scores + limited financial data)",
+  };
+  parts.push(`ANALYSIS CONFIDENCE: ${confidenceLabels[confidenceLevel]}\n`);
+
   // Score analysis
   if (scoreResult.score !== null) {
+    const tierLabels: Record<CFPBTier, string> = {
+      SUPER_PRIME: "Super-Prime",
+      PRIME: "Prime",
+      NEAR_PRIME: "Near-Prime",
+      SUBPRIME: "Subprime",
+      DEEP_SUBPRIME: "Deep Subprime",
+    };
+
     parts.push(
-      `YOUR RELEVANT SCORE: ${scoreResult.score} (${scoreResult.model})` +
+      `YOUR RELEVANT SCORE: ${scoreResult.score} (${scoreResult.model}) - ${tierLabels[cfpbTier]} Tier` +
       (scoreResult.confidence < 100
         ? ` [Estimated with ${scoreResult.confidence}% confidence]`
         : "") +
@@ -529,11 +814,19 @@ function buildExplanation(
     if (scoreResult.triMergeMiddle !== null) {
       parts.push(
         `TRI-MERGE MIDDLE SCORE: ${scoreResult.triMergeMiddle} ` +
-        "(Mortgage lenders use the middle of your FICO 2, 4, and 5 scores)\n"
+        "(Mortgage lenders use the middle of your FICO 2, 4, and 5 scores, or VantageScore 4.0 for Fannie/Freddie)\n"
       );
     }
   } else {
     parts.push("YOUR RELEVANT SCORE: Unable to determine\n");
+  }
+
+  // Hard disqualifications
+  if (hardDisqualifications.length > 0) {
+    parts.push("\nHARD DISQUALIFICATIONS:\n");
+    for (const disq of hardDisqualifications) {
+      parts.push(`  - ${disq.reason}: ${disq.detail}\n`);
+    }
   }
 
   // Approval assessment
@@ -551,13 +844,20 @@ function buildExplanation(
   };
 
   parts.push(
-    `APPROVAL LIKELIHOOD: ${approvalLikelihood}% - ${tierDescriptions[approvalTier]}\n`
+    `\nAPPROVAL LIKELIHOOD: ${approvalLikelihood}% - ${tierDescriptions[approvalTier]}\n`
   );
 
   // DTI summary
   if (dtiResult) {
     parts.push(
       `DEBT-TO-INCOME: ${dtiResult.estimatedDTI.toFixed(1)}% (${dtiResult.status})\n`
+    );
+  }
+
+  // LTV summary
+  if (ltvResult) {
+    parts.push(
+      `LOAN-TO-VALUE: ${ltvResult.ltv.toFixed(1)}% (${ltvResult.status})\n`
     );
   }
 

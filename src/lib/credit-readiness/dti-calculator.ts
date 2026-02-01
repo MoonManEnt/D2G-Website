@@ -6,7 +6,8 @@
  * products that consider DTI (mortgages, auto loans, personal loans).
  */
 
-import type { DTIResult, CreditDataInput } from "./types";
+import type { DTIResult, CreditDataInput, ProductType } from "./types";
+import { PRODUCT_SCORING_PROFILES } from "./scoring-models";
 
 // =============================================================================
 // DTI CALCULATION
@@ -22,16 +23,19 @@ import type { DTIResult, CreditDataInput } from "./types";
  *   - Revolving accounts: balance * 0.02 (minimum payment ~2% of balance)
  *   - Installment accounts: balance * 0.01 (typical monthly installment ~1% of balance)
  * - DTI = (totalMonthlyDebt / monthlyIncome) * 100
- * - Status thresholds:
- *   - GOOD: DTI < 30%
- *   - BORDERLINE: 30% <= DTI < 36%
- *   - HIGH: 36% <= DTI < 43%
- *   - CRITICAL: DTI >= 43%
+ * - Status thresholds are product-specific:
+ *   - Conventional Mortgage: 36-45% (36% manual, 45% with compensating factors, 50% max via DU)
+ *   - FHA Mortgage: 43-50% (more lenient)
+ *   - VA Mortgage: 41% standard max
+ *   - Auto Loan: 40-50% varies by lender
+ *   - Credit Card: ~36% general guideline
+ *   - Personal Loan: 36-50% varies by lender
  */
 export function calculateDTI(
   accounts: CreditDataInput["accounts"],
   statedIncome: number,
-  maxRecommendedDTI?: number
+  maxRecommendedDTI?: number,
+  productType?: ProductType
 ): DTIResult {
   const monthlyIncome = statedIncome / 12;
 
@@ -47,7 +51,6 @@ export function calculateDTI(
   }
 
   let totalMonthlyDebt = 0;
-  const debtBreakdown: string[] = [];
 
   for (const account of accounts) {
     // Skip accounts with no balance data
@@ -74,51 +77,56 @@ export function calculateDTI(
 
     if (monthlyDebt > 0) {
       totalMonthlyDebt += monthlyDebt;
-      debtBreakdown.push(
-        `${account.creditorName}: $${monthlyDebt.toFixed(2)}/mo`
-      );
     }
   }
 
   const estimatedDTI = (totalMonthlyDebt / monthlyIncome) * 100;
-  const effectiveMaxDTI = maxRecommendedDTI ?? 43;
 
-  // Determine status
+  // Use product-specific thresholds if available
+  const profile = productType ? PRODUCT_SCORING_PROFILES[productType] : null;
+  const thresholds = profile?.dtiThresholds;
+  const effectiveMaxDTI = maxRecommendedDTI ?? thresholds?.max ?? 43;
+  const goodThreshold = thresholds?.good ?? 28;
+  const borderlineThreshold = thresholds?.borderline ?? 36;
+  const highThreshold = thresholds?.high ?? 43;
+
+  // Determine status using product-specific thresholds
   let status: DTIResult["status"];
-  if (estimatedDTI < 30) {
+  if (estimatedDTI < goodThreshold) {
     status = "GOOD";
-  } else if (estimatedDTI < 36) {
+  } else if (estimatedDTI < borderlineThreshold) {
     status = "BORDERLINE";
-  } else if (estimatedDTI < 43) {
+  } else if (estimatedDTI < highThreshold) {
     status = "HIGH";
   } else {
     status = "CRITICAL";
   }
 
   // Build details string
+  const productLabel = profile?.displayName ?? "this product";
   let details: string;
   switch (status) {
     case "GOOD":
       details =
         `Your estimated DTI of ${estimatedDTI.toFixed(1)}% is healthy. ` +
-        `Lenders typically prefer DTI under ${effectiveMaxDTI}%. ` +
+        `Lenders for ${productLabel} typically prefer DTI under ${effectiveMaxDTI}%. ` +
         `Monthly debt of $${totalMonthlyDebt.toFixed(2)} against monthly income of $${monthlyIncome.toFixed(2)} is manageable.`;
       break;
     case "BORDERLINE":
       details =
-        `Your estimated DTI of ${estimatedDTI.toFixed(1)}% is borderline. ` +
+        `Your estimated DTI of ${estimatedDTI.toFixed(1)}% is borderline for ${productLabel}. ` +
         `While some lenders accept up to ${effectiveMaxDTI}%, a lower DTI strengthens your application. ` +
         `Consider paying down revolving debt to improve your ratio.`;
       break;
     case "HIGH":
       details =
-        `Your estimated DTI of ${estimatedDTI.toFixed(1)}% is elevated. ` +
-        `Many lenders cap approval at ${effectiveMaxDTI}% DTI. ` +
+        `Your estimated DTI of ${estimatedDTI.toFixed(1)}% is elevated for ${productLabel}. ` +
+        `Many lenders cap approval at ${highThreshold}% DTI for this product type. ` +
         `Reducing monthly debt obligations or increasing documented income will help.`;
       break;
     case "CRITICAL":
       details =
-        `Your estimated DTI of ${estimatedDTI.toFixed(1)}% exceeds the recommended maximum of ${effectiveMaxDTI}%. ` +
+        `Your estimated DTI of ${estimatedDTI.toFixed(1)}% exceeds the recommended maximum of ${effectiveMaxDTI}% for ${productLabel}. ` +
         `Most lenders will not approve at this ratio. ` +
         `Significant debt reduction or income increase is needed before applying.`;
       break;

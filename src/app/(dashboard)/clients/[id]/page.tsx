@@ -57,6 +57,7 @@ import { EvidenceCaptureModal } from "@/components/evidence/capture-modal";
 import { ScoreChart, AddScoreModal } from "@/components/credit-scores";
 import { useToast } from "@/lib/use-toast";
 import { DisputeCommandCenter } from "@/components/disputes/dispute-command-center";
+import { VendorRecommendationsCard } from "@/components/vendors/vendor-recommendations-card";
 import {
   getDNAClassificationLabel,
   getDNAClassificationDescription,
@@ -1679,6 +1680,9 @@ export default function ClientDetailPage() {
               ))}
             </div>
           </div>
+
+          {/* Vendor Recommendations */}
+          <VendorRecommendationsCard clientId={clientId} />
         </TabsContent>
       </Tabs>
 

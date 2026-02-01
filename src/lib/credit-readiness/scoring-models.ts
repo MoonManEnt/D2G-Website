@@ -10,7 +10,7 @@
  * product-specific FICO model (e.g., FICO Auto 8, FICO Score 2).
  */
 
-import type { ProductType, ScoringModelProfile, FICOModel } from "./types";
+import type { ProductType, ScoringModelProfile, FICOModel, CFPBTier } from "./types";
 
 // =============================================================================
 // PRODUCT SCORING PROFILES
@@ -20,63 +20,84 @@ export const PRODUCT_SCORING_PROFILES: Record<ProductType, ScoringModelProfile> 
   MORTGAGE: {
     productType: "MORTGAGE",
     displayName: "Mortgage (Home Purchase/Refinance)",
-    primaryModels: ["FICO_SCORE_2", "FICO_SCORE_4", "FICO_SCORE_5"],
+    primaryModels: ["VANTAGE_4"],
+    alternativeModels: ["FICO_SCORE_2", "FICO_SCORE_4", "FICO_SCORE_5", "FICO_10"],
     scoringMethod: "TRI_MERGE_MIDDLE",
     minimumScoreRanges: { excellent: 760, good: 700, fair: 620, poor: 580 },
     maxDTI: 43,
+    dtiThresholds: { good: 28, borderline: 36, high: 43, max: 50 },
+    factorWeights: { credit: 0.30, dti: 0.30, ltv: 0.25, history: 0.15 },
     additionalFactors: [
       "2+ years employment history",
       "Down payment (3.5-20%)",
-      "Cash reserves",
-      "No recent bankruptcies (2-4 years)",
+      "Cash reserves (2-6 months PITI)",
+      "No recent bankruptcies (Ch7: 4yr, Ch13: 2yr)",
+      "No foreclosures within 3-7 years",
+      "LTV ratio (80% or less avoids PMI)",
     ],
     description:
-      "Mortgage lenders use FICO Score 2 (Experian), 4 (TransUnion), and 5 (Equifax). They take the middle score of all three bureaus.",
+      "Mortgage lenders now use VantageScore 4.0 as the primary model for Fannie Mae/Freddie Mac conforming loans. " +
+      "Legacy FICO Score 2/4/5 tri-merge middle is still used by some lenders. Scores are evaluated across all three bureaus.",
   },
   AUTO: {
     productType: "AUTO",
     displayName: "Auto Loan",
-    primaryModels: ["FICO_AUTO_8", "FICO_AUTO_9"],
+    primaryModels: ["FICO_AUTO_8"],
+    alternativeModels: ["FICO_AUTO_9", "FICO_8"],
     scoringMethod: "SINGLE",
     bureauPreference: ["EXPERIAN", "EQUIFAX"],
     minimumScoreRanges: { excellent: 740, good: 670, fair: 600, poor: 500 },
     maxDTI: 50,
+    dtiThresholds: { good: 28, borderline: 36, high: 45, max: 50 },
+    factorWeights: { credit: 0.40, dti: 0.25, ltv: 0.20, history: 0.15 },
     additionalFactors: [
-      "Down payment reduces risk",
-      "Loan-to-value ratio",
-      "Previous auto loan history",
+      "Down payment (10-20% reduces risk)",
+      "Loan-to-value ratio (100% max prime, 120-150% subprime)",
+      "Previous auto loan history (boosts FICO Auto Score)",
+      "Loan term (60 months or less for best rates)",
     ],
     description:
-      "Auto lenders typically use FICO Auto Score 8 or 9, which weighs auto loan history more heavily. Many pull from Experian or Equifax.",
+      "Auto lenders typically use FICO Auto Score 8, which weighs auto loan payment history more heavily. " +
+      "Many pull from Experian or Equifax. Previous auto defaults are weighted heavily.",
   },
   CREDIT_CARD: {
     productType: "CREDIT_CARD",
     displayName: "Credit Card",
     primaryModels: ["FICO_BANKCARD_8", "FICO_BANKCARD_9"],
+    alternativeModels: ["FICO_8", "VANTAGE_4"],
     scoringMethod: "SINGLE",
     minimumScoreRanges: { excellent: 750, good: 700, fair: 640, poor: 580 },
+    dtiThresholds: { good: 28, borderline: 36, high: 43, max: 50 },
+    factorWeights: { credit: 0.50, dti: 0.30, ltv: 0, history: 0.20 },
     additionalFactors: [
-      "Credit utilization ratio",
+      "Credit utilization ratio (heavily scrutinized)",
       "Income verification",
-      "Existing credit card history",
+      "Existing credit card payment history",
+      "640+ for most unsecured cards, 700+ for premium cards",
     ],
     description:
-      "Credit card issuers often use FICO Bankcard Score 8 or 9, which emphasizes credit card payment behavior and utilization.",
+      "Credit card issuers use FICO Bankcard Score 8 or 9, which emphasizes revolving credit history " +
+      "and credit card payment behavior. Utilization patterns on existing cards are closely scrutinized.",
   },
   PERSONAL_LOAN: {
     productType: "PERSONAL_LOAN",
     displayName: "Personal Loan",
     primaryModels: ["FICO_8", "FICO_9"],
+    alternativeModels: ["VANTAGE_3", "VANTAGE_4"],
     scoringMethod: "SINGLE",
     minimumScoreRanges: { excellent: 720, good: 670, fair: 610, poor: 560 },
     maxDTI: 40,
+    dtiThresholds: { good: 28, borderline: 36, high: 43, max: 50 },
+    factorWeights: { credit: 0.45, dti: 0.35, ltv: 0, history: 0.20 },
     additionalFactors: [
       "Stable employment",
       "Low existing unsecured debt",
       "Positive payment history",
+      "Income verification (some fintech lenders allow higher DTI)",
     ],
     description:
-      "Personal loan lenders typically use standard FICO Score 8 or 9. They heavily weigh debt-to-income ratio and payment history.",
+      "Personal loan lenders typically use standard FICO Score 8 or 9. They heavily weigh debt-to-income ratio and payment history. " +
+      "FICO 10T scrutinizes personal loan usage patterns more closely.",
   },
   BUSINESS_LOC: {
     productType: "BUSINESS_LOC",
@@ -85,6 +106,8 @@ export const PRODUCT_SCORING_PROFILES: Record<ProductType, ScoringModelProfile> 
     scoringMethod: "HIGHEST",
     minimumScoreRanges: { excellent: 750, good: 700, fair: 650, poor: 600 },
     maxDTI: 50,
+    dtiThresholds: { good: 28, borderline: 36, high: 45, max: 50 },
+    factorWeights: { credit: 0.40, dti: 0.30, ltv: 0, history: 0.30 },
     additionalFactors: [
       "Business revenue/cash flow",
       "Time in business (2+ years preferred)",
@@ -100,6 +123,7 @@ export const PRODUCT_SCORING_PROFILES: Record<ProductType, ScoringModelProfile> 
     primaryModels: ["FICO_8", "VANTAGE_3"],
     scoringMethod: "SINGLE",
     minimumScoreRanges: { excellent: 740, good: 670, fair: 600, poor: 550 },
+    factorWeights: { credit: 0.50, dti: 0.25, ltv: 0, history: 0.25 },
     additionalFactors: [],
     description: "General credit health assessment using FICO 8 or VantageScore 3.0.",
   },
@@ -260,6 +284,219 @@ function getCrossFamilyAdjustment(targetModel: FICOModel, sourceScoreType: strin
 
 function clampScore(score: number): number {
   return Math.max(300, Math.min(850, Math.round(score)));
+}
+
+// =============================================================================
+// CFPB CREDIT TIER CLASSIFICATIONS
+// =============================================================================
+
+/**
+ * Official CFPB credit tier classifications with score ranges and default risk.
+ */
+export const CFPB_TIERS: Array<{
+  tier: CFPBTier;
+  label: string;
+  minScore: number;
+  maxScore: number;
+  defaultRisk: string;
+  productAccess: string;
+}> = [
+  {
+    tier: "SUPER_PRIME",
+    label: "Super-Prime",
+    minScore: 720,
+    maxScore: 850,
+    defaultRisk: "~0.15%",
+    productAccess: "Best rates on all products. Premium cards, lowest mortgage rates, best auto financing.",
+  },
+  {
+    tier: "PRIME",
+    label: "Prime",
+    minScore: 660,
+    maxScore: 719,
+    defaultRisk: "~5%",
+    productAccess: "Good rates, most reward cards. Conventional mortgages, competitive auto rates.",
+  },
+  {
+    tier: "NEAR_PRIME",
+    label: "Near-Prime",
+    minScore: 620,
+    maxScore: 659,
+    defaultRisk: "~15%",
+    productAccess: "Minimum for conventional mortgage (620). Higher rates, limited card options, may need larger down payments.",
+  },
+  {
+    tier: "SUBPRIME",
+    label: "Subprime",
+    minScore: 580,
+    maxScore: 619,
+    defaultRisk: "~25%",
+    productAccess: "FHA mortgage minimum (580). Secured cards, subprime auto loans with high rates (15-25% APR).",
+  },
+  {
+    tier: "DEEP_SUBPRIME",
+    label: "Deep Subprime",
+    minScore: 300,
+    maxScore: 579,
+    defaultRisk: "~46%",
+    productAccess: "Very limited options. Secured cards only, buy-here-pay-here auto dealers.",
+  },
+];
+
+/**
+ * Classify a credit score into a CFPB tier.
+ */
+export function classifyCFPBTier(score: number | null): CFPBTier {
+  if (score === null || score < 580) return "DEEP_SUBPRIME";
+  if (score < 620) return "SUBPRIME";
+  if (score < 660) return "NEAR_PRIME";
+  if (score < 720) return "PRIME";
+  return "SUPER_PRIME";
+}
+
+// =============================================================================
+// FICO VERSION-SPECIFIC BEHAVIOR
+// =============================================================================
+
+/**
+ * Documents how different FICO versions handle specific scoring scenarios.
+ * Used to adjust score estimates and generate version-aware findings.
+ */
+export const FICO_VERSION_BEHAVIOR = {
+  FICO_8: {
+    label: "FICO Score 8 (Most Widely Used)",
+    ignoresSmallCollections: true,
+    smallCollectionThreshold: 100,
+    paidCollectionsCount: true,
+    medicalCollectionWeight: "FULL",
+    rentalHistory: false,
+    trendedData: false,
+    notes: "Ignores collection accounts under $100. More sensitive to high utilization. Isolates single late payments for otherwise clean history.",
+  },
+  FICO_9: {
+    label: "FICO Score 9",
+    ignoresSmallCollections: true,
+    smallCollectionThreshold: 100,
+    paidCollectionsCount: false,
+    medicalCollectionWeight: "REDUCED",
+    rentalHistory: true,
+    trendedData: false,
+    notes: "Paid collections completely ignored. Medical collections weighted less heavily. Rental payment history factored when reported.",
+  },
+  FICO_10: {
+    label: "FICO Score 10 / 10T",
+    ignoresSmallCollections: true,
+    smallCollectionThreshold: 100,
+    paidCollectionsCount: true,
+    medicalCollectionWeight: "FULL",
+    rentalHistory: false,
+    trendedData: true,
+    notes: "FICO 10T uses trended data (24-month payment patterns). Detects debt consolidation followed by new accumulation. Personal loan usage receives increased scrutiny.",
+  },
+} as const;
+
+// =============================================================================
+// SCORE NORMALIZATION (0-100 SCALE)
+// =============================================================================
+
+/**
+ * Normalize a credit score to a 0-100 scale per doc spec:
+ * - Below 580: 0-20 points
+ * - 580-619: 21-40 points
+ * - 620-659: 41-60 points
+ * - 660-719: 61-80 points
+ * - 720-850: 81-100 points
+ */
+export function normalizeScoreTo100(score: number | null): number {
+  if (score === null) return 0;
+  if (score < 580) {
+    // 300-579 → 0-20
+    const pct = Math.max(0, (score - 300) / (580 - 300));
+    return Math.round(pct * 20);
+  }
+  if (score < 620) {
+    // 580-619 → 21-40
+    const pct = (score - 580) / (620 - 580);
+    return Math.round(21 + pct * 19);
+  }
+  if (score < 660) {
+    // 620-659 → 41-60
+    const pct = (score - 620) / (660 - 620);
+    return Math.round(41 + pct * 19);
+  }
+  if (score < 720) {
+    // 660-719 → 61-80
+    const pct = (score - 660) / (720 - 660);
+    return Math.round(61 + pct * 19);
+  }
+  // 720-850 → 81-100
+  const pct = Math.min(1, (score - 720) / (850 - 720));
+  return Math.round(81 + pct * 19);
+}
+
+/**
+ * Normalize DTI ratio to a 0-100 scale (lower DTI = higher score):
+ * - Above 50%: 0-20 points
+ * - 43-50%: 21-40 points
+ * - 36-42%: 41-60 points
+ * - 28-35%: 61-80 points
+ * - Below 28%: 81-100 points
+ */
+export function normalizeDTITo100(dti: number | null): number {
+  if (dti === null) return 75; // No DTI data = assume moderate
+  if (dti > 50) {
+    // 50-100 → 0-20
+    const pct = Math.max(0, 1 - (dti - 50) / 50);
+    return Math.round(pct * 20);
+  }
+  if (dti >= 43) {
+    // 43-50 → 21-40
+    const pct = 1 - (dti - 43) / (50 - 43);
+    return Math.round(21 + pct * 19);
+  }
+  if (dti >= 36) {
+    // 36-42 → 41-60
+    const pct = 1 - (dti - 36) / (43 - 36);
+    return Math.round(41 + pct * 19);
+  }
+  if (dti >= 28) {
+    // 28-35 → 61-80
+    const pct = 1 - (dti - 28) / (36 - 28);
+    return Math.round(61 + pct * 19);
+  }
+  // Below 28 → 81-100
+  const pct = Math.min(1, 1 - dti / 28);
+  return Math.round(81 + pct * 19);
+}
+
+/**
+ * Normalize LTV ratio to a 0-100 scale (lower LTV = higher score):
+ * - Above 100%: 0-20 points
+ * - 90-100%: 21-40 points
+ * - 80-89%: 41-60 points
+ * - 60-79%: 61-80 points
+ * - Below 60%: 81-100 points
+ */
+export function normalizeLTVTo100(ltv: number | null): number {
+  if (ltv === null) return 100; // No LTV = N/A for unsecured products
+  if (ltv > 100) {
+    const pct = Math.max(0, 1 - (ltv - 100) / 50);
+    return Math.round(pct * 20);
+  }
+  if (ltv >= 90) {
+    const pct = 1 - (ltv - 90) / (100 - 90);
+    return Math.round(21 + pct * 19);
+  }
+  if (ltv >= 80) {
+    const pct = 1 - (ltv - 80) / (90 - 80);
+    return Math.round(41 + pct * 19);
+  }
+  if (ltv >= 60) {
+    const pct = 1 - (ltv - 60) / (80 - 60);
+    return Math.round(61 + pct * 19);
+  }
+  const pct = Math.min(1, 1 - ltv / 60);
+  return Math.round(81 + pct * 19);
 }
 
 // =============================================================================

@@ -29,8 +29,10 @@ import {
   Zap,
   Info,
   Brain,
+  Mail,
 } from "lucide-react";
 import { AmeliaInsightsPanel, type AmeliaInsight } from "./amelia-insights-panel";
+import { MailSendDialog } from "./mail-send-dialog";
 import { useToast } from "@/lib/use-toast";
 import {
   getDNAClassificationLabel,
@@ -126,6 +128,8 @@ export function CreateDisputeWizard({
   const [ameliaInsights, setAmeliaInsights] = useState<AmeliaInsight | null>(null);
   // Letter structure toggle: DAMAGES_FIRST (emotional lead) vs FACTS_FIRST (legal lead)
   const [letterStructure, setLetterStructure] = useState<LetterStructure>("DAMAGES_FIRST");
+  const [createdDisputeId, setCreatedDisputeId] = useState<string | null>(null);
+  const [mailDialogOpen, setMailDialogOpen] = useState(false);
 
   // Reset form when closed
   useEffect(() => {
@@ -139,6 +143,8 @@ export function CreateDisputeWizard({
       setClientDNA(null);
       setAmeliaInsights(null);
       setLetterStructure("DAMAGES_FIRST");
+      setCreatedDisputeId(null);
+      setMailDialogOpen(false);
     }
   }, [open]);
 
@@ -227,11 +233,11 @@ export function CreateDisputeWizard({
 
       if (res.ok) {
         const data = await res.json();
+        setCreatedDisputeId(data.dispute.id);
         toast({
           title: "Dispute Created",
           description: `Round ${data.dispute.round} letter generated successfully`,
         });
-        onOpenChange(false);
         onSuccess();
       } else {
         const error = await res.json();
@@ -553,7 +559,7 @@ export function CreateDisputeWizard({
             )}
 
             {/* Step 5: Review */}
-            {step === "review" && (
+            {step === "review" && !createdDisputeId && (
               <motion.div
                 key="review"
                 initial={{ opacity: 0, x: 20 }}
@@ -662,38 +668,89 @@ export function CreateDisputeWizard({
                 )}
               </motion.div>
             )}
+
+            {/* Success State */}
+            {createdDisputeId && (
+              <motion.div
+                key="success"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="space-y-6 text-center py-4"
+              >
+                <div className="w-16 h-16 mx-auto rounded-full bg-green-500/20 flex items-center justify-center">
+                  <CheckCircle className="w-8 h-8 text-green-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-white">Dispute Letter Generated</h3>
+                  <p className="text-slate-400 mt-1">
+                    {selectedCRA} {selectedFlow} dispute for {selectedClientObj?.firstName} {selectedClientObj?.lastName}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => onOpenChange(false)}
+                    className="border-slate-600 hover:bg-slate-800"
+                  >
+                    Close
+                  </Button>
+                  <Button
+                    onClick={() => setMailDialogOpen(true)}
+                    className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 gap-2"
+                  >
+                    <Mail className="w-4 h-4" />
+                    Mail Letter
+                  </Button>
+                </div>
+              </motion.div>
+            )}
           </AnimatePresence>
         </ResponsiveDialogBody>
 
-        <ResponsiveDialogFooter>
-          {currentStepIndex > 0 && (
-            <Button variant="ghost" onClick={goBack} disabled={creating}>
-              <ChevronLeft className="w-4 h-4 mr-1" />
-              Back
-            </Button>
-          )}
-          <div className="flex-1" />
-          {step === "review" ? (
-            <Button
-              onClick={handleCreate}
-              disabled={creating}
-              className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500"
-            >
-              {creating ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Sparkles className="w-4 h-4 mr-2" />
-              )}
-              Generate Letter
-            </Button>
-          ) : (
-            <Button onClick={goNext} disabled={!canProceed()}>
-              Continue
-              <ChevronRight className="w-4 h-4 ml-1" />
-            </Button>
-          )}
-        </ResponsiveDialogFooter>
+        {!createdDisputeId && (
+          <ResponsiveDialogFooter>
+            {currentStepIndex > 0 && (
+              <Button variant="ghost" onClick={goBack} disabled={creating}>
+                <ChevronLeft className="w-4 h-4 mr-1" />
+                Back
+              </Button>
+            )}
+            <div className="flex-1" />
+            {step === "review" ? (
+              <Button
+                onClick={handleCreate}
+                disabled={creating}
+                className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500"
+              >
+                {creating ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4 mr-2" />
+                )}
+                Generate Letter
+              </Button>
+            ) : (
+              <Button onClick={goNext} disabled={!canProceed()}>
+                Continue
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            )}
+          </ResponsiveDialogFooter>
+        )}
       </ResponsiveDialogContent>
+
+      {/* Mail Dialog */}
+      {createdDisputeId && (
+        <MailSendDialog
+          open={mailDialogOpen}
+          onOpenChange={setMailDialogOpen}
+          disputeId={createdDisputeId}
+          disputeType="DISPUTE"
+          cra={selectedCRA}
+          clientName={`${selectedClientObj?.firstName || ""} ${selectedClientObj?.lastName || ""}`}
+        />
+      )}
     </ResponsiveDialog>
   );
 }
