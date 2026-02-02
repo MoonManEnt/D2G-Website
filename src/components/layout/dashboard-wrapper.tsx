@@ -30,9 +30,9 @@ function DashboardContent({ children, user }: DashboardWrapperProps) {
 
   return (
     <>
-      <div className="flex h-screen bg-slate-900">
+      <div className="flex h-screen bg-background">
         <Sidebar user={user} />
-        <main id="main-content" role="main" className="flex-1 overflow-auto bg-slate-900">
+        <main id="main-content" role="main" className="flex-1 overflow-auto bg-background">
           <AnimatePresence mode="wait">
             <motion.div
               key={pathname}

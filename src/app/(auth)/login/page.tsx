@@ -62,10 +62,10 @@ function LoginForm() {
   };
 
   return (
-    <Card className="border-slate-700 bg-slate-800/50 backdrop-blur">
+    <Card className="border-border bg-card backdrop-blur">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl text-white">Sign in</CardTitle>
-        <CardDescription className="text-slate-400">
+        <CardTitle className="text-2xl text-foreground">Sign in</CardTitle>
+        <CardDescription className="text-muted-foreground">
           Enter your credentials to access your account
         </CardDescription>
       </CardHeader>
@@ -79,7 +79,7 @@ function LoginForm() {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-slate-200">
+            <Label htmlFor="email" className="text-foreground">
               Email
             </Label>
             <Input
@@ -90,13 +90,13 @@ function LoginForm() {
               onChange={(e) => setEmail(e.target.value)}
               required
               disabled={isLoading}
-              className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
+              className="bg-muted border-input text-foreground placeholder:text-muted-foreground"
             />
           </div>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="password" className="text-slate-200">
+              <Label htmlFor="password" className="text-foreground">
                 Password
               </Label>
               <Link href="/forgot-password" className="text-sm text-primary hover:underline">
@@ -111,7 +111,7 @@ function LoginForm() {
               onChange={(e) => setPassword(e.target.value)}
               required
               disabled={isLoading}
-              className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
+              className="bg-muted border-input text-foreground placeholder:text-muted-foreground"
             />
           </div>
 
@@ -131,11 +131,11 @@ function LoginForm() {
           </Button>
         </form>
 
-        <div className="mt-6 pt-6 border-t border-slate-700">
-          <p className="text-sm text-slate-400 text-center">
+        <div className="mt-6 pt-6 border-t border-border">
+          <p className="text-sm text-muted-foreground text-center">
             Demo credentials:
           </p>
-          <p className="text-sm text-slate-500 text-center mt-1">
+          <p className="text-sm text-muted-foreground text-center mt-1">
             admin@dispute2go.demo / Demo1234!
           </p>
         </div>
@@ -146,20 +146,20 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-card to-background p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
             <Shield className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-3xl font-bold text-white">Dispute2Go</h1>
-          <p className="text-slate-400 mt-2">Credit Dispute Operating System</p>
+          <h1 className="text-3xl font-bold text-foreground">Dispute2Go</h1>
+          <p className="text-muted-foreground mt-2">Credit Dispute Operating System</p>
         </div>
 
         <Suspense fallback={
-          <Card className="border-slate-700 bg-slate-800/50 backdrop-blur">
+          <Card className="border-border bg-card backdrop-blur">
             <CardContent className="p-8 text-center">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto text-slate-400" />
+              <Loader2 className="w-8 h-8 animate-spin mx-auto text-muted-foreground" />
             </CardContent>
           </Card>
         }>

@@ -37,7 +37,7 @@ export function DTIDisplay({ ratio, status, monthlyDebt, monthlyIncome, maxDTI, 
 
       {/* Visual bar */}
       <div className="relative">
-        <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
+        <div className="h-3 bg-muted rounded-full overflow-hidden">
           <motion.div
             className={`h-full rounded-full ${colors.fill}`}
             initial={{ width: 0 }}
@@ -47,14 +47,14 @@ export function DTIDisplay({ ratio, status, monthlyDebt, monthlyIncome, maxDTI, 
         </div>
         {/* Max DTI marker */}
         <div
-          className="absolute top-0 h-3 w-0.5 bg-slate-300"
+          className="absolute top-0 h-3 w-0.5 bg-muted-foreground"
           style={{ left: `${maxDTIPercent}%` }}
         />
         {/* Labels below bar */}
-        <div className="flex justify-between mt-1.5 text-xs text-slate-500">
+        <div className="flex justify-between mt-1.5 text-xs text-muted-foreground">
           <span>0%</span>
           <span
-            className="absolute text-slate-400 font-medium"
+            className="absolute text-muted-foreground font-medium"
             style={{ left: `${maxDTIPercent}%`, transform: "translateX(-50%)" }}
           >
             {maxDTI}% Max
@@ -65,14 +65,14 @@ export function DTIDisplay({ ratio, status, monthlyDebt, monthlyIncome, maxDTI, 
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-3 mt-4">
-        <div className="bg-slate-700/30 rounded-lg p-3 text-center">
-          <p className="text-xs text-slate-400 mb-1">Monthly Debt</p>
+        <div className="bg-muted rounded-lg p-3 text-center">
+          <p className="text-xs text-muted-foreground mb-1">Monthly Debt</p>
           <span className="text-lg font-bold text-red-400">
             ${monthlyDebt.toLocaleString()}
           </span>
         </div>
-        <div className="bg-slate-700/30 rounded-lg p-3 text-center">
-          <p className="text-xs text-slate-400 mb-1">Monthly Income</p>
+        <div className="bg-muted rounded-lg p-3 text-center">
+          <p className="text-xs text-muted-foreground mb-1">Monthly Income</p>
           <span className="text-lg font-bold text-emerald-400">
             ${monthlyIncome.toLocaleString()}
           </span>
@@ -81,7 +81,7 @@ export function DTIDisplay({ ratio, status, monthlyDebt, monthlyIncome, maxDTI, 
 
       {/* Details text */}
       {details && (
-        <p className="text-xs text-slate-400 mt-2">{details}</p>
+        <p className="text-xs text-muted-foreground mt-2">{details}</p>
       )}
     </div>
   );

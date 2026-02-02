@@ -36,9 +36,9 @@ const damageTypeConfig: Record<
   { color: string; bg: string; border: string; icon: React.ElementType }
 > = {
   STATUTORY: {
-    color: "text-blue-400",
-    bg: "bg-blue-500/15",
-    border: "border-blue-500/30",
+    color: "text-primary",
+    bg: "bg-primary/15",
+    border: "border-primary/30",
     icon: Scale,
   },
   ACTUAL: {
@@ -85,17 +85,17 @@ export function DamageSummary({ damageEstimate }: DamageSummaryProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <Card className="bg-gradient-to-br from-emerald-900/30 to-slate-800/50 border-emerald-500/20">
+        <Card className="bg-gradient-to-br from-emerald-900/30 to-card/50 border-emerald-500/20">
           <CardContent className="p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2.5 rounded-xl bg-emerald-500/20">
                 <DollarSign className="w-6 h-6 text-emerald-400" />
               </div>
               <div>
-                <p className="text-sm text-slate-400 font-medium">
+                <p className="text-sm text-muted-foreground font-medium">
                   Total Estimated Damages
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   Combined potential recovery across all violations
                 </p>
               </div>
@@ -110,7 +110,7 @@ export function DamageSummary({ damageEstimate }: DamageSummaryProps) {
               <span className="text-3xl font-bold text-emerald-400 tracking-tight">
                 {formatCentsAsDollars(damageEstimate.totalMin)}
               </span>
-              <span className="text-xl text-slate-500">-</span>
+              <span className="text-xl text-muted-foreground">-</span>
               <span className="text-3xl font-bold text-emerald-400 tracking-tight">
                 {formatCentsAsDollars(damageEstimate.totalMax)}
               </span>
@@ -121,7 +121,7 @@ export function DamageSummary({ damageEstimate }: DamageSummaryProps) {
 
       {/* Breakdown by Type */}
       <div>
-        <h3 className="text-sm font-semibold text-slate-300 mb-3">
+        <h3 className="text-sm font-semibold text-muted-foreground mb-3">
           Damage Breakdown by Type
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -137,7 +137,7 @@ export function DamageSummary({ damageEstimate }: DamageSummaryProps) {
                 transition={{ duration: 0.4, delay: 0.1 * idx }}
               >
                 <Card
-                  className={`bg-slate-800/50 ${config.border} hover:shadow-lg transition-shadow duration-200`}
+                  className={`bg-card ${config.border} hover:shadow-lg transition-shadow duration-200`}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center gap-2 mb-3">
@@ -149,12 +149,12 @@ export function DamageSummary({ damageEstimate }: DamageSummaryProps) {
                       </span>
                     </div>
 
-                    <p className="text-lg font-bold text-slate-100 mb-1">
+                    <p className="text-lg font-bold text-foreground mb-1">
                       {formatCentsAsDollars(item.min)} -{" "}
                       {formatCentsAsDollars(item.max)}
                     </p>
 
-                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
                       {item.description}
                     </p>
                   </CardContent>
@@ -172,27 +172,27 @@ export function DamageSummary({ damageEstimate }: DamageSummaryProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.3 }}
         >
-          <Card className="bg-slate-800/50 border-slate-700/50">
+          <Card className="bg-card border-border">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold text-slate-300">
+              <CardTitle className="text-sm font-semibold text-muted-foreground">
                 Liability by Defendant
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="bg-slate-900/50 rounded-lg border border-slate-700/30 overflow-hidden">
+              <div className="bg-background rounded-lg border border-border overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-slate-700/30">
-                      <th className="text-left py-2.5 px-4 text-xs text-slate-500 font-medium">
+                    <tr className="border-b border-border">
+                      <th className="text-left py-2.5 px-4 text-xs text-muted-foreground font-medium">
                         Defendant
                       </th>
-                      <th className="text-left py-2.5 px-4 text-xs text-slate-500 font-medium">
+                      <th className="text-left py-2.5 px-4 text-xs text-muted-foreground font-medium">
                         Type
                       </th>
-                      <th className="text-center py-2.5 px-4 text-xs text-slate-500 font-medium">
+                      <th className="text-center py-2.5 px-4 text-xs text-muted-foreground font-medium">
                         Violations
                       </th>
-                      <th className="text-right py-2.5 px-4 text-xs text-slate-500 font-medium">
+                      <th className="text-right py-2.5 px-4 text-xs text-muted-foreground font-medium">
                         Estimated Liability
                       </th>
                     </tr>
@@ -201,16 +201,16 @@ export function DamageSummary({ damageEstimate }: DamageSummaryProps) {
                     {damageEstimate.perDefendant.map((def, idx) => (
                       <tr
                         key={idx}
-                        className="border-b border-slate-700/20 last:border-0 hover:bg-slate-800/30 transition-colors"
+                        className="border-b border-border last:border-0 hover:bg-card transition-colors"
                       >
-                        <td className="py-2.5 px-4 text-slate-200 font-medium">
+                        <td className="py-2.5 px-4 text-foreground font-medium">
                           {def.name}
                         </td>
                         <td className="py-2.5 px-4">
                           <span
                             className={`text-xs px-2 py-0.5 rounded-full ${
                               def.type === "CRA"
-                                ? "bg-blue-500/20 text-blue-400"
+                                ? "bg-primary/20 text-primary"
                                 : def.type === "FURNISHER"
                                 ? "bg-purple-500/20 text-purple-400"
                                 : "bg-red-500/20 text-red-400"
@@ -220,7 +220,7 @@ export function DamageSummary({ damageEstimate }: DamageSummaryProps) {
                           </span>
                         </td>
                         <td className="py-2.5 px-4 text-center">
-                          <span className="text-xs font-semibold text-slate-300 bg-slate-700/50 px-2 py-0.5 rounded-full">
+                          <span className="text-xs font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                             {def.violationCount}
                           </span>
                         </td>

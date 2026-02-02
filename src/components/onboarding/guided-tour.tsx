@@ -141,7 +141,7 @@ export function GuidedTour({ onComplete, isActive }: GuidedTourProps) {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.9 }}
-          className="absolute z-[10001] w-80 bg-slate-900 border border-purple-500/30 rounded-xl shadow-2xl p-5"
+          className="absolute z-[10001] w-80 bg-background border border-purple-500/30 rounded-xl shadow-2xl p-5"
           style={getTooltipPosition()}
         >
           {/* Step indicator */}
@@ -154,15 +154,15 @@ export function GuidedTour({ onComplete, isActive }: GuidedTourProps) {
             </div>
             <button
               onClick={onComplete}
-              className="text-slate-400 hover:text-white p-1 rounded"
+              className="text-muted-foreground hover:text-foreground p-1 rounded"
               aria-label="Close tour"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
-          <h3 className="text-white font-semibold text-lg mb-2">{step.title}</h3>
-          <p className="text-slate-300 text-sm leading-relaxed mb-4">{step.description}</p>
+          <h3 className="text-foreground font-semibold text-lg mb-2">{step.title}</h3>
+          <p className="text-muted-foreground text-sm leading-relaxed mb-4">{step.description}</p>
 
           {/* Progress dots */}
           <div className="flex items-center gap-1.5 mb-4">
@@ -170,7 +170,7 @@ export function GuidedTour({ onComplete, isActive }: GuidedTourProps) {
               <div
                 key={i}
                 className={`h-1.5 rounded-full transition-all ${
-                  i === currentStep ? "w-6 bg-purple-400" : i < currentStep ? "w-1.5 bg-purple-400/60" : "w-1.5 bg-slate-600"
+                  i === currentStep ? "w-6 bg-purple-400" : i < currentStep ? "w-1.5 bg-purple-400/60" : "w-1.5 bg-muted"
                 }`}
               />
             ))}
@@ -180,7 +180,7 @@ export function GuidedTour({ onComplete, isActive }: GuidedTourProps) {
           <div className="flex items-center justify-between">
             <button
               onClick={onComplete}
-              className="text-sm text-slate-400 hover:text-white transition-colors"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               Skip tour
             </button>
@@ -188,7 +188,7 @@ export function GuidedTour({ onComplete, isActive }: GuidedTourProps) {
               {!isFirst && (
                 <button
                   onClick={() => setCurrentStep(s => s - 1)}
-                  className="flex items-center gap-1 px-3 py-1.5 text-sm text-slate-300 hover:text-white bg-slate-800 rounded-lg transition-colors"
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground bg-card rounded-lg transition-colors"
                   aria-label="Previous step"
                 >
                   <ChevronLeft className="w-4 h-4" />
@@ -197,7 +197,7 @@ export function GuidedTour({ onComplete, isActive }: GuidedTourProps) {
               )}
               <button
                 onClick={() => isLast ? onComplete() : setCurrentStep(s => s + 1)}
-                className="flex items-center gap-1 px-4 py-1.5 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded-lg transition-colors font-medium"
+                className="flex items-center gap-1 px-4 py-1.5 text-sm text-foreground bg-purple-600 hover:bg-purple-500 rounded-lg transition-colors font-medium"
                 aria-label={isLast ? "Finish tour" : "Next step"}
               >
                 {isLast ? "Get Started!" : "Next"}

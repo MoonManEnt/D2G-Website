@@ -51,7 +51,7 @@ export function AccountCard({ account, isSelected, onToggle, selectedCRA }: Acco
         "rounded-xl border transition-all cursor-pointer",
         isSelected
           ? "bg-purple-500/15 border-purple-500/30"
-          : "bg-slate-700/30 border-slate-600/50 hover:border-slate-500/50"
+          : "bg-muted border-input hover:border-border"
       )}
     >
       {/* Header */}
@@ -68,10 +68,10 @@ export function AccountCard({ account, isSelected, onToggle, selectedCRA }: Acco
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="font-semibold text-sm text-white truncate">
+          <div className="font-semibold text-sm text-foreground truncate">
             {account.creditorName}
           </div>
-          <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
             <span className="font-mono">{account.maskedAccountId || "N/A"}</span>
             <span className="opacity-70">{account.accountType || "Unknown"}</span>
           </div>
@@ -102,13 +102,13 @@ export function AccountCard({ account, isSelected, onToggle, selectedCRA }: Acco
               <div key={i} className="flex items-start gap-2 text-xs">
                 <span
                   className={cn(
-                    "w-4 h-4 rounded flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0",
+                    "w-4 h-4 rounded flex items-center justify-center text-[10px] font-bold text-foreground flex-shrink-0",
                     getSeverityColor(issue.severity)
                   )}
                 >
                   {issue.severity[0]}
                 </span>
-                <span className="text-slate-400 leading-snug">{issue.description}</span>
+                <span className="text-muted-foreground leading-snug">{issue.description}</span>
               </div>
             ))}
             {issues.length > 2 && (
@@ -137,19 +137,19 @@ export function AccountCard({ account, isSelected, onToggle, selectedCRA }: Acco
       )}
 
       {/* Bureau Divergence */}
-      <div className="flex gap-2 px-3.5 py-2.5 border-t border-slate-600/30">
+      <div className="flex gap-2 px-3.5 py-2.5 border-t border-input">
         {Object.entries(account.bureauData).map(([cra, data]) => (
           <div
             key={cra}
             className={cn(
-              "flex-1 px-2 py-1.5 rounded-md bg-slate-800/50 text-center transition-opacity",
+              "flex-1 px-2 py-1.5 rounded-md bg-card text-center transition-opacity",
               cra === selectedCRA ? "opacity-100" : "opacity-50"
             )}
           >
-            <span className="block text-[10px] font-semibold text-slate-500">
+            <span className="block text-[10px] font-semibold text-muted-foreground">
               {cra.slice(0, 2)}
             </span>
-            <span className="block text-xs font-semibold text-white">
+            <span className="block text-xs font-semibold text-foreground">
               {data.balance !== null ? `$${data.balance.toLocaleString()}` : "—"}
             </span>
           </div>
@@ -158,7 +158,7 @@ export function AccountCard({ account, isSelected, onToggle, selectedCRA }: Acco
 
       {/* Suggested Flow */}
       <div className="flex items-center gap-2 px-3.5 pb-3 text-xs">
-        <span className="text-slate-500">Suggested:</span>
+        <span className="text-muted-foreground">Suggested:</span>
         {account.suggestedFlow && FLOW_INFO[account.suggestedFlow] && (
           <Badge
             className="text-[10px] px-2"
@@ -170,7 +170,7 @@ export function AccountCard({ account, isSelected, onToggle, selectedCRA }: Acco
             {account.suggestedFlow}
           </Badge>
         )}
-        <span className="ml-auto text-slate-500">
+        <span className="ml-auto text-muted-foreground">
           {account.confidenceScore}% confidence
         </span>
       </div>

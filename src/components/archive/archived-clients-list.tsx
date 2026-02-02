@@ -177,7 +177,7 @@ export function ArchivedClientsList() {
       );
     }
     return (
-      <Badge variant="outline" className="border-slate-500 text-slate-400">
+      <Badge variant="outline" className="border-border text-muted-foreground">
         <Clock className="w-3 h-3 mr-1" />
         {daysRemaining}d left
       </Badge>
@@ -187,7 +187,7 @@ export function ArchivedClientsList() {
   const getAmeliaRecommendationBadge = (recommendation: string) => {
     switch (recommendation) {
       case "CONTINUE_EXISTING":
-        return <Badge className="bg-blue-600">Continue Disputes</Badge>;
+        return <Badge className="bg-primary">Continue Disputes</Badge>;
       case "REVIEW_OUTCOMES":
         return <Badge className="bg-amber-600">Review Outcomes</Badge>;
       default:
@@ -206,57 +206,57 @@ export function ArchivedClientsList() {
       {/* Stats Cards */}
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-card border-border">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-600/20 rounded-lg">
-                  <Archive className="w-5 h-5 text-blue-400" />
+                <div className="p-2 bg-primary/20 rounded-lg">
+                  <Archive className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-white">{stats.totalArchived}</p>
-                  <p className="text-xs text-slate-400">Total Archived</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.totalArchived}</p>
+                  <p className="text-xs text-muted-foreground">Total Archived</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-card border-border">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-red-600/20 rounded-lg">
                   <AlertTriangle className="w-5 h-5 text-red-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-white">{stats.expiringIn7Days}</p>
-                  <p className="text-xs text-slate-400">Expiring in 7 Days</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.expiringIn7Days}</p>
+                  <p className="text-xs text-muted-foreground">Expiring in 7 Days</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-card border-border">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-amber-600/20 rounded-lg">
                   <Clock className="w-5 h-5 text-amber-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-white">{stats.expiringIn30Days}</p>
-                  <p className="text-xs text-slate-400">Expiring in 30 Days</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.expiringIn30Days}</p>
+                  <p className="text-xs text-muted-foreground">Expiring in 30 Days</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-card border-border">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-purple-600/20 rounded-lg">
                   <FileText className="w-5 h-5 text-purple-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-white">{formatBytes(stats.totalStorageBytes)}</p>
-                  <p className="text-xs text-slate-400">Storage Used</p>
+                  <p className="text-2xl font-bold text-foreground">{formatBytes(stats.totalStorageBytes)}</p>
+                  <p className="text-xs text-muted-foreground">Storage Used</p>
                 </div>
               </div>
             </CardContent>
@@ -265,10 +265,10 @@ export function ArchivedClientsList() {
       )}
 
       {/* Main Content */}
-      <Card className="bg-slate-800/50 border-slate-700">
-        <CardHeader className="border-b border-slate-700">
+      <Card className="bg-card border-border">
+        <CardHeader className="border-b border-border">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-foreground flex items-center gap-2">
               <Archive className="w-5 h-5" />
               Archived Clients
               {total > 0 && (
@@ -277,15 +277,15 @@ export function ArchivedClientsList() {
             </CardTitle>
             <form onSubmit={handleSearchSubmit} className="flex gap-2">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search by name..."
-                  className="pl-9 bg-slate-900/50 border-slate-600 w-64"
+                  className="pl-9 bg-background border-input w-64"
                 />
               </div>
-              <Button type="submit" variant="outline" className="border-slate-600">
+              <Button type="submit" variant="outline" className="border-input">
                 Search
               </Button>
             </form>
@@ -294,10 +294,10 @@ export function ArchivedClientsList() {
         <CardContent className="p-0">
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
             </div>
           ) : clients.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <Archive className="w-12 h-12 mb-4 opacity-50" />
               <p className="text-lg font-medium">No archived clients</p>
               <p className="text-sm">Archived clients will appear here</p>
@@ -306,36 +306,36 @@ export function ArchivedClientsList() {
             <>
               <Table>
                 <TableHeader>
-                  <TableRow className="border-slate-700 hover:bg-transparent">
-                    <TableHead className="text-slate-400">Client</TableHead>
-                    <TableHead className="text-slate-400">Archived</TableHead>
-                    <TableHead className="text-slate-400">Retention</TableHead>
-                    <TableHead className="text-slate-400">Records</TableHead>
-                    <TableHead className="text-slate-400">AMELIA</TableHead>
-                    <TableHead className="text-slate-400 text-right">Actions</TableHead>
+                  <TableRow className="border-border hover:bg-transparent">
+                    <TableHead className="text-muted-foreground">Client</TableHead>
+                    <TableHead className="text-muted-foreground">Archived</TableHead>
+                    <TableHead className="text-muted-foreground">Retention</TableHead>
+                    <TableHead className="text-muted-foreground">Records</TableHead>
+                    <TableHead className="text-muted-foreground">AMELIA</TableHead>
+                    <TableHead className="text-muted-foreground text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {clients.map((client) => (
-                    <TableRow key={client.id} className="border-slate-700 hover:bg-slate-800/50">
+                    <TableRow key={client.id} className="border-border hover:bg-card">
                       <TableCell>
                         <div>
-                          <p className="font-medium text-white">
+                          <p className="font-medium text-foreground">
                             {client.firstName} {client.lastName}
                           </p>
                           {client.email && (
-                            <p className="text-sm text-slate-400">{client.email}</p>
+                            <p className="text-sm text-muted-foreground">{client.email}</p>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-slate-300">
+                      <TableCell className="text-muted-foreground">
                         {new Date(client.archivedAt).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
                         {getDaysRemainingBadge(client.daysRemaining)}
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-3 text-sm text-slate-400">
+                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Users className="w-3 h-3" />
                             {client.recordCounts.disputes}
@@ -365,7 +365,7 @@ export function ArchivedClientsList() {
                               setSelectedClient(client);
                               setShowViewer(true);
                             }}
-                            className="text-slate-400 hover:text-white"
+                            className="text-muted-foreground hover:text-foreground"
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
@@ -400,8 +400,8 @@ export function ArchivedClientsList() {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between px-4 py-3 border-t border-slate-700">
-                  <p className="text-sm text-slate-400">
+                <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+                  <p className="text-sm text-muted-foreground">
                     Page {page} of {totalPages}
                   </p>
                   <div className="flex gap-2">
@@ -410,7 +410,7 @@ export function ArchivedClientsList() {
                       size="sm"
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
                       disabled={page === 1}
-                      className="border-slate-600"
+                      className="border-input"
                     >
                       <ChevronLeft className="w-4 h-4" />
                     </Button>
@@ -419,7 +419,7 @@ export function ArchivedClientsList() {
                       size="sm"
                       onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                       disabled={page === totalPages}
-                      className="border-slate-600"
+                      className="border-input"
                     >
                       <ChevronRight className="w-4 h-4" />
                     </Button>

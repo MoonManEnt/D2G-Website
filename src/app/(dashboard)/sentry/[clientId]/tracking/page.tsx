@@ -54,17 +54,17 @@ export default async function SentryTrackingPage({ params }: PageProps) {
         <div className="flex items-center gap-4">
           <Link
             href={`/sentry/${clientId}`}
-            className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+            className="p-2 hover:bg-card rounded-lg transition-colors"
           >
-            <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-5 h-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-slate-200">
+            <h1 className="text-2xl font-bold text-foreground">
               Sentry Tracking
             </h1>
-            <p className="text-slate-400">
+            <p className="text-muted-foreground">
               {client.firstName} {client.lastName}
             </p>
           </div>
@@ -72,7 +72,7 @@ export default async function SentryTrackingPage({ params }: PageProps) {
         <div className="flex items-center gap-3">
           <Link
             href={`/sentry/${clientId}`}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
+            className="px-4 py-2 bg-blue-500 text-foreground rounded-lg hover:bg-primary transition-colors text-sm font-medium"
           >
             + New Dispute
           </Link>

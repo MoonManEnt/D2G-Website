@@ -26,7 +26,7 @@ export function FlowSelector({ selectedFlow, onSelectFlow, className }: FlowSele
               "flex items-center gap-3 p-3 rounded-lg border transition-all text-left",
               isSelected
                 ? "border-opacity-50"
-                : "bg-slate-700/30 border-slate-600/50 hover:border-slate-500/50"
+                : "bg-muted border-input hover:border-input"
             )}
             style={isSelected ? {
               background: `${info.color}20`,
@@ -41,17 +41,17 @@ export function FlowSelector({ selectedFlow, onSelectFlow, className }: FlowSele
               <span
                 className={cn(
                   "block text-sm font-semibold",
-                  isSelected ? "" : "text-slate-400"
+                  isSelected ? "" : "text-muted-foreground"
                 )}
                 style={isSelected ? { color: info.color } : undefined}
               >
                 {flow}
               </span>
-              <span className="block text-xs text-slate-500">
+              <span className="block text-xs text-muted-foreground">
                 {info.description}
               </span>
             </div>
-            <span className="text-xs text-slate-500 px-2 py-1 bg-slate-700/30 rounded">
+            <span className="text-xs text-muted-foreground px-2 py-1 bg-muted rounded">
               R1-R{info.maxRounds}
             </span>
           </button>

@@ -81,13 +81,13 @@ export function WorkflowTracker({
   return (
     <div className="space-y-4">
       {/* Visual Timeline */}
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader className="pb-2">
-          <CardTitle className="text-white text-sm flex items-center gap-2">
+          <CardTitle className="text-foreground text-sm flex items-center gap-2">
             <Scale className="w-4 h-4" />
             Dispute Journey - Round {currentRound}
           </CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardDescription className="text-muted-foreground">
             {FLOW_DESCRIPTIONS[flow]?.name || flow} Flow
           </CardDescription>
         </CardHeader>
@@ -106,7 +106,7 @@ export function WorkflowTracker({
                           ? "bg-brand-success/20 border-2 border-brand-success"
                           : status === "current"
                           ? "bg-primary/20 border-2 border-primary animate-pulse"
-                          : "bg-slate-700/50 border-2 border-slate-600"
+                          : "bg-muted border-2 border-input"
                       }`}
                     >
                       {status === "completed" ? (
@@ -114,7 +114,7 @@ export function WorkflowTracker({
                       ) : (
                         <Icon
                           className={`w-5 h-5 ${
-                            status === "current" ? "text-primary" : "text-slate-500"
+                            status === "current" ? "text-primary" : "text-muted-foreground"
                           }`}
                         />
                       )}
@@ -125,14 +125,14 @@ export function WorkflowTracker({
                           ? "text-primary font-medium"
                           : status === "completed"
                           ? "text-brand-success"
-                          : "text-slate-500"
+                          : "text-muted-foreground"
                       }`}
                     >
                       R{round.num}
                     </span>
                     <span
                       className={`text-xs ${
-                        status === "current" ? "text-white" : "text-slate-500"
+                        status === "current" ? "text-foreground" : "text-muted-foreground"
                       }`}
                     >
                       {round.name}
@@ -142,7 +142,7 @@ export function WorkflowTracker({
                     <div
                       className={`w-12 h-0.5 mx-2 ${
                         getStepStatus(round.num + 1) === "upcoming"
-                          ? "bg-slate-600"
+                          ? "bg-muted"
                           : "bg-brand-success"
                       }`}
                     />
@@ -153,9 +153,9 @@ export function WorkflowTracker({
           </div>
 
           {/* Current Round Strategy */}
-          <div className="p-3 bg-slate-700/30 rounded-lg border border-slate-600">
+          <div className="p-3 bg-muted rounded-lg border border-input">
             <div className="flex items-center justify-between mb-2">
-              <h4 className="text-sm font-medium text-white">{strategy.name}</h4>
+              <h4 className="text-sm font-medium text-foreground">{strategy.name}</h4>
               <Badge
                 variant="outline"
                 className={
@@ -171,14 +171,14 @@ export function WorkflowTracker({
                 {strategy.tone}
               </Badge>
             </div>
-            <p className="text-xs text-slate-400 mb-3">{strategy.approach}</p>
+            <p className="text-xs text-muted-foreground mb-3">{strategy.approach}</p>
 
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div>
-                <p className="text-slate-500 mb-1">Key Points:</p>
+                <p className="text-muted-foreground mb-1">Key Points:</p>
                 <ul className="space-y-0.5">
                   {strategy.keyPoints.slice(0, 2).map((point, i) => (
-                    <li key={i} className="text-slate-300 flex items-start gap-1">
+                    <li key={i} className="text-muted-foreground flex items-start gap-1">
                       <span className="text-primary">•</span>
                       <span>{point}</span>
                     </li>
@@ -186,10 +186,10 @@ export function WorkflowTracker({
                 </ul>
               </div>
               <div>
-                <p className="text-slate-500 mb-1">Legal Focus:</p>
+                <p className="text-muted-foreground mb-1">Legal Focus:</p>
                 <ul className="space-y-0.5">
                   {strategy.legalEmphasis.slice(0, 2).map((law, i) => (
-                    <li key={i} className="text-slate-300 flex items-start gap-1">
+                    <li key={i} className="text-muted-foreground flex items-start gap-1">
                       <span className="text-brand-warning">§</span>
                       <span className="truncate">{law.split(" - ")[0]}</span>
                     </li>
@@ -220,10 +220,10 @@ export function WorkflowTracker({
 
       {/* Next Step Recommendation */}
       {recommendation && (
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="bg-card border-border">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-white text-sm flex items-center gap-2">
+              <CardTitle className="text-foreground text-sm flex items-center gap-2">
                 <ArrowRight className="w-4 h-4" />
                 Recommended Next Step
               </CardTitle>
@@ -233,17 +233,17 @@ export function WorkflowTracker({
             </div>
           </CardHeader>
           <CardContent>
-            <h4 className="text-white font-medium mb-2">{recommendation.action}</h4>
-            <p className="text-sm text-slate-400 mb-4">{recommendation.description}</p>
+            <h4 className="text-foreground font-medium mb-2">{recommendation.action}</h4>
+            <p className="text-sm text-muted-foreground mb-4">{recommendation.description}</p>
 
             <div className="space-y-2 mb-4">
-              <p className="text-xs text-slate-500 uppercase">Action Items:</p>
+              <p className="text-xs text-muted-foreground uppercase">Action Items:</p>
               {recommendation.additionalSteps.map((step, i) => (
                 <div
                   key={i}
-                  className="flex items-start gap-2 text-sm text-slate-300"
+                  className="flex items-start gap-2 text-sm text-muted-foreground"
                 >
-                  <Circle className="w-3 h-3 mt-1 text-slate-500" />
+                  <Circle className="w-3 h-3 mt-1 text-muted-foreground" />
                   <span>{step}</span>
                 </div>
               ))}
@@ -279,9 +279,9 @@ export function WorkflowTracker({
       )}
 
       {/* Flow Guide */}
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader className="pb-2">
-          <CardTitle className="text-white text-sm">Dispute Flow Guide</CardTitle>
+          <CardTitle className="text-foreground text-sm">Dispute Flow Guide</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -291,13 +291,13 @@ export function WorkflowTracker({
                 className={`p-2 rounded border ${
                   key === flow
                     ? "bg-primary/10 border-primary/50"
-                    : "bg-slate-700/30 border-slate-600"
+                    : "bg-muted border-input"
                 }`}
               >
                 <div className="flex items-center justify-between mb-1">
                   <span
                     className={`text-sm font-medium ${
-                      key === flow ? "text-primary" : "text-white"
+                      key === flow ? "text-primary" : "text-foreground"
                     }`}
                   >
                     {desc.name}
@@ -306,7 +306,7 @@ export function WorkflowTracker({
                     <Badge className="bg-primary/20 text-primary text-xs">Current</Badge>
                   )}
                 </div>
-                <p className="text-xs text-slate-400">{desc.description}</p>
+                <p className="text-xs text-muted-foreground">{desc.description}</p>
               </div>
             ))}
           </div>

@@ -59,26 +59,26 @@ export function SentryAccountSelector({
   };
 
   return (
-    <div className="bg-slate-800/50 rounded-lg border border-slate-700/50">
+    <div className="bg-card rounded-lg border border-border">
       {/* Header */}
-      <div className={`p-4 border-b border-slate-700/50 ${craColors.bg} rounded-t-lg`}>
+      <div className={`p-4 border-b border-border ${craColors.bg} rounded-t-lg`}>
         <div className="flex items-center justify-between">
           <div>
             <h3 className={`text-sm font-medium ${craColors.text}`}>{cra} Accounts</h3>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               {selectedIds.length} of {accounts.length} selected
             </p>
           </div>
           <div className="flex gap-2">
             <button
               onClick={selectAll}
-              className="px-2 py-1 text-xs text-slate-400 hover:text-slate-300"
+              className="px-2 py-1 text-xs text-muted-foreground hover:text-muted-foreground"
             >
               Select All
             </button>
             <button
               onClick={clearAll}
-              className="px-2 py-1 text-xs text-slate-400 hover:text-slate-300"
+              className="px-2 py-1 text-xs text-muted-foreground hover:text-muted-foreground"
             >
               Clear
             </button>
@@ -87,7 +87,7 @@ export function SentryAccountSelector({
       </div>
 
       {/* Filters */}
-      <div className="p-3 border-b border-slate-700/50 space-y-3">
+      <div className="p-3 border-b border-border space-y-3">
         {/* Search */}
         <div className="relative">
           <input
@@ -95,10 +95,10 @@ export function SentryAccountSelector({
             placeholder="Search accounts..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600/50 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/50"
+            className="w-full px-3 py-2 bg-muted border border-input rounded-lg text-sm text-foreground placeholder-slate-500 focus:outline-none focus:border-primary/50"
           />
           <svg
-            className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500"
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -119,8 +119,8 @@ export function SentryAccountSelector({
               onClick={() => setFilterType(filter.key)}
               className={`px-3 py-1 text-xs rounded-lg transition-colors ${
                 filterType === filter.key
-                  ? "bg-slate-700 text-slate-200"
-                  : "text-slate-400 hover:text-slate-300"
+                  ? "bg-muted text-foreground"
+                  : "text-muted-foreground hover:text-muted-foreground"
               }`}
             >
               {filter.label}
@@ -132,7 +132,7 @@ export function SentryAccountSelector({
       {/* Account list */}
       <div className="max-h-96 overflow-y-auto">
         {filteredAccounts.length > 0 ? (
-          <div className="divide-y divide-slate-700/50">
+          <div className="divide-y divide-border">
             {filteredAccounts.map((account) => (
               <AccountCard
                 key={account.id}
@@ -144,7 +144,7 @@ export function SentryAccountSelector({
           </div>
         ) : (
           <div className="p-8 text-center">
-            <p className="text-sm text-slate-500">No accounts match your filters</p>
+            <p className="text-sm text-muted-foreground">No accounts match your filters</p>
           </div>
         )}
       </div>
@@ -165,18 +165,18 @@ function AccountCard({
     <div
       className={`p-4 cursor-pointer transition-colors ${
         isSelected
-          ? "bg-blue-500/10"
-          : "hover:bg-slate-700/30"
+          ? "bg-primary/10"
+          : "hover:bg-muted"
       }`}
       onClick={onToggle}
     >
       <div className="flex items-start gap-3">
         {/* Checkbox */}
         <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 mt-0.5 ${
-          isSelected ? "bg-blue-500" : "border border-slate-600"
+          isSelected ? "bg-blue-500" : "border border-input"
         }`}>
           {isSelected && (
-            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-3 h-3 text-foreground" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
             </svg>
           )}
@@ -185,7 +185,7 @@ function AccountCard({
         {/* Account info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-sm font-medium text-slate-200 truncate">
+            <span className="text-sm font-medium text-foreground truncate">
               {account.creditorName}
             </span>
             {account.isCollection && (
@@ -195,7 +195,7 @@ function AccountCard({
             )}
           </div>
 
-          <div className="flex items-center gap-3 text-xs text-slate-400">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
             {account.maskedAccountId && (
               <span>...{account.maskedAccountId}</span>
             )}
@@ -218,7 +218,7 @@ function AccountCard({
                       ? "bg-red-500/20 text-red-400"
                       : issue.severity === "MEDIUM"
                       ? "bg-amber-500/20 text-amber-400"
-                      : "bg-slate-500/20 text-slate-400"
+                      : "bg-muted text-muted-foreground"
                   }`}
                 >
                   {issue.description.length > 30
@@ -227,7 +227,7 @@ function AccountCard({
                 </span>
               ))}
               {account.detectedIssues.length > 3 && (
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-muted-foreground">
                   +{account.detectedIssues.length - 3} more
                 </span>
               )}

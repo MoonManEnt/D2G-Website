@@ -26,7 +26,7 @@ export default function ErrorBoundary({
             <h2 className="text-2xl font-semibold tracking-tight">Something went wrong</h2>
             <p className="text-muted-foreground max-w-[500px]">
                 We encountered an unexpected error while rendering this page.
-                {error.message && <span className="block mt-2 text-xs opacity-70 font-mono bg-slate-100 dark:bg-slate-800 p-2 rounded">{error.message}</span>}
+                {error.message && <span className="block mt-2 text-xs opacity-70 font-mono bg-muted dark:bg-card p-2 rounded">{error.message}</span>}
             </p>
             <div className="flex gap-4 mt-6">
                 <Button onClick={() => window.location.reload()} variant="outline">

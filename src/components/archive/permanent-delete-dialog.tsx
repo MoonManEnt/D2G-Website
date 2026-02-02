@@ -77,7 +77,7 @@ export function PermanentDeleteDialog({
                 <p className="text-sm font-medium text-red-300 mb-1">
                   Warning: This is irreversible
                 </p>
-                <p className="text-sm text-slate-300">
+                <p className="text-sm text-muted-foreground">
                   You are about to permanently delete <strong>{clientName}</strong> and
                   all associated data. This cannot be recovered.
                 </p>
@@ -86,39 +86,39 @@ export function PermanentDeleteDialog({
           </div>
 
           {/* Data to be deleted */}
-          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-white mb-3">Data to be deleted:</h4>
+          <div className="bg-card border border-border rounded-lg p-4">
+            <h4 className="text-sm font-medium text-foreground mb-3">Data to be deleted:</h4>
             <div className="grid grid-cols-3 gap-4 text-center">
-              <div className="p-2 bg-slate-900/50 rounded">
-                <Users className="w-4 h-4 text-blue-400 mx-auto mb-1" />
-                <p className="text-lg font-bold text-white">{recordCounts.disputes}</p>
-                <p className="text-xs text-slate-400">Disputes</p>
+              <div className="p-2 bg-background rounded">
+                <Users className="w-4 h-4 text-primary mx-auto mb-1" />
+                <p className="text-lg font-bold text-foreground">{recordCounts.disputes}</p>
+                <p className="text-xs text-muted-foreground">Disputes</p>
               </div>
-              <div className="p-2 bg-slate-900/50 rounded">
+              <div className="p-2 bg-background rounded">
                 <FileText className="w-4 h-4 text-emerald-400 mx-auto mb-1" />
-                <p className="text-lg font-bold text-white">{recordCounts.accounts}</p>
-                <p className="text-xs text-slate-400">Accounts</p>
+                <p className="text-lg font-bold text-foreground">{recordCounts.accounts}</p>
+                <p className="text-xs text-muted-foreground">Accounts</p>
               </div>
-              <div className="p-2 bg-slate-900/50 rounded">
+              <div className="p-2 bg-background rounded">
                 <MessageSquare className="w-4 h-4 text-purple-400 mx-auto mb-1" />
-                <p className="text-lg font-bold text-white">{recordCounts.communications}</p>
-                <p className="text-xs text-slate-400">Communications</p>
+                <p className="text-lg font-bold text-foreground">{recordCounts.communications}</p>
+                <p className="text-xs text-muted-foreground">Communications</p>
               </div>
             </div>
-            <p className="text-xs text-slate-400 mt-3 text-center">
+            <p className="text-xs text-muted-foreground mt-3 text-center">
               Plus all credit reports, scores, evidence, documents, and event logs
             </p>
           </div>
 
           {/* Confirmation Input */}
           <div className="space-y-2">
-            <Label className="text-slate-200">
-              Type <code className="bg-slate-800 px-2 py-0.5 rounded text-red-400">{CONFIRM_PHRASE}</code> to confirm
+            <Label className="text-foreground">
+              Type <code className="bg-card px-2 py-0.5 rounded text-red-400">{CONFIRM_PHRASE}</code> to confirm
             </Label>
             <Input
               value={confirmText}
               onChange={(e) => setConfirmText(e.target.value)}
-              className="bg-slate-700/50 border-slate-600 text-white font-mono"
+              className="bg-muted border-input text-foreground font-mono"
               placeholder="Type confirmation..."
             />
           </div>
@@ -128,7 +128,7 @@ export function PermanentDeleteDialog({
             variant="outline"
             onClick={handleClose}
             disabled={loading}
-            className="border-slate-600"
+            className="border-input"
           >
             Cancel
           </Button>

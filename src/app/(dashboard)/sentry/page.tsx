@@ -93,8 +93,8 @@ export default async function SentryPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-slate-200">Sentry Dispute</h1>
-          <p className="text-slate-400 mt-1">
+          <h1 className="text-3xl font-bold text-foreground">Sentry Dispute</h1>
+          <p className="text-muted-foreground mt-1">
             Advanced dispute intelligence with e-OSCAR optimization
           </p>
         </div>
@@ -107,37 +107,37 @@ export default async function SentryPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4 mb-8">
-        <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-4">
-          <div className="text-2xl font-bold text-slate-200">{stats.total}</div>
-          <div className="text-xs text-slate-400">Total Disputes</div>
+        <div className="bg-card rounded-lg border border-border p-4">
+          <div className="text-2xl font-bold text-foreground">{stats.total}</div>
+          <div className="text-xs text-muted-foreground">Total Disputes</div>
         </div>
-        <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-4">
-          <div className="text-2xl font-bold text-slate-400">{stats.draft}</div>
-          <div className="text-xs text-slate-400">Drafts</div>
+        <div className="bg-card rounded-lg border border-border p-4">
+          <div className="text-2xl font-bold text-muted-foreground">{stats.draft}</div>
+          <div className="text-xs text-muted-foreground">Drafts</div>
         </div>
-        <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-4">
+        <div className="bg-card rounded-lg border border-border p-4">
           <div className="text-2xl font-bold text-amber-400">{stats.sent}</div>
-          <div className="text-xs text-slate-400">Sent</div>
+          <div className="text-xs text-muted-foreground">Sent</div>
         </div>
-        <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-4">
+        <div className="bg-card rounded-lg border border-border p-4">
           <div className="text-2xl font-bold text-emerald-400">{stats.resolved}</div>
-          <div className="text-xs text-slate-400">Resolved</div>
+          <div className="text-xs text-muted-foreground">Resolved</div>
         </div>
       </div>
 
       {/* Feature highlights */}
-      <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-xl border border-blue-500/20 p-6 mb-8">
-        <h2 className="text-lg font-semibold text-slate-200 mb-4">Sentry Intelligence Features</h2>
+      <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-xl border border-primary/20 p-6 mb-8">
+        <h2 className="text-lg font-semibold text-foreground mb-4">Sentry Intelligence Features</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="flex items-start gap-3">
-            <div className="p-2 bg-blue-500/20 rounded-lg">
-              <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="p-2 bg-primary/20 rounded-lg">
+              <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <div>
-              <div className="text-sm font-medium text-slate-200">e-OSCAR Optimization</div>
-              <div className="text-xs text-slate-400">Strategic code selection</div>
+              <div className="text-sm font-medium text-foreground">e-OSCAR Optimization</div>
+              <div className="text-xs text-muted-foreground">Strategic code selection</div>
             </div>
           </div>
           <div className="flex items-start gap-3">
@@ -147,8 +147,8 @@ export default async function SentryPage() {
               </svg>
             </div>
             <div>
-              <div className="text-sm font-medium text-slate-200">OCR Safety</div>
-              <div className="text-xs text-slate-400">Avoid frivolous flags</div>
+              <div className="text-sm font-medium text-foreground">OCR Safety</div>
+              <div className="text-xs text-muted-foreground">Avoid frivolous flags</div>
             </div>
           </div>
           <div className="flex items-start gap-3">
@@ -158,8 +158,8 @@ export default async function SentryPage() {
               </svg>
             </div>
             <div>
-              <div className="text-sm font-medium text-slate-200">Citation Validation</div>
-              <div className="text-xs text-slate-400">Verified legal accuracy</div>
+              <div className="text-sm font-medium text-foreground">Citation Validation</div>
+              <div className="text-xs text-muted-foreground">Verified legal accuracy</div>
             </div>
           </div>
           <div className="flex items-start gap-3">
@@ -169,37 +169,37 @@ export default async function SentryPage() {
               </svg>
             </div>
             <div>
-              <div className="text-sm font-medium text-slate-200">Metro 2 Targeting</div>
-              <div className="text-xs text-slate-400">Field-level disputes</div>
+              <div className="text-sm font-medium text-foreground">Metro 2 Targeting</div>
+              <div className="text-xs text-muted-foreground">Field-level disputes</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Client list */}
-      <div className="bg-slate-800/50 rounded-xl border border-slate-700/50">
-        <div className="p-4 border-b border-slate-700/50">
-          <h2 className="text-lg font-semibold text-slate-200">Select a Client</h2>
-          <p className="text-sm text-slate-400">Choose a client to start a Sentry dispute</p>
+      <div className="bg-card rounded-xl border border-border">
+        <div className="p-4 border-b border-border">
+          <h2 className="text-lg font-semibold text-foreground">Select a Client</h2>
+          <p className="text-sm text-muted-foreground">Choose a client to start a Sentry dispute</p>
         </div>
 
         {clients.length > 0 ? (
-          <div className="divide-y divide-slate-700/50">
+          <div className="divide-y divide-border">
             {clients.map((client) => (
               <Link
                 key={client.id}
                 href={`/sentry/${client.id}`}
-                className="flex items-center justify-between p-4 hover:bg-slate-700/30 transition-colors"
+                className="flex items-center justify-between p-4 hover:bg-muted transition-colors"
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-slate-300 font-medium">
+                  <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center text-muted-foreground font-medium">
                     {client.firstName[0]}{client.lastName[0]}
                   </div>
                   <div>
-                    <div className="text-sm font-medium text-slate-200">
+                    <div className="text-sm font-medium text-foreground">
                       {client.firstName} {client.lastName}
                     </div>
-                    <div className="text-xs text-slate-400">
+                    <div className="text-xs text-muted-foreground">
                       {client.uniqueCreditorCount} creditors • {client._count.sentryDisputes} Sentry disputes
                     </div>
                   </div>
@@ -208,11 +208,11 @@ export default async function SentryPage() {
                   <span className={`px-2 py-1 text-xs rounded ${
                     client.stage === "ACTIVE" ? "bg-emerald-500/20 text-emerald-400" :
                     client.stage === "DISPUTING" ? "bg-amber-500/20 text-amber-400" :
-                    "bg-slate-500/20 text-slate-400"
+                    "bg-muted text-muted-foreground"
                   }`}>
                     {client.stage}
                   </span>
-                  <svg className="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-5 h-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </div>
@@ -221,13 +221,13 @@ export default async function SentryPage() {
           </div>
         ) : (
           <div className="p-12 text-center">
-            <svg className="w-12 h-12 text-slate-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-12 h-12 text-muted-foreground mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
-            <p className="text-slate-400 mb-4">No clients found</p>
+            <p className="text-muted-foreground mb-4">No clients found</p>
             <Link
               href="/clients/new"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-foreground rounded-lg hover:bg-primary transition-colors"
             >
               Add Your First Client
             </Link>

@@ -19,22 +19,22 @@ export default function GlobalError({
 
   return (
     <html>
-      <body className="bg-slate-900 min-h-screen flex items-center justify-center">
+      <body className="bg-background min-h-screen flex items-center justify-center">
         <div className="text-center p-8 max-w-md">
           <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
             <AlertTriangle className="w-8 h-8 text-red-400" />
           </div>
 
-          <h1 className="text-2xl font-bold text-white mb-2">
+          <h1 className="text-2xl font-bold text-foreground mb-2">
             Something went wrong
           </h1>
 
-          <p className="text-slate-400 mb-6">
+          <p className="text-muted-foreground mb-6">
             We've been notified and are working to fix the issue. Please try again.
           </p>
 
           {error.digest && (
-            <p className="text-xs text-slate-500 mb-4 font-mono">
+            <p className="text-xs text-muted-foreground mb-4 font-mono">
               Error ID: {error.digest}
             </p>
           )}
@@ -42,7 +42,7 @@ export default function GlobalError({
           <div className="flex gap-3 justify-center">
             <Button
               onClick={reset}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-primary hover:bg-primary/90"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               Try Again
@@ -51,7 +51,7 @@ export default function GlobalError({
             <Button
               variant="outline"
               onClick={() => window.location.href = "/"}
-              className="border-slate-600 text-slate-300 hover:bg-slate-800"
+              className="border-input text-muted-foreground hover:bg-card"
             >
               Go to Dashboard
             </Button>

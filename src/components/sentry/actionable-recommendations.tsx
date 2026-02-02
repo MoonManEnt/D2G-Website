@@ -28,8 +28,8 @@ const PRIORITY_COLORS = {
     card: "border-amber-500/30 hover:border-amber-500/50",
   },
   LOW: {
-    badge: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-    card: "border-blue-500/30 hover:border-blue-500/50",
+    badge: "bg-primary/20 text-primary border-primary/30",
+    card: "border-primary/30 hover:border-blue-500/50",
   },
 };
 
@@ -96,12 +96,12 @@ export function ActionableRecommendationsPanel({
 
   if (recommendations.length === 0) {
     return (
-      <div className="p-4 text-center text-slate-400 text-sm">
+      <div className="p-4 text-center text-muted-foreground text-sm">
         <svg className="w-8 h-8 mx-auto mb-2 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <p>Your dispute is well optimized!</p>
-        <p className="text-xs text-slate-500 mt-1">No additional recommendations at this time.</p>
+        <p className="text-xs text-muted-foreground mt-1">No additional recommendations at this time.</p>
       </div>
     );
   }
@@ -110,13 +110,13 @@ export function ActionableRecommendationsPanel({
     <div className="space-y-4">
       {/* Header with reset button */}
       <div className="flex items-center justify-between">
-        <h4 className="text-sm font-medium text-slate-300">
+        <h4 className="text-sm font-medium text-muted-foreground">
           Amelia&apos;s Recommendations
         </h4>
         {hasAppliedRecommendations && onReset && (
           <button
             onClick={onReset}
-            className="text-xs text-slate-400 hover:text-red-400 transition-colors flex items-center gap-1"
+            className="text-xs text-muted-foreground hover:text-red-400 transition-colors flex items-center gap-1"
           >
             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -138,12 +138,12 @@ export function ActionableRecommendationsPanel({
           <div className="mt-2 space-y-1">
             {appliedRecommendations.map((rec) => (
               <div key={rec.id} className="flex items-center justify-between text-xs">
-                <span className="text-slate-300">{rec.title}</span>
+                <span className="text-muted-foreground">{rec.title}</span>
                 {onRevert && (
                   <button
                     onClick={() => handleRevert(rec.id)}
                     disabled={applyingId === rec.id}
-                    className="text-slate-400 hover:text-red-400 transition-colors"
+                    className="text-muted-foreground hover:text-red-400 transition-colors"
                   >
                     {applyingId === rec.id ? (
                       <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
@@ -176,14 +176,14 @@ export function ActionableRecommendationsPanel({
 
       {/* Potential gain summary */}
       {pendingRecommendations.length > 0 && (
-        <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/50">
+        <div className="p-3 rounded-lg bg-card border border-border">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-400">Potential improvement</span>
+            <span className="text-muted-foreground">Potential improvement</span>
             <span className="text-emerald-400 font-medium">
               +{Math.round(pendingRecommendations.reduce((sum, r) => sum + r.potentialGainValue * 100, 0))}%
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Apply all recommendations to maximize success rate
           </p>
         </div>
@@ -211,7 +211,7 @@ function RecommendationCard({
   const icon = TYPE_ICONS[recommendation.type] || TYPE_ICONS.ENABLE_METRO2;
 
   return (
-    <div className={`rounded-lg border bg-slate-800/30 transition-colors ${colors.card}`}>
+    <div className={`rounded-lg border bg-card transition-colors ${colors.card}`}>
       {/* Header */}
       <div className="p-4">
         {/* Top row: Icon and gain badge */}
@@ -225,20 +225,20 @@ function RecommendationCard({
         </div>
 
         {/* Title */}
-        <h5 className="text-sm font-medium text-slate-200 mb-2 leading-tight">
+        <h5 className="text-sm font-medium text-foreground mb-2 leading-tight">
           {recommendation.title}
         </h5>
 
         {/* Description */}
-        <p className="text-xs text-slate-400 leading-relaxed mb-4">
+        <p className="text-xs text-muted-foreground leading-relaxed mb-4">
           {recommendation.description}
         </p>
 
         {/* Actions */}
-        <div className="flex items-center justify-between pt-3 border-t border-slate-700/50">
+        <div className="flex items-center justify-between pt-3 border-t border-border">
           <button
             onClick={onToggleExpand}
-            className="text-xs text-slate-400 hover:text-slate-300 transition-colors flex items-center gap-1"
+            className="text-xs text-muted-foreground hover:text-muted-foreground transition-colors flex items-center gap-1"
           >
             {isExpanded ? "Hide details" : "Show preview"}
             <svg
@@ -275,11 +275,11 @@ function RecommendationCard({
 
       {/* Expanded preview */}
       {isExpanded && (recommendation.previewBefore || recommendation.previewAfter) && (
-        <div className="border-t border-slate-700/50 p-3 space-y-2">
+        <div className="border-t border-border p-3 space-y-2">
           {recommendation.previewBefore && (
             <div className="p-2 rounded bg-red-500/10 border border-red-500/20">
               <div className="text-xs text-red-400 mb-1">Before</div>
-              <p className="text-xs text-slate-300 line-through opacity-75">
+              <p className="text-xs text-muted-foreground line-through opacity-75">
                 {recommendation.previewBefore}
               </p>
             </div>
@@ -287,7 +287,7 @@ function RecommendationCard({
           {recommendation.previewAfter && (
             <div className="p-2 rounded bg-emerald-500/10 border border-emerald-500/20">
               <div className="text-xs text-emerald-400 mb-1">After</div>
-              <p className="text-xs text-slate-300">
+              <p className="text-xs text-muted-foreground">
                 {recommendation.previewAfter}
               </p>
             </div>

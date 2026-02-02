@@ -39,7 +39,7 @@ const stageIcons: Record<string, React.ElementType> = {
 export function CaseTimeline({ escalationPlan }: CaseTimelineProps) {
   return (
     <div className="space-y-1">
-      <h3 className="text-sm font-semibold text-slate-300 mb-4">
+      <h3 className="text-sm font-semibold text-muted-foreground mb-4">
         Escalation Path
       </h3>
 
@@ -68,14 +68,14 @@ export function CaseTimeline({ escalationPlan }: CaseTimelineProps) {
                   {isCompleted ? (
                     <div className="w-full h-full bg-emerald-500/60" />
                   ) : isCurrent ? (
-                    <div className="w-full h-full bg-gradient-to-b from-blue-500/60 to-slate-600/30" />
+                    <div className="w-full h-full bg-gradient-to-b from-blue-500/60 to-muted/30" />
                   ) : isRecommended ? (
                     <div
                       className="w-full h-full border-l-2 border-dashed border-amber-500/40"
                       style={{ marginLeft: "-1px" }}
                     />
                   ) : (
-                    <div className="w-full h-full bg-slate-700/40" />
+                    <div className="w-full h-full bg-muted" />
                   )}
                 </div>
               )}
@@ -100,17 +100,17 @@ export function CaseTimeline({ escalationPlan }: CaseTimelineProps) {
                       repeat: Infinity,
                       ease: "easeInOut",
                     }}
-                    className="w-10 h-10 rounded-full bg-blue-500/20 border-2 border-blue-500/60 flex items-center justify-center"
+                    className="w-10 h-10 rounded-full bg-primary/20 border-2 border-blue-500/60 flex items-center justify-center"
                   >
-                    <StageIcon className="w-4 h-4 text-blue-400" />
+                    <StageIcon className="w-4 h-4 text-primary" />
                   </motion.div>
                 ) : isRecommended ? (
                   <div className="w-10 h-10 rounded-full bg-amber-500/10 border-2 border-dashed border-amber-500/40 flex items-center justify-center">
                     <StageIcon className="w-4 h-4 text-amber-400" />
                   </div>
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-slate-800/50 border-2 border-slate-700/50 flex items-center justify-center">
-                    <StageIcon className="w-4 h-4 text-slate-500" />
+                  <div className="w-10 h-10 rounded-full bg-card border-2 border-border flex items-center justify-center">
+                    <StageIcon className="w-4 h-4 text-muted-foreground" />
                   </div>
                 )}
               </div>
@@ -119,12 +119,12 @@ export function CaseTimeline({ escalationPlan }: CaseTimelineProps) {
               <div
                 className={`flex-1 rounded-lg p-4 transition-all ${
                   isCurrent
-                    ? "bg-blue-500/10 border border-blue-500/30"
+                    ? "bg-primary/10 border border-primary/30"
                     : isRecommended
                     ? "bg-amber-500/5 border border-dashed border-amber-500/25"
                     : isCompleted
-                    ? "bg-slate-800/30 border border-emerald-500/15"
-                    : "bg-slate-800/20 border border-slate-700/30"
+                    ? "bg-card border border-emerald-500/15"
+                    : "bg-card border border-border"
                 }`}
               >
                 <div className="flex items-center gap-2 mb-1">
@@ -136,14 +136,14 @@ export function CaseTimeline({ escalationPlan }: CaseTimelineProps) {
                         ? "text-emerald-300"
                         : isRecommended
                         ? "text-amber-300"
-                        : "text-slate-400"
+                        : "text-muted-foreground"
                     }`}
                   >
                     {step.title}
                   </h4>
 
                   {isCurrent && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-semibold">
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/20 text-primary font-semibold">
                       CURRENT
                     </span>
                   )}
@@ -162,7 +162,7 @@ export function CaseTimeline({ escalationPlan }: CaseTimelineProps) {
 
                 <p
                   className={`text-xs mb-3 ${
-                    isFuture ? "text-slate-500" : "text-slate-400"
+                    isFuture ? "text-muted-foreground" : "text-muted-foreground"
                   }`}
                 >
                   {step.description}
@@ -173,7 +173,7 @@ export function CaseTimeline({ escalationPlan }: CaseTimelineProps) {
                   <div className="space-y-1.5">
                     <p
                       className={`text-[10px] font-semibold uppercase tracking-wider ${
-                        isFuture ? "text-slate-600" : "text-slate-500"
+                        isFuture ? "text-muted-foreground" : "text-muted-foreground"
                       }`}
                     >
                       Actions
@@ -189,7 +189,7 @@ export function CaseTimeline({ escalationPlan }: CaseTimelineProps) {
                               ? "text-blue-300/80"
                               : isRecommended
                               ? "text-amber-300/70"
-                              : "text-slate-500"
+                              : "text-muted-foreground"
                           }`}
                         >
                           <span className="mt-1 flex-shrink-0">

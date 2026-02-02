@@ -23,11 +23,11 @@ export function OCRRiskAnalyzer({
   const lowCount = findings.filter((f) => f.severity === "LOW").length;
 
   return (
-    <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-4">
+    <div className="bg-card rounded-lg border border-border p-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <h3 className="text-sm font-medium text-slate-300">OCR Safety Score</h3>
+          <h3 className="text-sm font-medium text-muted-foreground">OCR Safety Score</h3>
           <span className={`text-xs px-2 py-0.5 rounded ${riskColors.bg} ${riskColors.text}`}>
             {riskColors.label}
           </span>
@@ -36,7 +36,7 @@ export function OCRRiskAnalyzer({
       </div>
 
       {/* Score bar */}
-      <div className="relative h-3 bg-slate-700 rounded-full overflow-hidden mb-4">
+      <div className="relative h-3 bg-muted rounded-full overflow-hidden mb-4">
         <div
           className={`h-full transition-all duration-500 rounded-full ${
             score >= 70 ? "bg-emerald-500" :
@@ -46,8 +46,8 @@ export function OCRRiskAnalyzer({
           style={{ width: `${score}%` }}
         />
         {/* Threshold markers */}
-        <div className="absolute top-0 left-[40%] h-full w-px bg-slate-600" />
-        <div className="absolute top-0 left-[70%] h-full w-px bg-slate-600" />
+        <div className="absolute top-0 left-[40%] h-full w-px bg-muted" />
+        <div className="absolute top-0 left-[70%] h-full w-px bg-muted" />
       </div>
 
       {/* Summary */}
@@ -59,7 +59,7 @@ export function OCRRiskAnalyzer({
           <span className="text-amber-400">{mediumCount} medium risk</span>
         )}
         {lowCount > 0 && (
-          <span className="text-slate-400">{lowCount} low risk</span>
+          <span className="text-muted-foreground">{lowCount} low risk</span>
         )}
         {findings.length === 0 && (
           <span className="text-emerald-400">No issues detected</span>
@@ -69,7 +69,7 @@ export function OCRRiskAnalyzer({
       {/* Findings list */}
       {findings.length > 0 && (
         <div className="space-y-2">
-          <h4 className="text-xs font-medium text-slate-400">Detected Phrases</h4>
+          <h4 className="text-xs font-medium text-muted-foreground">Detected Phrases</h4>
           {findings.map((finding, i) => (
             <div
               key={i}
@@ -78,7 +78,7 @@ export function OCRRiskAnalyzer({
                   ? "bg-red-500/10 border-red-500/30"
                   : finding.severity === "MEDIUM"
                   ? "bg-amber-500/10 border-amber-500/30"
-                  : "bg-slate-700/50 border-slate-600/50"
+                  : "bg-muted border-input"
               }`}
             >
               <div
@@ -92,16 +92,16 @@ export function OCRRiskAnalyzer({
                         ? "bg-red-500/20 text-red-400"
                         : finding.severity === "MEDIUM"
                         ? "bg-amber-500/20 text-amber-400"
-                        : "bg-slate-500/20 text-slate-400"
+                        : "bg-muted text-muted-foreground"
                     }`}>
                       {finding.severity}
                     </span>
-                    <span className="text-xs text-slate-500">{finding.location}</span>
+                    <span className="text-xs text-muted-foreground">{finding.location}</span>
                   </div>
-                  <p className="text-sm text-slate-300 font-mono">"{finding.phrase}"</p>
+                  <p className="text-sm text-muted-foreground font-mono">"{finding.phrase}"</p>
                 </div>
                 <svg
-                  className={`w-4 h-4 text-slate-500 transition-transform ${
+                  className={`w-4 h-4 text-muted-foreground transition-transform ${
                     expandedFinding === i ? "rotate-180" : ""
                   }`}
                   fill="none"
@@ -114,12 +114,12 @@ export function OCRRiskAnalyzer({
 
               {/* Expanded details */}
               {expandedFinding === i && (
-                <div className="mt-3 pt-3 border-t border-slate-600/50">
-                  <p className="text-xs text-slate-400 mb-2">{finding.explanation}</p>
+                <div className="mt-3 pt-3 border-t border-input">
+                  <p className="text-xs text-muted-foreground mb-2">{finding.explanation}</p>
                   {finding.suggestion && (
-                    <div className="flex items-center justify-between bg-slate-800/50 rounded p-2">
+                    <div className="flex items-center justify-between bg-card rounded p-2">
                       <div>
-                        <span className="text-xs text-slate-500">Suggested replacement:</span>
+                        <span className="text-xs text-muted-foreground">Suggested replacement:</span>
                         <p className="text-sm text-emerald-400 font-mono">"{finding.suggestion}"</p>
                       </div>
                       {onApplyFix && (
@@ -143,9 +143,9 @@ export function OCRRiskAnalyzer({
       )}
 
       {/* Tips */}
-      <div className="mt-4 pt-4 border-t border-slate-700/50">
-        <p className="text-xs text-slate-500">
-          <strong className="text-slate-400">Tip:</strong> Letters with scores below 50 have high risk of being flagged as frivolous by bureau OCR systems.
+      <div className="mt-4 pt-4 border-t border-border">
+        <p className="text-xs text-muted-foreground">
+          <strong className="text-muted-foreground">Tip:</strong> Letters with scores below 50 have high risk of being flagged as frivolous by bureau OCR systems.
           Aim for 70+ for best results.
         </p>
       </div>

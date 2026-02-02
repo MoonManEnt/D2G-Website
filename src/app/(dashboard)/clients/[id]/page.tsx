@@ -188,7 +188,7 @@ function getCRABadgeStyle(cra: string): string {
     EXPERIAN: "bg-blue-500/20 text-blue-400 border-blue-500/30",
     EQUIFAX: "bg-red-500/20 text-red-400 border-red-500/30",
   };
-  return styles[cra] || "bg-slate-500/20 text-slate-400 border-slate-500/30";
+  return styles[cra] || "bg-muted/50 text-muted-foreground border-border";
 }
 
 // DNA Color Helper Functions
@@ -263,7 +263,7 @@ function getThicknessBadgeColor(thickness: string): string {
     THICK: "bg-green-500/20 text-green-400",
     VERY_THICK: "bg-emerald-500/20 text-emerald-400",
   };
-  return colors[thickness] || "bg-slate-500/20 text-slate-400";
+  return colors[thickness] || "bg-muted/50 text-muted-foreground";
 }
 
 function getSeverityBadgeColor(severity: string): string {
@@ -274,7 +274,7 @@ function getSeverityBadgeColor(severity: string): string {
     HEAVY: "bg-orange-500/20 text-orange-400",
     SEVERE: "bg-red-500/20 text-red-400",
   };
-  return colors[severity] || "bg-slate-500/20 text-slate-400";
+  return colors[severity] || "bg-muted/50 text-muted-foreground";
 }
 
 function getUtilBadgeColor(status: string): string {
@@ -285,7 +285,7 @@ function getUtilBadgeColor(status: string): string {
     POOR: "bg-orange-500/20 text-orange-400",
     CRITICAL: "bg-red-500/20 text-red-400",
   };
-  return colors[status] || "bg-slate-500/20 text-slate-400";
+  return colors[status] || "bg-muted/50 text-muted-foreground";
 }
 
 function getInquiryBadgeColor(status: string): string {
@@ -296,7 +296,7 @@ function getInquiryBadgeColor(status: string): string {
     HEAVY: "bg-orange-500/20 text-orange-400",
     EXCESSIVE: "bg-red-500/20 text-red-400",
   };
-  return colors[status] || "bg-slate-500/20 text-slate-400";
+  return colors[status] || "bg-muted/50 text-muted-foreground";
 }
 
 function getStrengthBadgeColor(strength: string): string {
@@ -307,7 +307,7 @@ function getStrengthBadgeColor(strength: string): string {
     STRONG: "bg-green-500/20 text-green-400",
     EXCELLENT: "bg-emerald-500/20 text-emerald-400",
   };
-  return colors[strength] || "bg-slate-500/20 text-slate-400";
+  return colors[strength] || "bg-muted/50 text-muted-foreground";
 }
 
 function getComplexityBadgeColor(complexity: string): string {
@@ -317,7 +317,7 @@ function getComplexityBadgeColor(complexity: string): string {
     COMPLEX: "bg-amber-500/20 text-amber-400",
     VERY_COMPLEX: "bg-red-500/20 text-red-400",
   };
-  return colors[complexity] || "bg-slate-500/20 text-slate-400";
+  return colors[complexity] || "bg-muted/50 text-muted-foreground";
 }
 
 // Negative Item Card Component
@@ -342,13 +342,13 @@ function NegativeItemCard({ account, onViewDetails, onCaptureEvidence }: {
   };
 
   return (
-    <Card className="bg-slate-800/60 border-slate-700/50 hover:border-slate-600/50 transition-colors">
+    <Card className="bg-card border-border hover:border-input/50 transition-colors">
       <CardContent className="p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             {/* Header Row */}
             <div className="flex items-center gap-2 flex-wrap mb-3">
-              <span className="font-semibold text-white text-lg">{account.creditorName}</span>
+              <span className="font-semibold text-foreground text-lg">{account.creditorName}</span>
               <Badge variant="outline" className={getCRABadgeStyle(account.cra)}>
                 {account.cra}
               </Badge>
@@ -362,20 +362,20 @@ function NegativeItemCard({ account, onViewDetails, onCaptureEvidence }: {
             {/* Account Details Row */}
             <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm mb-3">
               <div>
-                <span className="text-slate-500">Account: </span>
-                <span className="text-slate-300 font-mono">{account.maskedAccountId || "N/A"}</span>
+                <span className="text-muted-foreground">Account: </span>
+                <span className="text-muted-foreground font-mono">{account.maskedAccountId || "N/A"}</span>
               </div>
               <div>
-                <span className="text-slate-500">Status: </span>
+                <span className="text-muted-foreground">Status: </span>
                 <span className="text-red-400 font-medium">{account.accountStatus}</span>
               </div>
               <div>
-                <span className="text-slate-500">Balance: </span>
-                <span className="text-slate-300">{formatCurrency(account.balance)}</span>
+                <span className="text-muted-foreground">Balance: </span>
+                <span className="text-muted-foreground">{formatCurrency(account.balance)}</span>
               </div>
               <div>
-                <span className="text-slate-500">Past Due: </span>
-                <span className={account.pastDue && account.pastDue > 0 ? "text-red-400" : "text-slate-300"}>
+                <span className="text-muted-foreground">Past Due: </span>
+                <span className={account.pastDue && account.pastDue > 0 ? "text-red-400" : "text-muted-foreground"}>
                   {formatCurrency(account.pastDue)}
                 </span>
               </div>
@@ -392,12 +392,12 @@ function NegativeItemCard({ account, onViewDetails, onCaptureEvidence }: {
                           ? "bg-red-500/20 text-red-400"
                           : issue.severity === "MEDIUM"
                           ? "bg-amber-500/20 text-amber-400"
-                          : "bg-slate-500/20 text-slate-400"
+                          : "bg-muted/50 text-muted-foreground"
                       }`}
                     >
                       {issue.severity}
                     </Badge>
-                    <span className="text-sm text-slate-400 leading-tight">{issue.description}</span>
+                    <span className="text-sm text-muted-foreground leading-tight">{issue.description}</span>
                   </div>
                 ))}
                 {!expanded && hiddenCount > 0 && (
@@ -431,7 +431,7 @@ function NegativeItemCard({ account, onViewDetails, onCaptureEvidence }: {
                 e.stopPropagation();
                 onCaptureEvidence();
               }}
-              className="bg-slate-800 border-purple-500/30 hover:bg-purple-500/20 text-purple-300"
+              className="bg-card border-purple-500/30 hover:bg-purple-500/20 text-purple-300"
             >
               <Camera className="w-4 h-4 mr-1" />
               Capture
@@ -440,7 +440,7 @@ function NegativeItemCard({ account, onViewDetails, onCaptureEvidence }: {
               variant="outline"
               size="sm"
               onClick={onViewDetails}
-              className="bg-slate-800 border-slate-600 hover:bg-slate-700 text-slate-200"
+              className="bg-card border-input hover:bg-muted text-foreground"
             >
               View Details
             </Button>
@@ -759,7 +759,7 @@ export default function ClientDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96 lg:ml-64">
-        <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -775,21 +775,21 @@ export default function ClientDetailPage() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.push("/clients")}
-            className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+            className="p-2 hover:bg-card rounded-lg transition-colors"
           >
-            <ArrowLeft className="w-5 h-5 text-slate-400" />
+            <ArrowLeft className="w-5 h-5 text-muted-foreground" />
           </button>
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center">
-              <span className="text-white font-semibold text-lg">
+            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+              <span className="text-foreground font-semibold text-lg">
                 {client.firstName.charAt(0)}{client.lastName.charAt(0)}
               </span>
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">
+              <h1 className="text-2xl font-bold text-foreground">
                 {client.firstName} {client.lastName}
               </h1>
-              <p className="text-slate-500 text-sm">
+              <p className="text-muted-foreground text-sm">
                 Client since {safeFormatDate(client.createdAt)}
               </p>
             </div>
@@ -799,7 +799,7 @@ export default function ClientDetailPage() {
           <Button
             variant="outline"
             onClick={() => setEditDialogOpen(true)}
-            className="gap-2 bg-transparent border-slate-600 hover:bg-slate-800 text-slate-200"
+            className="gap-2 bg-transparent border-input hover:bg-card text-foreground"
           >
             <Edit className="w-4 h-4" />
             Edit
@@ -837,83 +837,83 @@ export default function ClientDetailPage() {
       {/* Summary Stats */}
       {summary && (
         <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-          <Card className="bg-slate-800/50 border-slate-700/50">
+          <Card className="bg-card border-border">
             <CardContent className="p-4 text-center">
-              <FileText className="w-6 h-6 mx-auto text-slate-400" />
-              <p className="text-2xl font-bold text-white mt-2">{summary.totalReports}</p>
-              <p className="text-xs text-slate-500">Reports</p>
+              <FileText className="w-6 h-6 mx-auto text-muted-foreground" />
+              <p className="text-2xl font-bold text-foreground mt-2">{summary.totalReports}</p>
+              <p className="text-xs text-muted-foreground">Reports</p>
             </CardContent>
           </Card>
-          <Card className="bg-slate-800/50 border-slate-700/50">
+          <Card className="bg-card border-border">
             <CardContent className="p-4 text-center">
-              <User className="w-6 h-6 mx-auto text-slate-400" />
-              <p className="text-2xl font-bold text-white mt-2">{summary.totalAccounts}</p>
-              <p className="text-xs text-slate-500">Creditors</p>
+              <User className="w-6 h-6 mx-auto text-muted-foreground" />
+              <p className="text-2xl font-bold text-foreground mt-2">{summary.totalAccounts}</p>
+              <p className="text-xs text-muted-foreground">Creditors</p>
             </CardContent>
           </Card>
-          <Card className="bg-slate-800/50 border-slate-700/50">
+          <Card className="bg-card border-border">
             <CardContent className="p-4 text-center">
               <AlertTriangle className="w-6 h-6 mx-auto text-amber-400" />
               <p className="text-2xl font-bold text-amber-400 mt-2">{summary.negativeItems}</p>
-              <p className="text-xs text-slate-500">Negative Items</p>
+              <p className="text-xs text-muted-foreground">Negative Items</p>
             </CardContent>
           </Card>
-          <Card className="bg-slate-800/50 border-slate-700/50">
+          <Card className="bg-card border-border">
             <CardContent className="p-4 text-center">
               <ShieldAlert className="w-6 h-6 mx-auto text-red-400" />
               <p className="text-2xl font-bold text-red-400 mt-2">{summary.highSeverityIssues}</p>
-              <p className="text-xs text-slate-500">High Severity</p>
+              <p className="text-xs text-muted-foreground">High Severity</p>
             </CardContent>
           </Card>
-          <Card className="bg-slate-800/50 border-slate-700/50">
+          <Card className="bg-card border-border">
             <CardContent className="p-4 text-center">
-              <Scale className="w-6 h-6 mx-auto text-slate-400" />
-              <p className="text-2xl font-bold text-white mt-2">{summary.totalDisputes}</p>
-              <p className="text-xs text-slate-500">Disputes</p>
+              <Scale className="w-6 h-6 mx-auto text-muted-foreground" />
+              <p className="text-2xl font-bold text-foreground mt-2">{summary.totalDisputes}</p>
+              <p className="text-xs text-muted-foreground">Disputes</p>
             </CardContent>
           </Card>
-          <Card className="bg-slate-800/50 border-slate-700/50">
+          <Card className="bg-card border-border">
             <CardContent className="p-4 text-center">
-              <ImageIcon className="w-6 h-6 mx-auto text-slate-400" />
-              <p className="text-2xl font-bold text-white mt-2">{summary.totalEvidence}</p>
-              <p className="text-xs text-slate-500">Evidence</p>
+              <ImageIcon className="w-6 h-6 mx-auto text-muted-foreground" />
+              <p className="text-2xl font-bold text-foreground mt-2">{summary.totalEvidence}</p>
+              <p className="text-xs text-muted-foreground">Evidence</p>
             </CardContent>
           </Card>
         </div>
       )}
 
       {/* Contact Information */}
-      <Card className="bg-slate-800/50 border-slate-700/50">
+      <Card className="bg-card border-border">
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-white">Contact Information</h2>
+            <h2 className="text-lg font-semibold text-foreground">Contact Information</h2>
             <button
               onClick={() => setEditDialogOpen(true)}
-              className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+              className="p-2 hover:bg-muted rounded-lg transition-colors"
             >
-              <ExternalLink className="w-4 h-4 text-slate-400" />
+              <ExternalLink className="w-4 h-4 text-muted-foreground" />
             </button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="flex items-start gap-3">
-              <Mail className="w-4 h-4 text-slate-500 mt-1" />
+              <Mail className="w-4 h-4 text-muted-foreground mt-1" />
               <div>
-                <p className="text-xs text-slate-500 mb-0.5">Email</p>
-                <p className="text-white">{client.email || "Not provided"}</p>
+                <p className="text-xs text-muted-foreground mb-0.5">Email</p>
+                <p className="text-foreground">{client.email || "Not provided"}</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <Phone className="w-4 h-4 text-slate-500 mt-1" />
+              <Phone className="w-4 h-4 text-muted-foreground mt-1" />
               <div>
-                <p className="text-xs text-slate-500 mb-0.5">Phone</p>
-                <p className="text-white">{client.phone || "Not provided"}</p>
+                <p className="text-xs text-muted-foreground mb-0.5">Phone</p>
+                <p className="text-foreground">{client.phone || "Not provided"}</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <MapPin className="w-4 h-4 text-slate-500 mt-1" />
+              <MapPin className="w-4 h-4 text-muted-foreground mt-1" />
               <div>
-                <p className="text-xs text-slate-500 mb-0.5">Address</p>
-                <p className="text-white">
+                <p className="text-xs text-muted-foreground mb-0.5">Address</p>
+                <p className="text-foreground">
                   {client.addressLine1 ? (
                     <>
                       {client.addressLine1}
@@ -930,10 +930,10 @@ export default function ClientDetailPage() {
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <Calendar className="w-4 h-4 text-slate-500 mt-1" />
+              <Calendar className="w-4 h-4 text-muted-foreground mt-1" />
               <div>
-                <p className="text-xs text-slate-500 mb-0.5">Date of Birth</p>
-                <p className="text-white">
+                <p className="text-xs text-muted-foreground mb-0.5">Date of Birth</p>
+                <p className="text-foreground">
                   {client.dateOfBirth
                     ? safeFormatDate(client.dateOfBirth)
                     : "Not provided"}
@@ -941,11 +941,11 @@ export default function ClientDetailPage() {
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <Shield className="w-4 h-4 text-slate-500 mt-1" />
+              <Shield className="w-4 h-4 text-muted-foreground mt-1" />
               <div>
-                <p className="text-xs text-slate-500 mb-0.5">SSN Last 4</p>
+                <p className="text-xs text-muted-foreground mb-0.5">SSN Last 4</p>
                 <div className="flex items-center gap-2">
-                  <p className="text-white font-mono">
+                  <p className="text-foreground font-mono">
                     {client.ssnLast4
                       ? showSSN
                         ? `***-**-${client.ssnLast4}`
@@ -955,13 +955,13 @@ export default function ClientDetailPage() {
                   {client.ssnLast4 && (
                     <button
                       onClick={() => setShowSSN(!showSSN)}
-                      className="p-1.5 rounded-md hover:bg-slate-700/50 transition-colors"
+                      className="p-1.5 rounded-md hover:bg-muted transition-colors"
                       title={showSSN ? "Hide last 4" : "Show last 4"}
                     >
                       {showSSN ? (
-                        <EyeOff className="w-3.5 h-3.5 text-slate-400 hover:text-slate-300" />
+                        <EyeOff className="w-3.5 h-3.5 text-muted-foreground hover:text-muted-foreground" />
                       ) : (
-                        <Eye className="w-3.5 h-3.5 text-slate-400 hover:text-slate-300" />
+                        <Eye className="w-3.5 h-3.5 text-muted-foreground hover:text-muted-foreground" />
                       )}
                     </button>
                   )}
@@ -974,32 +974,32 @@ export default function ClientDetailPage() {
 
       {/* Tabs */}
       <Tabs defaultValue="negative" className="flex-1 flex flex-col min-h-0">
-        <TabsList className="bg-slate-800/50 border border-slate-700/50 p-1 flex-shrink-0">
-          <TabsTrigger value="negative" className="gap-2 data-[state=active]:bg-slate-700">
+        <TabsList className="bg-card border border-border p-1 flex-shrink-0">
+          <TabsTrigger value="negative" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <AlertTriangle className="w-4 h-4" />
             Negative Items ({summary?.negativeItems || 0})
           </TabsTrigger>
-          <TabsTrigger value="reports" className="gap-2 data-[state=active]:bg-slate-700">
+          <TabsTrigger value="reports" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <FileText className="w-4 h-4" />
             Reports ({client.reports.length})
           </TabsTrigger>
-          <TabsTrigger value="disputes" className="gap-2 data-[state=active]:bg-slate-700">
+          <TabsTrigger value="disputes" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <Scale className="w-4 h-4" />
             Disputes ({client.disputes.length})
           </TabsTrigger>
-          <TabsTrigger value="scores" className="gap-2 data-[state=active]:bg-slate-700">
+          <TabsTrigger value="scores" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <TrendingUp className="w-4 h-4" />
             Credit Scores
           </TabsTrigger>
-          <TabsTrigger value="dna" className="gap-2 data-[state=active]:bg-slate-700">
+          <TabsTrigger value="dna" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <Dna className="w-4 h-4" />
             Credit DNA
           </TabsTrigger>
-          <TabsTrigger value="readiness" className="gap-2 data-[state=active]:bg-slate-700">
+          <TabsTrigger value="readiness" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <Target className="w-4 h-4" />
             Readiness
           </TabsTrigger>
-          <TabsTrigger value="litigation" className="gap-2 data-[state=active]:bg-slate-700">
+          <TabsTrigger value="litigation" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <Scale className="w-4 h-4" />
             Litigation
           </TabsTrigger>
@@ -1008,11 +1008,11 @@ export default function ClientDetailPage() {
         {/* Negative Items Tab */}
         <TabsContent value="negative" className="mt-4 flex-1 overflow-auto">
           {client.accounts.length === 0 ? (
-            <Card className="bg-slate-800/50 border-slate-700/50 h-full flex items-center justify-center">
+            <Card className="bg-card border-border h-full flex items-center justify-center">
               <CardContent className="py-12 text-center">
                 <CheckCircle className="w-12 h-12 mx-auto text-green-500" />
-                <h3 className="text-lg font-medium text-white mt-4">No Negative Items Found</h3>
-                <p className="text-slate-400 mt-2">
+                <h3 className="text-lg font-medium text-foreground mt-4">No Negative Items Found</h3>
+                <p className="text-muted-foreground mt-2">
                   {client.reports.length === 0
                     ? "Upload a credit report to analyze for issues"
                     : "No derogatory or disputable accounts detected in the parsed reports"}
@@ -1039,22 +1039,22 @@ export default function ClientDetailPage() {
         {/* Reports Tab */}
         <TabsContent value="reports" className="mt-4 flex-1 overflow-auto">
           {client.reports.length === 0 ? (
-            <Card className="bg-slate-800/50 border-slate-700/50">
+            <Card className="bg-card border-border">
               <CardContent className="py-12 text-center">
-                <FileText className="w-12 h-12 mx-auto text-slate-600" />
-                <h3 className="text-lg font-medium text-white mt-4">No Reports</h3>
-                <p className="text-slate-400 mt-2">Upload a credit report to get started</p>
+                <FileText className="w-12 h-12 mx-auto text-muted-foreground/50" />
+                <h3 className="text-lg font-medium text-foreground mt-4">No Reports</h3>
+                <p className="text-muted-foreground mt-2">Upload a credit report to get started</p>
               </CardContent>
             </Card>
           ) : (
             <div className="space-y-4">
               <div className="flex items-center gap-2 mb-2">
-                <History className="w-5 h-5 text-slate-400" />
-                <h3 className="text-lg font-medium text-white">Report History</h3>
+                <History className="w-5 h-5 text-muted-foreground" />
+                <h3 className="text-lg font-medium text-foreground">Report History</h3>
               </div>
 
               <div className="relative">
-                <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-slate-700" />
+                <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-border" />
 
                 {client.reports.map((report, index) => {
                   const isLatest = index === 0;
@@ -1097,22 +1097,22 @@ export default function ClientDetailPage() {
                         {isLatest && <div className="w-2 h-2 bg-white rounded-full" />}
                       </div>
 
-                      <Card className={`bg-slate-800/50 border-slate-700/50 ${isLatest ? "ring-1 ring-blue-500/30" : ""}`}>
+                      <Card className={`bg-card border-border ${isLatest ? "ring-1 ring-primary/30" : ""}`}>
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex items-start gap-4 flex-1">
                               <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                                isLatest ? "bg-blue-500/20" : "bg-slate-700/50"
+                                isLatest ? "bg-primary/20" : "bg-muted"
                               }`}>
-                                <FileText className={`w-6 h-6 ${isLatest ? "text-blue-400" : "text-slate-400"}`} />
+                                <FileText className={`w-6 h-6 ${isLatest ? "text-primary" : "text-muted-foreground"}`} />
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <p className="font-medium text-white truncate">
+                                  <p className="font-medium text-foreground truncate">
                                     {report.originalFile?.filename || "Credit Report"}
                                   </p>
                                   {isLatest && (
-                                    <Badge className="bg-blue-500/20 text-blue-400 text-xs">Latest</Badge>
+                                    <Badge className="bg-primary/20 text-primary text-xs">Latest</Badge>
                                   )}
                                   <Badge
                                     className={
@@ -1126,7 +1126,7 @@ export default function ClientDetailPage() {
                                     {report.parseStatus}
                                   </Badge>
                                 </div>
-                                <div className="flex items-center gap-4 mt-1 text-sm text-slate-400">
+                                <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
                                   <span className="flex items-center gap-1">
                                     <Calendar className="w-3.5 h-3.5" />
                                     {formattedDate} at {formattedTime}
@@ -1135,8 +1135,8 @@ export default function ClientDetailPage() {
                                   <span>{fileSize}</span>
                                 </div>
                                 <div className="flex items-center gap-4 mt-2 text-sm">
-                                  <span className="text-slate-300">
-                                    <span className="text-slate-500">Accounts parsed:</span>{" "}
+                                  <span className="text-muted-foreground">
+                                    <span className="text-muted-foreground">Accounts parsed:</span>{" "}
                                     <span className="font-medium">{report._count.accounts}</span>
                                   </span>
                                 </div>
@@ -1147,7 +1147,7 @@ export default function ClientDetailPage() {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="gap-1.5 bg-transparent border-slate-600"
+                                  className="gap-1.5 bg-transparent border-input"
                                   onClick={async () => {
                                     try {
                                       const res = await fetch(`/api/files/${report.originalFile!.id}/download`);
@@ -1225,11 +1225,11 @@ export default function ClientDetailPage() {
               onAddScore={() => setAddScoreModalOpen(true)}
             />
           ) : (
-            <Card className="bg-slate-800/50 border-slate-700/50">
+            <Card className="bg-card border-border">
               <CardContent className="py-12 text-center">
-                <TrendingUp className="w-12 h-12 mx-auto text-slate-600" />
-                <h3 className="text-lg font-medium text-white mt-4">No Credit Scores</h3>
-                <p className="text-slate-400 mt-2">Track credit score changes over time</p>
+                <TrendingUp className="w-12 h-12 mx-auto text-muted-foreground/50" />
+                <h3 className="text-lg font-medium text-foreground mt-4">No Credit Scores</h3>
+                <p className="text-muted-foreground mt-2">Track credit score changes over time</p>
                 <Button className="mt-4" onClick={() => setAddScoreModalOpen(true)}>
                   Add First Score
                 </Button>
@@ -1243,7 +1243,7 @@ export default function ClientDetailPage() {
           {dnaProfile ? (
             <div className="space-y-6">
               {/* DNA Classification Header */}
-              <Card className={`bg-slate-800/50 border-2 ${getDNABorderColor(dnaProfile.classification)}`}>
+              <Card className={`bg-card/50 border-2 ${getDNABorderColor(dnaProfile.classification)}`}>
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4">
@@ -1252,20 +1252,20 @@ export default function ClientDetailPage() {
                       </div>
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <h2 className="text-2xl font-bold text-white">
+                          <h2 className="text-2xl font-bold text-foreground">
                             {getDNAClassificationLabel(dnaProfile.classification)}
                           </h2>
                           <Badge className={getDNABadgeColor(dnaProfile.confidenceLevel)}>
                             {dnaProfile.confidenceLevel} Confidence
                           </Badge>
                         </div>
-                        <p className="text-slate-400 max-w-2xl">
+                        <p className="text-muted-foreground max-w-2xl">
                           {getDNAClassificationDescription(dnaProfile.classification)}
                         </p>
                         {dnaProfile.subClassifications && dnaProfile.subClassifications.length > 0 && (
                           <div className="flex gap-2 mt-2">
                             {dnaProfile.subClassifications.map((sub: string) => (
-                              <Badge key={sub} variant="outline" className="text-slate-300 border-slate-600">
+                              <Badge key={sub} variant="outline" className="text-muted-foreground border-input">
                                 {sub.replace(/_/g, " ")}
                               </Badge>
                             ))}
@@ -1277,7 +1277,7 @@ export default function ClientDetailPage() {
                       variant="outline"
                       onClick={generateDNA}
                       disabled={dnaLoading}
-                      className="bg-slate-700/50 border-slate-500 text-white hover:bg-slate-600/50 hover:border-slate-400"
+                      className="bg-muted border-input text-foreground hover:bg-muted/80 hover:border-input"
                     >
                       {dnaLoading ? (
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -1292,54 +1292,54 @@ export default function ClientDetailPage() {
 
               {/* Score Gauges */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="bg-slate-800/50 border-slate-700/50">
+                <Card className="bg-card border-border">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <Activity className="w-4 h-4 text-blue-400" />
-                        <span className="text-sm text-slate-400">Health Score</span>
+                        <Activity className="w-4 h-4 text-primary" />
+                        <span className="text-sm text-muted-foreground">Health Score</span>
                       </div>
-                      <span className="text-2xl font-bold text-white">{dnaProfile.overallHealthScore}</span>
+                      <span className="text-2xl font-bold text-foreground">{dnaProfile.overallHealthScore}</span>
                     </div>
                     <Progress value={dnaProfile.overallHealthScore} className="h-2" />
-                    <p className="text-xs text-slate-500 mt-2">Overall credit health assessment</p>
+                    <p className="text-xs text-muted-foreground mt-2">Overall credit health assessment</p>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-slate-800/50 border-slate-700/50">
+                <Card className="bg-card border-border">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <Target className="w-4 h-4 text-green-400" />
-                        <span className="text-sm text-slate-400">Improvement Potential</span>
+                        <span className="text-sm text-muted-foreground">Improvement Potential</span>
                       </div>
-                      <span className="text-2xl font-bold text-white">{dnaProfile.improvementPotential}</span>
+                      <span className="text-2xl font-bold text-foreground">{dnaProfile.improvementPotential}</span>
                     </div>
                     <Progress value={dnaProfile.improvementPotential} className="h-2 [&>div]:bg-green-500" />
-                    <p className="text-xs text-slate-500 mt-2">Estimated room for score improvement</p>
+                    <p className="text-xs text-muted-foreground mt-2">Estimated room for score improvement</p>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-slate-800/50 border-slate-700/50">
+                <Card className="bg-card border-border">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <Zap className="w-4 h-4 text-amber-400" />
-                        <span className="text-sm text-slate-400">Urgency Score</span>
+                        <span className="text-sm text-muted-foreground">Urgency Score</span>
                       </div>
-                      <span className="text-2xl font-bold text-white">{dnaProfile.urgencyScore}</span>
+                      <span className="text-2xl font-bold text-foreground">{dnaProfile.urgencyScore}</span>
                     </div>
                     <Progress value={dnaProfile.urgencyScore} className="h-2 [&>div]:bg-amber-500" />
-                    <p className="text-xs text-slate-500 mt-2">Priority for immediate action</p>
+                    <p className="text-xs text-muted-foreground mt-2">Priority for immediate action</p>
                   </CardContent>
                 </Card>
               </div>
 
               {/* Key Insights & Immediate Actions */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card className="bg-slate-800/50 border-slate-700/50">
+                <Card className="bg-card border-border">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-white text-lg flex items-center gap-2">
+                    <CardTitle className="text-foreground text-lg flex items-center gap-2">
                       <Lightbulb className="w-5 h-5 text-yellow-400" />
                       Key Insights
                     </CardTitle>
@@ -1348,17 +1348,17 @@ export default function ClientDetailPage() {
                     <ul className="space-y-2">
                       {dnaProfile.keyInsights.map((insight, idx) => (
                         <li key={idx} className="flex items-start gap-2">
-                          <ChevronRight className="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" />
-                          <span className="text-sm text-slate-300">{insight}</span>
+                          <ChevronRight className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                          <span className="text-sm text-muted-foreground">{insight}</span>
                         </li>
                       ))}
                     </ul>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-slate-800/50 border-slate-700/50">
+                <Card className="bg-card border-border">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-white text-lg flex items-center gap-2">
+                    <CardTitle className="text-foreground text-lg flex items-center gap-2">
                       <Target className="w-5 h-5 text-green-400" />
                       Immediate Actions
                     </CardTitle>
@@ -1370,7 +1370,7 @@ export default function ClientDetailPage() {
                           <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
                             <span className="text-xs text-green-400 font-medium">{idx + 1}</span>
                           </div>
-                          <span className="text-sm text-slate-300">{action}</span>
+                          <span className="text-sm text-muted-foreground">{action}</span>
                         </li>
                       ))}
                     </ul>
@@ -1379,33 +1379,33 @@ export default function ClientDetailPage() {
               </div>
 
               {/* Recommended Strategy */}
-              <Card className="bg-slate-800/50 border border-indigo-500/30">
+              <Card className="bg-card/50 border border-indigo-500/30">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-white text-lg flex items-center gap-2">
-                    <Shield className="w-5 h-5 text-blue-400" />
+                  <CardTitle className="text-foreground text-lg flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-primary" />
                     Recommended Strategy
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-slate-300">{getDNARecommendedStrategy(dnaProfile.classification)}</p>
+                  <p className="text-muted-foreground">{getDNARecommendedStrategy(dnaProfile.classification)}</p>
                   <div className="flex gap-4 mt-4 flex-wrap">
                     <div className="flex items-center gap-2">
-                      <Badge className="bg-blue-500/20 text-blue-400">
+                      <Badge className="bg-primary/20 text-primary">
                         {dnaProfile.disputeReadiness.recommendedFlow}
                       </Badge>
-                      <span className="text-sm text-slate-400">Recommended Flow</span>
+                      <span className="text-sm text-muted-foreground">Recommended Flow</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge className="bg-purple-500/20 text-purple-400">
                         {dnaProfile.disputeReadiness.recommendedFirstBureau}
                       </Badge>
-                      <span className="text-sm text-slate-400">Start With</span>
+                      <span className="text-sm text-muted-foreground">Start With</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge className="bg-amber-500/20 text-amber-400">
                         ~{dnaProfile.disputeReadiness.estimatedRounds} Rounds
                       </Badge>
-                      <span className="text-sm text-slate-400">Estimated</span>
+                      <span className="text-sm text-muted-foreground">Estimated</span>
                     </div>
                   </div>
                 </CardContent>
@@ -1414,10 +1414,10 @@ export default function ClientDetailPage() {
               {/* Component Metrics Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* File Thickness */}
-                <Card className="bg-slate-800/50 border-slate-700/50">
+                <Card className="bg-card border-border">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-white text-sm flex items-center gap-2">
-                      <BarChart3 className="w-4 h-4 text-slate-400" />
+                    <CardTitle className="text-foreground text-sm flex items-center gap-2">
+                      <BarChart3 className="w-4 h-4 text-muted-foreground" />
                       File Thickness
                     </CardTitle>
                   </CardHeader>
@@ -1427,29 +1427,29 @@ export default function ClientDetailPage() {
                     </Badge>
                     <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
                       <div>
-                        <span className="text-slate-500">Total:</span>
-                        <span className="text-white ml-1">{dnaProfile.fileThickness.totalAccounts}</span>
+                        <span className="text-muted-foreground">Total:</span>
+                        <span className="text-foreground ml-1">{dnaProfile.fileThickness.totalAccounts}</span>
                       </div>
                       <div>
-                        <span className="text-slate-500">Open:</span>
-                        <span className="text-white ml-1">{dnaProfile.fileThickness.openAccounts}</span>
+                        <span className="text-muted-foreground">Open:</span>
+                        <span className="text-foreground ml-1">{dnaProfile.fileThickness.openAccounts}</span>
                       </div>
                       <div>
-                        <span className="text-slate-500">Avg Age:</span>
-                        <span className="text-white ml-1">{Math.round(dnaProfile.fileThickness.averageAccountAge / 12)}yr</span>
+                        <span className="text-muted-foreground">Avg Age:</span>
+                        <span className="text-foreground ml-1">{Math.round(dnaProfile.fileThickness.averageAccountAge / 12)}yr</span>
                       </div>
                       <div>
-                        <span className="text-slate-500">Oldest:</span>
-                        <span className="text-white ml-1">{Math.round(dnaProfile.fileThickness.oldestAccountAge / 12)}yr</span>
+                        <span className="text-muted-foreground">Oldest:</span>
+                        <span className="text-foreground ml-1">{Math.round(dnaProfile.fileThickness.oldestAccountAge / 12)}yr</span>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
                 {/* Derogatory Profile */}
-                <Card className="bg-slate-800/50 border-slate-700/50">
+                <Card className="bg-card border-border">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-white text-sm flex items-center gap-2">
+                    <CardTitle className="text-foreground text-sm flex items-center gap-2">
                       <AlertTriangle className="w-4 h-4 text-red-400" />
                       Derogatory Profile
                     </CardTitle>
@@ -1460,30 +1460,30 @@ export default function ClientDetailPage() {
                     </Badge>
                     <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
                       <div>
-                        <span className="text-slate-500">Collections:</span>
+                        <span className="text-muted-foreground">Collections:</span>
                         <span className="text-red-400 ml-1">{dnaProfile.derogatoryProfile.collectionCount}</span>
                       </div>
                       <div>
-                        <span className="text-slate-500">Charge-offs:</span>
+                        <span className="text-muted-foreground">Charge-offs:</span>
                         <span className="text-red-400 ml-1">{dnaProfile.derogatoryProfile.chargeOffCount}</span>
                       </div>
                       <div>
-                        <span className="text-slate-500">Late Pays:</span>
+                        <span className="text-muted-foreground">Late Pays:</span>
                         <span className="text-amber-400 ml-1">{dnaProfile.derogatoryProfile.latePaymentAccounts}</span>
                       </div>
                       <div>
-                        <span className="text-slate-500">Total:</span>
-                        <span className="text-white ml-1">{dnaProfile.derogatoryProfile.totalDerogatoryItems}</span>
+                        <span className="text-muted-foreground">Total:</span>
+                        <span className="text-foreground ml-1">{dnaProfile.derogatoryProfile.totalDerogatoryItems}</span>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
                 {/* Utilization */}
-                <Card className="bg-slate-800/50 border-slate-700/50">
+                <Card className="bg-card border-border">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-white text-sm flex items-center gap-2">
-                      <Activity className="w-4 h-4 text-blue-400" />
+                    <CardTitle className="text-foreground text-sm flex items-center gap-2">
+                      <Activity className="w-4 h-4 text-primary" />
                       Utilization
                     </CardTitle>
                   </CardHeader>
@@ -1493,7 +1493,7 @@ export default function ClientDetailPage() {
                     </Badge>
                     <div className="mt-3">
                       <div className="flex justify-between text-sm mb-1">
-                        <span className="text-slate-400">Overall</span>
+                        <span className="text-muted-foreground">Overall</span>
                         <span className={dnaProfile.utilization.overallUtilization > 30 ? "text-red-400" : "text-green-400"}>
                           {Math.round(dnaProfile.utilization.overallUtilization)}%
                         </span>
@@ -1502,7 +1502,7 @@ export default function ClientDetailPage() {
                         value={Math.min(dnaProfile.utilization.overallUtilization, 100)}
                         className="h-2"
                       />
-                      <p className="text-xs text-slate-500 mt-2">
+                      <p className="text-xs text-muted-foreground mt-2">
                         {dnaProfile.utilization.accountsMaxedOut} maxed, {dnaProfile.utilization.accountsUnder30Percent} under 30%
                       </p>
                     </div>
@@ -1510,9 +1510,9 @@ export default function ClientDetailPage() {
                 </Card>
 
                 {/* Inquiry Analysis */}
-                <Card className="bg-slate-800/50 border-slate-700/50">
+                <Card className="bg-card border-border">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-white text-sm flex items-center gap-2">
+                    <CardTitle className="text-foreground text-sm flex items-center gap-2">
                       <Clock className="w-4 h-4 text-purple-400" />
                       Hard Inquiries
                     </CardTitle>
@@ -1523,19 +1523,19 @@ export default function ClientDetailPage() {
                     </Badge>
                     <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
                       <div>
-                        <span className="text-slate-500">Total:</span>
-                        <span className="text-white ml-1">{dnaProfile.inquiryAnalysis.totalHardInquiries}</span>
+                        <span className="text-muted-foreground">Total:</span>
+                        <span className="text-foreground ml-1">{dnaProfile.inquiryAnalysis.totalHardInquiries}</span>
                       </div>
                       <div>
-                        <span className="text-slate-500">Last 6mo:</span>
-                        <span className="text-white ml-1">{dnaProfile.inquiryAnalysis.inquiriesLast6Months}</span>
+                        <span className="text-muted-foreground">Last 6mo:</span>
+                        <span className="text-foreground ml-1">{dnaProfile.inquiryAnalysis.inquiriesLast6Months}</span>
                       </div>
                       <div>
-                        <span className="text-slate-500">Impact:</span>
+                        <span className="text-muted-foreground">Impact:</span>
                         <span className="text-amber-400 ml-1">-{dnaProfile.inquiryAnalysis.estimatedScoreImpact}pts</span>
                       </div>
                       <div>
-                        <span className="text-slate-500">Disputable:</span>
+                        <span className="text-muted-foreground">Disputable:</span>
                         <span className="text-green-400 ml-1">{dnaProfile.inquiryAnalysis.inquiriesDisputable}</span>
                       </div>
                     </div>
@@ -1543,9 +1543,9 @@ export default function ClientDetailPage() {
                 </Card>
 
                 {/* Positive Factors */}
-                <Card className="bg-slate-800/50 border-slate-700/50">
+                <Card className="bg-card border-border">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-white text-sm flex items-center gap-2">
+                    <CardTitle className="text-foreground text-sm flex items-center gap-2">
                       <CheckCircle className="w-4 h-4 text-green-400" />
                       Positive Factors
                     </CardTitle>
@@ -1556,29 +1556,29 @@ export default function ClientDetailPage() {
                     </Badge>
                     <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
                       <div>
-                        <span className="text-slate-500">On-Time:</span>
+                        <span className="text-muted-foreground">On-Time:</span>
                         <span className="text-green-400 ml-1">{Math.round(dnaProfile.positiveFactors.onTimePaymentPercentage)}%</span>
                       </div>
                       <div>
-                        <span className="text-slate-500">Perfect:</span>
-                        <span className="text-white ml-1">{dnaProfile.positiveFactors.perfectPaymentAccounts}</span>
+                        <span className="text-muted-foreground">Perfect:</span>
+                        <span className="text-foreground ml-1">{dnaProfile.positiveFactors.perfectPaymentAccounts}</span>
                       </div>
                       <div>
-                        <span className="text-slate-500">Mix Score:</span>
-                        <span className="text-white ml-1">{dnaProfile.positiveFactors.creditMixScore}/100</span>
+                        <span className="text-muted-foreground">Mix Score:</span>
+                        <span className="text-foreground ml-1">{dnaProfile.positiveFactors.creditMixScore}/100</span>
                       </div>
                       <div>
-                        <span className="text-slate-500">Well Managed:</span>
-                        <span className="text-white ml-1">{dnaProfile.positiveFactors.wellManagedAccounts}</span>
+                        <span className="text-muted-foreground">Well Managed:</span>
+                        <span className="text-foreground ml-1">{dnaProfile.positiveFactors.wellManagedAccounts}</span>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
                 {/* Dispute Readiness */}
-                <Card className="bg-slate-800/50 border-slate-700/50">
+                <Card className="bg-card border-border">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-white text-sm flex items-center gap-2">
+                    <CardTitle className="text-foreground text-sm flex items-center gap-2">
                       <Scale className="w-4 h-4 text-amber-400" />
                       Dispute Readiness
                     </CardTitle>
@@ -1589,19 +1589,19 @@ export default function ClientDetailPage() {
                     </Badge>
                     <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
                       <div>
-                        <span className="text-slate-500">High Priority:</span>
+                        <span className="text-muted-foreground">High Priority:</span>
                         <span className="text-red-400 ml-1">{dnaProfile.disputeReadiness.highPriorityItems}</span>
                       </div>
                       <div>
-                        <span className="text-slate-500">Medium:</span>
+                        <span className="text-muted-foreground">Medium:</span>
                         <span className="text-amber-400 ml-1">{dnaProfile.disputeReadiness.mediumPriorityItems}</span>
                       </div>
                       <div>
-                        <span className="text-slate-500">Est. Removal:</span>
+                        <span className="text-muted-foreground">Est. Removal:</span>
                         <span className="text-green-400 ml-1">{dnaProfile.disputeReadiness.estimatedRemovalRate}%</span>
                       </div>
                       <div>
-                        <span className="text-slate-500">Est. Improve:</span>
+                        <span className="text-muted-foreground">Est. Improve:</span>
                         <span className="text-green-400 ml-1">+{dnaProfile.disputeReadiness.estimatedScoreImprovement}pts</span>
                       </div>
                     </div>
@@ -1610,24 +1610,24 @@ export default function ClientDetailPage() {
               </div>
 
               {/* Summary */}
-              <Card className="bg-slate-800/50 border-slate-700/50">
+              <Card className="bg-card border-border">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-white text-lg">Analysis Summary</CardTitle>
-                  <CardDescription className="text-slate-400">
+                  <CardTitle className="text-foreground text-lg">Analysis Summary</CardTitle>
+                  <CardDescription className="text-muted-foreground">
                     Generated {safeFormatDateTime(dnaProfile.analyzedAt)}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-slate-300 leading-relaxed">{dnaProfile.summary}</p>
+                  <p className="text-muted-foreground leading-relaxed">{dnaProfile.summary}</p>
                 </CardContent>
               </Card>
             </div>
           ) : (
-            <Card className="bg-slate-800/50 border-slate-700/50">
+            <Card className="bg-card border-border">
               <CardContent className="py-12 text-center">
-                <Dna className="w-12 h-12 mx-auto text-slate-600" />
-                <h3 className="text-lg font-medium text-white mt-4">No DNA Profile</h3>
-                <p className="text-slate-400 mt-2 max-w-md mx-auto">
+                <Dna className="w-12 h-12 mx-auto text-muted-foreground/50" />
+                <h3 className="text-lg font-medium text-foreground mt-4">No DNA Profile</h3>
+                <p className="text-muted-foreground mt-2 max-w-md mx-auto">
                   Generate a Credit DNA profile to understand this client&apos;s credit characteristics
                   and get personalized dispute strategy recommendations.
                 </p>
@@ -1646,21 +1646,21 @@ export default function ClientDetailPage() {
 
         {/* Readiness Tab */}
         <TabsContent value="readiness" className="mt-4 flex-1 overflow-auto space-y-4">
-          <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-6">
+          <div className="bg-card/50 rounded-xl border border-border p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Target className="w-5 h-5 text-blue-400" />
+                <Target className="w-5 h-5 text-primary" />
                 Credit Readiness Analysis
               </h3>
               <Link
                 href={`/clients/${clientId}/readiness`}
-                className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                className="text-sm text-primary hover:text-primary/80 flex items-center gap-1"
               >
                 Full Analysis
                 <ChevronRight className="w-4 h-4" />
               </Link>
             </div>
-            <p className="text-slate-400 text-sm mb-4">
+            <p className="text-muted-foreground text-sm mb-4">
               Analyze approval likelihood across different credit products using FICO scoring models,
               DTI ratios, and comprehensive credit profile data.
             </p>
@@ -1676,10 +1676,10 @@ export default function ClientDetailPage() {
                 <Link
                   key={product.label}
                   href={`/clients/${clientId}/readiness`}
-                  className="bg-slate-700/30 rounded-lg p-3 hover:bg-slate-700/50 transition-colors"
+                  className="bg-muted/30 rounded-lg p-3 hover:bg-muted transition-colors"
                 >
-                  <span className="text-sm font-medium text-slate-200">{product.label}</span>
-                  <p className="text-xs text-slate-400 mt-1">{product.desc}</p>
+                  <span className="text-sm font-medium text-foreground">{product.label}</span>
+                  <p className="text-xs text-muted-foreground mt-1">{product.desc}</p>
                 </Link>
               ))}
             </div>
@@ -1691,7 +1691,7 @@ export default function ClientDetailPage() {
 
         {/* Litigation Tab */}
         <TabsContent value="litigation" className="mt-4 flex-1 overflow-auto space-y-4">
-          <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-6">
+          <div className="bg-card/50 rounded-xl border border-border p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <Scale className="w-5 h-5 text-red-400" />
@@ -1699,37 +1699,37 @@ export default function ClientDetailPage() {
               </h3>
               <Link
                 href={`/clients/${clientId}/litigation`}
-                className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                className="text-sm text-primary hover:text-primary/80 flex items-center gap-1"
               >
                 Full Scanner
                 <ChevronRight className="w-4 h-4" />
               </Link>
             </div>
-            <p className="text-slate-400 text-sm mb-4">
+            <p className="text-muted-foreground text-sm mb-4">
               Automatically scan credit reports for actionable FCRA/FDCPA violations by collection
               agencies and furnishers. Estimates potential damages and provides escalation paths to litigation.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="bg-slate-700/30 rounded-lg p-4">
+              <div className="bg-muted/30 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-1">
                   <Shield className="w-4 h-4 text-purple-400" />
-                  <span className="text-sm font-medium text-slate-200">FCRA Violations</span>
+                  <span className="text-sm font-medium text-foreground">FCRA Violations</span>
                 </div>
-                <p className="text-xs text-slate-400">Accuracy, furnisher duties, obsolete info, investigation failures</p>
+                <p className="text-xs text-muted-foreground">Accuracy, furnisher duties, obsolete info, investigation failures</p>
               </div>
-              <div className="bg-slate-700/30 rounded-lg p-4">
+              <div className="bg-muted/30 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <AlertTriangle className="w-4 h-4 text-blue-400" />
-                  <span className="text-sm font-medium text-slate-200">FDCPA Violations</span>
+                  <AlertTriangle className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-medium text-foreground">FDCPA Violations</span>
                 </div>
-                <p className="text-xs text-slate-400">False representations, wrong amounts, time-barred collections</p>
+                <p className="text-xs text-muted-foreground">False representations, wrong amounts, time-barred collections</p>
               </div>
-              <div className="bg-slate-700/30 rounded-lg p-4">
+              <div className="bg-muted/30 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-1">
                   <Activity className="w-4 h-4 text-amber-400" />
-                  <span className="text-sm font-medium text-slate-200">Metro 2 Errors</span>
+                  <span className="text-sm font-medium text-foreground">Metro 2 Errors</span>
                 </div>
-                <p className="text-xs text-slate-400">Field inconsistencies, code errors, format compliance</p>
+                <p className="text-xs text-muted-foreground">Field inconsistencies, code errors, format compliance</p>
               </div>
             </div>
             <Link
@@ -1753,110 +1753,110 @@ export default function ClientDetailPage() {
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="bg-slate-800 border-slate-700 max-w-2xl">
+        <DialogContent className="bg-card border-border max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-white">Edit Client</DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogTitle className="text-foreground">Edit Client</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Update client information
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleUpdateClient} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-slate-200">First Name</Label>
+                <Label className="text-foreground">First Name</Label>
                 <Input
                   value={editForm.firstName}
                   onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
-                  className="bg-slate-700/50 border-slate-600 text-white"
+                  className="bg-muted border-input text-foreground"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-200">Last Name</Label>
+                <Label className="text-foreground">Last Name</Label>
                 <Input
                   value={editForm.lastName}
                   onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
-                  className="bg-slate-700/50 border-slate-600 text-white"
+                  className="bg-muted border-input text-foreground"
                   required
                 />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-slate-200">Email</Label>
+                <Label className="text-foreground">Email</Label>
                 <Input
                   type="email"
                   value={editForm.email}
                   onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                  className="bg-slate-700/50 border-slate-600 text-white"
+                  className="bg-muted border-input text-foreground"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-200">Phone</Label>
+                <Label className="text-foreground">Phone</Label>
                 <Input
                   value={editForm.phone}
                   onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                  className="bg-slate-700/50 border-slate-600 text-white"
+                  className="bg-muted border-input text-foreground"
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-200">Address</Label>
+              <Label className="text-foreground">Address</Label>
               <Input
                 value={editForm.addressLine1}
                 onChange={(e) => setEditForm({ ...editForm, addressLine1: e.target.value })}
-                className="bg-slate-700/50 border-slate-600 text-white"
+                className="bg-muted border-input text-foreground"
                 placeholder="Street address"
               />
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label className="text-slate-200">City</Label>
+                <Label className="text-foreground">City</Label>
                 <Input
                   value={editForm.city}
                   onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
-                  className="bg-slate-700/50 border-slate-600 text-white"
+                  className="bg-muted border-input text-foreground"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-200">State</Label>
+                <Label className="text-foreground">State</Label>
                 <Input
                   value={editForm.state}
                   onChange={(e) => setEditForm({ ...editForm, state: e.target.value })}
-                  className="bg-slate-700/50 border-slate-600 text-white"
+                  className="bg-muted border-input text-foreground"
                   placeholder="e.g., CA"
                   maxLength={2}
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-200">ZIP Code</Label>
+                <Label className="text-foreground">ZIP Code</Label>
                 <Input
                   value={editForm.zipCode}
                   onChange={(e) => setEditForm({ ...editForm, zipCode: e.target.value })}
-                  className="bg-slate-700/50 border-slate-600 text-white"
+                  className="bg-muted border-input text-foreground"
                   maxLength={10}
                 />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-slate-200">Date of Birth</Label>
+                <Label className="text-foreground">Date of Birth</Label>
                 <Input
                   type="date"
                   value={editForm.dateOfBirth}
                   onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })}
-                  className="bg-slate-700/50 border-slate-600 text-white"
+                  className="bg-muted border-input text-foreground"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-200">SSN Last 4</Label>
+                <Label className="text-foreground">SSN Last 4</Label>
                 <Input
                   value={editForm.ssnLast4}
                   onChange={(e) => {
                     const val = e.target.value.replace(/\D/g, "").slice(0, 4);
                     setEditForm({ ...editForm, ssnLast4: val });
                   }}
-                  className="bg-slate-700/50 border-slate-600 text-white"
+                  className="bg-muted border-input text-foreground"
                   placeholder="****"
                   maxLength={4}
                 />
@@ -1877,13 +1877,13 @@ export default function ClientDetailPage() {
         setDeleteDialogOpen(open);
         if (!open) setDeleteConfirmText("");
       }}>
-        <DialogContent className="bg-slate-800 border-slate-700">
+        <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
+            <DialogTitle className="text-foreground flex items-center gap-2">
               <Trash2 className="w-5 h-5 text-red-400" />
               Delete Client
             </DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogDescription className="text-muted-foreground">
               This will archive the client and all their data. You can restore the client within 90 days from the Settings page.
             </DialogDescription>
           </DialogHeader>
@@ -1900,14 +1900,14 @@ export default function ClientDetailPage() {
               </ul>
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-200">
+              <Label className="text-foreground">
                 Type <span className="font-mono text-red-400">DELETE</span> to confirm
               </Label>
               <Input
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value.toUpperCase())}
                 placeholder="Type DELETE"
-                className="bg-slate-700/50 border-slate-600 text-white font-mono"
+                className="bg-muted border-input text-foreground font-mono"
               />
             </div>
           </div>

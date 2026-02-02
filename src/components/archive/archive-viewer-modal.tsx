@@ -71,10 +71,10 @@ export function ArchiveViewerModal({
         <ResponsiveDialogBody>
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
             </div>
           ) : !snapshot ? (
-            <div className="text-center py-12 text-slate-400">
+            <div className="text-center py-12 text-muted-foreground">
               Failed to load archive data
             </div>
           ) : (
@@ -88,7 +88,7 @@ export function ArchiveViewerModal({
                       <h4 className="font-medium text-purple-300 mb-1">
                         AMELIA Recommendation
                       </h4>
-                      <p className="text-sm text-slate-300">
+                      <p className="text-sm text-muted-foreground">
                         {snapshot.ameliaContext.personalizedMessage}
                       </p>
                       <div className="flex flex-wrap gap-2 mt-2">
@@ -113,7 +113,7 @@ export function ArchiveViewerModal({
 
               {/* Tabs */}
               <Tabs defaultValue="overview" className="w-full">
-                <TabsList className="bg-slate-800 border-slate-700 w-full justify-start">
+                <TabsList className="bg-card border-border w-full justify-start">
                   <TabsTrigger value="overview">
                     <User className="w-4 h-4 mr-2" />
                     Overview
@@ -167,88 +167,88 @@ function OverviewTab({ snapshot }: { snapshot: ComprehensiveArchiveSnapshot }) {
 
   return (
     <div className="space-y-4">
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white text-sm">Client Profile</CardTitle>
+          <CardTitle className="text-foreground text-sm">Client Profile</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <p className="text-slate-400">Name</p>
-            <p className="text-white">{clientProfile.firstName} {clientProfile.lastName}</p>
+            <p className="text-muted-foreground">Name</p>
+            <p className="text-foreground">{clientProfile.firstName} {clientProfile.lastName}</p>
           </div>
           <div>
-            <p className="text-slate-400">Email</p>
-            <p className="text-white">{clientProfile.email || "N/A"}</p>
+            <p className="text-muted-foreground">Email</p>
+            <p className="text-foreground">{clientProfile.email || "N/A"}</p>
           </div>
           <div>
-            <p className="text-slate-400">Phone</p>
-            <p className="text-white">{clientProfile.phone || "N/A"}</p>
+            <p className="text-muted-foreground">Phone</p>
+            <p className="text-foreground">{clientProfile.phone || "N/A"}</p>
           </div>
           <div>
-            <p className="text-slate-400">Address</p>
-            <p className="text-white">
+            <p className="text-muted-foreground">Address</p>
+            <p className="text-foreground">
               {clientProfile.addressLine1 || "N/A"}
               {clientProfile.city && `, ${clientProfile.city}, ${clientProfile.state} ${clientProfile.zipCode}`}
             </p>
           </div>
           <div>
-            <p className="text-slate-400">Stage</p>
+            <p className="text-muted-foreground">Stage</p>
             <Badge variant="outline">{clientProfile.stage}</Badge>
           </div>
           <div>
-            <p className="text-slate-400">Success Rate</p>
-            <p className="text-white">{clientProfile.successRate?.toFixed(0) || 0}%</p>
+            <p className="text-muted-foreground">Success Rate</p>
+            <p className="text-foreground">{clientProfile.successRate?.toFixed(0) || 0}%</p>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white text-sm">Record Summary</CardTitle>
+          <CardTitle className="text-foreground text-sm">Record Summary</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-4 gap-4 text-center">
             <div>
-              <p className="text-2xl font-bold text-white">{metadata.recordCounts.disputes}</p>
-              <p className="text-xs text-slate-400">Disputes</p>
+              <p className="text-2xl font-bold text-foreground">{metadata.recordCounts.disputes}</p>
+              <p className="text-xs text-muted-foreground">Disputes</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{metadata.recordCounts.accounts}</p>
-              <p className="text-xs text-slate-400">Accounts</p>
+              <p className="text-2xl font-bold text-foreground">{metadata.recordCounts.accounts}</p>
+              <p className="text-xs text-muted-foreground">Accounts</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{metadata.recordCounts.communications}</p>
-              <p className="text-xs text-slate-400">Communications</p>
+              <p className="text-2xl font-bold text-foreground">{metadata.recordCounts.communications}</p>
+              <p className="text-xs text-muted-foreground">Communications</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{metadata.recordCounts.creditScores}</p>
-              <p className="text-xs text-slate-400">Score Records</p>
+              <p className="text-2xl font-bold text-foreground">{metadata.recordCounts.creditScores}</p>
+              <p className="text-xs text-muted-foreground">Score Records</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white text-sm">Dispute Strategy Summary</CardTitle>
+          <CardTitle className="text-foreground text-sm">Dispute Strategy Summary</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex justify-between items-center">
-            <span className="text-slate-400">Success Rate</span>
-            <span className="text-white font-medium">{ameliaContext.disputeStrategySummary.successRate}%</span>
+            <span className="text-muted-foreground">Success Rate</span>
+            <span className="text-foreground font-medium">{ameliaContext.disputeStrategySummary.successRate}%</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-slate-400">Most Effective Flow</span>
+            <span className="text-muted-foreground">Most Effective Flow</span>
             <Badge>{ameliaContext.disputeStrategySummary.mostEffectiveFlow || "N/A"}</Badge>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-slate-400">Most Resistant CRA</span>
+            <span className="text-muted-foreground">Most Resistant CRA</span>
             <Badge variant="destructive">{ameliaContext.disputeStrategySummary.mostResistantCRA || "N/A"}</Badge>
           </div>
           {ameliaContext.disputeStrategySummary.outstandingIssues.length > 0 && (
             <div>
-              <p className="text-slate-400 mb-2">Outstanding Issues:</p>
-              <ul className="text-sm text-slate-300 space-y-1">
+              <p className="text-muted-foreground mb-2">Outstanding Issues:</p>
+              <ul className="text-sm text-muted-foreground space-y-1">
                 {ameliaContext.disputeStrategySummary.outstandingIssues.map((issue, i) => (
                   <li key={i} className="flex items-center gap-2">
                     <AlertTriangle className="w-3 h-3 text-amber-400" />
@@ -269,7 +269,7 @@ function CreditDNATab({ snapshot }: { snapshot: ComprehensiveArchiveSnapshot }) 
 
   if (!creditDNA) {
     return (
-      <div className="text-center py-8 text-slate-400">
+      <div className="text-center py-8 text-muted-foreground">
         No Credit DNA analysis available
       </div>
     );
@@ -277,40 +277,40 @@ function CreditDNATab({ snapshot }: { snapshot: ComprehensiveArchiveSnapshot }) 
 
   return (
     <div className="space-y-4">
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white text-sm flex items-center gap-2">
+          <CardTitle className="text-foreground text-sm flex items-center gap-2">
             <Brain className="w-4 h-4" />
             Credit Profile Classification
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-4 mb-4">
-            <Badge className="text-lg px-4 py-2 bg-blue-600">
+            <Badge className="text-lg px-4 py-2 bg-primary">
               {creditDNA.classification.replace(/_/g, " ")}
             </Badge>
-            <span className="text-slate-400">Confidence: {creditDNA.confidence}%</span>
+            <span className="text-muted-foreground">Confidence: {creditDNA.confidence}%</span>
           </div>
           <div className="grid grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-slate-900/50 rounded-lg">
+            <div className="text-center p-4 bg-background rounded-lg">
               <p className="text-3xl font-bold text-emerald-400">{creditDNA.healthScore}</p>
-              <p className="text-xs text-slate-400">Health Score</p>
+              <p className="text-xs text-muted-foreground">Health Score</p>
             </div>
-            <div className="text-center p-4 bg-slate-900/50 rounded-lg">
-              <p className="text-3xl font-bold text-blue-400">{creditDNA.improvementPotential}</p>
-              <p className="text-xs text-slate-400">Improvement Potential</p>
+            <div className="text-center p-4 bg-background rounded-lg">
+              <p className="text-3xl font-bold text-primary">{creditDNA.improvementPotential}</p>
+              <p className="text-xs text-muted-foreground">Improvement Potential</p>
             </div>
-            <div className="text-center p-4 bg-slate-900/50 rounded-lg">
+            <div className="text-center p-4 bg-background rounded-lg">
               <p className="text-3xl font-bold text-amber-400">{creditDNA.urgencyScore}</p>
-              <p className="text-xs text-slate-400">Urgency Score</p>
+              <p className="text-xs text-muted-foreground">Urgency Score</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white text-sm">Key Insights</CardTitle>
+          <CardTitle className="text-foreground text-sm">Key Insights</CardTitle>
         </CardHeader>
         <CardContent>
           <ul className="space-y-2">
@@ -318,8 +318,8 @@ function CreditDNATab({ snapshot }: { snapshot: ComprehensiveArchiveSnapshot }) 
               ? ameliaContext.creditProfileSummary.keyInsights
               : creditDNA.keyInsights
             ).map((insight, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
-                <TrendingUp className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
+              <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                <TrendingUp className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                 {insight}
               </li>
             ))}
@@ -336,7 +336,7 @@ function DisputesTab({ snapshot }: { snapshot: ComprehensiveArchiveSnapshot }) {
   return (
     <div className="space-y-4">
       {disputes.length === 0 ? (
-        <div className="text-center py-8 text-slate-400">No disputes found</div>
+        <div className="text-center py-8 text-muted-foreground">No disputes found</div>
       ) : (
         disputes.map((dispute) => {
           const responses = disputeResponses.filter((r) =>
@@ -345,10 +345,10 @@ function DisputesTab({ snapshot }: { snapshot: ComprehensiveArchiveSnapshot }) {
           const deletedCount = responses.filter((r) => r.outcome === "DELETED").length;
 
           return (
-            <Card key={dispute.id} className="bg-slate-800/50 border-slate-700">
+            <Card key={dispute.id} className="bg-card border-border">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-white text-sm flex items-center gap-2">
+                  <CardTitle className="text-foreground text-sm flex items-center gap-2">
                     <Scale className="w-4 h-4" />
                     {dispute.cra} - Round {dispute.round}
                   </CardTitle>
@@ -356,8 +356,8 @@ function DisputesTab({ snapshot }: { snapshot: ComprehensiveArchiveSnapshot }) {
                     <Badge variant="outline">{dispute.flow}</Badge>
                     <Badge className={
                       dispute.status === "RESOLVED" ? "bg-emerald-600" :
-                      dispute.status === "SENT" ? "bg-blue-600" :
-                      "bg-slate-600"
+                      dispute.status === "SENT" ? "bg-primary" :
+                      "bg-muted"
                     }>
                       {dispute.status}
                     </Badge>
@@ -365,17 +365,17 @@ function DisputesTab({ snapshot }: { snapshot: ComprehensiveArchiveSnapshot }) {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-sm text-slate-400 mb-3">
+                <div className="text-sm text-muted-foreground mb-3">
                   Created: {new Date(dispute.createdAt).toLocaleDateString()}
                   {dispute.sentDate && ` | Sent: ${new Date(dispute.sentDate).toLocaleDateString()}`}
                 </div>
                 <div className="space-y-2">
-                  <p className="text-xs text-slate-400">Items ({dispute.items.length}):</p>
+                  <p className="text-xs text-muted-foreground">Items ({dispute.items.length}):</p>
                   {dispute.items.map((item) => {
                     const response = responses.find((r) => r.disputeItemId === item.id);
                     return (
-                      <div key={item.id} className="flex items-center justify-between text-sm bg-slate-900/50 p-2 rounded">
-                        <span className="text-slate-300">{item.accountItem.creditorName}</span>
+                      <div key={item.id} className="flex items-center justify-between text-sm bg-background p-2 rounded">
+                        <span className="text-muted-foreground">{item.accountItem.creditorName}</span>
                         <div className="flex items-center gap-2">
                           {response ? (
                             response.outcome === "DELETED" ? (
@@ -389,7 +389,7 @@ function DisputesTab({ snapshot }: { snapshot: ComprehensiveArchiveSnapshot }) {
                               </Badge>
                             )
                           ) : (
-                            <Badge variant="outline" className="border-slate-500">
+                            <Badge variant="outline" className="border-border">
                               Pending
                             </Badge>
                           )}
@@ -398,7 +398,7 @@ function DisputesTab({ snapshot }: { snapshot: ComprehensiveArchiveSnapshot }) {
                     );
                   })}
                 </div>
-                <div className="mt-3 text-xs text-slate-400">
+                <div className="mt-3 text-xs text-muted-foreground">
                   Results: {deletedCount}/{dispute.items.length} items deleted
                 </div>
               </CardContent>
@@ -416,36 +416,36 @@ function CommunicationsTab({ snapshot }: { snapshot: ComprehensiveArchiveSnapsho
   return (
     <div className="space-y-3">
       {communications.length === 0 ? (
-        <div className="text-center py-8 text-slate-400">No communications found</div>
+        <div className="text-center py-8 text-muted-foreground">No communications found</div>
       ) : (
         communications.slice(0, 20).map((comm) => (
-          <Card key={comm.id} className="bg-slate-800/50 border-slate-700">
+          <Card key={comm.id} className="bg-card border-border">
             <CardContent className="p-4">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-blue-400" />
+                  <MessageSquare className="w-4 h-4 text-primary" />
                   <Badge variant="outline">{comm.type}</Badge>
                   <Badge variant="outline" className={
                     comm.direction === "OUTBOUND" ? "border-emerald-500 text-emerald-400" :
-                    "border-blue-500 text-blue-400"
+                    "border-blue-500 text-primary"
                   }>
                     {comm.direction}
                   </Badge>
                 </div>
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-muted-foreground">
                   {new Date(comm.createdAt).toLocaleDateString()}
                 </span>
               </div>
               {comm.subject && (
-                <p className="text-sm font-medium text-white mt-2">{comm.subject}</p>
+                <p className="text-sm font-medium text-foreground mt-2">{comm.subject}</p>
               )}
-              <p className="text-sm text-slate-300 mt-1 line-clamp-2">{comm.content}</p>
+              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{comm.content}</p>
             </CardContent>
           </Card>
         ))
       )}
       {communications.length > 20 && (
-        <p className="text-center text-sm text-slate-400">
+        <p className="text-center text-sm text-muted-foreground">
           Showing 20 of {communications.length} communications
         </p>
       )}
@@ -459,37 +459,37 @@ function AuditTab({ snapshot }: { snapshot: ComprehensiveArchiveSnapshot }) {
   return (
     <div className="space-y-4">
       {/* Compliance Summary */}
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white text-sm">Compliance Summary</CardTitle>
+          <CardTitle className="text-foreground text-sm">Compliance Summary</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-4 text-center">
-            <div className="p-3 bg-slate-900/50 rounded">
+            <div className="p-3 bg-background rounded">
               <p className="text-2xl font-bold text-red-400">
                 {ameliaContext.complianceAuditTrail.totalFCRAViolations}
               </p>
-              <p className="text-xs text-slate-400">FCRA Violations</p>
+              <p className="text-xs text-muted-foreground">FCRA Violations</p>
             </div>
-            <div className="p-3 bg-slate-900/50 rounded">
+            <div className="p-3 bg-background rounded">
               <p className="text-2xl font-bold text-amber-400">
                 {ameliaContext.complianceAuditTrail.pendingDeadlines}
               </p>
-              <p className="text-xs text-slate-400">Missed Deadlines</p>
+              <p className="text-xs text-muted-foreground">Missed Deadlines</p>
             </div>
-            <div className="p-3 bg-slate-900/50 rounded">
+            <div className="p-3 bg-background rounded">
               <p className="text-2xl font-bold text-orange-400">
                 {ameliaContext.complianceAuditTrail.lateResponses}
               </p>
-              <p className="text-xs text-slate-400">Late Responses</p>
+              <p className="text-xs text-muted-foreground">Late Responses</p>
             </div>
           </div>
           {ameliaContext.complianceAuditTrail.violationDetails.length > 0 && (
             <div className="mt-4">
-              <p className="text-sm text-slate-400 mb-2">Violation Details:</p>
+              <p className="text-sm text-muted-foreground mb-2">Violation Details:</p>
               <ul className="space-y-1">
                 {ameliaContext.complianceAuditTrail.violationDetails.map((detail, i) => (
-                  <li key={i} className="text-sm text-slate-300 flex items-start gap-2">
+                  <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
                     <XCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
                     {detail}
                   </li>
@@ -501,24 +501,24 @@ function AuditTab({ snapshot }: { snapshot: ComprehensiveArchiveSnapshot }) {
       </Card>
 
       {/* Event Log */}
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white text-sm">Event Log ({eventLogs.length} events)</CardTitle>
+          <CardTitle className="text-foreground text-sm">Event Log ({eventLogs.length} events)</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {eventLogs.slice(0, 30).map((event) => (
-              <div key={event.id} className="flex items-start gap-3 text-sm p-2 bg-slate-900/50 rounded">
-                <History className="w-4 h-4 text-slate-400 mt-0.5" />
+              <div key={event.id} className="flex items-start gap-3 text-sm p-2 bg-background rounded">
+                <History className="w-4 h-4 text-muted-foreground mt-0.5" />
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
                     <Badge variant="outline" className="text-xs">{event.eventType}</Badge>
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-muted-foreground">
                       {new Date(event.createdAt).toLocaleString()}
                     </span>
                   </div>
                   {event.actorEmail && (
-                    <p className="text-xs text-slate-400 mt-1">By: {event.actorEmail}</p>
+                    <p className="text-xs text-muted-foreground mt-1">By: {event.actorEmail}</p>
                   )}
                 </div>
               </div>

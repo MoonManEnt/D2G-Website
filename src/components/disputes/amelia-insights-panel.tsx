@@ -120,7 +120,7 @@ export function AmeliaInsightsPanel({
 
   const getToneColor = (tone: AmeliaInsight["tone"]) => {
     const colors = {
-      CONCERNED: "text-blue-400 bg-blue-500/20",
+      CONCERNED: "text-primary bg-primary/20",
       WORRIED: "text-amber-400 bg-amber-500/20",
       FED_UP: "text-orange-400 bg-orange-500/20",
       WARNING: "text-red-400 bg-red-500/20",
@@ -169,13 +169,13 @@ export function AmeliaInsightsPanel({
             <Sparkles className="w-5 h-5 text-violet-400" />
           </div>
           <div>
-            <h3 className="font-semibold text-white flex items-center gap-2">
+            <h3 className="font-semibold text-foreground flex items-center gap-2">
               AMELIA
               {insights && (
                 <Badge className="bg-green-500/20 text-green-400 text-[10px]">Active</Badge>
               )}
             </h3>
-            <span className="text-xs text-slate-400">AI Dispute Intelligence</span>
+            <span className="text-xs text-muted-foreground">AI Dispute Intelligence</span>
           </div>
         </div>
 
@@ -210,16 +210,16 @@ export function AmeliaInsightsPanel({
                     </linearGradient>
                   </defs>
                 </svg>
-                <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-white">
+                <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-foreground">
                   {insights.confidence}%
                 </span>
               </div>
             </div>
           )}
           {expanded ? (
-            <ChevronUp className="w-5 h-5 text-slate-400" />
+            <ChevronUp className="w-5 h-5 text-muted-foreground" />
           ) : (
-            <ChevronDown className="w-5 h-5 text-slate-400" />
+            <ChevronDown className="w-5 h-5 text-muted-foreground" />
           )}
         </div>
       </div>
@@ -235,7 +235,7 @@ export function AmeliaInsightsPanel({
             <div className="px-4 pb-4 space-y-4">
               {!insights ? (
                 <div className="text-center py-6">
-                  <p className="text-sm text-slate-400 mb-4">
+                  <p className="text-sm text-muted-foreground mb-4">
                     {accountIds.length === 0
                       ? "Select accounts to analyze for AI-powered recommendations"
                       : "Generate AI insights for your dispute strategy"}
@@ -261,20 +261,20 @@ export function AmeliaInsightsPanel({
               ) : (
                 <>
                   {/* Success Rate Bar */}
-                  <div className="p-3 bg-slate-800/50 rounded-lg">
+                  <div className="p-3 bg-card rounded-lg">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-slate-400 flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground flex items-center gap-2">
                         <Target className="w-4 h-4" />
                         Estimated Success Rate
                       </span>
-                      <span className="text-lg font-bold text-white">{insights.estimatedSuccessRate}%</span>
+                      <span className="text-lg font-bold text-foreground">{insights.estimatedSuccessRate}%</span>
                     </div>
                     <Progress value={insights.estimatedSuccessRate} className="h-2 [&>div]:bg-gradient-to-r [&>div]:from-violet-500 [&>div]:to-green-500" />
                   </div>
 
                   {/* Tone Badge */}
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-500">Letter Tone:</span>
+                    <span className="text-xs text-muted-foreground">Letter Tone:</span>
                     <Badge className={getToneColor(insights.tone)}>
                       {insights.tone.replace("_", " ")}
                     </Badge>
@@ -282,7 +282,7 @@ export function AmeliaInsightsPanel({
 
                   {/* Recommendations */}
                   <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-white flex items-center gap-2">
+                    <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
                       <Lightbulb className="w-4 h-4 text-yellow-400" />
                       Recommendations
                     </h4>
@@ -290,7 +290,7 @@ export function AmeliaInsightsPanel({
                       {insights.recommendations.map((rec, i) => (
                         <div key={i} className="flex items-start gap-2 text-sm">
                           <span className="text-violet-400 mt-0.5">•</span>
-                          <span className="text-slate-300">{rec}</span>
+                          <span className="text-muted-foreground">{rec}</span>
                         </div>
                       ))}
                     </div>
@@ -298,8 +298,8 @@ export function AmeliaInsightsPanel({
 
                   {/* Risk Factors */}
                   <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-white flex items-center gap-2">
-                      <Shield className="w-4 h-4 text-blue-400" />
+                    <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-primary" />
                       Risk Analysis
                     </h4>
                     <div className="space-y-1.5">
@@ -312,7 +312,7 @@ export function AmeliaInsightsPanel({
                           ) : (
                             <AlertTriangle className="w-4 h-4 text-amber-400" />
                           )}
-                          <span className="text-slate-300">{rf.factor}</span>
+                          <span className="text-muted-foreground">{rf.factor}</span>
                         </div>
                       ))}
                     </div>
@@ -320,7 +320,7 @@ export function AmeliaInsightsPanel({
 
                   {/* Suggested Statutes */}
                   <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-white flex items-center gap-2">
+                    <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
                       <BookOpen className="w-4 h-4 text-amber-400" />
                       Legal Focus
                     </h4>
@@ -339,9 +339,9 @@ export function AmeliaInsightsPanel({
 
                   {/* eOSCAR Detection */}
                   {insights.eoscarDetection && (
-                    <div className="p-3 bg-slate-800/50 rounded-lg">
+                    <div className="p-3 bg-card rounded-lg">
                       <div className="flex items-center justify-between mb-3">
-                        <h4 className="text-sm font-medium text-white flex items-center gap-2">
+                        <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
                           <Scale className="w-4 h-4 text-purple-400" />
                           eOSCAR Detection Risk
                         </h4>
@@ -351,22 +351,22 @@ export function AmeliaInsightsPanel({
                       </div>
                       <div className="grid grid-cols-3 gap-3 text-center">
                         <div>
-                          <p className="text-lg font-bold text-white">
+                          <p className="text-lg font-bold text-foreground">
                             {insights.eoscarDetection.uniquenessScore}%
                           </p>
-                          <p className="text-[10px] text-slate-500">Uniqueness</p>
+                          <p className="text-[10px] text-muted-foreground">Uniqueness</p>
                         </div>
                         <div>
                           <p className="text-lg font-bold text-green-400">
                             {insights.eoscarDetection.humanizingPhrases}
                           </p>
-                          <p className="text-[10px] text-slate-500">Human Phrases</p>
+                          <p className="text-[10px] text-muted-foreground">Human Phrases</p>
                         </div>
                         <div>
                           <p className="text-lg font-bold text-amber-400">
                             {insights.eoscarDetection.flaggedPhrases}
                           </p>
-                          <p className="text-[10px] text-slate-500">Flagged</p>
+                          <p className="text-[10px] text-muted-foreground">Flagged</p>
                         </div>
                       </div>
                     </div>

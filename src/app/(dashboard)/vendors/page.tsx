@@ -81,18 +81,18 @@ interface Referral {
 
 const CATEGORY_COLORS: Record<string, string> = {
   CREDIT_REPAIR: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-  DEBT_MANAGEMENT: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+  DEBT_MANAGEMENT: "bg-primary/20 text-primary border-primary/30",
   FINANCIAL_COACHING: "bg-amber-500/20 text-amber-400 border-amber-500/30",
   CREDIT_MONITORING: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
   CREDIT_BUILDER: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-  OTHER: "bg-slate-500/20 text-slate-400 border-slate-500/30",
+  OTHER: "bg-muted text-muted-foreground border-border",
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  RECOMMENDED: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+  RECOMMENDED: "bg-primary/20 text-primary border-primary/30",
   CLICKED: "bg-amber-500/20 text-amber-400 border-amber-500/30",
   CONVERTED: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-  EXPIRED: "bg-slate-500/20 text-slate-400 border-slate-500/30",
+  EXPIRED: "bg-muted text-muted-foreground border-border",
 };
 
 function formatCategory(cat: string): string {
@@ -247,7 +247,7 @@ export default function VendorsPage() {
   // ---- Render ----
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-background text-foreground p-6">
       {/* Ambient glow effects */}
       <div className="fixed top-[10%] left-[20%] w-[600px] h-[600px] bg-[radial-gradient(ellipse,rgba(124,58,237,0.08)_0%,transparent_70%)] pointer-events-none" />
       <div className="fixed bottom-[20%] right-[10%] w-[400px] h-[400px] bg-[radial-gradient(ellipse,rgba(16,185,129,0.06)_0%,transparent_70%)] pointer-events-none" />
@@ -261,11 +261,11 @@ export default function VendorsPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent flex items-center gap-2">
-              <Handshake className="w-7 h-7 text-white" />
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent flex items-center gap-2">
+              <Handshake className="w-7 h-7 text-foreground" />
               Vendors &amp; Partners
             </h1>
-            <p className="text-slate-400 mt-1">
+            <p className="text-muted-foreground mt-1">
               Manage vendor partnerships, rules, and track referrals
             </p>
           </div>
@@ -278,7 +278,7 @@ export default function VendorsPage() {
         {/* Stats Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
-            icon={<Handshake className="w-5 h-5 text-blue-400" />}
+            icon={<Handshake className="w-5 h-5 text-primary" />}
             value={vendors.length}
             label="Total Vendors"
           />
@@ -301,16 +301,16 @@ export default function VendorsPage() {
 
         {/* Tabs */}
         <Tabs defaultValue="vendors" className="space-y-4">
-          <TabsList className="bg-slate-800/50 border border-slate-700/50">
-            <TabsTrigger value="vendors" className="gap-2 data-[state=active]:bg-slate-700" data-value="vendors">
+          <TabsList className="bg-card border border-border">
+            <TabsTrigger value="vendors" className="gap-2 data-[state=active]:bg-muted" data-value="vendors">
               <Building className="w-4 h-4" />
               Vendors
             </TabsTrigger>
-            <TabsTrigger value="rules" className="gap-2 data-[state=active]:bg-slate-700" data-value="rules">
+            <TabsTrigger value="rules" className="gap-2 data-[state=active]:bg-muted" data-value="rules">
               <Settings className="w-4 h-4" />
               Rules
             </TabsTrigger>
-            <TabsTrigger value="referrals" className="gap-2 data-[state=active]:bg-slate-700" data-value="referrals">
+            <TabsTrigger value="referrals" className="gap-2 data-[state=active]:bg-muted" data-value="referrals">
               <BarChart3 className="w-4 h-4" />
               Referrals
             </TabsTrigger>
@@ -322,7 +322,7 @@ export default function VendorsPage() {
               <LoadingSkeleton />
             ) : vendors.length === 0 ? (
               <EmptyState
-                icon={<Handshake className="w-12 h-12 text-slate-600" />}
+                icon={<Handshake className="w-12 h-12 text-muted-foreground" />}
                 title="No vendors yet"
                 description='Add your first vendor partner by clicking "Add Vendor" above.'
               />
@@ -352,7 +352,7 @@ export default function VendorsPage() {
                   <select
                     value={ruleVendorSelect}
                     onChange={(e) => setRuleVendorSelect(e.target.value)}
-                    className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"
+                    className="bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground"
                   >
                     <option value="">Select a vendor...</option>
                     {vendors.map((v) => (
@@ -369,7 +369,7 @@ export default function VendorsPage() {
 
                 {allRules.length === 0 ? (
                   <EmptyState
-                    icon={<Filter className="w-12 h-12 text-slate-600" />}
+                    icon={<Filter className="w-12 h-12 text-muted-foreground" />}
                     title="No rules yet"
                     description="Create rules to automatically recommend vendors to clients based on their profile."
                   />
@@ -396,35 +396,35 @@ export default function VendorsPage() {
               <div className="space-y-4">
                 {/* Summary stats */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-4 text-center">
-                    <span className="block text-2xl font-bold text-blue-400">
+                  <div className="bg-card backdrop-blur-xl border border-border rounded-xl p-4 text-center">
+                    <span className="block text-2xl font-bold text-primary">
                       {referrals.filter((r) => r.status === "RECOMMENDED").length}
                     </span>
-                    <span className="text-xs text-slate-500">Recommended</span>
+                    <span className="text-xs text-muted-foreground">Recommended</span>
                   </div>
-                  <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-4 text-center">
+                  <div className="bg-card backdrop-blur-xl border border-border rounded-xl p-4 text-center">
                     <span className="block text-2xl font-bold text-amber-400">
                       {referrals.filter((r) => r.status === "CLICKED").length}
                     </span>
-                    <span className="text-xs text-slate-500">Clicked</span>
+                    <span className="text-xs text-muted-foreground">Clicked</span>
                   </div>
-                  <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-4 text-center">
+                  <div className="bg-card backdrop-blur-xl border border-border rounded-xl p-4 text-center">
                     <span className="block text-2xl font-bold text-emerald-400">
                       {conversionsCount}
                     </span>
-                    <span className="text-xs text-slate-500">Converted</span>
+                    <span className="text-xs text-muted-foreground">Converted</span>
                   </div>
-                  <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-4 text-center">
-                    <span className="block text-2xl font-bold text-slate-400">
+                  <div className="bg-card backdrop-blur-xl border border-border rounded-xl p-4 text-center">
+                    <span className="block text-2xl font-bold text-muted-foreground">
                       {referrals.filter((r) => r.status === "EXPIRED").length}
                     </span>
-                    <span className="text-xs text-slate-500">Expired</span>
+                    <span className="text-xs text-muted-foreground">Expired</span>
                   </div>
                 </div>
 
                 {referrals.length === 0 ? (
                   <EmptyState
-                    icon={<BarChart3 className="w-12 h-12 text-slate-600" />}
+                    icon={<BarChart3 className="w-12 h-12 text-muted-foreground" />}
                     title="No referrals yet"
                     description="Referrals are tracked when vendor recommendations are shown or clicked by clients."
                   />
@@ -476,12 +476,12 @@ function StatCard({
   label: string;
 }) {
   return (
-    <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6">
+    <div className="bg-card backdrop-blur-xl border border-border rounded-2xl p-6">
       <div className="flex items-center gap-3">
         {icon}
         <div>
-          <span className="text-2xl font-bold text-white">{value}</span>
-          <p className="text-xs text-slate-500 uppercase tracking-wide">{label}</p>
+          <span className="text-2xl font-bold text-foreground">{value}</span>
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">{label}</p>
         </div>
       </div>
     </div>
@@ -502,16 +502,16 @@ function VendorCard({
   const catColor = CATEGORY_COLORS[vendor.category] || CATEGORY_COLORS.OTHER;
 
   return (
-    <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 hover:border-slate-600/50 transition-colors">
+    <div className="bg-card backdrop-blur-xl border border-border rounded-2xl p-6 hover:border-input transition-colors">
       {/* Header */}
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2">
-          <h3 className="text-lg font-semibold text-white">{vendor.name}</h3>
+          <h3 className="text-lg font-semibold text-foreground">{vendor.name}</h3>
           <Badge
             className={`text-[10px] ${
               vendor.isActive
                 ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                : "bg-slate-500/20 text-slate-400 border-slate-500/30"
+                : "bg-muted text-muted-foreground border-border"
             }`}
           >
             {vendor.isActive ? "Active" : "Inactive"}
@@ -526,11 +526,11 @@ function VendorCard({
 
       {/* Description */}
       {vendor.description && (
-        <p className="text-sm text-slate-400 mb-3 line-clamp-2">{vendor.description}</p>
+        <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{vendor.description}</p>
       )}
 
       {/* Stat row */}
-      <div className="flex items-center gap-4 mb-3 text-sm text-slate-400">
+      <div className="flex items-center gap-4 mb-3 text-sm text-muted-foreground">
         <span className="flex items-center gap-1">
           <Settings className="w-3.5 h-3.5" />
           {vendor.rules.length} rule{vendor.rules.length !== 1 ? "s" : ""}
@@ -561,7 +561,7 @@ function VendorCard({
           href={vendor.affiliateUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors mb-4"
+          className="inline-flex items-center gap-1 text-xs text-primary hover:text-blue-300 transition-colors mb-4"
         >
           <ExternalLink className="w-3 h-3" />
           Affiliate Link
@@ -569,8 +569,8 @@ function VendorCard({
       )}
 
       {/* Action buttons */}
-      <div className="flex items-center gap-2 pt-3 border-t border-slate-700/50">
-        <Button variant="ghost" size="sm" onClick={onEdit} className="gap-1.5 text-slate-300">
+      <div className="flex items-center gap-2 pt-3 border-t border-border">
+        <Button variant="ghost" size="sm" onClick={onEdit} className="gap-1.5 text-muted-foreground">
           <Edit className="w-3.5 h-3.5" />
           Edit
         </Button>
@@ -578,7 +578,7 @@ function VendorCard({
           variant="ghost"
           size="sm"
           onClick={onViewRules}
-          className="gap-1.5 text-slate-300"
+          className="gap-1.5 text-muted-foreground"
         >
           <Settings className="w-3.5 h-3.5" />
           Rules
@@ -610,18 +610,18 @@ function RuleRow({
     : "";
 
   return (
-    <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-4 hover:border-slate-600/50 transition-colors">
+    <div className="bg-card backdrop-blur-xl border border-border rounded-xl p-4 hover:border-input transition-colors">
       <div className="flex flex-wrap items-center gap-3">
         {/* Vendor tag */}
-        <Badge className="bg-slate-700/50 text-slate-300 border-slate-600/50 text-[10px]">
+        <Badge className="bg-muted text-muted-foreground border-input text-[10px]">
           {rule.vendorName}
         </Badge>
 
         {/* Rule name */}
-        <span className="font-medium text-white text-sm">{rule.name}</span>
+        <span className="font-medium text-foreground text-sm">{rule.name}</span>
 
         {/* Priority badge */}
-        <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-[10px]">
+        <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px]">
           Priority: {rule.priority}
         </Badge>
 
@@ -629,11 +629,11 @@ function RuleRow({
         {rule.isActive ? (
           <CheckCircle className="w-4 h-4 text-emerald-400" />
         ) : (
-          <XCircle className="w-4 h-4 text-slate-500" />
+          <XCircle className="w-4 h-4 text-muted-foreground" />
         )}
 
         {/* Condition count */}
-        <span className="text-xs text-slate-500">
+        <span className="text-xs text-muted-foreground">
           {conditionsArray.length} condition{conditionsArray.length !== 1 ? "s" : ""}
         </span>
 
@@ -642,7 +642,7 @@ function RuleRow({
           variant="ghost"
           size="sm"
           onClick={onEdit}
-          className="gap-1.5 text-slate-300 ml-auto"
+          className="gap-1.5 text-muted-foreground ml-auto"
         >
           <Edit className="w-3.5 h-3.5" />
           Edit
@@ -650,7 +650,7 @@ function RuleRow({
       </div>
 
       {previewText && (
-        <p className="text-xs text-slate-500 mt-2 ml-1">{previewText}</p>
+        <p className="text-xs text-muted-foreground mt-2 ml-1">{previewText}</p>
       )}
     </div>
   );
@@ -660,18 +660,18 @@ function ReferralRow({ referral }: { referral: Referral }) {
   const statusColor = STATUS_COLORS[referral.status] || STATUS_COLORS.EXPIRED;
 
   return (
-    <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-4 hover:border-slate-600/50 transition-colors">
+    <div className="bg-card backdrop-blur-xl border border-border rounded-xl p-4 hover:border-input transition-colors">
       <div className="flex flex-wrap items-center gap-3">
         {/* Date */}
-        <span className="text-xs text-slate-500 min-w-[90px]">
+        <span className="text-xs text-muted-foreground min-w-[90px]">
           {formatDate(referral.createdAt)}
         </span>
 
         {/* Vendor name */}
-        <span className="font-medium text-white text-sm">{referral.vendor.name}</span>
+        <span className="font-medium text-foreground text-sm">{referral.vendor.name}</span>
 
         {/* Trigger type badge */}
-        <Badge className="bg-slate-700/50 text-slate-300 border-slate-600/50 text-[10px]">
+        <Badge className="bg-muted text-muted-foreground border-input text-[10px]">
           {referral.triggerType.replace(/_/g, " ")}
         </Badge>
 
@@ -704,8 +704,8 @@ function EmptyState({
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
       <div className="mb-4">{icon}</div>
-      <h3 className="text-lg font-medium text-slate-300 mb-2">{title}</h3>
-      <p className="text-sm text-slate-500 max-w-md">{description}</p>
+      <h3 className="text-lg font-medium text-muted-foreground mb-2">{title}</h3>
+      <p className="text-sm text-muted-foreground max-w-md">{description}</p>
     </div>
   );
 }
@@ -716,11 +716,11 @@ function LoadingSkeleton() {
       {[1, 2, 3].map((i) => (
         <div
           key={i}
-          className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6 animate-pulse"
+          className="bg-card border border-border rounded-2xl p-6 animate-pulse"
         >
-          <div className="h-5 w-48 bg-slate-700 rounded mb-3" />
-          <div className="h-4 w-32 bg-slate-700/50 rounded mb-2" />
-          <div className="h-3 w-full bg-slate-700/30 rounded" />
+          <div className="h-5 w-48 bg-muted rounded mb-3" />
+          <div className="h-4 w-32 bg-muted rounded mb-2" />
+          <div className="h-3 w-full bg-muted rounded" />
         </div>
       ))}
     </div>

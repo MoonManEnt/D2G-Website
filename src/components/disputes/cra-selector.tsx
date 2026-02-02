@@ -32,24 +32,24 @@ export function CRASelector({ selectedCRA, onSelectCRA, scores, className }: CRA
               "flex-1 flex items-center gap-3 p-3 rounded-lg border transition-all",
               isSelected
                 ? colors.tailwind
-                : "bg-slate-700/30 border-slate-600/50 hover:border-slate-500/50"
+                : "bg-muted border-input hover:border-border"
             )}
           >
             <div className={cn(
               "w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold",
-              isSelected ? "bg-white/10" : "bg-slate-600/30"
+              isSelected ? "bg-white/10" : "bg-muted"
             )}>
               {cra.abbrev}
             </div>
             <div className="flex flex-col items-start text-left">
               <span className={cn(
                 "text-sm font-semibold",
-                isSelected ? "" : "text-slate-300"
+                isSelected ? "" : "text-muted-foreground"
               )}>
                 {cra.name}
               </span>
               {score !== undefined && score !== null && (
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-muted-foreground">
                   Score: {score}
                 </span>
               )}

@@ -70,15 +70,15 @@ function ResetPasswordForm() {
   // No token provided
   if (!token) {
     return (
-      <Card className="border-slate-700 bg-slate-800/50 backdrop-blur">
+      <Card className="border-border bg-card backdrop-blur">
         <CardContent className="p-6">
           <div className="flex flex-col items-center gap-4 text-center">
             <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
               <AlertCircle className="w-6 h-6 text-red-400" />
             </div>
             <div>
-              <h3 className="text-lg font-medium text-white">Invalid Reset Link</h3>
-              <p className="text-slate-400 mt-2">
+              <h3 className="text-lg font-medium text-foreground">Invalid Reset Link</h3>
+              <p className="text-muted-foreground mt-2">
                 This password reset link is invalid or has expired.
               </p>
             </div>
@@ -94,10 +94,10 @@ function ResetPasswordForm() {
   }
 
   return (
-    <Card className="border-slate-700 bg-slate-800/50 backdrop-blur">
+    <Card className="border-border bg-card backdrop-blur">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl text-white">Set New Password</CardTitle>
-        <CardDescription className="text-slate-400">
+        <CardTitle className="text-2xl text-foreground">Set New Password</CardTitle>
+        <CardDescription className="text-muted-foreground">
           Enter your new password below
         </CardDescription>
       </CardHeader>
@@ -109,8 +109,8 @@ function ResetPasswordForm() {
                 <CheckCircle2 className="w-6 h-6 text-emerald-400" />
               </div>
               <div>
-                <h3 className="text-lg font-medium text-white">Password Reset Successfully</h3>
-                <p className="text-slate-400 mt-2">
+                <h3 className="text-lg font-medium text-foreground">Password Reset Successfully</h3>
+                <p className="text-muted-foreground mt-2">
                   Your password has been changed. You can now sign in with your new password.
                 </p>
               </div>
@@ -132,7 +132,7 @@ function ResetPasswordForm() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-slate-200">
+              <Label htmlFor="password" className="text-foreground">
                 New Password
               </Label>
               <div className="relative">
@@ -144,23 +144,23 @@ function ResetPasswordForm() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   disabled={isLoading}
-                  className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500 pr-10"
+                  className="bg-muted border-input text-foreground placeholder:text-muted-foreground pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 Must be at least 8 characters with uppercase, lowercase, and number
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-slate-200">
+              <Label htmlFor="confirmPassword" className="text-foreground">
                 Confirm Password
               </Label>
               <Input
@@ -171,7 +171,7 @@ function ResetPasswordForm() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 disabled={isLoading}
-                className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
+                className="bg-muted border-input text-foreground placeholder:text-muted-foreground"
               />
             </div>
 
@@ -194,7 +194,7 @@ function ResetPasswordForm() {
             </Button>
 
             <Link href="/login">
-              <Button variant="ghost" className="w-full text-slate-400">
+              <Button variant="ghost" className="w-full text-muted-foreground">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to sign in
               </Button>
@@ -208,20 +208,20 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-card to-background p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
             <Shield className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-3xl font-bold text-white">Dispute2Go</h1>
-          <p className="text-slate-400 mt-2">Credit Dispute Operating System</p>
+          <h1 className="text-3xl font-bold text-foreground">Dispute2Go</h1>
+          <p className="text-muted-foreground mt-2">Credit Dispute Operating System</p>
         </div>
 
         <Suspense fallback={
-          <Card className="border-slate-700 bg-slate-800/50 backdrop-blur">
+          <Card className="border-border bg-card backdrop-blur">
             <CardContent className="p-8 text-center">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto text-slate-400" />
+              <Loader2 className="w-8 h-8 animate-spin mx-auto text-muted-foreground" />
             </CardContent>
           </Card>
         }>

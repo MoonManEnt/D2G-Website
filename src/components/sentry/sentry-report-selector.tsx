@@ -215,12 +215,12 @@ export function SentryReportSelector({
         onClick={() => uploadStep === "idle" && fileInputRef.current?.click()}
         className={`relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
           dragOver
-            ? "border-blue-500 bg-blue-500/10"
+            ? "border-blue-500 bg-primary/10"
             : uploadStep === "error"
             ? "border-red-500/50 bg-red-500/5"
             : uploadStep === "complete"
             ? "border-emerald-500/50 bg-emerald-500/5"
-            : "border-slate-600 hover:border-slate-500 bg-slate-800/30"
+            : "border-input hover:border-input bg-card"
         }`}
       >
         <input
@@ -234,9 +234,9 @@ export function SentryReportSelector({
         {/* Idle state */}
         {uploadStep === "idle" && (
           <>
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-700/50 flex items-center justify-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
               <svg
-                className="w-8 h-8 text-slate-400"
+                className="w-8 h-8 text-muted-foreground"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -249,13 +249,13 @@ export function SentryReportSelector({
                 />
               </svg>
             </div>
-            <p className="text-slate-200 font-medium mb-1">
+            <p className="text-foreground font-medium mb-1">
               Upload Credit Report
             </p>
-            <p className="text-sm text-slate-400 mb-4">
+            <p className="text-sm text-muted-foreground mb-4">
               Drag and drop a PDF or click to browse
             </p>
-            <div className="flex items-center justify-center gap-4 text-xs text-slate-500">
+            <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
                 <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                   <path
@@ -306,11 +306,11 @@ export function SentryReportSelector({
                   className="transition-all duration-300"
                 />
               </svg>
-              <span className="absolute inset-0 flex items-center justify-center text-sm font-medium text-slate-200">
+              <span className="absolute inset-0 flex items-center justify-center text-sm font-medium text-foreground">
                 {uploadProgress}%
               </span>
             </div>
-            <p className="text-slate-200 font-medium">Uploading...</p>
+            <p className="text-foreground font-medium">Uploading...</p>
           </div>
         )}
 
@@ -320,7 +320,7 @@ export function SentryReportSelector({
             <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
             </div>
-            <p className="text-slate-200 font-medium mb-2">
+            <p className="text-foreground font-medium mb-2">
               {PARSING_STAGES[parsingStage]}
             </p>
             <div className="flex justify-center gap-1">
@@ -328,7 +328,7 @@ export function SentryReportSelector({
                 <div
                   key={i}
                   className={`w-2 h-2 rounded-full transition-colors ${
-                    i <= parsingStage ? "bg-blue-500" : "bg-slate-600"
+                    i <= parsingStage ? "bg-blue-500" : "bg-muted"
                   }`}
                 />
               ))}
@@ -360,7 +360,7 @@ export function SentryReportSelector({
 
             {/* Amelia Sentry Engine message */}
             <div className="mt-4 px-4 py-3 bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-purple-500/10 rounded-lg border border-purple-500/20">
-              <p className="text-sm text-slate-300 leading-relaxed">
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 <span className="text-purple-400 font-semibold">Amelia Sentry</span> is now analyzing your report.
                 Our intelligent engine will identify disputable items, detect inconsistencies across bureaus,
                 and craft strategic dispute letters tailored to maximize your success.
@@ -369,7 +369,7 @@ export function SentryReportSelector({
 
             {/* Upload timestamp */}
             {recentUpload && (
-              <p className="mt-3 text-xs text-slate-400">
+              <p className="mt-3 text-xs text-muted-foreground">
                 Uploaded: {format(recentUpload.timestamp, "MMMM d, yyyy 'at' h:mm a")}
               </p>
             )}
@@ -383,7 +383,7 @@ export function SentryReportSelector({
                 setParsingStage(0);
                 setRecentUpload(null);
               }}
-              className="mt-4 px-4 py-2 bg-slate-700/50 text-slate-300 rounded-lg text-sm hover:bg-slate-600/50 transition-colors border border-slate-600/50"
+              className="mt-4 px-4 py-2 bg-muted text-muted-foreground rounded-lg text-sm hover:bg-muted transition-colors border border-input"
             >
               Upload Different Report
             </button>
@@ -409,14 +409,14 @@ export function SentryReportSelector({
               </svg>
             </div>
             <p className="text-red-400 font-medium mb-2">Upload failed</p>
-            <p className="text-sm text-slate-400">{error}</p>
+            <p className="text-sm text-muted-foreground">{error}</p>
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 setUploadStep("idle");
                 setError(null);
               }}
-              className="mt-4 px-4 py-2 bg-slate-700 text-slate-200 rounded-lg text-sm hover:bg-slate-600"
+              className="mt-4 px-4 py-2 bg-muted text-foreground rounded-lg text-sm hover:bg-muted"
             >
               Try Again
             </button>
@@ -428,12 +428,12 @@ export function SentryReportSelector({
       {reports.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-slate-300">
+            <h3 className="text-sm font-medium text-muted-foreground">
               Existing Reports ({reports.length})
             </h3>
             <button
               onClick={onRefreshReports}
-              className="text-xs text-slate-400 hover:text-slate-300"
+              className="text-xs text-muted-foreground hover:text-muted-foreground"
             >
               Refresh
             </button>
@@ -453,15 +453,15 @@ export function SentryReportSelector({
                   onClick={() => onReportSelect(report.id)}
                   className={`w-full p-4 rounded-lg border text-left transition-all ${
                     isSelected
-                      ? "border-blue-500 bg-blue-500/10"
-                      : "border-slate-700/50 bg-slate-800/30 hover:border-slate-600"
+                      ? "border-blue-500 bg-primary/10"
+                      : "border-border bg-card hover:border-input"
                   }`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       {/* Client name and status */}
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-medium text-slate-200">
+                        <span className="text-sm font-medium text-foreground">
                           {clientName || "Client Report"}
                         </span>
                         <span
@@ -478,15 +478,15 @@ export function SentryReportSelector({
                       </div>
 
                       {/* Source type and dates */}
-                      <div className="flex items-center gap-2 text-xs text-slate-400 mb-1 flex-wrap">
-                        <span className="px-1.5 py-0.5 bg-slate-700/50 rounded text-slate-300">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1 flex-wrap">
+                        <span className="px-1.5 py-0.5 bg-muted rounded text-muted-foreground">
                           {formatSourceType(report.sourceType)}
                         </span>
-                        <span className="text-slate-500">•</span>
+                        <span className="text-muted-foreground">•</span>
                         <span>
                           Report: {safeFormatDate(report.reportDate, false)}
                         </span>
-                        <span className="text-slate-500">•</span>
+                        <span className="text-muted-foreground">•</span>
                         <span>
                           Uploaded: {safeFormatDate(report.uploadedAt, true)}
                         </span>
@@ -496,7 +496,7 @@ export function SentryReportSelector({
                       {hasScores && (
                         <div className="flex items-center gap-3 text-xs mt-2">
                           {report.scores?.transunion && (
-                            <span className="text-blue-400">
+                            <span className="text-primary">
                               TU: {report.scores.transunion}
                             </span>
                           )}
@@ -515,7 +515,7 @@ export function SentryReportSelector({
 
                       {/* Account counts */}
                       {report.bureauBreakdown && (
-                        <div className="flex items-center gap-3 text-xs text-slate-400 mt-2">
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2">
                           <span>TU: {report.bureauBreakdown.transunion}</span>
                           <span>EQ: {report.bureauBreakdown.equifax}</span>
                           <span>EX: {report.bureauBreakdown.experian}</span>
@@ -523,7 +523,7 @@ export function SentryReportSelector({
                       )}
 
                       {report.accountCount !== undefined && !report.bureauBreakdown && (
-                        <p className="text-xs text-slate-400 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                           {report.accountCount} accounts parsed
                         </p>
                       )}
@@ -534,12 +534,12 @@ export function SentryReportSelector({
                       className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
                         isSelected
                           ? "border-blue-500 bg-blue-500"
-                          : "border-slate-500"
+                          : "border-border"
                       }`}
                     >
                       {isSelected && (
                         <svg
-                          className="w-3 h-3 text-white"
+                          className="w-3 h-3 text-foreground"
                           fill="currentColor"
                           viewBox="0 0 20 20"
                         >
@@ -562,10 +562,10 @@ export function SentryReportSelector({
       {/* Empty state */}
       {reports.length === 0 && uploadStep === "idle" && (
         <div className="text-center py-6">
-          <p className="text-slate-400 text-sm">
+          <p className="text-muted-foreground text-sm">
             No credit reports found for this client.
           </p>
-          <p className="text-slate-500 text-xs mt-1">
+          <p className="text-muted-foreground text-xs mt-1">
             Upload a report above to get started with Sentry disputes.
           </p>
         </div>

@@ -165,7 +165,7 @@ export function VendorForm({ open, onOpenChange, vendor, onSaved }: VendorFormPr
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g., IDIQ/MyScoreIQ"
-              className="bg-slate-800 border-slate-700"
+              className="bg-card border-border"
             />
           </div>
 
@@ -177,7 +177,7 @@ export function VendorForm({ open, onOpenChange, vendor, onSaved }: VendorFormPr
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Credit monitoring and identity protection..."
-              className="bg-slate-800 border-slate-700"
+              className="bg-card border-border"
               rows={3}
             />
           </div>
@@ -189,7 +189,7 @@ export function VendorForm({ open, onOpenChange, vendor, onSaved }: VendorFormPr
               id="vendor-category"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"
+              className="w-full bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground"
             >
               {CATEGORY_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -207,7 +207,7 @@ export function VendorForm({ open, onOpenChange, vendor, onSaved }: VendorFormPr
               value={websiteUrl}
               onChange={(e) => setWebsiteUrl(e.target.value)}
               placeholder="https://www.example.com"
-              className="bg-slate-800 border-slate-700"
+              className="bg-card border-border"
             />
           </div>
 
@@ -220,7 +220,7 @@ export function VendorForm({ open, onOpenChange, vendor, onSaved }: VendorFormPr
                 value={affiliateUrl}
                 onChange={(e) => setAffiliateUrl(e.target.value)}
                 placeholder="https://www.example.com/ref?code=..."
-                className="bg-slate-800 border-slate-700"
+                className="bg-card border-border"
               />
             </div>
             <div className="space-y-2">
@@ -230,7 +230,7 @@ export function VendorForm({ open, onOpenChange, vendor, onSaved }: VendorFormPr
                 value={affiliateCode}
                 onChange={(e) => setAffiliateCode(e.target.value)}
                 placeholder="e.g., 432142HO"
-                className="bg-slate-800 border-slate-700"
+                className="bg-card border-border"
               />
             </div>
           </div>
@@ -244,7 +244,7 @@ export function VendorForm({ open, onOpenChange, vendor, onSaved }: VendorFormPr
                 value={contactName}
                 onChange={(e) => setContactName(e.target.value)}
                 placeholder="John Smith"
-                className="bg-slate-800 border-slate-700"
+                className="bg-card border-border"
               />
             </div>
             <div className="space-y-2">
@@ -255,7 +255,7 @@ export function VendorForm({ open, onOpenChange, vendor, onSaved }: VendorFormPr
                 value={contactEmail}
                 onChange={(e) => setContactEmail(e.target.value)}
                 placeholder="john@example.com"
-                className="bg-slate-800 border-slate-700"
+                className="bg-card border-border"
               />
             </div>
           </div>
@@ -268,7 +268,7 @@ export function VendorForm({ open, onOpenChange, vendor, onSaved }: VendorFormPr
                 id="vendor-commission-type"
                 value={commissionType}
                 onChange={(e) => setCommissionType(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"
+                className="w-full bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground"
               >
                 {COMMISSION_TYPE_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -285,7 +285,7 @@ export function VendorForm({ open, onOpenChange, vendor, onSaved }: VendorFormPr
                 value={commissionValue}
                 onChange={(e) => setCommissionValue(e.target.value)}
                 placeholder="e.g., 15.00"
-                className="bg-slate-800 border-slate-700"
+                className="bg-card border-border"
                 step="0.01"
                 min="0"
               />
@@ -300,7 +300,7 @@ export function VendorForm({ open, onOpenChange, vendor, onSaved }: VendorFormPr
               aria-checked={isActive}
               onClick={() => setIsActive(!isActive)}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                isActive ? "bg-emerald-600" : "bg-slate-600"
+                isActive ? "bg-emerald-600" : "bg-muted"
               }`}
             >
               <span

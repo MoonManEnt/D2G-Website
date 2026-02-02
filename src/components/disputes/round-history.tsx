@@ -100,7 +100,7 @@ export function RoundHistory({
       case "STALL_LETTER":
         return <XCircle className="w-5 h-5 text-orange-400" />;
       default:
-        return <FileText className="w-5 h-5 text-slate-400" />;
+        return <FileText className="w-5 h-5 text-muted-foreground" />;
     }
   };
 
@@ -136,7 +136,7 @@ export function RoundHistory({
       case "VERIFIED":
         return "bg-amber-500/20 text-amber-400 border-amber-500/30";
       case "TRY_DIFFERENT_CRA":
-        return "bg-blue-500/20 text-blue-400 border-blue-500/30";
+        return "bg-primary/20 text-primary border-primary/30";
       case "ESCALATE_CFPB":
         return "bg-purple-500/20 text-purple-400 border-purple-500/30";
       case "NO_RESPONSE":
@@ -144,17 +144,17 @@ export function RoundHistory({
       case "STALL_LETTER":
         return "bg-orange-500/20 text-orange-400 border-orange-500/30";
       default:
-        return "bg-slate-500/20 text-slate-400 border-slate-500/30";
+        return "bg-muted text-muted-foreground border-border";
     }
   };
 
   const getCRABadge = (cra: string) => {
     const colors: Record<string, string> = {
       TRANSUNION: "bg-sky-600/20 text-sky-400 border-sky-600/30",
-      EXPERIAN: "bg-blue-600/20 text-blue-400 border-blue-600/30",
+      EXPERIAN: "bg-primary/20 text-primary border-blue-600/30",
       EQUIFAX: "bg-red-600/20 text-red-400 border-red-600/30",
     };
-    return colors[cra] || "bg-slate-500/20 text-slate-400 border-slate-500/30";
+    return colors[cra] || "bg-muted text-muted-foreground border-border";
   };
 
   const calculateSuccessRate = (item: RoundHistoryItem) => {
@@ -165,17 +165,17 @@ export function RoundHistory({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   if (history.length === 0) {
     return (
-      <div className="text-center py-6 text-slate-400">
+      <div className="text-center py-6 text-muted-foreground">
         <History className="w-8 h-8 mx-auto mb-2" />
         <p className="text-sm">No round history yet</p>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-muted-foreground">
           Round history will appear after responses are recorded
         </p>
       </div>
@@ -185,7 +185,7 @@ export function RoundHistory({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-white flex items-center gap-2">
+        <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
           <History className="w-4 h-4 text-brand-400" />
           Round History
         </h3>
@@ -197,7 +197,7 @@ export function RoundHistory({
       {/* Timeline */}
       <div className="relative">
         {/* Connecting line */}
-        <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-slate-700" />
+        <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-muted" />
 
         <div className="space-y-4">
           {history.map((item, index) => {
@@ -212,7 +212,7 @@ export function RoundHistory({
                   className={`absolute left-2 w-5 h-5 rounded-full flex items-center justify-center ${
                     isLatest
                       ? "bg-brand-500/30 ring-2 ring-brand-400"
-                      : "bg-slate-700"
+                      : "bg-muted"
                   }`}
                 >
                   <div
@@ -227,7 +227,7 @@ export function RoundHistory({
                 </div>
 
                 <Card
-                  className={`bg-slate-800/50 border-slate-700 overflow-hidden ${
+                  className={`bg-card border-border overflow-hidden ${
                     isLatest ? "ring-1 ring-brand-500/30" : ""
                   }`}
                 >
@@ -235,11 +235,11 @@ export function RoundHistory({
                     {/* Header - Always visible */}
                     <button
                       onClick={() => toggleRound(item.round)}
-                      className="w-full p-4 flex items-center justify-between hover:bg-slate-700/30 transition-colors"
+                      className="w-full p-4 flex items-center justify-between hover:bg-muted transition-colors"
                     >
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
-                          <span className="text-lg font-bold text-white">
+                          <span className="text-lg font-bold text-foreground">
                             R{item.round}
                           </span>
                           <Badge className={getCRABadge(item.cra)}>
@@ -250,7 +250,7 @@ export function RoundHistory({
                           </Badge>
                         </div>
 
-                        <ArrowRight className="w-4 h-4 text-slate-500" />
+                        <ArrowRight className="w-4 h-4 text-muted-foreground" />
 
                         <div className="flex items-center gap-2">
                           {getOutcomeIcon(item.overallOutcome)}
@@ -273,15 +273,15 @@ export function RoundHistory({
                             <AlertTriangle className="w-3 h-3" />
                             {item.itemsVerified}
                           </span>
-                          <span className="text-slate-400">
+                          <span className="text-muted-foreground">
                             of {item.itemsDisputed}
                           </span>
                         </div>
 
                         {isExpanded ? (
-                          <ChevronUp className="w-4 h-4 text-slate-400" />
+                          <ChevronUp className="w-4 h-4 text-muted-foreground" />
                         ) : (
-                          <ChevronDown className="w-4 h-4 text-slate-400" />
+                          <ChevronDown className="w-4 h-4 text-muted-foreground" />
                         )}
                       </div>
                     </button>
@@ -296,16 +296,16 @@ export function RoundHistory({
                           transition={{ duration: 0.2 }}
                           className="overflow-hidden"
                         >
-                          <div className="px-4 pb-4 border-t border-slate-700 pt-4 space-y-4">
+                          <div className="px-4 pb-4 border-t border-border pt-4 space-y-4">
                             {/* Dates */}
                             <div className="grid grid-cols-2 gap-4 text-sm">
                               <div className="flex items-center gap-2">
-                                <Calendar className="w-4 h-4 text-slate-400" />
+                                <Calendar className="w-4 h-4 text-muted-foreground" />
                                 <div>
-                                  <p className="text-slate-400 text-xs">
+                                  <p className="text-muted-foreground text-xs">
                                     Letter Sent
                                   </p>
-                                  <p className="text-white">
+                                  <p className="text-foreground">
                                     {item.letterSentDate
                                       ? new Date(
                                           item.letterSentDate
@@ -315,12 +315,12 @@ export function RoundHistory({
                                 </div>
                               </div>
                               <div className="flex items-center gap-2">
-                                <Calendar className="w-4 h-4 text-slate-400" />
+                                <Calendar className="w-4 h-4 text-muted-foreground" />
                                 <div>
-                                  <p className="text-slate-400 text-xs">
+                                  <p className="text-muted-foreground text-xs">
                                     Response Received
                                   </p>
-                                  <p className="text-white">
+                                  <p className="text-foreground">
                                     {item.responseReceivedDate
                                       ? new Date(
                                           item.responseReceivedDate
@@ -337,21 +337,21 @@ export function RoundHistory({
                                 <p className="text-2xl font-bold text-green-400">
                                   {item.itemsDeleted}
                                 </p>
-                                <p className="text-xs text-slate-400">Deleted</p>
+                                <p className="text-xs text-muted-foreground">Deleted</p>
                               </div>
                               <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-center">
                                 <p className="text-2xl font-bold text-amber-400">
                                   {item.itemsVerified}
                                 </p>
-                                <p className="text-xs text-slate-400">
+                                <p className="text-xs text-muted-foreground">
                                   Verified
                                 </p>
                               </div>
-                              <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-center">
-                                <p className="text-2xl font-bold text-blue-400">
+                              <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg text-center">
+                                <p className="text-2xl font-bold text-primary">
                                   {item.itemsUpdated || 0}
                                 </p>
-                                <p className="text-xs text-slate-400">Updated</p>
+                                <p className="text-xs text-muted-foreground">Updated</p>
                               </div>
                             </div>
 
@@ -359,7 +359,7 @@ export function RoundHistory({
                             <div className="flex items-center gap-3">
                               <div className="flex-1">
                                 <div className="flex items-center justify-between text-xs mb-1">
-                                  <span className="text-slate-400">
+                                  <span className="text-muted-foreground">
                                     Success Rate
                                   </span>
                                   <span
@@ -374,7 +374,7 @@ export function RoundHistory({
                                     {successRate}%
                                   </span>
                                 </div>
-                                <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+                                <div className="h-2 bg-muted rounded-full overflow-hidden">
                                   <div
                                     className={`h-full transition-all ${
                                       successRate >= 50
@@ -393,7 +393,7 @@ export function RoundHistory({
                             {(item.itemsNoResponse ||
                               item.itemsStalled ||
                               0) > 0 && (
-                              <div className="flex items-center gap-4 text-xs text-slate-400">
+                              <div className="flex items-center gap-4 text-xs text-muted-foreground">
                                 {item.itemsNoResponse && item.itemsNoResponse > 0 && (
                                   <span className="flex items-center gap-1 text-red-400">
                                     <Clock className="w-3 h-3" />
@@ -415,7 +415,7 @@ export function RoundHistory({
                                 size="sm"
                                 variant="outline"
                                 onClick={() => onViewLetter(item.round)}
-                                className="w-full border-slate-600 text-slate-300 hover:bg-slate-700"
+                                className="w-full border-input text-muted-foreground hover:bg-muted"
                               >
                                 <FileText className="w-4 h-4 mr-2" />
                                 View Round {item.round} Letter
@@ -440,7 +440,7 @@ export function RoundHistory({
               <p className="text-sm text-brand-400 font-medium">
                 Round {currentRound} - In Progress
               </p>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-muted-foreground">
                 {currentCra} • Awaiting completion
               </p>
             </div>
@@ -449,21 +449,21 @@ export function RoundHistory({
       </div>
 
       {/* Summary stats */}
-      <div className="grid grid-cols-3 gap-3 pt-4 border-t border-slate-700">
+      <div className="grid grid-cols-3 gap-3 pt-4 border-t border-border">
         <div className="text-center">
           <p className="text-lg font-bold text-green-400">
             {history.reduce((sum, h) => sum + h.itemsDeleted, 0)}
           </p>
-          <p className="text-xs text-slate-400">Total Deleted</p>
+          <p className="text-xs text-muted-foreground">Total Deleted</p>
         </div>
         <div className="text-center">
           <p className="text-lg font-bold text-amber-400">
             {history.reduce((sum, h) => sum + h.itemsVerified, 0)}
           </p>
-          <p className="text-xs text-slate-400">Total Verified</p>
+          <p className="text-xs text-muted-foreground">Total Verified</p>
         </div>
         <div className="text-center">
-          <p className="text-lg font-bold text-white">
+          <p className="text-lg font-bold text-foreground">
             {history.length > 0
               ? Math.round(
                   (history.reduce((sum, h) => sum + h.itemsDeleted, 0) /
@@ -473,7 +473,7 @@ export function RoundHistory({
               : 0}
             %
           </p>
-          <p className="text-xs text-slate-400">Overall Success</p>
+          <p className="text-xs text-muted-foreground">Overall Success</p>
         </div>
       </div>
     </div>

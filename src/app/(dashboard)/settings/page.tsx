@@ -41,6 +41,7 @@ import { useToast } from "@/lib/use-toast";
 import { BrandingSettings } from "@/components/branding";
 import { ProfilePictureUpload } from "@/components/profile";
 import { ArchivedClientsList } from "@/components/archive";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { motion } from "framer-motion";
 
 export default function SettingsPage() {
@@ -295,32 +296,32 @@ export default function SettingsPage() {
       variants={containerVariants}
     >
       <div>
-        <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-          <Settings className="w-8 h-8 text-blue-500" />
+        <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
+          <Settings className="w-8 h-8 text-primary" />
           Settings
         </h1>
-        <p className="text-slate-400 mt-2 text-lg">Manage your account and preferences</p>
+        <p className="text-muted-foreground mt-2 text-lg">Manage your account and preferences</p>
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="bg-slate-800/50 border-slate-700 p-1 rounded-lg mb-6">
-          <TabsTrigger value="profile" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+        <TabsList className="bg-card border-border p-1 rounded-lg mb-6">
+          <TabsTrigger value="profile" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <User className="w-4 h-4 mr-2" />
             Profile
           </TabsTrigger>
-          <TabsTrigger value="organization" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+          <TabsTrigger value="organization" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <Building className="w-4 h-4 mr-2" />
             Organization
           </TabsTrigger>
-          <TabsTrigger value="security" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+          <TabsTrigger value="security" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <Shield className="w-4 h-4 mr-2" />
             Security
           </TabsTrigger>
-          <TabsTrigger value="billing" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+          <TabsTrigger value="billing" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <CreditCard className="w-4 h-4 mr-2" />
             Billing
           </TabsTrigger>
-          <TabsTrigger value="archived" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+          <TabsTrigger value="archived" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <Archive className="w-4 h-4 mr-2" />
             Archived
           </TabsTrigger>
@@ -334,10 +335,10 @@ export default function SettingsPage() {
 
         <TabsContent value="profile" asChild>
           <motion.div variants={tabContentVariants} initial="hidden" animate="visible">
-            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+            <Card className="bg-card border-border backdrop-blur-sm">
               <CardHeader>
-                <CardTitle className="text-white">Profile Information</CardTitle>
-                <CardDescription className="text-slate-400">Update your personal details</CardDescription>
+                <CardTitle className="text-foreground">Profile Information</CardTitle>
+                <CardDescription className="text-muted-foreground">Update your personal details</CardDescription>
               </CardHeader>
               <CardContent className="space-y-8">
                 <div className="flex flex-col sm:flex-row items-center gap-6">
@@ -348,47 +349,47 @@ export default function SettingsPage() {
                     size="xl"
                   />
                   <div className="space-y-1 text-center sm:text-left">
-                    <Label className="text-slate-200 text-lg">Profile Picture</Label>
-                    <p className="text-sm text-slate-400">
+                    <Label className="text-foreground text-lg">Profile Picture</Label>
+                    <p className="text-sm text-muted-foreground">
                       Supports JPG, PNG, GIF (max 5MB)
                     </p>
                   </div>
                 </div>
 
-                <div className="border-t border-slate-700/50" />
+                <div className="border-t border-border" />
 
                 <div className="grid gap-6 max-w-2xl">
                   <div className="space-y-2">
-                    <Label className="text-slate-200">Full Name</Label>
+                    <Label className="text-foreground">Full Name</Label>
                     <Input
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="bg-slate-900/50 border-slate-600 text-white focus:border-blue-500 h-11"
+                      className="bg-background border-input text-foreground focus:border-primary h-11"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-slate-200">Email Address</Label>
+                    <Label className="text-foreground">Email Address</Label>
                     <Input
                       value={session?.user?.email || ""}
-                      className="bg-slate-900/50 border-slate-600 text-slate-400 h-11"
+                      className="bg-background border-input text-muted-foreground h-11"
                       disabled
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-slate-200">Role</Label>
+                    <Label className="text-foreground">Role</Label>
                     <div>
-                      <Badge variant="outline" className="text-blue-400 border-blue-500/30 px-3 py-1">
+                      <Badge variant="outline" className="text-primary border-primary/30 px-3 py-1">
                         {session?.user?.role || "SPECIALIST"}
                       </Badge>
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-6 border-t border-slate-700/50 flex justify-end">
+                <div className="pt-6 border-t border-border/50 flex justify-end">
                   <Button
                     onClick={handleSaveProfile}
                     disabled={!profileChanged || isSavingProfile}
-                    className="bg-blue-600 hover:bg-blue-700 min-w-[140px]"
+                    className="bg-primary hover:bg-primary/90 min-w-[140px]"
                   >
                     {isSavingProfile ? (
                       <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
@@ -401,25 +402,42 @@ export default function SettingsPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Appearance */}
+            <Card className="bg-card border-border backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-foreground">Appearance</CardTitle>
+                <CardDescription className="text-muted-foreground">Choose your preferred theme mode</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label className="text-foreground text-base">Theme Mode</Label>
+                    <p className="text-sm text-muted-foreground">Select light, dark, or match your system settings</p>
+                  </div>
+                  <ThemeToggle />
+                </div>
+              </CardContent>
+            </Card>
           </motion.div>
         </TabsContent>
 
         <TabsContent value="organization" asChild>
           <motion.div variants={tabContentVariants} initial="hidden" animate="visible" className="space-y-6">
-            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+            <Card className="bg-card border-border backdrop-blur-sm">
               <CardHeader>
-                <CardTitle className="text-white">Organization Details</CardTitle>
-                <CardDescription className="text-slate-400">Manage your workspace settings</CardDescription>
+                <CardTitle className="text-foreground">Organization Details</CardTitle>
+                <CardDescription className="text-muted-foreground">Manage your workspace settings</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6 max-w-2xl">
                 <div className="space-y-2">
-                  <Label className="text-slate-200">Organization Name</Label>
+                  <Label className="text-foreground">Organization Name</Label>
                   <Input
                     value={session?.user?.organizationName || ""}
-                    className="bg-slate-900/50 border-slate-600 text-slate-400 h-11"
+                    className="bg-background border-input text-muted-foreground h-11"
                     disabled
                   />
-                  <p className="text-sm text-slate-500">Contact support to rename your organization.</p>
+                  <p className="text-sm text-muted-foreground">Contact support to rename your organization.</p>
                 </div>
               </CardContent>
             </Card>
@@ -431,28 +449,28 @@ export default function SettingsPage() {
 
         <TabsContent value="security" asChild>
           <motion.div variants={tabContentVariants} initial="hidden" animate="visible">
-            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+            <Card className="bg-card border-border backdrop-blur-sm">
               <CardHeader>
-                <CardTitle className="text-white">Security Settings</CardTitle>
-                <CardDescription className="text-slate-400">Protect your account</CardDescription>
+                <CardTitle className="text-foreground">Security Settings</CardTitle>
+                <CardDescription className="text-muted-foreground">Protect your account</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6 max-w-2xl">
-                <div className="flex items-center justify-between p-4 border border-slate-700/50 rounded-lg bg-slate-900/30">
+                <div className="flex items-center justify-between p-4 border border-border rounded-lg bg-muted/30">
                   <div className="space-y-1">
-                    <Label className="text-slate-200 text-base">Password</Label>
-                    <p className="text-sm text-slate-400">Secure your account with a strong password</p>
+                    <Label className="text-foreground text-base">Password</Label>
+                    <p className="text-sm text-muted-foreground">Secure your account with a strong password</p>
                   </div>
-                  <Button variant="outline" onClick={() => setShowPasswordDialog(true)} className="border-slate-600 hover:bg-slate-800">
+                  <Button variant="outline" onClick={() => setShowPasswordDialog(true)} className="border-input hover:bg-muted">
                     Change Password
                   </Button>
                 </div>
 
-                <div className="flex items-center justify-between p-4 border border-slate-700/50 rounded-lg bg-slate-900/30 opacity-75">
+                <div className="flex items-center justify-between p-4 border border-border rounded-lg bg-muted/30 opacity-75">
                   <div className="space-y-1">
-                    <Label className="text-slate-200 text-base">Two-Factor Authentication</Label>
-                    <p className="text-sm text-slate-400">Add an extra layer of security</p>
+                    <Label className="text-foreground text-base">Two-Factor Authentication</Label>
+                    <p className="text-sm text-muted-foreground">Add an extra layer of security</p>
                   </div>
-                  <Button variant="ghost" disabled className="text-slate-500">
+                  <Button variant="ghost" disabled className="text-muted-foreground">
                     Coming Soon
                   </Button>
                 </div>
@@ -463,16 +481,16 @@ export default function SettingsPage() {
 
         <TabsContent value="billing" asChild>
           <motion.div variants={tabContentVariants} initial="hidden" animate="visible">
-            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+            <Card className="bg-card border-border backdrop-blur-sm">
               <CardHeader>
-                <CardTitle className="text-white">Subscription & Billing</CardTitle>
-                <CardDescription className="text-slate-400">Manage your plan</CardDescription>
+                <CardTitle className="text-foreground">Subscription & Billing</CardTitle>
+                <CardDescription className="text-muted-foreground">Manage your plan</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="flex items-center justify-between p-6 border border-slate-700 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800">
+                <div className="flex items-center justify-between p-6 border border-border rounded-lg bg-gradient-to-br from-slate-900 to-slate-800">
                   <div>
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-xl font-bold text-white">Current Plan</h3>
+                      <h3 className="text-xl font-bold text-foreground">Current Plan</h3>
                       <Badge className={
                         session?.user?.subscriptionTier === "PROFESSIONAL"
                           ? "bg-gradient-to-r from-amber-500 to-orange-500 border-0"
@@ -481,7 +499,7 @@ export default function SettingsPage() {
                         {session?.user?.subscriptionTier || "FREE"}
                       </Badge>
                     </div>
-                    <p className="text-slate-400">
+                    <p className="text-muted-foreground">
                       Status: <span className="text-emerald-400">{session?.user?.subscriptionStatus || "Active"}</span>
                     </p>
                   </div>
@@ -507,13 +525,13 @@ export default function SettingsPage() {
         {(session?.user?.role === "ADMIN" || session?.user?.role === "OWNER") && (
           <TabsContent value="danger" asChild>
             <motion.div variants={tabContentVariants} initial="hidden" animate="visible">
-              <Card className="bg-slate-800/50 border-red-900/50 backdrop-blur-sm">
+              <Card className="bg-card border-red-900/50 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-red-400 flex items-center gap-2">
                     <AlertTriangle className="w-5 h-5" />
                     Danger Zone
                   </CardTitle>
-                  <CardDescription className="text-slate-400">
+                  <CardDescription className="text-muted-foreground">
                     Irreversible actions that affect all organization data
                   </CardDescription>
                 </CardHeader>
@@ -521,11 +539,11 @@ export default function SettingsPage() {
                   <div className="p-6 border border-red-900/50 rounded-lg bg-red-950/20">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                       <div className="space-y-2">
-                        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                        <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
                           <Trash2 className="w-5 h-5 text-red-400" />
                           Reset All Data
                         </h3>
-                        <p className="text-sm text-slate-400 max-w-md">
+                        <p className="text-sm text-muted-foreground max-w-md">
                           Permanently delete ALL client data, reports, disputes, and evidence.
                           This action cannot be undone. Use this to start fresh with a clean slate.
                         </p>
@@ -544,9 +562,9 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  <div className="p-4 border border-slate-700/50 rounded-lg bg-slate-900/30">
-                    <p className="text-sm text-slate-400">
-                      <strong className="text-slate-300">Note:</strong> This will delete all clients, credit reports,
+                  <div className="p-4 border border-border rounded-lg bg-muted/30">
+                    <p className="text-sm text-muted-foreground">
+                      <strong className="text-foreground">Note:</strong> This will delete all clients, credit reports,
                       disputes, account items, evidence, documents, and related data. Your organization settings,
                       user accounts, and billing information will remain intact.
                     </p>
@@ -569,19 +587,19 @@ export default function SettingsPage() {
           </ResponsiveDialogHeader>
           <ResponsiveDialogBody className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-slate-200">Current Password</Label>
+              <Label className="text-foreground">Current Password</Label>
               <div className="relative">
                 <Input
                   type={showCurrentPassword ? "text" : "password"}
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="bg-slate-700/50 border-slate-600 text-white pr-10"
+                  className="bg-muted border-input text-foreground pr-10"
                   placeholder="Enter current password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   {showCurrentPassword ? (
                     <EyeOff className="w-4 h-4" />
@@ -593,19 +611,19 @@ export default function SettingsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-slate-200">New Password</Label>
+              <Label className="text-foreground">New Password</Label>
               <div className="relative">
                 <Input
                   type={showNewPassword ? "text" : "password"}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="bg-slate-700/50 border-slate-600 text-white pr-10"
+                  className="bg-muted border-input text-foreground pr-10"
                   placeholder="Enter new password (min 8 characters)"
                 />
                 <button
                   type="button"
                   onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   {showNewPassword ? (
                     <EyeOff className="w-4 h-4" />
@@ -617,12 +635,12 @@ export default function SettingsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-slate-200">Confirm New Password</Label>
+              <Label className="text-foreground">Confirm New Password</Label>
               <Input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className={`bg-slate-700/50 border-slate-600 text-white ${confirmPassword && confirmPassword !== newPassword
+                className={`bg-muted border-input text-foreground ${confirmPassword && confirmPassword !== newPassword
                   ? "border-red-500"
                   : ""
                   }`}
@@ -642,7 +660,7 @@ export default function SettingsPage() {
                 setNewPassword("");
                 setConfirmPassword("");
               }}
-              className="border-slate-600 text-slate-300 hover:bg-slate-700"
+              className="border-input text-muted-foreground hover:bg-muted"
             >
               Cancel
             </Button>
@@ -655,7 +673,7 @@ export default function SettingsPage() {
                 newPassword !== confirmPassword ||
                 newPassword.length < 8
               }
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-primary hover:bg-primary/90"
             >
               {isChangingPassword ? (
                 <>
@@ -689,47 +707,47 @@ export default function SettingsPage() {
           </ResponsiveDialogHeader>
           <ResponsiveDialogBody className="space-y-6">
             {/* Data counts preview */}
-            <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
-              <h4 className="text-sm font-medium text-slate-300 mb-3">Data to be deleted:</h4>
+            <div className="bg-background rounded-lg p-4 border border-border">
+              <h4 className="text-sm font-medium text-foreground mb-3">Data to be deleted:</h4>
               {isLoadingCounts ? (
                 <div className="flex items-center justify-center py-4">
-                  <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                 </div>
               ) : dataCounts ? (
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex items-center gap-2 text-sm">
                     <Users className="w-4 h-4 text-blue-400" />
-                    <span className="text-slate-400">Clients:</span>
-                    <span className="text-white font-medium">{dataCounts.clients}</span>
+                    <span className="text-muted-foreground">Clients:</span>
+                    <span className="text-foreground font-medium">{dataCounts.clients}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <FileText className="w-4 h-4 text-emerald-400" />
-                    <span className="text-slate-400">Reports:</span>
-                    <span className="text-white font-medium">{dataCounts.reports}</span>
+                    <span className="text-muted-foreground">Reports:</span>
+                    <span className="text-foreground font-medium">{dataCounts.reports}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <Scale className="w-4 h-4 text-amber-400" />
-                    <span className="text-slate-400">Disputes:</span>
-                    <span className="text-white font-medium">{dataCounts.disputes}</span>
+                    <span className="text-muted-foreground">Disputes:</span>
+                    <span className="text-foreground font-medium">{dataCounts.disputes}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <CreditCard className="w-4 h-4 text-purple-400" />
-                    <span className="text-slate-400">Accounts:</span>
-                    <span className="text-white font-medium">{dataCounts.accounts}</span>
+                    <span className="text-muted-foreground">Accounts:</span>
+                    <span className="text-foreground font-medium">{dataCounts.accounts}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <FileText className="w-4 h-4 text-rose-400" />
-                    <span className="text-slate-400">Evidence:</span>
-                    <span className="text-white font-medium">{dataCounts.evidence}</span>
+                    <span className="text-muted-foreground">Evidence:</span>
+                    <span className="text-foreground font-medium">{dataCounts.evidence}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <FileText className="w-4 h-4 text-cyan-400" />
-                    <span className="text-slate-400">Documents:</span>
-                    <span className="text-white font-medium">{dataCounts.documents}</span>
+                    <span className="text-muted-foreground">Documents:</span>
+                    <span className="text-foreground font-medium">{dataCounts.documents}</span>
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-slate-500">Unable to load data counts</p>
+                <p className="text-sm text-muted-foreground">Unable to load data counts</p>
               )}
             </div>
 
@@ -744,13 +762,13 @@ export default function SettingsPage() {
 
             {/* Confirmation input */}
             <div className="space-y-2">
-              <Label className="text-slate-200">
-                Type <code className="bg-slate-800 px-2 py-0.5 rounded text-red-400">DELETE ALL MY DATA</code> to confirm
+              <Label className="text-foreground">
+                Type <code className="bg-card px-2 py-0.5 rounded text-red-400">DELETE ALL MY DATA</code> to confirm
               </Label>
               <Input
                 value={resetConfirmPhrase}
                 onChange={(e) => setResetConfirmPhrase(e.target.value)}
-                className="bg-slate-700/50 border-slate-600 text-white font-mono"
+                className="bg-muted border-input text-foreground font-mono"
                 placeholder="Type confirmation phrase..."
               />
             </div>
@@ -762,7 +780,7 @@ export default function SettingsPage() {
                 setShowResetDialog(false);
                 setResetConfirmPhrase("");
               }}
-              className="border-slate-600 text-slate-300 hover:bg-slate-700"
+              className="border-input text-muted-foreground hover:bg-muted"
             >
               Cancel
             </Button>

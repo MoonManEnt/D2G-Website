@@ -31,7 +31,7 @@ export function LoadingScreen({ onComplete, minDuration = 1500 }: LoadingScreenP
 
   return (
     <motion.div
-      className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-gradient-to-br from-background via-card to-background"
       initial={{ opacity: 1 }}
       exit={{
         opacity: 0,
@@ -82,13 +82,13 @@ export function LoadingScreen({ onComplete, minDuration = 1500 }: LoadingScreenP
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3, duration: 0.5 }}
       >
-        <h1 className="text-2xl font-bold text-white mb-1">Dispute2Go</h1>
-        <p className="text-slate-400 text-sm">Credit Dispute Operating System</p>
+        <h1 className="text-2xl font-bold text-foreground mb-1">Dispute2Go</h1>
+        <p className="text-muted-foreground text-sm">Credit Dispute Operating System</p>
       </motion.div>
 
       {/* Progress Bar */}
       <motion.div
-        className="w-64 h-1 bg-slate-700 rounded-full overflow-hidden"
+        className="w-64 h-1 bg-muted rounded-full overflow-hidden"
         initial={{ opacity: 0, width: 0 }}
         animate={{ opacity: 1, width: 256 }}
         transition={{ delay: 0.5, duration: 0.5 }}
@@ -103,7 +103,7 @@ export function LoadingScreen({ onComplete, minDuration = 1500 }: LoadingScreenP
 
       {/* Loading Text */}
       <motion.p
-        className="text-slate-500 text-sm mt-4"
+        className="text-muted-foreground text-sm mt-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.7 }}
@@ -148,24 +148,24 @@ export function LoadingScreen({ onComplete, minDuration = 1500 }: LoadingScreenP
 export function CardSkeleton() {
   return (
     <motion.div
-      className="bg-slate-800/50 border border-slate-700 rounded-lg p-6"
+      className="bg-card/50 border border-border rounded-lg p-6"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
       <div className="flex items-center justify-between mb-4">
         <motion.div
-          className="h-4 w-24 bg-slate-700 rounded"
+          className="h-4 w-24 bg-muted rounded"
           animate={{ opacity: [0.5, 1, 0.5] }}
           transition={{ duration: 1.5, repeat: Infinity }}
         />
         <motion.div
-          className="h-10 w-10 bg-slate-700 rounded-full"
+          className="h-10 w-10 bg-muted rounded-full"
           animate={{ opacity: [0.5, 1, 0.5] }}
           transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }}
         />
       </div>
       <motion.div
-        className="h-8 w-16 bg-slate-700 rounded"
+        className="h-8 w-16 bg-muted rounded"
         animate={{ opacity: [0.5, 1, 0.5] }}
         transition={{ duration: 1.5, repeat: Infinity, delay: 0.4 }}
       />
@@ -179,7 +179,7 @@ export function ListSkeleton({ items = 5 }: { items?: number }) {
       {[...Array(items)].map((_, i) => (
         <motion.div
           key={i}
-          className="flex items-center gap-3 p-3 bg-slate-800/50 border border-slate-700 rounded-lg"
+          className="flex items-center gap-3 p-3 bg-card/50 border border-border rounded-lg"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: i * 0.1 }}
@@ -191,12 +191,12 @@ export function ListSkeleton({ items = 5 }: { items?: number }) {
           />
           <div className="flex-1 space-y-2">
             <motion.div
-              className="h-4 w-3/4 bg-slate-700 rounded"
+              className="h-4 w-3/4 bg-muted rounded"
               animate={{ opacity: [0.5, 1, 0.5] }}
               transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.1 + 0.2 }}
             />
             <motion.div
-              className="h-3 w-1/2 bg-slate-700 rounded"
+              className="h-3 w-1/2 bg-muted rounded"
               animate={{ opacity: [0.5, 1, 0.5] }}
               transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.1 + 0.4 }}
             />
@@ -209,13 +209,13 @@ export function ListSkeleton({ items = 5 }: { items?: number }) {
 
 export function TableSkeleton({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="border border-slate-700 rounded-lg overflow-hidden">
+    <div className="border border-border rounded-lg overflow-hidden">
       {/* Header */}
-      <div className="bg-slate-800 p-4 flex gap-4">
+      <div className="bg-muted p-4 flex gap-4">
         {[...Array(4)].map((_, i) => (
           <motion.div
             key={i}
-            className="h-4 flex-1 bg-slate-700 rounded"
+            className="h-4 flex-1 bg-muted rounded"
             animate={{ opacity: [0.5, 1, 0.5] }}
             transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.1 }}
           />
@@ -223,11 +223,11 @@ export function TableSkeleton({ rows = 5 }: { rows?: number }) {
       </div>
       {/* Rows */}
       {[...Array(rows)].map((_, i) => (
-        <div key={i} className="p-4 flex gap-4 border-t border-slate-700">
+        <div key={i} className="p-4 flex gap-4 border-t border-border">
           {[...Array(4)].map((_, j) => (
             <motion.div
               key={j}
-              className="h-4 flex-1 bg-slate-700/50 rounded"
+              className="h-4 flex-1 bg-muted/50 rounded"
               animate={{ opacity: [0.5, 1, 0.5] }}
               transition={{ duration: 1.5, repeat: Infinity, delay: (i + j) * 0.1 }}
             />
@@ -242,7 +242,7 @@ export function TableSkeleton({ rows = 5 }: { rows?: number }) {
 export function PageLoadingOverlay() {
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -254,12 +254,12 @@ export function PageLoadingOverlay() {
         transition={{ type: "spring", stiffness: 300 }}
       >
         <motion.div
-          className="w-12 h-12 border-4 border-slate-600 border-t-primary rounded-full"
+          className="w-12 h-12 border-4 border-muted border-t-primary rounded-full"
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
         />
         <motion.p
-          className="mt-4 text-slate-400 text-sm"
+          className="mt-4 text-muted-foreground text-sm"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}

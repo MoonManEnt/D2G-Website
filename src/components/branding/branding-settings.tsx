@@ -148,41 +148,41 @@ export function BrandingSettings() {
 
   if (isLoading) {
     return (
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="py-12 flex justify-center">
-          <Loader2 className="w-8 h-8 text-slate-400 animate-spin" />
+          <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" />
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="bg-slate-800/50 border-slate-700">
+    <Card className="bg-card border-border">
       <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
+        <CardTitle className="text-foreground flex items-center gap-2">
           <Palette className="w-5 h-5" />
           White Label Branding
         </CardTitle>
-        <CardDescription className="text-slate-400">
+        <CardDescription className="text-muted-foreground">
           Customize the look and feel of your workspace with your brand colors and logo
         </CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="bg-slate-700/50 border border-slate-600">
-            <TabsTrigger value="colors" className="data-[state=active]:bg-slate-600">
+          <TabsList className="bg-muted border border-input">
+            <TabsTrigger value="colors" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Palette className="w-4 h-4 mr-2" />
               Colors
             </TabsTrigger>
-            <TabsTrigger value="logo" className="data-[state=active]:bg-slate-600">
+            <TabsTrigger value="logo" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Image className="w-4 h-4 mr-2" />
               Logo
             </TabsTrigger>
-            <TabsTrigger value="company" className="data-[state=active]:bg-slate-600">
+            <TabsTrigger value="company" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Building2 className="w-4 h-4 mr-2" />
               Company
             </TabsTrigger>
-            <TabsTrigger value="advanced" className="data-[state=active]:bg-slate-600">
+            <TabsTrigger value="advanced" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Code className="w-4 h-4 mr-2" />
               Advanced
             </TabsTrigger>
@@ -192,8 +192,8 @@ export function BrandingSettings() {
           <TabsContent value="colors" className="space-y-6">
             {/* Theme Presets */}
             <div className="space-y-3">
-              <Label className="text-slate-200 text-base">Theme Presets</Label>
-              <p className="text-xs text-slate-500">
+              <Label className="text-foreground text-base">Theme Presets</Label>
+              <p className="text-xs text-muted-foreground">
                 Select a preset to change all colors at once, or customize individual colors below.
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -206,7 +206,7 @@ export function BrandingSettings() {
                       className={`relative flex flex-col rounded-lg border overflow-hidden transition-all ${
                         isActive
                           ? "border-white ring-2 ring-white/30"
-                          : "border-slate-600 hover:border-slate-400"
+                          : "border-border hover:border-muted-foreground"
                       }`}
                       whileHover={{ scale: 1.03, y: -2 }}
                       whileTap={{ scale: 0.97 }}
@@ -285,148 +285,148 @@ export function BrandingSettings() {
             </div>
 
             {/* Custom Colors */}
-            <div className="space-y-3 pt-2 border-t border-slate-700">
-              <Label className="text-slate-200 text-base">Custom Colors</Label>
+            <div className="space-y-3 pt-2 border-t border-border">
+              <Label className="text-foreground text-base">Custom Colors</Label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-slate-400 text-xs">Primary Color</Label>
+                  <Label className="text-muted-foreground text-xs">Primary Color</Label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
                       value={localBranding.primaryColor}
                       onChange={(e) => handleColorChange("primaryColor", e.target.value)}
-                      className="w-10 h-10 rounded cursor-pointer border border-slate-600"
+                      className="w-10 h-10 rounded cursor-pointer border border-input"
                     />
                     <Input
                       value={localBranding.primaryColor}
                       onChange={(e) => handleColorChange("primaryColor", e.target.value)}
-                      className="bg-slate-700/50 border-slate-600 text-white font-mono"
+                      className="bg-muted border-input text-foreground font-mono"
                       placeholder="#3b82f6"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-400 text-xs">Accent Color</Label>
+                  <Label className="text-muted-foreground text-xs">Accent Color</Label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
                       value={localBranding.accentColor}
                       onChange={(e) => handleColorChange("accentColor", e.target.value)}
-                      className="w-10 h-10 rounded cursor-pointer border border-slate-600"
+                      className="w-10 h-10 rounded cursor-pointer border border-input"
                     />
                     <Input
                       value={localBranding.accentColor}
                       onChange={(e) => handleColorChange("accentColor", e.target.value)}
-                      className="bg-slate-700/50 border-slate-600 text-white font-mono"
+                      className="bg-muted border-input text-foreground font-mono"
                       placeholder="#8b5cf6"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-400 text-xs">Sidebar Background</Label>
+                  <Label className="text-muted-foreground text-xs">Sidebar Background</Label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
                       value={localBranding.sidebarBgColor}
                       onChange={(e) => handleChange("sidebarBgColor", e.target.value)}
-                      className="w-10 h-10 rounded cursor-pointer border border-slate-600"
+                      className="w-10 h-10 rounded cursor-pointer border border-input"
                     />
                     <Input
                       value={localBranding.sidebarBgColor}
                       onChange={(e) => handleChange("sidebarBgColor", e.target.value)}
-                      className="bg-slate-700/50 border-slate-600 text-white font-mono"
+                      className="bg-muted border-input text-foreground font-mono"
                       placeholder="#1e293b"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-400 text-xs">Sidebar Text</Label>
+                  <Label className="text-muted-foreground text-xs">Sidebar Text</Label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
                       value={localBranding.sidebarTextColor}
                       onChange={(e) => handleChange("sidebarTextColor", e.target.value)}
-                      className="w-10 h-10 rounded cursor-pointer border border-slate-600"
+                      className="w-10 h-10 rounded cursor-pointer border border-input"
                     />
                     <Input
                       value={localBranding.sidebarTextColor}
                       onChange={(e) => handleChange("sidebarTextColor", e.target.value)}
-                      className="bg-slate-700/50 border-slate-600 text-white font-mono"
+                      className="bg-muted border-input text-foreground font-mono"
                       placeholder="#94a3b8"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-400 text-xs">Success Color</Label>
+                  <Label className="text-muted-foreground text-xs">Success Color</Label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
                       value={localBranding.successColor}
                       onChange={(e) => handleChange("successColor", e.target.value)}
-                      className="w-10 h-10 rounded cursor-pointer border border-slate-600"
+                      className="w-10 h-10 rounded cursor-pointer border border-input"
                     />
                     <Input
                       value={localBranding.successColor}
                       onChange={(e) => handleChange("successColor", e.target.value)}
-                      className="bg-slate-700/50 border-slate-600 text-white font-mono"
+                      className="bg-muted border-input text-foreground font-mono"
                       placeholder="#22c55e"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-400 text-xs">Warning Color</Label>
+                  <Label className="text-muted-foreground text-xs">Warning Color</Label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
                       value={localBranding.warningColor}
                       onChange={(e) => handleChange("warningColor", e.target.value)}
-                      className="w-10 h-10 rounded cursor-pointer border border-slate-600"
+                      className="w-10 h-10 rounded cursor-pointer border border-input"
                     />
                     <Input
                       value={localBranding.warningColor}
                       onChange={(e) => handleChange("warningColor", e.target.value)}
-                      className="bg-slate-700/50 border-slate-600 text-white font-mono"
+                      className="bg-muted border-input text-foreground font-mono"
                       placeholder="#f59e0b"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-400 text-xs">Error Color</Label>
+                  <Label className="text-muted-foreground text-xs">Error Color</Label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
                       value={localBranding.errorColor}
                       onChange={(e) => handleChange("errorColor", e.target.value)}
-                      className="w-10 h-10 rounded cursor-pointer border border-slate-600"
+                      className="w-10 h-10 rounded cursor-pointer border border-input"
                     />
                     <Input
                       value={localBranding.errorColor}
                       onChange={(e) => handleChange("errorColor", e.target.value)}
-                      className="bg-slate-700/50 border-slate-600 text-white font-mono"
+                      className="bg-muted border-input text-foreground font-mono"
                       placeholder="#ef4444"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-slate-400 text-xs">Info Color</Label>
+                  <Label className="text-muted-foreground text-xs">Info Color</Label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
                       value={localBranding.infoColor}
                       onChange={(e) => handleChange("infoColor", e.target.value)}
-                      className="w-10 h-10 rounded cursor-pointer border border-slate-600"
+                      className="w-10 h-10 rounded cursor-pointer border border-input"
                     />
                     <Input
                       value={localBranding.infoColor}
                       onChange={(e) => handleChange("infoColor", e.target.value)}
-                      className="bg-slate-700/50 border-slate-600 text-white font-mono"
+                      className="bg-muted border-input text-foreground font-mono"
                       placeholder="#3b82f6"
                     />
                   </div>
@@ -435,12 +435,12 @@ export function BrandingSettings() {
             </div>
 
             {/* Live Preview */}
-            <div className="space-y-2 pt-2 border-t border-slate-700">
-              <Label className="text-slate-200 flex items-center gap-2">
+            <div className="space-y-2 pt-2 border-t border-border">
+              <Label className="text-foreground flex items-center gap-2">
                 <Eye className="w-4 h-4" />
                 Live Preview
               </Label>
-              <div className="bg-slate-900 rounded-lg p-4 border border-slate-700">
+              <div className="bg-background rounded-lg p-4 border border-border">
                 <div className="flex gap-4">
                   {/* Mini sidebar preview */}
                   <div
@@ -540,7 +540,7 @@ export function BrandingSettings() {
                         <span style={{ color: localBranding.primaryColor }}>
                           Link text example
                         </span>
-                        <span className="text-slate-500 mx-1">/</span>
+                        <span className="text-muted-foreground mx-1">/</span>
                         <span style={{ color: localBranding.accentColor }}>
                           Accent link
                         </span>
@@ -576,8 +576,8 @@ export function BrandingSettings() {
           <TabsContent value="logo" className="space-y-6">
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-slate-200">Logo</Label>
-                <p className="text-xs text-slate-500">
+                <Label className="text-foreground">Logo</Label>
+                <p className="text-xs text-muted-foreground">
                   Upload your company logo. Recommended size: 200x50px. Max 2MB.
                 </p>
                 <div className="flex items-center gap-4">
@@ -586,7 +586,7 @@ export function BrandingSettings() {
                       <img
                         src={localBranding.logoUrl}
                         alt="Logo preview"
-                        className="h-12 max-w-[200px] object-contain bg-slate-700 rounded p-2"
+                        className="h-12 max-w-[200px] object-contain bg-muted rounded p-2"
                       />
                       <button
                         onClick={() => handleChange("logoUrl", "")}
@@ -596,7 +596,7 @@ export function BrandingSettings() {
                       </button>
                     </div>
                   ) : (
-                    <div className="h-12 w-[200px] border-2 border-dashed border-slate-600 rounded flex items-center justify-center text-slate-500">
+                    <div className="h-12 w-[200px] border-2 border-dashed border-input rounded flex items-center justify-center text-muted-foreground">
                       No logo
                     </div>
                   )}
@@ -610,7 +610,7 @@ export function BrandingSettings() {
                   <Button
                     variant="outline"
                     onClick={() => fileInputRef.current?.click()}
-                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                    className="border-input text-muted-foreground hover:bg-muted"
                   >
                     <Upload className="w-4 h-4 mr-2" />
                     Upload Logo
@@ -619,14 +619,14 @@ export function BrandingSettings() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-slate-200">Logo Text (Fallback)</Label>
-                <p className="text-xs text-slate-500">
+                <Label className="text-foreground">Logo Text (Fallback)</Label>
+                <p className="text-xs text-muted-foreground">
                   Text to display if no logo is uploaded
                 </p>
                 <Input
                   value={localBranding.logoText || ""}
                   onChange={(e) => handleChange("logoText", e.target.value)}
-                  className="bg-slate-700/50 border-slate-600 text-white max-w-xs"
+                  className="bg-muted border-input text-foreground max-w-xs"
                   placeholder="Your Company Name"
                 />
               </div>
@@ -635,87 +635,87 @@ export function BrandingSettings() {
 
           {/* Company Tab */}
           <TabsContent value="company" className="space-y-6">
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-muted-foreground">
               This information will be used in generated documents and dispute letters.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-slate-200">Company Name</Label>
+                <Label className="text-foreground">Company Name</Label>
                 <Input
                   value={localBranding.companyName || ""}
                   onChange={(e) => handleChange("companyName", e.target.value)}
-                  className="bg-slate-700/50 border-slate-600 text-white"
+                  className="bg-muted border-input text-foreground"
                   placeholder="Your Company LLC"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-200">Phone</Label>
+                <Label className="text-foreground">Phone</Label>
                 <Input
                   value={localBranding.companyPhone || ""}
                   onChange={(e) => handleChange("companyPhone", e.target.value)}
-                  className="bg-slate-700/50 border-slate-600 text-white"
+                  className="bg-muted border-input text-foreground"
                   placeholder="(555) 123-4567"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-200">Email</Label>
+                <Label className="text-foreground">Email</Label>
                 <Input
                   value={localBranding.companyEmail || ""}
                   onChange={(e) => handleChange("companyEmail", e.target.value)}
-                  className="bg-slate-700/50 border-slate-600 text-white"
+                  className="bg-muted border-input text-foreground"
                   placeholder="support@yourcompany.com"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-200">Website</Label>
+                <Label className="text-foreground">Website</Label>
                 <Input
                   value={localBranding.companyWebsite || ""}
                   onChange={(e) => handleChange("companyWebsite", e.target.value)}
-                  className="bg-slate-700/50 border-slate-600 text-white"
+                  className="bg-muted border-input text-foreground"
                   placeholder="https://yourcompany.com"
                 />
               </div>
               <div className="space-y-2 sm:col-span-2">
-                <Label className="text-slate-200">Address</Label>
+                <Label className="text-foreground">Address</Label>
                 <Input
                   value={localBranding.companyAddress || ""}
                   onChange={(e) => handleChange("companyAddress", e.target.value)}
-                  className="bg-slate-700/50 border-slate-600 text-white"
+                  className="bg-muted border-input text-foreground"
                   placeholder="123 Main St, Suite 100, City, ST 12345"
                 />
               </div>
             </div>
 
             {/* Email Customization */}
-            <div className="pt-4 border-t border-slate-700 space-y-4">
-              <h4 className="text-sm font-medium text-white flex items-center gap-2">
+            <div className="pt-4 border-t border-border space-y-4">
+              <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
                 <Mail className="w-4 h-4" />
                 Email Customization
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-slate-200">Email Header Color</Label>
+                  <Label className="text-foreground">Email Header Color</Label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
                       value={localBranding.emailHeaderColor || localBranding.primaryColor}
                       onChange={(e) => handleChange("emailHeaderColor", e.target.value)}
-                      className="w-10 h-10 rounded cursor-pointer border border-slate-600"
+                      className="w-10 h-10 rounded cursor-pointer border border-input"
                     />
                     <Input
                       value={localBranding.emailHeaderColor || ""}
                       onChange={(e) => handleChange("emailHeaderColor", e.target.value)}
-                      className="bg-slate-700/50 border-slate-600 text-white font-mono"
+                      className="bg-muted border-input text-foreground font-mono"
                       placeholder="Same as primary"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-slate-200">Email Footer Text</Label>
+                  <Label className="text-foreground">Email Footer Text</Label>
                   <Input
                     value={localBranding.emailFooterText || ""}
                     onChange={(e) => handleChange("emailFooterText", e.target.value)}
-                    className="bg-slate-700/50 border-slate-600 text-white"
+                    className="bg-muted border-input text-foreground"
                     placeholder="© 2024 Your Company. All rights reserved."
                   />
                 </div>
@@ -726,14 +726,14 @@ export function BrandingSettings() {
           {/* Advanced Tab */}
           <TabsContent value="advanced" className="space-y-6">
             <div className="space-y-2">
-              <Label className="text-slate-200">Custom CSS</Label>
-              <p className="text-xs text-slate-500">
+              <Label className="text-foreground">Custom CSS</Label>
+              <p className="text-xs text-muted-foreground">
                 Advanced: Add custom CSS to further customize the appearance. Use with caution.
               </p>
               <textarea
                 value={localBranding.customCss || ""}
                 onChange={(e) => handleChange("customCss", e.target.value)}
-                className="w-full h-40 bg-slate-700/50 border border-slate-600 text-white font-mono text-sm rounded-lg p-3 focus:border-blue-500 focus:outline-none"
+                className="w-full h-40 bg-muted border border-input text-foreground font-mono text-sm rounded-lg p-3 focus:border-primary focus:outline-none"
                 placeholder={`/* Example custom CSS */
 .sidebar { border-radius: 0; }
 .card { box-shadow: none; }`}
@@ -743,11 +743,11 @@ export function BrandingSettings() {
         </Tabs>
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-between pt-6 mt-6 border-t border-slate-700">
+        <div className="flex items-center justify-between pt-6 mt-6 border-t border-border">
           <Button
             variant="outline"
             onClick={handleReset}
-            className="border-slate-600 text-slate-300 hover:bg-slate-700"
+            className="border-input text-muted-foreground hover:bg-muted"
           >
             <RotateCcw className="w-4 h-4 mr-2" />
             Reset to Defaults
@@ -762,7 +762,7 @@ export function BrandingSettings() {
               <Button
                 onClick={handleSave}
                 disabled={!hasChanges || isSaving}
-                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                className="bg-primary hover:bg-primary/90 disabled:opacity-50"
               >
                 {isSaving ? (
                   <>

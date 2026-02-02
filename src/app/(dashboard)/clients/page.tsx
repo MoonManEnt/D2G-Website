@@ -195,25 +195,25 @@ function StatCard({
   color: string;
 }) {
   const colorClasses: Record<string, { bg: string; text: string; icon: string }> = {
-    blue: { bg: "bg-blue-500/10", text: "text-blue-400", icon: "text-blue-400" },
+    blue: { bg: "bg-primary/10", text: "text-primary", icon: "text-primary" },
     red: { bg: "bg-red-500/10", text: "text-red-400", icon: "text-red-400" },
     amber: { bg: "bg-amber-500/10", text: "text-amber-400", icon: "text-amber-400" },
     emerald: { bg: "bg-emerald-500/10", text: "text-emerald-400", icon: "text-emerald-400" },
     purple: { bg: "bg-purple-500/10", text: "text-purple-400", icon: "text-purple-400" },
-    slate: { bg: "bg-slate-500/10", text: "text-slate-400", icon: "text-slate-400" },
+    slate: { bg: "bg-muted/50", text: "text-muted-foreground", icon: "text-muted-foreground" },
   };
 
   const colors = colorClasses[color] || colorClasses.blue;
 
   return (
-    <div className={`rounded-xl ${colors.bg} border border-slate-700/50 p-4`}>
+    <div className={`rounded-xl ${colors.bg} border border-border p-4`}>
       <div className="flex items-center gap-3">
         <div className={`p-2 rounded-lg ${colors.bg}`}>
           <Icon className={`w-5 h-5 ${colors.icon}`} />
         </div>
         <div>
           <p className={`text-2xl font-bold ${colors.text}`}>{value}</p>
-          <p className="text-xs text-slate-400">{label}</p>
+          <p className="text-xs text-muted-foreground">{label}</p>
         </div>
       </div>
     </div>
@@ -225,8 +225,8 @@ function PriorityBadge({ priority }: { priority: string }) {
   const config: Record<string, { bg: string; text: string; label: string }> = {
     URGENT: { bg: "bg-red-500/20", text: "text-red-400", label: "Urgent" },
     HIGH: { bg: "bg-orange-500/20", text: "text-orange-400", label: "High" },
-    STANDARD: { bg: "bg-slate-500/20", text: "text-slate-400", label: "Standard" },
-    LOW: { bg: "bg-slate-600/20", text: "text-slate-500", label: "Low" },
+    STANDARD: { bg: "bg-muted/50", text: "text-muted-foreground", label: "Standard" },
+    LOW: { bg: "bg-muted/20", text: "text-muted-foreground", label: "Low" },
   };
   const { bg, text, label } = config[priority] || config.STANDARD;
   return <Badge className={`${bg} ${text} text-xs font-medium`}>{label}</Badge>;
@@ -238,7 +238,7 @@ function SegmentBadge({ segment }: { segment: string }) {
     VIP: { bg: "bg-amber-500/20", text: "text-amber-400", label: "VIP" },
     RETURNING: { bg: "bg-blue-500/20", text: "text-blue-400", label: "Returning" },
     NEW: { bg: "bg-emerald-500/20", text: "text-emerald-400", label: "New" },
-    STANDARD: { bg: "bg-slate-500/20", text: "text-slate-400", label: "Standard" },
+    STANDARD: { bg: "bg-muted/50", text: "text-muted-foreground", label: "Standard" },
   };
   const { bg, text, label } = config[segment] || config.STANDARD;
   return <Badge className={`${bg} ${text} text-xs font-medium`}>{label}</Badge>;
@@ -262,14 +262,14 @@ function StageBadge({ stage }: { stage: string }) {
   const getStageColor = (s: string) => {
     if (s.startsWith("ROUND_")) return "bg-purple-500/20 text-purple-400";
     const colors: Record<string, string> = {
-      INTAKE: "bg-slate-500/20 text-slate-400",
+      INTAKE: "bg-muted/50 text-muted-foreground",
       ANALYSIS: "bg-blue-500/20 text-blue-400",
       AWAITING_RESPONSE: "bg-amber-500/20 text-amber-400",
       MAINTENANCE: "bg-emerald-500/20 text-emerald-400",
       COMPLETED: "bg-emerald-500/20 text-emerald-400",
       ESCALATED: "bg-red-500/20 text-red-400",
     };
-    return colors[s] || "bg-slate-500/20 text-slate-400";
+    return colors[s] || "bg-muted/50 text-muted-foreground";
   };
 
   return (
@@ -281,7 +281,7 @@ function StageBadge({ stage }: { stage: string }) {
 
 // Bureau badges component
 function BureauBadges({ bureaus }: { bureaus: string[] }) {
-  if (bureaus.length === 0) return <span className="text-slate-500 text-xs">—</span>;
+  if (bureaus.length === 0) return <span className="text-muted-foreground text-xs">—</span>;
 
   const colors: Record<string, string> = {
     TU: "bg-blue-500/20 text-blue-400",
@@ -294,7 +294,7 @@ function BureauBadges({ bureaus }: { bureaus: string[] }) {
       {bureaus.map((bureau) => (
         <span
           key={bureau}
-          className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${colors[bureau] || "bg-slate-500/20 text-slate-400"}`}
+          className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${colors[bureau] || "bg-muted/50 text-muted-foreground"}`}
         >
           {bureau}
         </span>
@@ -387,32 +387,32 @@ function ClientHoverPreview({ client, onClose }: { client: Client; onClose: () =
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 10, scale: 0.95 }}
       transition={{ duration: 0.15 }}
-      className="absolute left-0 right-0 top-full mt-2 z-50 rounded-xl bg-slate-900/95 backdrop-blur-xl border border-slate-600/50 shadow-2xl shadow-black/50 p-4"
+      className="absolute left-0 right-0 top-full mt-2 z-50 rounded-xl bg-background/95 backdrop-blur-xl border border-input/50 shadow-2xl shadow-black/50 p-4"
       onMouseLeave={onClose}
     >
       {/* Arrow pointer */}
-      <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-slate-900/95 border-l border-t border-slate-600/50 rotate-45" />
+      <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-background/95 border-l border-t border-input/50 rotate-45" />
 
       <div className="relative">
         {/* Header */}
-        <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-700/50">
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+        <div className="flex items-center justify-between mb-3 pb-2 border-b border-border">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Dispute Summary
           </span>
-          <span className="text-[10px] text-slate-500">
+          <span className="text-[10px] text-muted-foreground">
             {client.totalDisputes} total disputes
           </span>
         </div>
 
         {disputeData.loading ? (
           <div className="flex items-center justify-center py-4">
-            <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
           </div>
         ) : activeByCRA.length === 0 ? (
           <div className="text-center py-4">
-            <Scale className="w-8 h-8 mx-auto text-slate-600 mb-2" />
-            <p className="text-sm text-slate-400">No active disputes</p>
-            <p className="text-xs text-slate-500 mt-1">Start a dispute to track progress</p>
+            <Scale className="w-8 h-8 mx-auto text-muted-foreground/50 mb-2" />
+            <p className="text-sm text-muted-foreground">No active disputes</p>
+            <p className="text-xs text-muted-foreground mt-1">Start a dispute to track progress</p>
           </div>
         ) : (
           <>
@@ -423,18 +423,18 @@ function ClientHoverPreview({ client, onClose }: { client: Client; onClose: () =
                 const isOverdue = days !== null && days < 0;
 
                 return (
-                  <div key={cra} className="flex items-center gap-3 p-2 rounded-lg bg-slate-800/50">
+                  <div key={cra} className="flex items-center gap-3 p-2 rounded-lg bg-card">
                     <div className="flex-shrink-0">
-                      <span className={`text-xs font-bold ${craColors[cra] || "text-slate-400"}`}>
+                      <span className={`text-xs font-bold ${craColors[cra] || "text-muted-foreground"}`}>
                         {cra.slice(0, 2)}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-white">
+                        <span className="text-sm font-medium text-foreground">
                           R{latest.round}
                         </span>
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-muted-foreground">
                           {latest.flow}
                         </span>
                         <span className={`text-xs font-medium ${statusColors[latest.status]}`}>
@@ -442,7 +442,7 @@ function ClientHoverPreview({ client, onClose }: { client: Client; onClose: () =
                         </span>
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-[10px] text-slate-500">
+                        <span className="text-[10px] text-muted-foreground">
                           {latest.itemCount} accounts
                         </span>
                         {latest.status === "SENT" && days !== null && (
@@ -453,7 +453,7 @@ function ClientHoverPreview({ client, onClose }: { client: Client; onClose: () =
                       </div>
                     </div>
                     {total > 1 && (
-                      <span className="text-[10px] text-slate-500 bg-slate-700/50 px-1.5 py-0.5 rounded">
+                      <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                         +{total - 1}
                       </span>
                     )}
@@ -463,26 +463,26 @@ function ClientHoverPreview({ client, onClose }: { client: Client; onClose: () =
             </div>
 
             {/* Quick Stats Row */}
-            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-700/50">
+            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border">
               <div className="text-center">
-                <p className="text-lg font-bold text-white">{client.currentRound || 1}</p>
-                <p className="text-[10px] text-slate-500">Current Round</p>
+                <p className="text-lg font-bold text-foreground">{client.currentRound || 1}</p>
+                <p className="text-[10px] text-muted-foreground">Current Round</p>
               </div>
               <div className="text-center">
-                <p className={`text-lg font-bold ${client.successRate !== null && client.successRate >= 70 ? "text-emerald-400" : "text-white"}`}>
+                <p className={`text-lg font-bold ${client.successRate !== null && client.successRate >= 70 ? "text-emerald-400" : "text-foreground"}`}>
                   {client.successRate !== null ? `${client.successRate}%` : "—"}
                 </p>
-                <p className="text-[10px] text-slate-500">Success Rate</p>
+                <p className="text-[10px] text-muted-foreground">Success Rate</p>
               </div>
               <div className="text-center">
-                <p className="text-lg font-bold text-white">{client.activeDisputeCount}</p>
-                <p className="text-[10px] text-slate-500">Active</p>
+                <p className="text-lg font-bold text-foreground">{client.activeDisputeCount}</p>
+                <p className="text-[10px] text-muted-foreground">Active</p>
               </div>
             </div>
 
             {/* Recent Activity */}
-            <div className="mt-3 pt-2 border-t border-slate-700/50">
-              <div className="flex items-center gap-2 text-xs text-slate-400">
+            <div className="mt-3 pt-2 border-t border-border">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Clock className="w-3 h-3" />
                 <span>Last activity: {client.lastActivity ? safeFormatDistance(client.lastActivity) : "Never"}</span>
               </div>
@@ -527,7 +527,7 @@ function ClientGridCard({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.03 }}
-      className="relative rounded-xl bg-slate-800/40 border border-slate-700/50 p-4 hover:bg-slate-800/60 hover:border-slate-600/50 transition-all group"
+      className="relative rounded-xl bg-card/40 border border-border p-4 hover:bg-card/60 hover:border-input/50 transition-all group"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
@@ -537,27 +537,27 @@ function ClientGridCard({
           className="flex items-center gap-3 cursor-pointer"
           onClick={onNavigate}
         >
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center border border-slate-600/50">
-            <span className="font-medium text-white">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center border border-input/50">
+            <span className="font-medium text-foreground">
               {client.firstName.charAt(0)}{client.lastName.charAt(0)}
             </span>
           </div>
           <div>
-            <p className="font-medium text-white">{client.firstName} {client.lastName}</p>
-            <p className="text-xs text-slate-400">{client.email || "No email"}</p>
+            <p className="font-medium text-foreground">{client.firstName} {client.lastName}</p>
+            <p className="text-xs text-muted-foreground">{client.email || "No email"}</p>
           </div>
         </div>
         <div className="flex items-center gap-1">
           <button
             onClick={(e) => onQuickView(e, client)}
-            className="p-1.5 rounded-lg hover:bg-slate-600/50 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-muted transition-colors"
             title="Quick View"
           >
-            <Eye className="w-4 h-4 text-blue-400" />
+            <Eye className="w-4 h-4 text-primary" />
           </button>
           <button
             onClick={(e) => onDisputeAction(e, client)}
-            className="p-1.5 rounded-lg hover:bg-slate-600/50 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-muted transition-colors"
             title="Disputes"
           >
             <Gavel className="w-4 h-4 text-amber-400" />
@@ -577,29 +577,29 @@ function ClientGridCard({
         className="grid grid-cols-3 gap-2 text-center cursor-pointer"
         onClick={onNavigate}
       >
-        <div className="p-2 rounded-lg bg-slate-700/30">
-          <p className="text-lg font-bold text-white">{client.totalDisputes}</p>
-          <p className="text-xs text-slate-400">Disputes</p>
+        <div className="p-2 rounded-lg bg-muted/30">
+          <p className="text-lg font-bold text-foreground">{client.totalDisputes}</p>
+          <p className="text-xs text-muted-foreground">Disputes</p>
         </div>
-        <div className="p-2 rounded-lg bg-slate-700/30">
-          <p className={`text-lg font-bold ${client.successRate !== null && client.successRate >= 70 ? "text-emerald-400" : "text-white"}`}>
+        <div className="p-2 rounded-lg bg-muted/30">
+          <p className={`text-lg font-bold ${client.successRate !== null && client.successRate >= 70 ? "text-emerald-400" : "text-foreground"}`}>
             {client.successRate !== null ? `${client.successRate}%` : "—"}
           </p>
-          <p className="text-xs text-slate-400">Success</p>
+          <p className="text-xs text-muted-foreground">Success</p>
         </div>
-        <div className="p-2 rounded-lg bg-slate-700/30">
-          <p className="text-lg font-bold text-white">{client.currentRound || 0}</p>
-          <p className="text-xs text-slate-400">Round</p>
+        <div className="p-2 rounded-lg bg-muted/30">
+          <p className="text-lg font-bold text-foreground">{client.currentRound || 0}</p>
+          <p className="text-xs text-muted-foreground">Round</p>
         </div>
       </div>
 
       {/* Footer */}
       <div
-        className="flex items-center justify-between mt-4 pt-3 border-t border-slate-700/50 cursor-pointer"
+        className="flex items-center justify-between mt-4 pt-3 border-t border-border cursor-pointer"
         onClick={onNavigate}
       >
         <BureauBadges bureaus={client.activeBureaus} />
-        <span className="text-xs text-slate-500">
+        <span className="text-xs text-muted-foreground">
           {client.lastActivity
             ? safeFormatDistance(client.lastActivity)
             : "Never"}
@@ -786,35 +786,35 @@ function ClientQuickViewModal({
               exit="exit"
               className="w-full max-w-5xl max-h-[85vh] flex flex-col"
             >
-              <div className="flex-1 min-h-0 rounded-2xl bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 shadow-2xl shadow-black/50 flex flex-col overflow-hidden">
+              <div className="flex-1 min-h-0 rounded-2xl bg-background/80 backdrop-blur-xl border border-border shadow-2xl shadow-black/50 flex flex-col overflow-hidden">
               {/* Glassmorphic gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none" />
               <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent" />
 
               {/* Header */}
-              <div className="relative px-4 py-3 border-b border-slate-700/50 flex-shrink-0">
+              <div className="relative px-4 py-3 border-b border-border flex-shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500/30 to-purple-500/30 flex items-center justify-center border-2 border-blue-500/30 flex-shrink-0">
-                    <span className="text-sm font-bold text-white">
+                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary/30 to-purple-500/30 flex items-center justify-center border-2 border-primary/30 flex-shrink-0">
+                    <span className="text-sm font-bold text-foreground">
                       {client.firstName.charAt(0)}{client.lastName.charAt(0)}
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h2 className="text-lg font-bold text-white">
+                    <h2 className="text-lg font-bold text-foreground">
                       {client.firstName} {client.lastName}
                     </h2>
-                    <p className="text-slate-400 text-xs">
+                    <p className="text-muted-foreground text-xs">
                       Client since {detail ? safeFormat(detail.createdAt, "M/d/yyyy") : "..."}
                     </p>
                   </div>
                   {/* Tab Navigation - inline with header */}
-                  <div className="flex items-center gap-0.5 bg-slate-800/50 rounded-lg p-0.5">
+                  <div className="flex items-center gap-0.5 bg-card rounded-lg p-0.5">
                     <button
                       onClick={() => setActiveTab("reports")}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
                         activeTab === "reports"
-                          ? "bg-blue-600 text-white"
-                          : "text-slate-400 hover:text-white hover:bg-slate-700/50"
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted"
                       }`}
                     >
                       <CreditCard className="w-3.5 h-3.5" />
@@ -824,8 +824,8 @@ function ClientQuickViewModal({
                       onClick={() => setActiveTab("profile")}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
                         activeTab === "profile"
-                          ? "bg-blue-600 text-white"
-                          : "text-slate-400 hover:text-white hover:bg-slate-700/50"
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted"
                       }`}
                     >
                       <User className="w-3.5 h-3.5" />
@@ -835,9 +835,9 @@ function ClientQuickViewModal({
                   {/* Close button */}
                   <button
                     onClick={onClose}
-                    className="ml-3 p-1.5 rounded-lg hover:bg-slate-700/50 transition-colors flex-shrink-0"
+                    className="ml-3 p-1.5 rounded-lg hover:bg-muted transition-colors flex-shrink-0"
                   >
-                    <X className="w-4 h-4 text-slate-400" />
+                    <X className="w-4 h-4 text-muted-foreground" />
                   </button>
                 </div>
               </div>
@@ -867,48 +867,48 @@ function ClientQuickViewModal({
                   <>
                     {/* Stats Row */}
                     <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-                      <div className="p-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-center">
-                        <FileText className="w-5 h-5 mx-auto mb-1 text-blue-400" />
-                        <p className="text-xl font-bold text-white">{client._count?.reports || 0}</p>
-                        <p className="text-[10px] text-slate-400">Reports</p>
+                      <div className="p-3 rounded-xl bg-card border border-border text-center">
+                        <FileText className="w-5 h-5 mx-auto mb-1 text-primary" />
+                        <p className="text-xl font-bold text-foreground">{client._count?.reports || 0}</p>
+                        <p className="text-[10px] text-muted-foreground">Reports</p>
                       </div>
-                      <div className="p-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-center">
+                      <div className="p-3 rounded-xl bg-card border border-border text-center">
                         <Users className="w-5 h-5 mx-auto mb-1 text-purple-400" />
-                        <p className="text-xl font-bold text-white">{accountStats.totalAccounts}</p>
-                        <p className="text-[10px] text-slate-400">Accounts</p>
+                        <p className="text-xl font-bold text-foreground">{accountStats.totalAccounts}</p>
+                        <p className="text-[10px] text-muted-foreground">Accounts</p>
                       </div>
-                      <div className="p-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-center">
+                      <div className="p-3 rounded-xl bg-card border border-border text-center">
                         <AlertTriangle className="w-5 h-5 mx-auto mb-1 text-amber-400" />
                         <p className="text-xl font-bold text-amber-400">{accountStats.negativeItems}</p>
-                        <p className="text-[10px] text-slate-400">Negative Items</p>
+                        <p className="text-[10px] text-muted-foreground">Negative Items</p>
                       </div>
-                      <div className="p-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-center">
+                      <div className="p-3 rounded-xl bg-card border border-border text-center">
                         <AlertOctagon className="w-5 h-5 mx-auto mb-1 text-red-400" />
                         <p className="text-xl font-bold text-red-400">{accountStats.highSeverity}</p>
-                        <p className="text-[10px] text-slate-400">High Severity</p>
+                        <p className="text-[10px] text-muted-foreground">High Severity</p>
                       </div>
-                      <div className="p-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-center">
+                      <div className="p-3 rounded-xl bg-card border border-border text-center">
                         <Scale className="w-5 h-5 mx-auto mb-1 text-emerald-400" />
-                        <p className="text-xl font-bold text-white">{client.totalDisputes}</p>
-                        <p className="text-[10px] text-slate-400">Disputes</p>
+                        <p className="text-xl font-bold text-foreground">{client.totalDisputes}</p>
+                        <p className="text-[10px] text-muted-foreground">Disputes</p>
                       </div>
-                      <div className="p-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-center">
+                      <div className="p-3 rounded-xl bg-card border border-border text-center">
                         <CheckCircle className="w-5 h-5 mx-auto mb-1 text-emerald-400" />
                         <p className="text-xl font-bold text-emerald-400">
                           {client.successRate !== null ? `${client.successRate}%` : "—"}
                         </p>
-                        <p className="text-[10px] text-slate-400">Success</p>
+                        <p className="text-[10px] text-muted-foreground">Success</p>
                       </div>
                     </div>
 
                     {/* Contact Information - Editable */}
-                    <div className="rounded-xl bg-slate-800/30 border border-slate-700/50 p-4">
-                      <h3 className="text-sm font-semibold text-white mb-4">Contact Information</h3>
+                    <div className="rounded-xl bg-card/30 border border-border p-4">
+                      <h3 className="text-sm font-semibold text-foreground mb-4">Contact Information</h3>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {/* Email */}
                         <div className="space-y-1.5">
-                          <Label className="text-xs text-slate-400 flex items-center gap-1.5">
+                          <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
                             <Mail className="w-3.5 h-3.5" /> Email
                           </Label>
                           <Input
@@ -916,13 +916,13 @@ function ClientQuickViewModal({
                             value={editForm.email}
                             onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
                             placeholder="email@example.com"
-                            className="bg-slate-700/50 border-slate-600 text-white h-9"
+                            className="bg-muted border-input text-foreground h-9"
                           />
                         </div>
 
                         {/* Phone */}
                         <div className="space-y-1.5">
-                          <Label className="text-xs text-slate-400 flex items-center gap-1.5">
+                          <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
                             <Phone className="w-3.5 h-3.5" /> Phone
                           </Label>
                           <Input
@@ -930,84 +930,84 @@ function ClientQuickViewModal({
                             value={editForm.phone}
                             onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
                             placeholder="(555) 555-5555"
-                            className="bg-slate-700/50 border-slate-600 text-white h-9"
+                            className="bg-muted border-input text-foreground h-9"
                           />
                         </div>
 
                         {/* Address Line 1 */}
                         <div className="space-y-1.5 sm:col-span-2">
-                          <Label className="text-xs text-slate-400 flex items-center gap-1.5">
+                          <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
                             <MapPin className="w-3.5 h-3.5" /> Street Address
                           </Label>
                           <Input
                             value={editForm.addressLine1}
                             onChange={(e) => setEditForm({ ...editForm, addressLine1: e.target.value })}
                             placeholder="123 Main Street"
-                            className="bg-slate-700/50 border-slate-600 text-white h-9"
+                            className="bg-muted border-input text-foreground h-9"
                           />
                         </div>
 
                         {/* Address Line 2 */}
                         <div className="space-y-1.5 sm:col-span-2">
-                          <Label className="text-xs text-slate-400">Apt/Suite/Unit</Label>
+                          <Label className="text-xs text-muted-foreground">Apt/Suite/Unit</Label>
                           <Input
                             value={editForm.addressLine2}
                             onChange={(e) => setEditForm({ ...editForm, addressLine2: e.target.value })}
                             placeholder="Apt 4B"
-                            className="bg-slate-700/50 border-slate-600 text-white h-9"
+                            className="bg-muted border-input text-foreground h-9"
                           />
                         </div>
 
                         {/* City */}
                         <div className="space-y-1.5">
-                          <Label className="text-xs text-slate-400">City</Label>
+                          <Label className="text-xs text-muted-foreground">City</Label>
                           <Input
                             value={editForm.city}
                             onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
                             placeholder="City"
-                            className="bg-slate-700/50 border-slate-600 text-white h-9"
+                            className="bg-muted border-input text-foreground h-9"
                           />
                         </div>
 
                         {/* State & Zip */}
                         <div className="grid grid-cols-2 gap-2">
                           <div className="space-y-1.5">
-                            <Label className="text-xs text-slate-400">State</Label>
+                            <Label className="text-xs text-muted-foreground">State</Label>
                             <Input
                               value={editForm.state}
                               onChange={(e) => setEditForm({ ...editForm, state: e.target.value })}
                               placeholder="TX"
                               maxLength={2}
-                              className="bg-slate-700/50 border-slate-600 text-white h-9 uppercase"
+                              className="bg-muted border-input text-foreground h-9 uppercase"
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <Label className="text-xs text-slate-400">ZIP</Label>
+                            <Label className="text-xs text-muted-foreground">ZIP</Label>
                             <Input
                               value={editForm.zipCode}
                               onChange={(e) => setEditForm({ ...editForm, zipCode: e.target.value })}
                               placeholder="12345"
-                              className="bg-slate-700/50 border-slate-600 text-white h-9"
+                              className="bg-muted border-input text-foreground h-9"
                             />
                           </div>
                         </div>
 
                         {/* Date of Birth */}
                         <div className="space-y-1.5">
-                          <Label className="text-xs text-slate-400 flex items-center gap-1.5">
+                          <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
                             <Calendar className="w-3.5 h-3.5" /> Date of Birth
                           </Label>
                           <Input
                             type="date"
                             value={editForm.dateOfBirth}
                             onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })}
-                            className="bg-slate-700/50 border-slate-600 text-white h-9"
+                            className="bg-muted border-input text-foreground h-9"
                           />
                         </div>
 
                         {/* SSN Last 4 */}
                         <div className="space-y-1.5">
-                          <Label className="text-xs text-slate-400 flex items-center gap-1.5">
+                          <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
                             <Shield className="w-3.5 h-3.5" /> Last 4 of SSN
                           </Label>
                           <Input
@@ -1019,22 +1019,22 @@ function ClientQuickViewModal({
                             }}
                             placeholder="••••"
                             maxLength={4}
-                            className="bg-slate-700/50 border-slate-600 text-white h-9 font-mono"
+                            className="bg-muted border-input text-foreground h-9 font-mono"
                           />
                         </div>
                       </div>
                     </div>
 
                     {/* Quick Info Display */}
-                    <div className="rounded-xl bg-slate-800/30 border border-slate-700/50 p-4">
-                      <h3 className="text-sm font-semibold text-white mb-3">Quick Info</h3>
+                    <div className="rounded-xl bg-card/30 border border-border p-4">
+                      <h3 className="text-sm font-semibold text-foreground mb-3">Quick Info</h3>
                       <div className="flex flex-wrap gap-2">
                         <PriorityBadge priority={client.priority} />
                         <SegmentBadge segment={client.segment} />
                         <StageBadge stage={client.derivedStage || client.stage} />
                       </div>
                       <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">
-                        <div className="flex items-center gap-2 text-slate-400">
+                        <div className="flex items-center gap-2 text-muted-foreground">
                           <Clock className="w-4 h-4" />
                           <span>
                             Last active:{" "}
@@ -1043,7 +1043,7 @@ function ClientQuickViewModal({
                               : "Never"}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 text-slate-400">
+                        <div className="flex items-center gap-2 text-muted-foreground">
                           <span>Bureaus:</span>
                           <BureauBadges bureaus={client.activeBureaus} />
                         </div>
@@ -1054,7 +1054,7 @@ function ClientQuickViewModal({
               </div>
 
               {/* Footer */}
-              <div className="relative px-4 py-2.5 border-t border-slate-700/50 flex-shrink-0">
+              <div className="relative px-4 py-2.5 border-t border-border flex-shrink-0">
                 {activeTab === "reports" ? (
                   <div className="flex justify-end gap-2">
                     <Button variant="ghost" size="sm" onClick={onClose}>
@@ -1063,7 +1063,7 @@ function ClientQuickViewModal({
                   </div>
                 ) : showDeleteConfirm ? (
                   <div className="space-y-3">
-                    <p className="text-sm text-slate-300">
+                    <p className="text-sm text-foreground">
                       How do you want to remove this client?
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -1116,7 +1116,7 @@ function ClientQuickViewModal({
                         size="sm"
                         onClick={handleSave}
                         disabled={saving}
-                        className="bg-blue-600 hover:bg-blue-700"
+                        className="bg-primary hover:bg-primary/90"
                       >
                         {saving ? (
                           <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
@@ -1332,12 +1332,12 @@ export default function ClientsPage() {
       {/* Header */}
       <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Client Command Center</h1>
-          <p className="text-slate-400 mt-1">Manage and track your client portfolio</p>
+          <h1 className="text-2xl font-bold text-foreground">Client Command Center</h1>
+          <p className="text-muted-foreground mt-1">Manage and track your client portfolio</p>
         </div>
         <ResponsiveDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <ResponsiveDialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700">
+            <Button className="bg-primary hover:bg-primary/90">
               <Plus className="w-4 h-4 mr-2" />
               Add Client
             </Button>
@@ -1353,93 +1353,93 @@ export default function ClientsPage() {
               <ResponsiveDialogBody className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="firstName" className="text-slate-200">First Name</Label>
+                    <Label htmlFor="firstName" className="text-foreground">First Name</Label>
                     <Input
                       id="firstName"
                       value={newClient.firstName}
                       onChange={(e) => setNewClient({ ...newClient, firstName: e.target.value })}
                       required
-                      className="bg-slate-700/50 border-slate-600 text-white"
+                      className="bg-muted border-input text-foreground"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lastName" className="text-slate-200">Last Name</Label>
+                    <Label htmlFor="lastName" className="text-foreground">Last Name</Label>
                     <Input
                       id="lastName"
                       value={newClient.lastName}
                       onChange={(e) => setNewClient({ ...newClient, lastName: e.target.value })}
                       required
-                      className="bg-slate-700/50 border-slate-600 text-white"
+                      className="bg-muted border-input text-foreground"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-slate-200">Email</Label>
+                  <Label htmlFor="email" className="text-foreground">Email</Label>
                   <Input
                     id="email"
                     type="email"
                     value={newClient.email}
                     onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
-                    className="bg-slate-700/50 border-slate-600 text-white"
+                    className="bg-muted border-input text-foreground"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone" className="text-slate-200">Phone</Label>
+                  <Label htmlFor="phone" className="text-foreground">Phone</Label>
                   <Input
                     id="phone"
                     type="tel"
                     value={newClient.phone}
                     onChange={(e) => setNewClient({ ...newClient, phone: e.target.value })}
-                    className="bg-slate-700/50 border-slate-600 text-white"
+                    className="bg-muted border-input text-foreground"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="addressLine1" className="text-slate-200">Street Address</Label>
+                  <Label htmlFor="addressLine1" className="text-foreground">Street Address</Label>
                   <Input
                     id="addressLine1"
                     value={newClient.addressLine1}
                     onChange={(e) => setNewClient({ ...newClient, addressLine1: e.target.value })}
                     placeholder="123 Main Street"
-                    className="bg-slate-700/50 border-slate-600 text-white"
+                    className="bg-muted border-input text-foreground"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="city" className="text-slate-200">City</Label>
+                    <Label htmlFor="city" className="text-foreground">City</Label>
                     <Input
                       id="city"
                       value={newClient.city}
                       onChange={(e) => setNewClient({ ...newClient, city: e.target.value })}
-                      className="bg-slate-700/50 border-slate-600 text-white"
+                      className="bg-muted border-input text-foreground"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-2">
-                      <Label htmlFor="state" className="text-slate-200">State</Label>
+                      <Label htmlFor="state" className="text-foreground">State</Label>
                       <Input
                         id="state"
                         value={newClient.state}
                         onChange={(e) => setNewClient({ ...newClient, state: e.target.value.toUpperCase() })}
                         placeholder="TX"
                         maxLength={2}
-                        className="bg-slate-700/50 border-slate-600 text-white uppercase"
+                        className="bg-muted border-input text-foreground uppercase"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="zipCode" className="text-slate-200">ZIP</Label>
+                      <Label htmlFor="zipCode" className="text-foreground">ZIP</Label>
                       <Input
                         id="zipCode"
                         value={newClient.zipCode}
                         onChange={(e) => setNewClient({ ...newClient, zipCode: e.target.value })}
                         placeholder="12345"
                         maxLength={10}
-                        className="bg-slate-700/50 border-slate-600 text-white"
+                        className="bg-muted border-input text-foreground"
                       />
                     </div>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="ssnLast4" className="text-slate-200">Last 4 of SSN</Label>
+                  <Label htmlFor="ssnLast4" className="text-foreground">Last 4 of SSN</Label>
                   <Input
                     id="ssnLast4"
                     value={newClient.ssnLast4}
@@ -1449,18 +1449,18 @@ export default function ClientsPage() {
                     }}
                     placeholder="••••"
                     maxLength={4}
-                    className="bg-slate-700/50 border-slate-600 text-white font-mono"
+                    className="bg-muted border-input text-foreground font-mono"
                   />
-                  <p className="text-xs text-slate-500">Required for CRA identification on dispute letters</p>
+                  <p className="text-xs text-muted-foreground">Required for CRA identification on dispute letters</p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-slate-200">Priority</Label>
+                    <Label className="text-foreground">Priority</Label>
                     <Select value={newClient.priority} onValueChange={(v) => setNewClient({ ...newClient, priority: v })}>
-                      <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+                      <SelectTrigger className="bg-muted border-input text-foreground">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-slate-800 border-slate-700">
+                      <SelectContent className="bg-card border-border">
                         <SelectItem value="URGENT">Urgent</SelectItem>
                         <SelectItem value="HIGH">High</SelectItem>
                         <SelectItem value="STANDARD">Standard</SelectItem>
@@ -1469,12 +1469,12 @@ export default function ClientsPage() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-slate-200">Segment</Label>
+                    <Label className="text-foreground">Segment</Label>
                     <Select value={newClient.segment} onValueChange={(v) => setNewClient({ ...newClient, segment: v })}>
-                      <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+                      <SelectTrigger className="bg-muted border-input text-foreground">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-slate-800 border-slate-700">
+                      <SelectContent className="bg-card border-border">
                         <SelectItem value="VIP">VIP</SelectItem>
                         <SelectItem value="RETURNING">Returning</SelectItem>
                         <SelectItem value="NEW">New</SelectItem>
@@ -1510,20 +1510,20 @@ export default function ClientsPage() {
       {/* Search and Filters */}
       <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Search by name or email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-slate-800/50 border-slate-700 text-white"
+            className="pl-10 bg-card border-border text-foreground"
           />
         </div>
         <div className="flex gap-2">
           <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-            <SelectTrigger className="w-[130px] bg-slate-800/50 border-slate-700 text-white">
+            <SelectTrigger className="w-[130px] bg-card border-border text-foreground">
               <SelectValue placeholder="Priority" />
             </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-slate-700">
+            <SelectContent className="bg-card border-border">
               <SelectItem value="all">All Priority</SelectItem>
               <SelectItem value="URGENT">Urgent</SelectItem>
               <SelectItem value="HIGH">High</SelectItem>
@@ -1532,10 +1532,10 @@ export default function ClientsPage() {
             </SelectContent>
           </Select>
           <Select value={stageFilter} onValueChange={setStageFilter}>
-            <SelectTrigger className="w-[130px] bg-slate-800/50 border-slate-700 text-white">
+            <SelectTrigger className="w-[130px] bg-card border-border text-foreground">
               <SelectValue placeholder="Stage" />
             </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-slate-700">
+            <SelectContent className="bg-card border-border">
               <SelectItem value="all">All Stages</SelectItem>
               <SelectItem value="INTAKE">Intake</SelectItem>
               <SelectItem value="ROUND_1">Round 1</SelectItem>
@@ -1546,10 +1546,10 @@ export default function ClientsPage() {
             </SelectContent>
           </Select>
           <Select value={segmentFilter} onValueChange={setSegmentFilter}>
-            <SelectTrigger className="w-[130px] bg-slate-800/50 border-slate-700 text-white">
+            <SelectTrigger className="w-[130px] bg-card border-border text-foreground">
               <SelectValue placeholder="Segment" />
             </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-slate-700">
+            <SelectContent className="bg-card border-border">
               <SelectItem value="all">All Segments</SelectItem>
               <SelectItem value="VIP">VIP</SelectItem>
               <SelectItem value="RETURNING">Returning</SelectItem>
@@ -1557,18 +1557,18 @@ export default function ClientsPage() {
               <SelectItem value="STANDARD">Standard</SelectItem>
             </SelectContent>
           </Select>
-          <div className="flex border border-slate-700 rounded-lg overflow-hidden">
+          <div className="flex border border-border rounded-lg overflow-hidden">
             <button
               onClick={() => setViewMode("list")}
-              className={`p-2 ${viewMode === "list" ? "bg-slate-700" : "bg-slate-800/50 hover:bg-slate-800"}`}
+              className={`p-2 ${viewMode === "list" ? "bg-muted" : "bg-card hover:bg-muted"}`}
             >
-              <List className="w-4 h-4 text-slate-400" />
+              <List className="w-4 h-4 text-muted-foreground" />
             </button>
             <button
               onClick={() => setViewMode("grid")}
-              className={`p-2 ${viewMode === "grid" ? "bg-slate-700" : "bg-slate-800/50 hover:bg-slate-800"}`}
+              className={`p-2 ${viewMode === "grid" ? "bg-muted" : "bg-card hover:bg-muted"}`}
             >
-              <LayoutGrid className="w-4 h-4 text-slate-400" />
+              <LayoutGrid className="w-4 h-4 text-muted-foreground" />
             </button>
           </div>
         </div>
@@ -1576,15 +1576,15 @@ export default function ClientsPage() {
 
       {/* Clients Table/List */}
       {loading ? (
-        <div className="text-center py-12 text-slate-400">Loading clients...</div>
+        <div className="text-center py-12 text-muted-foreground">Loading clients...</div>
       ) : clients.length === 0 ? (
         <motion.div
           variants={itemVariants}
-          className="rounded-2xl bg-slate-800/40 border border-slate-700/50 py-12 text-center"
+          className="rounded-2xl bg-card/40 border border-border py-12 text-center"
         >
-          <User className="w-12 h-12 mx-auto text-slate-600" />
-          <h3 className="text-lg font-medium text-white mt-4">No clients found</h3>
-          <p className="text-slate-400 mt-2">
+          <User className="w-12 h-12 mx-auto text-muted-foreground/50" />
+          <h3 className="text-lg font-medium text-foreground mt-4">No clients found</h3>
+          <p className="text-muted-foreground mt-2">
             {searchQuery || priorityFilter !== "all" || stageFilter !== "all"
               ? "Try adjusting your filters"
               : "Add your first client to get started"}
@@ -1594,10 +1594,10 @@ export default function ClientsPage() {
         /* List View - Table */
         <motion.div
           variants={itemVariants}
-          className="rounded-2xl bg-slate-800/40 border border-slate-700/50 overflow-hidden"
+          className="rounded-2xl bg-card/40 border border-border overflow-hidden"
         >
           {/* Table Header */}
-          <div className="grid grid-cols-12 gap-4 px-4 py-3 bg-slate-800/60 border-b border-slate-700/50 text-xs font-semibold text-slate-400 uppercase tracking-wide">
+          <div className="grid grid-cols-12 gap-4 px-4 py-3 bg-card/60 border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             <div className="col-span-3">Client</div>
             <div className="col-span-1">Priority</div>
             <div className="col-span-1">Segment</div>
@@ -1610,7 +1610,7 @@ export default function ClientsPage() {
           </div>
 
           {/* Table Body */}
-          <div className="divide-y divide-slate-700/30">
+          <div className="divide-y divide-border/30">
             {clients.map((client, index) => (
               <motion.div
                 key={client.id}
@@ -1618,20 +1618,20 @@ export default function ClientsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.03 }}
                 onClick={() => router.push(`/clients/${client.id}`)}
-                className="grid grid-cols-12 gap-4 px-4 py-3 hover:bg-slate-700/30 cursor-pointer transition-colors items-center group"
+                className="grid grid-cols-12 gap-4 px-4 py-3 hover:bg-muted/30 cursor-pointer transition-colors items-center group"
               >
                 {/* Client */}
                 <div className="col-span-3 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center border border-slate-600/50">
-                    <span className="text-sm font-medium text-white">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center border border-input/50">
+                    <span className="text-sm font-medium text-foreground">
                       {client.firstName.charAt(0)}{client.lastName.charAt(0)}
                     </span>
                   </div>
                   <div className="min-w-0">
-                    <p className="font-medium text-white truncate">
+                    <p className="font-medium text-foreground truncate">
                       {client.firstName} {client.lastName}
                     </p>
-                    <p className="text-xs text-slate-400 truncate">{client.email || "No email"}</p>
+                    <p className="text-xs text-muted-foreground truncate">{client.email || "No email"}</p>
                   </div>
                 </div>
 
@@ -1652,17 +1652,17 @@ export default function ClientsPage() {
 
                 {/* Disputes */}
                 <div className="col-span-1">
-                  <span className="text-white text-sm">{client.activeDisputeCount}/{client.totalDisputes}</span>
+                  <span className="text-foreground text-sm">{client.activeDisputeCount}/{client.totalDisputes}</span>
                 </div>
 
                 {/* Success Rate */}
                 <div className="col-span-1">
                   {client.successRate !== null ? (
-                    <span className={`font-medium text-sm ${client.successRate >= 70 ? "text-emerald-400" : client.successRate >= 40 ? "text-amber-400" : "text-slate-400"}`}>
+                    <span className={`font-medium text-sm ${client.successRate >= 70 ? "text-emerald-400" : client.successRate >= 40 ? "text-amber-400" : "text-muted-foreground"}`}>
                       {client.successRate}%
                     </span>
                   ) : (
-                    <span className="text-slate-500">—</span>
+                    <span className="text-muted-foreground">—</span>
                   )}
                 </div>
 
@@ -1673,7 +1673,7 @@ export default function ClientsPage() {
 
                 {/* Last Active */}
                 <div className="col-span-2">
-                  <span className="text-sm text-slate-400">
+                  <span className="text-sm text-muted-foreground">
                     {client.lastActivity
                       ? safeFormatDistance(client.lastActivity)
                       : "Never"}
@@ -1684,14 +1684,14 @@ export default function ClientsPage() {
                 <div className="col-span-1 flex items-center justify-end gap-1">
                   <button
                     onClick={(e) => handleQuickView(e, client)}
-                    className="p-2 rounded-lg hover:bg-slate-600/50 transition-colors opacity-60 group-hover:opacity-100"
+                    className="p-2 rounded-lg hover:bg-muted transition-colors opacity-60 group-hover:opacity-100"
                     title="Quick View"
                   >
-                    <Eye className="w-4 h-4 text-blue-400" />
+                    <Eye className="w-4 h-4 text-primary" />
                   </button>
                   <button
                     onClick={(e) => handleDisputeAction(e, client)}
-                    className="p-2 rounded-lg hover:bg-slate-600/50 transition-colors opacity-60 group-hover:opacity-100"
+                    className="p-2 rounded-lg hover:bg-muted transition-colors opacity-60 group-hover:opacity-100"
                     title="Disputes"
                   >
                     <Gavel className="w-4 h-4 text-amber-400" />
@@ -1703,7 +1703,7 @@ export default function ClientsPage() {
                   >
                     <Trash2 className="w-4 h-4 text-red-400" />
                   </button>
-                  <ChevronRight className="w-4 h-4 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               </motion.div>
             ))}
@@ -1740,9 +1740,9 @@ export default function ClientsPage() {
           <ResponsiveDialogBody className="space-y-4">
             <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
               <p className="text-sm text-red-300 mb-3">
-                You are about to permanently delete <span className="font-bold text-white">{hardDeleteClient?.firstName} {hardDeleteClient?.lastName}</span> and ALL associated data:
+                You are about to permanently delete <span className="font-bold text-foreground">{hardDeleteClient?.firstName} {hardDeleteClient?.lastName}</span> and ALL associated data:
               </p>
-              <ul className="text-xs text-slate-400 space-y-1.5 ml-4">
+              <ul className="text-xs text-muted-foreground space-y-1.5 ml-4">
                 <li className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
                   All credit reports and parsed data
@@ -1765,7 +1765,7 @@ export default function ClientsPage() {
                 </li>
               </ul>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted-foreground">
               After deletion, you can re-add this person as a brand new client to start fresh.
             </p>
           </ResponsiveDialogBody>
@@ -1774,7 +1774,7 @@ export default function ClientsPage() {
               variant="outline"
               onClick={() => setHardDeleteClient(null)}
               disabled={isHardDeleting}
-              className="border-slate-600"
+              className="border-input"
             >
               Cancel
             </Button>

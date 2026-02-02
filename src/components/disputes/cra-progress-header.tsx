@@ -25,9 +25,9 @@ const CRA_CONFIG = {
     name: "TransUnion",
     shortName: "TU",
     color: "blue",
-    bgClass: "bg-blue-500/10",
-    borderClass: "border-blue-500/30",
-    textClass: "text-blue-400",
+    bgClass: "bg-primary/10",
+    borderClass: "border-primary/30",
+    textClass: "text-primary",
     dotActive: "bg-blue-500",
     dotInactive: "bg-blue-500/30",
   },
@@ -54,8 +54,8 @@ const CRA_CONFIG = {
 } as const;
 
 const STATUS_STYLES = {
-  DRAFT: "bg-slate-500/20 text-slate-400",
-  SENT: "bg-blue-500/20 text-blue-400",
+  DRAFT: "bg-muted text-muted-foreground",
+  SENT: "bg-primary/20 text-primary",
   RESPONDED: "bg-amber-500/20 text-amber-400",
   RESOLVED: "bg-emerald-500/20 text-emerald-400",
 };
@@ -80,12 +80,12 @@ export function CRAProgressHeader({
             className={cn(
               "p-4 rounded-xl border transition-all cursor-pointer",
               config.bgClass,
-              isSelected ? config.borderClass : "border-slate-700/50",
+              isSelected ? config.borderClass : "border-border",
               isSelected && "ring-1 ring-offset-1 ring-offset-slate-900",
               isSelected && cra === "TRANSUNION" && "ring-blue-500/50",
               isSelected && cra === "EQUIFAX" && "ring-red-500/50",
               isSelected && cra === "EXPERIAN" && "ring-purple-500/50",
-              !isSelected && "hover:border-slate-600"
+              !isSelected && "hover:border-input"
             )}
             onClick={() => onSelectCRA?.(cra)}
           >
@@ -101,7 +101,7 @@ export function CRAProgressHeader({
                   {craStatus.latestStatus}
                 </Badge>
               ) : (
-                <Badge className="text-[10px] bg-slate-700/50 text-slate-500">
+                <Badge className="text-[10px] bg-muted text-muted-foreground">
                   Not Started
                 </Badge>
               )}
@@ -127,14 +127,14 @@ export function CRAProgressHeader({
                       )}
                       title={`Round ${round}${isCompleted ? " (Complete)" : isCurrent ? " (Current)" : ""}`}
                     />
-                    <span className="text-[9px] text-slate-500">R{round}</span>
+                    <span className="text-[9px] text-muted-foreground">R{round}</span>
                   </div>
                 );
               })}
             </div>
 
             {/* Status Text */}
-            <p className="text-xs text-slate-400 truncate">
+            <p className="text-xs text-muted-foreground truncate">
               {craStatus.statusText}
             </p>
           </div>

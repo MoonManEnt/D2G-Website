@@ -676,9 +676,9 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-200">Sentry Dispute</h1>
+          <h1 className="text-2xl font-bold text-foreground">Sentry Dispute</h1>
           {client && (
-            <p className="text-sm text-slate-400 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               {client.firstName} {client.lastName}
             </p>
           )}
@@ -686,7 +686,7 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
         <div className="flex items-center gap-3">
           <a
             href={`/sentry/${clientId}/tracking`}
-            className="px-4 py-2 text-sm font-medium bg-slate-700 text-slate-200 rounded-lg hover:bg-slate-600 transition-colors flex items-center gap-2"
+            className="px-4 py-2 text-sm font-medium bg-muted text-foreground rounded-lg hover:bg-muted transition-colors flex items-center gap-2"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -744,10 +744,10 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
               disabled={thisIndex > currentIndex}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
                 isCurrent
-                  ? "bg-blue-500/20 text-blue-400"
+                  ? "bg-primary/20 text-primary"
                   : isCompleted
                   ? "text-emerald-400 hover:text-emerald-300"
-                  : "text-slate-500 cursor-not-allowed"
+                  : "text-muted-foreground cursor-not-allowed"
               }`}
             >
               {isCompleted && (
@@ -772,8 +772,8 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
           {/* Step 1: Report Selection */}
           {step === "reports" && (
             <>
-              <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-6">
-                <h2 className="text-lg font-semibold text-slate-200 mb-4">
+              <div className="bg-card rounded-xl border border-border p-6">
+                <h2 className="text-lg font-semibold text-foreground mb-4">
                   Select or Upload Credit Report
                 </h2>
                 <SentryReportSelector
@@ -794,8 +794,8 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
                   disabled={!selectedReportId}
                   className={`px-6 py-2 rounded-lg text-sm transition-colors ${
                     selectedReportId
-                      ? "bg-blue-500 text-white hover:bg-blue-600"
-                      : "bg-slate-700 text-slate-500 cursor-not-allowed"
+                      ? "bg-blue-500 text-foreground hover:bg-primary"
+                      : "bg-muted text-muted-foreground cursor-not-allowed"
                   }`}
                 >
                   Continue with Selected Report
@@ -822,7 +822,7 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
                       className={`px-4 py-2 rounded-lg text-sm transition-colors ${
                         selectedCRA === cra
                           ? `${colors.bg} ${colors.text} ${colors.border} border`
-                          : "text-slate-400 hover:text-slate-300"
+                          : "text-muted-foreground hover:text-muted-foreground"
                       }`}
                     >
                       {cra} ({count})
@@ -844,9 +844,9 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
                   cra={selectedCRA}
                 />
               ) : (
-                <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-12 text-center">
-                  <p className="text-slate-400">No accounts found for {selectedCRA}</p>
-                  <p className="text-sm text-slate-500 mt-1">
+                <div className="bg-card rounded-lg border border-border p-12 text-center">
+                  <p className="text-muted-foreground">No accounts found for {selectedCRA}</p>
+                  <p className="text-sm text-muted-foreground mt-1">
                     Try selecting a different bureau or uploading a new report
                   </p>
                 </div>
@@ -856,7 +856,7 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
               <div className="flex justify-between">
                 <button
                   onClick={() => setStep("reports")}
-                  className="px-4 py-2 text-sm text-slate-400 hover:text-slate-300"
+                  className="px-4 py-2 text-sm text-muted-foreground hover:text-muted-foreground"
                 >
                   ← Back to Reports
                 </button>
@@ -865,8 +865,8 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
                   disabled={selectedAccountIds.length === 0}
                   className={`px-6 py-2 rounded-lg text-sm transition-colors ${
                     selectedAccountIds.length > 0
-                      ? "bg-blue-500 text-white hover:bg-blue-600"
-                      : "bg-slate-700 text-slate-500 cursor-not-allowed"
+                      ? "bg-blue-500 text-foreground hover:bg-primary"
+                      : "bg-muted text-muted-foreground cursor-not-allowed"
                   }`}
                 >
                   Continue with {selectedAccountIds.length} account(s)
@@ -879,8 +879,8 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
           {step === "configure" && (
             <>
               {/* Flow selection */}
-              <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-4">
-                <h3 className="text-sm font-medium text-slate-300 mb-3">
+              <div className="bg-card rounded-lg border border-border p-4">
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">
                   Dispute Flow
                 </h3>
                 <div className="grid grid-cols-2 gap-2">
@@ -894,12 +894,12 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
                           className={`p-3 rounded-lg text-left transition-colors ${
                             selectedFlow === flow
                               ? `${colors.bg} ${colors.border} border`
-                              : "bg-slate-700/30 hover:bg-slate-700/50"
+                              : "bg-muted hover:bg-muted"
                           }`}
                         >
                           <span
                             className={`text-sm font-medium ${
-                              selectedFlow === flow ? colors.text : "text-slate-200"
+                              selectedFlow === flow ? colors.text : "text-foreground"
                             }`}
                           >
                             {flow}
@@ -941,7 +941,7 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
               <div className="flex justify-between">
                 <button
                   onClick={() => setStep("select")}
-                  className="px-4 py-2 text-sm text-slate-400 hover:text-slate-300"
+                  className="px-4 py-2 text-sm text-muted-foreground hover:text-muted-foreground"
                 >
                   ← Back
                 </button>
@@ -970,7 +970,7 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
               <div className="flex justify-between">
                 <button
                   onClick={() => setStep("configure")}
-                  className="px-4 py-2 text-sm text-slate-400 hover:text-slate-300"
+                  className="px-4 py-2 text-sm text-muted-foreground hover:text-muted-foreground"
                 >
                   ← Back to Configure
                 </button>
@@ -981,7 +981,7 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
                     className={`px-6 py-2 rounded-lg text-sm transition-colors ${
                       currentDispute.status === "DRAFT"
                         ? "bg-emerald-500 text-white hover:bg-emerald-600"
-                        : "bg-slate-700 text-slate-500 cursor-not-allowed"
+                        : "bg-muted text-muted-foreground cursor-not-allowed"
                     }`}
                   >
                     {currentDispute.status === "DRAFT"
@@ -991,7 +991,7 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
                   {currentDispute.status === "SENT" && (
                     <button
                       onClick={() => setMailDialogOpen(true)}
-                      className="px-6 py-2 rounded-lg text-sm transition-colors bg-blue-500 text-white hover:bg-blue-600 flex items-center gap-2"
+                      className="px-6 py-2 rounded-lg text-sm transition-colors bg-blue-500 text-foreground hover:bg-primary flex items-center gap-2"
                     >
                       <Mail className="w-4 h-4" />
                       Send via Mail
@@ -1006,17 +1006,17 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
         {/* Right panel - Analysis */}
         <div className="space-y-6">
           {/* Quick stats */}
-          <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-4">
-            <h3 className="text-sm font-medium text-slate-300 mb-3">Quick Stats</h3>
+          <div className="bg-card rounded-lg border border-border p-4">
+            <h3 className="text-sm font-medium text-muted-foreground mb-3">Quick Stats</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-slate-400">Reports Available</span>
-                <span className="text-slate-200">{reports.length}</span>
+                <span className="text-muted-foreground">Reports Available</span>
+                <span className="text-foreground">{reports.length}</span>
               </div>
               {selectedReportId && (
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Disputable Accounts</span>
-                  <span className="text-slate-200">{accounts.filter(a => {
+                  <span className="text-muted-foreground">Disputable Accounts</span>
+                  <span className="text-foreground">{accounts.filter(a => {
                     // Match the criteria from /api/accounts/negative
                     // Account is disputable if ANY of these are true:
                     if (a.isCollection) return true;
@@ -1034,22 +1034,22 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
                 </div>
               )}
               <div className="flex justify-between">
-                <span className="text-slate-400">Selected Accounts</span>
-                <span className="text-slate-200">{selectedAccountIds.length}</span>
+                <span className="text-muted-foreground">Selected Accounts</span>
+                <span className="text-foreground">{selectedAccountIds.length}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Bureau</span>
+                <span className="text-muted-foreground">Bureau</span>
                 <span className={SENTRY_CRA_COLORS[selectedCRA].text}>{selectedCRA}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Flow</span>
+                <span className="text-muted-foreground">Flow</span>
                 <span className={SENTRY_FLOW_COLORS[selectedFlow].text}>
                   {selectedFlow}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">e-OSCAR Code</span>
-                <span className="text-slate-200">{selectedEOSCARCode}</span>
+                <span className="text-muted-foreground">e-OSCAR Code</span>
+                <span className="text-foreground">{selectedEOSCARCode}</span>
               </div>
             </div>
           </div>

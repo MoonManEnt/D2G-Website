@@ -117,11 +117,11 @@ export function CommandPalette() {
             initial={{ opacity: 0, scale: 0.95, y: -20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -20 }}
-            className="absolute top-[20%] left-1/2 -translate-x-1/2 w-full max-w-lg bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden"
+            className="absolute top-[20%] left-1/2 -translate-x-1/2 w-full max-w-lg bg-background border border-border rounded-xl shadow-2xl overflow-hidden"
           >
             {/* Search input */}
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-700">
-              <Search className="w-5 h-5 text-slate-400 flex-shrink-0" />
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
+              <Search className="w-5 h-5 text-muted-foreground flex-shrink-0" />
               <input
                 ref={inputRef}
                 type="text"
@@ -129,14 +129,14 @@ export function CommandPalette() {
                 onChange={(e) => { setSearch(e.target.value); setSelectedIndex(0); }}
                 onKeyDown={handleInputKeyDown}
                 placeholder="Search commands..."
-                className="flex-1 bg-transparent text-white placeholder-slate-400 outline-none text-sm"
+                className="flex-1 bg-transparent text-foreground placeholder-slate-400 outline-none text-sm"
                 aria-label="Search commands"
                 role="combobox"
                 aria-expanded="true"
                 aria-controls="command-list"
                 aria-activedescendant={filteredCommands[selectedIndex]?.id}
               />
-              <kbd className="px-2 py-0.5 text-xs text-slate-400 bg-slate-800 rounded border border-slate-600">
+              <kbd className="px-2 py-0.5 text-xs text-muted-foreground bg-card rounded border border-input">
                 ESC
               </kbd>
             </div>
@@ -144,7 +144,7 @@ export function CommandPalette() {
             {/* Results */}
             <div id="command-list" role="listbox" className="max-h-80 overflow-y-auto py-2">
               {filteredCommands.length === 0 ? (
-                <div className="px-4 py-8 text-center text-slate-400 text-sm">
+                <div className="px-4 py-8 text-center text-muted-foreground text-sm">
                   No commands found
                 </div>
               ) : (
@@ -157,16 +157,16 @@ export function CommandPalette() {
                     onClick={() => handleSelect(cmd)}
                     onMouseEnter={() => setSelectedIndex(i)}
                     className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
-                      i === selectedIndex ? "bg-purple-500/20 text-white" : "text-slate-300 hover:bg-slate-800"
+                      i === selectedIndex ? "bg-purple-500/20 text-foreground" : "text-muted-foreground hover:bg-card"
                     }`}
                   >
-                    <div className={`p-1.5 rounded-lg ${i === selectedIndex ? "bg-purple-500/30 text-purple-300" : "bg-slate-800 text-slate-400"}`}>
+                    <div className={`p-1.5 rounded-lg ${i === selectedIndex ? "bg-purple-500/30 text-purple-300" : "bg-card text-muted-foreground"}`}>
                       {cmd.icon}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium truncate">{cmd.label}</div>
                       {cmd.description && (
-                        <div className="text-xs text-slate-400 truncate">{cmd.description}</div>
+                        <div className="text-xs text-muted-foreground truncate">{cmd.description}</div>
                       )}
                     </div>
                     {i === selectedIndex && (
@@ -178,17 +178,17 @@ export function CommandPalette() {
             </div>
 
             {/* Footer */}
-            <div className="px-4 py-2 border-t border-slate-700 flex items-center gap-4 text-xs text-slate-500">
+            <div className="px-4 py-2 border-t border-border flex items-center gap-4 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-600">&#8593;&#8595;</kbd>
+                <kbd className="px-1.5 py-0.5 bg-card rounded border border-input">&#8593;&#8595;</kbd>
                 Navigate
               </span>
               <span className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-600">&#8629;</kbd>
+                <kbd className="px-1.5 py-0.5 bg-card rounded border border-input">&#8629;</kbd>
                 Select
               </span>
               <span className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-slate-800 rounded border border-slate-600">esc</kbd>
+                <kbd className="px-1.5 py-0.5 bg-card rounded border border-input">esc</kbd>
                 Close
               </span>
             </div>

@@ -17,7 +17,7 @@ export default function TermsPage() {
         },
         {
             title: "2. Description of Service",
-            icon: <FileText className="w-5 h-5 text-blue-400" />,
+            icon: <FileText className="w-5 h-5 text-primary" />,
             content: "Dispute2Go provides an AI-powered platform to help users identify and dispute inaccuracies on their credit reports. We are not a credit repair organization as defined by the Credit Repair Organizations Act (CROA). We provide tools for self-help."
         },
         {
@@ -37,18 +37,18 @@ export default function TermsPage() {
         },
         {
             title: "6. Contact Us",
-            icon: <Mail className="w-5 h-5 text-slate-400" />,
+            icon: <Mail className="w-5 h-5 text-muted-foreground" />,
             content: "If you have any questions about these Terms, please contact us at support@dispute2go.com."
         }
     ];
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-200 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-background text-foreground py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-4xl mx-auto">
                 <Button
                     variant="ghost"
                     onClick={() => router.back()}
-                    className="mb-8 hover:bg-slate-900 text-slate-400 hover:text-white"
+                    className="mb-8 hover:bg-background text-muted-foreground hover:text-foreground"
                 >
                     <ArrowLeft className="w-4 h-4 mr-2" /> Back
                 </Button>
@@ -57,11 +57,11 @@ export default function TermsPage() {
                     <motion.h1
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="text-4xl font-extrabold tracking-tight text-white mb-4"
+                        className="text-4xl font-extrabold tracking-tight text-foreground mb-4"
                     >
                         Terms of Service
                     </motion.h1>
-                    <p className="text-slate-400">Last updated: January 22, 2026</p>
+                    <p className="text-muted-foreground">Last updated: January 22, 2026</p>
                 </header>
 
                 <div className="space-y-6">
@@ -72,15 +72,15 @@ export default function TermsPage() {
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: index * 0.1 }}
                         >
-                            <Card className="bg-slate-900/50 border-slate-800 backdrop-blur-sm">
+                            <Card className="bg-background border-border backdrop-blur-sm">
                                 <CardHeader className="flex flex-row items-center gap-3 pb-2">
                                     {section.icon}
-                                    <CardTitle className="text-lg font-semibold text-white">
+                                    <CardTitle className="text-lg font-semibold text-foreground">
                                         {section.title}
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <p className="text-slate-400 leading-relaxed">
+                                    <p className="text-muted-foreground leading-relaxed">
                                         {section.content}
                                     </p>
                                 </CardContent>
@@ -89,7 +89,7 @@ export default function TermsPage() {
                     ))}
                 </div>
 
-                <footer className="mt-16 pt-8 border-t border-slate-800 text-center text-slate-500 text-sm">
+                <footer className="mt-16 pt-8 border-t border-border text-center text-muted-foreground text-sm">
                     &copy; 2026 Dispute2Go. All rights reserved.
                 </footer>
             </div>

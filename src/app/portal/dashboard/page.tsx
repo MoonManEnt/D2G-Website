@@ -92,14 +92,14 @@ const CRA_COLORS = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  DRAFT: "bg-slate-500/20 text-slate-400",
+  DRAFT: "bg-muted text-muted-foreground",
   PENDING_REVIEW: "bg-amber-500/20 text-amber-400",
-  APPROVED: "bg-blue-500/20 text-blue-400",
+  APPROVED: "bg-primary/20 text-primary",
   SENT: "bg-purple-500/20 text-purple-400",
   RESPONSE_RECEIVED: "bg-cyan-500/20 text-cyan-400",
   RESOLVED_POSITIVE: "bg-green-500/20 text-green-400",
   RESOLVED_NEGATIVE: "bg-red-500/20 text-red-400",
-  CLOSED: "bg-slate-500/20 text-slate-400",
+  CLOSED: "bg-muted text-muted-foreground",
 };
 
 const TIER_COLORS: Record<string, { bg: string; text: string; label: string }> = {
@@ -111,11 +111,11 @@ const TIER_COLORS: Record<string, { bg: string; text: string; label: string }> =
 
 const CATEGORY_COLORS: Record<string, string> = {
   CREDIT_REPAIR: "bg-purple-500/20 text-purple-400",
-  DEBT_MANAGEMENT: "bg-blue-500/20 text-blue-400",
+  DEBT_MANAGEMENT: "bg-primary/20 text-primary",
   FINANCIAL_COACHING: "bg-amber-500/20 text-amber-400",
   CREDIT_MONITORING: "bg-cyan-500/20 text-cyan-400",
   CREDIT_BUILDER: "bg-emerald-500/20 text-emerald-400",
-  OTHER: "bg-slate-500/20 text-slate-400",
+  OTHER: "bg-muted text-muted-foreground",
 };
 
 function formatProductType(type: string): string {
@@ -181,7 +181,7 @@ export default function PortalDashboardPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -193,7 +193,7 @@ export default function PortalDashboardPage() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="bg-slate-800/50 border-b border-slate-700 sticky top-0 z-50 backdrop-blur">
+      <header className="bg-card border-b border-border sticky top-0 z-50 backdrop-blur">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
@@ -201,13 +201,13 @@ export default function PortalDashboardPage() {
                 <User className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <h2 className="text-white font-medium">
+                <h2 className="text-foreground font-medium">
                   {user?.firstName} {user?.lastName}
                 </h2>
-                <p className="text-slate-400 text-sm">{organization?.name}</p>
+                <p className="text-muted-foreground text-sm">{organization?.name}</p>
               </div>
             </div>
-            <Button variant="ghost" onClick={logout} className="text-slate-400 hover:text-white">
+            <Button variant="ghost" onClick={logout} className="text-muted-foreground hover:text-foreground">
               <LogOut className="w-4 h-4 mr-2" />
               Sign Out
             </Button>
@@ -217,44 +217,44 @@ export default function PortalDashboardPage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white">Welcome back, {user?.firstName}!</h1>
-          <p className="text-slate-400 mt-1">Here&apos;s an overview of your credit repair progress</p>
+          <h1 className="text-2xl font-bold text-foreground">Welcome back, {user?.firstName}!</h1>
+          <p className="text-muted-foreground mt-1">Here&apos;s an overview of your credit repair progress</p>
         </div>
 
         {/* Progress Overview */}
-        <Card className="bg-slate-800/50 border-slate-700 mb-6">
+        <Card className="bg-card border-border mb-6">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-foreground flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-primary" />
               Overall Progress
             </CardTitle>
-            <CardDescription className="text-slate-400">
+            <CardDescription className="text-muted-foreground">
               Your credit repair journey progress
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-4 mb-4">
               <Progress value={progressPercent} className="flex-1" />
-              <span className="text-2xl font-bold text-white">{progressPercent}%</span>
+              <span className="text-2xl font-bold text-foreground">{progressPercent}%</span>
             </div>
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
                 <p className="text-2xl font-bold text-green-400">
                   {data?.negativeItems?.resolved || 0}
                 </p>
-                <p className="text-sm text-slate-400">Items Resolved</p>
+                <p className="text-sm text-muted-foreground">Items Resolved</p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-amber-400">
                   {data?.disputes?.inProgress || 0}
                 </p>
-                <p className="text-sm text-slate-400">In Progress</p>
+                <p className="text-sm text-muted-foreground">In Progress</p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-slate-400">
+                <p className="text-2xl font-bold text-muted-foreground">
                   {data?.negativeItems?.remaining || 0}
                 </p>
-                <p className="text-sm text-slate-400">Remaining</p>
+                <p className="text-sm text-muted-foreground">Remaining</p>
               </div>
             </div>
           </CardContent>
@@ -269,10 +269,10 @@ export default function PortalDashboardPage() {
             const scoreInfo = score ? getScoreLabel(score) : null;
 
             return (
-              <Card key={cra} className="bg-slate-800/50 border-slate-700">
+              <Card key={cra} className="bg-card border-border">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <Badge className={`${colors.bg} text-white`}>{cra}</Badge>
+                    <Badge className={`${colors.bg} text-foreground`}>{cra}</Badge>
                     {scoreInfo && (
                       <span className={`text-xs ${scoreInfo.color}`}>{scoreInfo.label}</span>
                     )}
@@ -280,7 +280,7 @@ export default function PortalDashboardPage() {
                   {score ? (
                     <>
                       <div className="flex items-baseline gap-2">
-                        <span className="text-3xl font-bold text-white">{score}</span>
+                        <span className="text-3xl font-bold text-foreground">{score}</span>
                         {change !== 0 && (
                           <span
                             className={`flex items-center text-sm ${
@@ -296,10 +296,10 @@ export default function PortalDashboardPage() {
                           </span>
                         )}
                       </div>
-                      <p className="text-slate-500 text-xs mt-1">30-day change</p>
+                      <p className="text-muted-foreground text-xs mt-1">30-day change</p>
                     </>
                   ) : (
-                    <p className="text-slate-500 text-sm">No score recorded</p>
+                    <p className="text-muted-foreground text-sm">No score recorded</p>
                   )}
                 </CardContent>
               </Card>
@@ -308,15 +308,15 @@ export default function PortalDashboardPage() {
         </div>
 
         {/* Active Disputes */}
-        <Card className="bg-slate-800/50 border-slate-700 mb-6">
+        <Card className="bg-card border-border mb-6">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-white flex items-center gap-2">
+                <CardTitle className="text-foreground flex items-center gap-2">
                   <Scale className="w-5 h-5" />
                   Active Disputes
                 </CardTitle>
-                <CardDescription className="text-slate-400">
+                <CardDescription className="text-muted-foreground">
                   Track the status of your disputes
                 </CardDescription>
               </div>
@@ -328,8 +328,8 @@ export default function PortalDashboardPage() {
           <CardContent>
             {!data?.disputes?.items?.length ? (
               <div className="text-center py-8">
-                <Scale className="w-12 h-12 mx-auto text-slate-600" />
-                <p className="text-slate-400 mt-2">No active disputes</p>
+                <Scale className="w-12 h-12 mx-auto text-muted-foreground" />
+                <p className="text-muted-foreground mt-2">No active disputes</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -340,17 +340,17 @@ export default function PortalDashboardPage() {
                   return (
                     <div
                       key={dispute.id}
-                      className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg"
+                      className="flex items-center justify-between p-3 bg-muted rounded-lg"
                     >
                       <div className="flex items-center gap-3">
-                        <Badge className={`${colors?.bg || "bg-slate-500"} text-white`}>
+                        <Badge className={`${colors?.bg || "bg-slate-500"} text-foreground`}>
                           {dispute.cra}
                         </Badge>
                         <div>
-                          <p className="text-white text-sm font-medium">
+                          <p className="text-foreground text-sm font-medium">
                             {dispute.accounts.map((a) => a.creditorName).join(", ")}
                           </p>
-                          <p className="text-slate-500 text-xs">
+                          <p className="text-muted-foreground text-xs">
                             Submitted {new Date(dispute.createdAt).toLocaleDateString()}
                           </p>
                         </div>
@@ -368,55 +368,55 @@ export default function PortalDashboardPage() {
 
         {/* Status Summary */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-card border-border">
             <CardContent className="p-4 text-center">
               <CheckCircle className="w-8 h-8 mx-auto text-green-400" />
-              <p className="text-2xl font-bold text-white mt-2">
+              <p className="text-2xl font-bold text-foreground mt-2">
                 {data?.disputes?.resolved || 0}
               </p>
-              <p className="text-sm text-slate-400">Resolved</p>
+              <p className="text-sm text-muted-foreground">Resolved</p>
             </CardContent>
           </Card>
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-card border-border">
             <CardContent className="p-4 text-center">
               <Clock className="w-8 h-8 mx-auto text-amber-400" />
-              <p className="text-2xl font-bold text-white mt-2">
+              <p className="text-2xl font-bold text-foreground mt-2">
                 {data?.disputes?.inProgress || 0}
               </p>
-              <p className="text-sm text-slate-400">In Progress</p>
+              <p className="text-sm text-muted-foreground">In Progress</p>
             </CardContent>
           </Card>
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-card border-border">
             <CardContent className="p-4 text-center">
-              <FileText className="w-8 h-8 mx-auto text-blue-400" />
-              <p className="text-2xl font-bold text-white mt-2">
+              <FileText className="w-8 h-8 mx-auto text-primary" />
+              <p className="text-2xl font-bold text-foreground mt-2">
                 {data?.disputes?.pending || 0}
               </p>
-              <p className="text-sm text-slate-400">Pending</p>
+              <p className="text-sm text-muted-foreground">Pending</p>
             </CardContent>
           </Card>
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-card border-border">
             <CardContent className="p-4 text-center">
               <AlertTriangle className="w-8 h-8 mx-auto text-red-400" />
-              <p className="text-2xl font-bold text-white mt-2">
+              <p className="text-2xl font-bold text-foreground mt-2">
                 {data?.negativeItems?.remaining || 0}
               </p>
-              <p className="text-sm text-slate-400">Items Remaining</p>
+              <p className="text-sm text-muted-foreground">Items Remaining</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Credit Readiness Summary */}
         {data?.readiness && (
-          <Card className="bg-slate-800/50 border-slate-700 mt-6">
+          <Card className="bg-card border-border mt-6">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Target className="w-5 h-5 text-blue-400" />
+                  <CardTitle className="text-foreground flex items-center gap-2">
+                    <Target className="w-5 h-5 text-primary" />
                     Credit Readiness
                   </CardTitle>
-                  <CardDescription className="text-slate-400">
+                  <CardDescription className="text-muted-foreground">
                     {formatProductType(data.readiness.productType)} approval analysis
                   </CardDescription>
                 </div>
@@ -435,7 +435,7 @@ export default function PortalDashboardPage() {
                       fill="none"
                       stroke="currentColor"
                       strokeWidth="6"
-                      className="text-slate-700"
+                      className="text-muted"
                     />
                     <circle
                       cx="40" cy="40" r="34"
@@ -452,14 +452,14 @@ export default function PortalDashboardPage() {
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-lg font-bold text-white">{data.readiness.approvalLikelihood}%</span>
+                    <span className="text-lg font-bold text-foreground">{data.readiness.approvalLikelihood}%</span>
                   </div>
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm text-slate-300 leading-relaxed">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
                     {data.readiness.explanation}
                   </p>
-                  <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
+                  <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                     <span>Model: {data.readiness.scoreModel}</span>
                     {data.readiness.relevantScore && (
                       <span>Score: {data.readiness.relevantScore}</span>
@@ -473,19 +473,19 @@ export default function PortalDashboardPage() {
 
               {/* Top Action Steps */}
               {data.readiness.topActions.length > 0 && (
-                <div className="border-t border-slate-700 pt-4">
-                  <p className="text-xs text-slate-400 mb-3 font-medium uppercase tracking-wider">Next Steps</p>
+                <div className="border-t border-border pt-4">
+                  <p className="text-xs text-muted-foreground mb-3 font-medium uppercase tracking-wider">Next Steps</p>
                   <div className="space-y-2">
                     {data.readiness.topActions.map((action) => (
                       <div
                         key={action.stepNumber}
-                        className="flex items-center gap-3 p-2 bg-slate-700/30 rounded-lg"
+                        className="flex items-center gap-3 p-2 bg-muted rounded-lg"
                       >
-                        <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                          <span className="text-xs text-blue-400 font-medium">{action.stepNumber}</span>
+                        <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs text-primary font-medium">{action.stepNumber}</span>
                         </div>
-                        <span className="text-sm text-slate-300">{action.title}</span>
-                        <Badge className="ml-auto text-[10px] bg-slate-600/50 text-slate-400">
+                        <span className="text-sm text-muted-foreground">{action.title}</span>
+                        <Badge className="ml-auto text-[10px] bg-muted text-muted-foreground">
                           {action.priority}
                         </Badge>
                       </div>
@@ -499,13 +499,13 @@ export default function PortalDashboardPage() {
 
         {/* Vendor Recommendations */}
         {recommendations.length > 0 && (
-          <Card className="bg-slate-800/50 border-slate-700 mt-6">
+          <Card className="bg-card border-border mt-6">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
+              <CardTitle className="text-foreground flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-amber-400" />
                 Recommended Services
               </CardTitle>
-              <CardDescription className="text-slate-400">
+              <CardDescription className="text-muted-foreground">
                 Personalized recommendations based on your credit profile
               </CardDescription>
             </CardHeader>
@@ -518,18 +518,18 @@ export default function PortalDashboardPage() {
                   return (
                     <div
                       key={`${rec.vendorId}-${rec.ruleId}`}
-                      className="p-4 bg-slate-700/30 rounded-lg border border-slate-600/30 hover:border-slate-600/50 transition-colors"
+                      className="p-4 bg-muted rounded-lg border border-input hover:border-input transition-colors"
                     >
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="font-medium text-white">{rec.vendorName}</span>
+                        <span className="font-medium text-foreground">{rec.vendorName}</span>
                         <Badge className={`text-[10px] ${catColor}`}>
                           {rec.vendorCategory.replace(/_/g, " ")}
                         </Badge>
                       </div>
-                      <p className="text-sm font-semibold text-slate-200 mb-1">
+                      <p className="text-sm font-semibold text-foreground mb-1">
                         {rec.recommendationTitle}
                       </p>
-                      <p className="text-sm text-slate-400 leading-relaxed">
+                      <p className="text-sm text-muted-foreground leading-relaxed">
                         {rec.recommendationBody}
                       </p>
                       {rec.recommendationCTA && url && (
@@ -569,7 +569,7 @@ export default function PortalDashboardPage() {
 
         {/* Footer */}
         <div className="mt-12 text-center">
-          <p className="text-slate-500 text-sm">
+          <p className="text-muted-foreground text-sm">
             Questions? Contact your credit repair specialist at {organization?.name}
           </p>
         </div>

@@ -41,21 +41,21 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-card to-background p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
             <Shield className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-3xl font-bold text-white">Dispute2Go</h1>
-          <p className="text-slate-400 mt-2">Credit Dispute Operating System</p>
+          <h1 className="text-3xl font-bold text-foreground">Dispute2Go</h1>
+          <p className="text-muted-foreground mt-2">Credit Dispute Operating System</p>
         </div>
 
-        <Card className="border-slate-700 bg-slate-800/50 backdrop-blur">
+        <Card className="border-border bg-card backdrop-blur">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-white">Reset Password</CardTitle>
-            <CardDescription className="text-slate-400">
-              Enter your email address and we'll send you a link to reset your password
+            <CardTitle className="text-2xl text-foreground">Reset Password</CardTitle>
+            <CardDescription className="text-muted-foreground">
+              Enter your email address and we&apos;ll send you a link to reset your password
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -66,16 +66,16 @@ export default function ForgotPasswordPage() {
                     <CheckCircle2 className="w-6 h-6 text-emerald-400" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-medium text-white">Check your email</h3>
-                    <p className="text-slate-400 mt-2">
-                      If an account exists with <span className="text-white">{email}</span>, you will receive a password reset link shortly.
+                    <h3 className="text-lg font-medium text-foreground">Check your email</h3>
+                    <p className="text-muted-foreground mt-2">
+                      If an account exists with <span className="text-foreground">{email}</span>, you will receive a password reset link shortly.
                     </p>
                   </div>
                 </div>
                 <div className="flex flex-col gap-2">
                   <Button
                     variant="outline"
-                    className="w-full border-slate-600 text-slate-300"
+                    className="w-full border-input text-muted-foreground"
                     onClick={() => {
                       setSuccess(false);
                       setEmail("");
@@ -85,7 +85,7 @@ export default function ForgotPasswordPage() {
                     Try a different email
                   </Button>
                   <Link href="/login">
-                    <Button variant="ghost" className="w-full text-slate-400">
+                    <Button variant="ghost" className="w-full text-muted-foreground">
                       <ArrowLeft className="w-4 h-4 mr-2" />
                       Back to sign in
                     </Button>
@@ -102,7 +102,7 @@ export default function ForgotPasswordPage() {
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-slate-200">
+                  <Label htmlFor="email" className="text-foreground">
                     Email address
                   </Label>
                   <Input
@@ -113,7 +113,7 @@ export default function ForgotPasswordPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     disabled={isLoading}
-                    className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
+                    className="bg-muted border-input text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
 
@@ -136,7 +136,7 @@ export default function ForgotPasswordPage() {
                 </Button>
 
                 <Link href="/login">
-                  <Button variant="ghost" className="w-full text-slate-400">
+                  <Button variant="ghost" className="w-full text-muted-foreground">
                     <ArrowLeft className="w-4 h-4 mr-2" />
                     Back to sign in
                   </Button>

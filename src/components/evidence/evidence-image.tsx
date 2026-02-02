@@ -85,11 +85,11 @@ export function EvidenceImage({
     return (
       <div
         className={cn(
-          "flex items-center justify-center bg-slate-800/50 rounded-lg",
+          "flex items-center justify-center bg-card rounded-lg",
           containerClassName
         )}
       >
-        <div className="flex flex-col items-center gap-2 text-slate-400">
+        <div className="flex flex-col items-center gap-2 text-muted-foreground">
           <Loader2 className="w-8 h-8 animate-spin" />
           <span className="text-sm">Loading image...</span>
         </div>
@@ -104,11 +104,11 @@ export function EvidenceImage({
     return (
       <div
         className={cn(
-          "flex items-center justify-center bg-slate-800/50 rounded-lg",
+          "flex items-center justify-center bg-card rounded-lg",
           containerClassName
         )}
       >
-        <div className="flex flex-col items-center gap-2 text-slate-500">
+        <div className="flex flex-col items-center gap-2 text-muted-foreground">
           {error ? (
             <>
               <AlertCircle className="w-8 h-8 text-red-400" />

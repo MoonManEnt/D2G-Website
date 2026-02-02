@@ -174,15 +174,15 @@ export function ProductSelector({
                   <button
                     key={product.type}
                     onClick={() => handleProductSelect(product.type)}
-                    className={`bg-slate-700/30 hover:bg-slate-700/50 rounded-xl p-4 cursor-pointer border-2 transition-all text-left ${
+                    className={`bg-muted hover:bg-muted rounded-xl p-4 cursor-pointer border-2 transition-all text-left ${
                       isSelected
-                        ? "border-blue-500 bg-blue-500/10"
+                        ? "border-blue-500 bg-primary/10"
                         : "border-transparent"
                     }`}
                   >
-                    <Icon className="w-6 h-6 text-blue-400 mb-2" />
-                    <p className="text-sm font-medium text-slate-200">{product.label}</p>
-                    <p className="text-xs text-slate-400 mt-1">{product.description}</p>
+                    <Icon className="w-6 h-6 text-primary mb-2" />
+                    <p className="text-sm font-medium text-foreground">{product.label}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{product.description}</p>
                   </button>
                 );
               })}
@@ -194,10 +194,10 @@ export function ProductSelector({
                 /* Loading state */
                 <div className="flex flex-col items-center justify-center py-12">
                   <Loader2 className="w-10 h-10 text-emerald-400 animate-spin mb-4" />
-                  <p className="text-lg font-medium text-slate-200">
+                  <p className="text-lg font-medium text-foreground">
                     Amelia is analyzing...
                   </p>
-                  <p className="text-sm text-slate-400 mt-1">
+                  <p className="text-sm text-muted-foreground mt-1">
                     This may take a few seconds
                   </p>
                 </div>
@@ -205,11 +205,11 @@ export function ProductSelector({
                 <>
                   {/* Income input */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                    <label className="block text-sm font-medium text-muted-foreground mb-2">
                       Annual Income (optional)
                     </label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                         $
                       </span>
                       <input
@@ -217,20 +217,20 @@ export function ProductSelector({
                         value={statedIncome}
                         onChange={(e) => setStatedIncome(e.target.value)}
                         placeholder="85,000"
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 pl-7 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
+                        className="w-full bg-card border border-border rounded-lg px-4 py-2.5 pl-7 text-foreground placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary"
                       />
                     </div>
                   </div>
 
                   {/* Income type select */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                    <label className="block text-sm font-medium text-muted-foreground mb-2">
                       Income Type
                     </label>
                     <select
                       value={incomeType}
                       onChange={(e) => setIncomeType(e.target.value)}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 appearance-none"
+                      className="w-full bg-card border border-border rounded-lg px-4 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary appearance-none"
                     >
                       {INCOME_TYPES.map((type) => (
                         <option key={type.value} value={type.value}>
@@ -242,7 +242,7 @@ export function ProductSelector({
 
                   {/* Reason textarea */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                    <label className="block text-sm font-medium text-muted-foreground mb-2">
                       Reason for Applying (optional)
                     </label>
                     <textarea
@@ -250,7 +250,7 @@ export function ProductSelector({
                       onChange={(e) => setReasonForApplying(e.target.value)}
                       placeholder="e.g., First home purchase, refinancing..."
                       rows={3}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 resize-none"
+                      className="w-full bg-card border border-border rounded-lg px-4 py-2.5 text-foreground placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary resize-none"
                     />
                   </div>
                 </>
@@ -266,7 +266,7 @@ export function ProductSelector({
                 <Button
                   variant="ghost"
                   onClick={() => setStep(1)}
-                  className="gap-2 text-slate-400"
+                  className="gap-2 text-muted-foreground"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Back

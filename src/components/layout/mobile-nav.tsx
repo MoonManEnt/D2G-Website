@@ -41,7 +41,7 @@ export function MobileNav() {
               initial={{ y: 100, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 100, opacity: 0 }}
-              className="absolute bottom-20 left-4 right-4 bg-slate-900 border border-slate-700 rounded-2xl p-2 shadow-xl"
+              className="absolute bottom-20 left-4 right-4 bg-background border border-border rounded-2xl p-2 shadow-xl"
               onClick={(e) => e.stopPropagation()}
             >
               {MORE_TABS.map((tab) => (
@@ -52,7 +52,7 @@ export function MobileNav() {
                   className={`block px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
                     pathname.startsWith(tab.href)
                       ? "bg-purple-500/20 text-purple-300"
-                      : "text-slate-300 hover:bg-slate-800"
+                      : "text-muted-foreground hover:bg-card"
                   }`}
                 >
                   {tab.label}
@@ -65,7 +65,7 @@ export function MobileNav() {
 
       {/* Bottom navigation bar */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-slate-900/95 backdrop-blur-lg border-t border-slate-700/50 safe-area-bottom"
+        className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-background/95 backdrop-blur-lg border-t border-border safe-area-bottom"
         role="navigation"
         aria-label="Mobile navigation"
       >
@@ -79,7 +79,7 @@ export function MobileNav() {
                 className={`flex flex-col items-center justify-center min-w-[64px] min-h-[48px] px-3 py-2 rounded-xl transition-colors ${
                   isActive
                     ? "text-purple-400"
-                    : "text-slate-400 hover:text-slate-200"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
                 aria-current={isActive ? "page" : undefined}
               >
@@ -94,7 +94,7 @@ export function MobileNav() {
           <button
             onClick={() => setShowMore(!showMore)}
             className={`flex flex-col items-center justify-center min-w-[64px] min-h-[48px] px-3 py-2 rounded-xl transition-colors ${
-              showMore ? "text-purple-400" : "text-slate-400 hover:text-slate-200"
+              showMore ? "text-purple-400" : "text-muted-foreground hover:text-foreground"
             }`}
             aria-label="More navigation options"
             aria-expanded={showMore}

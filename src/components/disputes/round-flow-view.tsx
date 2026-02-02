@@ -208,26 +208,26 @@ export function RoundFlowView({
           <div className="grid grid-cols-4 gap-3 mb-6">
             <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-center">
               <span className="block text-2xl font-bold text-amber-400">{statusCounts["DRAFT"] || 0}</span>
-              <span className="text-xs text-slate-400">Draft</span>
+              <span className="text-xs text-muted-foreground">Draft</span>
             </div>
-            <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-center">
-              <span className="block text-2xl font-bold text-blue-400">{statusCounts["SENT"] || 0}</span>
-              <span className="text-xs text-slate-400">Sent</span>
+            <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg text-center">
+              <span className="block text-2xl font-bold text-primary">{statusCounts["SENT"] || 0}</span>
+              <span className="text-xs text-muted-foreground">Sent</span>
             </div>
             <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg text-center">
               <span className="block text-2xl font-bold text-purple-400">{statusCounts["RESPONDED"] || 0}</span>
-              <span className="text-xs text-slate-400">Responded</span>
+              <span className="text-xs text-muted-foreground">Responded</span>
             </div>
             <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-center">
               <span className="block text-2xl font-bold text-emerald-400">{statusCounts["RESOLVED"] || 0}</span>
-              <span className="text-xs text-slate-400">Resolved</span>
+              <span className="text-xs text-muted-foreground">Resolved</span>
             </div>
           </div>
         )}
 
         {/* CRA Filter */}
         <div className="flex items-center gap-3 mb-6">
-          <span className="text-xs text-slate-500 font-medium">Bureau:</span>
+          <span className="text-xs text-muted-foreground font-medium">Bureau:</span>
           <div className="flex gap-2">
             {["ALL", "TRANSUNION", "EXPERIAN", "EQUIFAX"].map((cra) => (
               <button
@@ -237,7 +237,7 @@ export function RoundFlowView({
                   "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
                   selectedCRA === cra
                     ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
-                    : "bg-slate-700/30 text-slate-400 border border-slate-600/50 hover:border-slate-500/50"
+                    : "bg-muted text-muted-foreground border border-input hover:border-border"
                 )}
               >
                 {cra === "ALL" ? "All" : cra.slice(0, 2)}
@@ -258,7 +258,7 @@ export function RoundFlowView({
                   "flex items-center gap-2 px-4 py-2.5 rounded-lg border transition-all text-sm font-medium",
                   selectedFlow === flow
                     ? "border-opacity-50"
-                    : "bg-slate-700/30 border-slate-600/50 text-slate-400 hover:border-slate-500/50"
+                    : "bg-muted border-input text-muted-foreground hover:border-border"
                 )}
                 style={selectedFlow === flow ? {
                   background: `${info.color}20`,
@@ -283,10 +283,10 @@ export function RoundFlowView({
 
         {/* Flow Description */}
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-white mb-1">
+          <h2 className="text-2xl font-bold text-foreground mb-1">
             {selectedFlow} Flow
           </h2>
-          <p className="text-slate-400 text-sm mb-2">{flowInfo.description}</p>
+          <p className="text-muted-foreground text-sm mb-2">{flowInfo.description}</p>
           <div className="flex items-center gap-2">
             <Badge
               className="text-xs"
@@ -298,7 +298,7 @@ export function RoundFlowView({
               {flowInfo.maxRounds} Rounds Available
             </Badge>
             {flowDisputes.length > 0 && (
-              <Badge className="text-xs bg-slate-500/20 text-slate-400">
+              <Badge className="text-xs bg-muted text-muted-foreground">
                 {flowDisputes.length} Active Disputes
               </Badge>
             )}
@@ -319,10 +319,10 @@ export function RoundFlowView({
                 <div className="flex flex-col items-center w-10">
                   <div
                     className={cn(
-                      "w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold text-white z-10",
+                      "w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold text-foreground z-10",
                       round.status === "completed" && "bg-emerald-500",
                       round.status === "current" && "shadow-lg",
-                      round.status === "upcoming" && "bg-slate-700"
+                      round.status === "upcoming" && "bg-muted"
                     )}
                     style={round.status === "current" ? {
                       background: flowInfo.color,
@@ -339,7 +339,7 @@ export function RoundFlowView({
                     <div
                       className={cn(
                         "w-0.5 flex-1 min-h-[40px]",
-                        round.status === "completed" ? "bg-emerald-500" : "bg-slate-700"
+                        round.status === "completed" ? "bg-emerald-500" : "bg-muted"
                       )}
                     />
                   )}
@@ -350,8 +350,8 @@ export function RoundFlowView({
                   className={cn(
                     "flex-1 rounded-xl border p-4 mb-4 transition-all",
                     round.status === "current" && "border-opacity-30",
-                    round.status === "upcoming" && "bg-slate-800/60 border-slate-700/50",
-                    round.status === "completed" && "bg-slate-800/40 border-slate-700/30",
+                    round.status === "upcoming" && "bg-card border-border",
+                    round.status === "completed" && "bg-card border-border",
                     round.crossFlow && "border-amber-500/30"
                   )}
                   style={round.status === "current" ? {
@@ -364,7 +364,7 @@ export function RoundFlowView({
                   {/* Header */}
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-500 font-medium">
+                      <span className="text-xs text-muted-foreground font-medium">
                         Round {round.round}
                       </span>
                       {dispute && (
@@ -372,7 +372,7 @@ export function RoundFlowView({
                           className={cn(
                             "text-[10px] px-2",
                             dispute.status === "DRAFT" && "bg-amber-500/20 text-amber-400",
-                            dispute.status === "SENT" && "bg-blue-500/20 text-blue-400",
+                            dispute.status === "SENT" && "bg-primary/20 text-primary",
                             dispute.status === "RESPONDED" && "bg-purple-500/20 text-purple-400",
                             dispute.status === "RESOLVED" && "bg-emerald-500/20 text-emerald-400"
                           )}
@@ -387,30 +387,30 @@ export function RoundFlowView({
                       )}
                     </div>
                     {dispute && (
-                      <Badge className="text-[10px] px-2 bg-slate-500/20 text-slate-400">
+                      <Badge className="text-[10px] px-2 bg-muted text-muted-foreground">
                         {dispute.cra}
                       </Badge>
                     )}
                   </div>
 
-                  <h3 className="text-sm font-semibold text-white mb-1">
+                  <h3 className="text-sm font-semibold text-foreground mb-1">
                     {round.name}
                   </h3>
-                  <p className="text-xs text-slate-500">{round.statute}</p>
+                  <p className="text-xs text-muted-foreground">{round.statute}</p>
 
                   {/* Dispute Details - Show when dispute exists */}
                   {dispute && (
-                    <div className="mt-3 pt-3 border-t border-slate-700/50">
+                    <div className="mt-3 pt-3 border-t border-border">
                       {/* Account List */}
                       {dispute.items && dispute.items.length > 0 && (
                         <div className="mb-3">
-                          <span className="text-[10px] text-slate-500 uppercase tracking-wider block mb-1.5">
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider block mb-1.5">
                             Accounts ({accountCount})
                           </span>
                           <div className="space-y-1">
                             {dispute.items.slice(0, 3).map((item, i) => (
                               <div key={i} className="flex items-center justify-between text-xs">
-                                <span className="text-slate-300 truncate max-w-[200px]">
+                                <span className="text-muted-foreground truncate max-w-[200px]">
                                   {item.accountItem?.creditorName || "Unknown"}
                                 </span>
                                 {item.accountItem?.balance !== null && item.accountItem?.balance !== undefined && (
@@ -421,7 +421,7 @@ export function RoundFlowView({
                               </div>
                             ))}
                             {dispute.items.length > 3 && (
-                              <span className="text-[10px] text-slate-500">
+                              <span className="text-[10px] text-muted-foreground">
                                 +{dispute.items.length - 3} more accounts
                               </span>
                             )}
@@ -438,16 +438,16 @@ export function RoundFlowView({
                               ? "bg-red-500/10 border border-red-500/20"
                               : daysRemaining <= 7
                                 ? "bg-amber-500/10 border border-amber-500/20"
-                                : "bg-blue-500/10 border border-blue-500/20"
+                                : "bg-primary/10 border border-primary/20"
                           )}
                         >
                           <Timer className={cn(
                             "w-3.5 h-3.5",
-                            isOverdue ? "text-red-400" : daysRemaining <= 7 ? "text-amber-400" : "text-blue-400"
+                            isOverdue ? "text-red-400" : daysRemaining <= 7 ? "text-amber-400" : "text-primary"
                           )} />
                           <span className={cn(
                             "font-medium",
-                            isOverdue ? "text-red-400" : daysRemaining <= 7 ? "text-amber-400" : "text-blue-400"
+                            isOverdue ? "text-red-400" : daysRemaining <= 7 ? "text-amber-400" : "text-primary"
                           )}>
                             {isOverdue
                               ? `${Math.abs(daysRemaining)} days overdue - FCRA violation!`
@@ -459,8 +459,8 @@ export function RoundFlowView({
                       {/* Sent Date */}
                       {round.date && (
                         <div className="flex items-center gap-1.5 mt-2">
-                          <Send className="w-3 h-3 text-slate-500" />
-                          <span className="text-xs text-slate-400">
+                          <Send className="w-3 h-3 text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground">
                             {dispute.status === "DRAFT" ? "Created" : "Sent"}: {round.date}
                           </span>
                         </div>
@@ -496,7 +496,7 @@ export function RoundFlowView({
 
                   {/* Empty state for rounds without disputes */}
                   {!dispute && round.status !== "upcoming" && (
-                    <div className="mt-3 text-xs text-slate-500 italic">
+                    <div className="mt-3 text-xs text-muted-foreground italic">
                       No dispute created for this round yet
                     </div>
                   )}
@@ -508,10 +508,10 @@ export function RoundFlowView({
 
         {/* Empty state when no disputes */}
         {disputes.length === 0 && (
-          <div className="text-center py-12 bg-slate-800/40 rounded-xl border border-slate-700/50">
-            <FileText className="w-12 h-12 mx-auto text-slate-600 mb-4" />
-            <h3 className="text-lg font-medium text-white mb-2">No Active Disputes</h3>
-            <p className="text-slate-400 text-sm max-w-md mx-auto">
+          <div className="text-center py-12 bg-card rounded-xl border border-border">
+            <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">No Active Disputes</h3>
+            <p className="text-muted-foreground text-sm max-w-md mx-auto">
               Create a dispute from the "Create Dispute" tab to see it tracked here.
               You'll be able to monitor FCRA deadlines and response status.
             </p>
@@ -520,27 +520,27 @@ export function RoundFlowView({
       </div>
 
       {/* Strategy Panel */}
-      <Card className="bg-slate-800/60 border-slate-700/50 p-5 h-fit sticky top-6">
-        <h3 className="flex items-center gap-2 text-sm font-semibold text-white mb-4">
+      <Card className="bg-card border-border p-5 h-fit sticky top-6">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground mb-4">
           <span>⚔️</span> Current Strategy
         </h3>
 
         <div className="space-y-3 mb-4">
           <div className="flex justify-between items-center">
-            <span className="text-xs text-slate-500">Tone</span>
-            <span className="text-sm font-medium text-white capitalize">
+            <span className="text-xs text-muted-foreground">Tone</span>
+            <span className="text-sm font-medium text-foreground capitalize">
               {strategy.tone}
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-xs text-slate-500">Approach</span>
-            <span className="text-sm font-medium text-white text-right max-w-[200px]">
+            <span className="text-xs text-muted-foreground">Approach</span>
+            <span className="text-sm font-medium text-foreground text-right max-w-[200px]">
               {strategy.approach}
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-xs text-slate-500">Primary Statute</span>
-            <Badge className="bg-blue-500/20 text-blue-400 text-xs">
+            <span className="text-xs text-muted-foreground">Primary Statute</span>
+            <Badge className="bg-primary/20 text-primary text-xs">
               {strategy.statute}
             </Badge>
           </div>
@@ -548,23 +548,23 @@ export function RoundFlowView({
 
         {/* Active Dispute Summary */}
         {activeDispute && (
-          <div className="mb-4 p-3 rounded-lg bg-slate-700/30 border border-slate-600/30">
+          <div className="mb-4 p-3 rounded-lg bg-muted border border-input">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-slate-500">Active Dispute</span>
+              <span className="text-xs text-muted-foreground">Active Dispute</span>
               <Badge
                 className={cn(
                   "text-[10px]",
                   activeDispute.status === "DRAFT" && "bg-amber-500/20 text-amber-400",
-                  activeDispute.status === "SENT" && "bg-blue-500/20 text-blue-400"
+                  activeDispute.status === "SENT" && "bg-primary/20 text-primary"
                 )}
               >
                 {activeDispute.status}
               </Badge>
             </div>
-            <div className="text-sm font-medium text-white mb-1">
+            <div className="text-sm font-medium text-foreground mb-1">
               {activeDispute.cra} Round {activeDispute.round}
             </div>
-            <div className="text-xs text-slate-400">
+            <div className="text-xs text-muted-foreground">
               {activeDispute.itemCount || activeDispute.items?.length || 0} accounts • {activeDispute.flow} flow
             </div>
           </div>
@@ -575,18 +575,18 @@ export function RoundFlowView({
           <div className={cn(
             "flex items-start gap-3 p-3 rounded-lg border",
             activeDispute?.status === "SENT"
-              ? "bg-blue-500/10 border-blue-500/20"
+              ? "bg-primary/10 border-primary/20"
               : "bg-amber-500/10 border-amber-500/20"
           )}>
             <AlertTriangle className={cn(
               "w-5 h-5 flex-shrink-0 mt-0.5",
-              activeDispute?.status === "SENT" ? "text-blue-400" : "text-amber-400"
+              activeDispute?.status === "SENT" ? "text-primary" : "text-amber-400"
             )} />
             <div>
-              <strong className="text-sm text-white block">
+              <strong className="text-sm text-foreground block">
                 {activeDispute?.status === "SENT" ? "FCRA 30-Day Deadline" : "Next Deadline"}
               </strong>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 CRA must respond by {fcraDeadline.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
               </p>
             </div>
@@ -599,7 +599,7 @@ export function RoundFlowView({
             variant="outline"
             size="sm"
             onClick={onRefresh}
-            className="w-full mt-4 border-slate-600 text-slate-400 hover:text-white"
+            className="w-full mt-4 border-input text-muted-foreground hover:text-foreground"
           >
             <Loader2 className="w-3 h-3 mr-2" />
             Refresh Status

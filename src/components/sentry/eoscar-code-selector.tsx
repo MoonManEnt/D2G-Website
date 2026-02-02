@@ -59,12 +59,12 @@ export function EOSCARCodeSelector({
   const topRecommendation = sortedRecs[0];
 
   return (
-    <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-4">
+    <div className="bg-card rounded-lg border border-border p-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-slate-300">e-OSCAR Code Selection</h3>
+        <h3 className="text-sm font-medium text-muted-foreground">e-OSCAR Code Selection</h3>
         {selectedCode && (
-          <span className="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-400">
+          <span className="text-xs px-2 py-0.5 rounded bg-primary/20 text-primary">
             Selected: {selectedCode}
           </span>
         )}
@@ -84,11 +84,11 @@ export function EOSCARCodeSelector({
             className={`w-full text-left p-2 rounded transition-colors ${
               selectedCode === topRecommendation.code
                 ? "bg-emerald-500/20 border border-emerald-500/50"
-                : "hover:bg-slate-700/50"
+                : "hover:bg-muted"
             }`}
           >
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-slate-200">
+              <span className="text-sm font-medium text-foreground">
                 {topRecommendation.code} - {topRecommendation.name}
               </span>
               {selectedCode === topRecommendation.code && (
@@ -97,7 +97,7 @@ export function EOSCARCodeSelector({
                 </svg>
               )}
             </div>
-            <p className="text-xs text-slate-400 mt-1">{topRecommendation.reasoning}</p>
+            <p className="text-xs text-muted-foreground mt-1">{topRecommendation.reasoning}</p>
           </button>
         </div>
       )}
@@ -105,22 +105,22 @@ export function EOSCARCodeSelector({
       {/* Other recommendations */}
       {sortedRecs.length > 1 && (
         <div className="space-y-2 mb-4">
-          <h4 className="text-xs font-medium text-slate-400">Other Options</h4>
+          <h4 className="text-xs font-medium text-muted-foreground">Other Options</h4>
           {sortedRecs.slice(1).map((rec) => (
             <button
               key={rec.code}
               onClick={() => onCodeSelect(rec.code)}
               className={`w-full text-left p-2 rounded transition-colors ${
                 selectedCode === rec.code
-                  ? "bg-blue-500/20 border border-blue-500/50"
-                  : "bg-slate-700/30 hover:bg-slate-700/50"
+                  ? "bg-primary/20 border border-blue-500/50"
+                  : "bg-muted hover:bg-muted"
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-sm text-slate-300">
+                <span className="text-sm text-muted-foreground">
                   {rec.code} - {rec.name}
                 </span>
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-muted-foreground">
                   {Math.round(rec.confidence * 100)}%
                 </span>
               </div>
@@ -132,7 +132,7 @@ export function EOSCARCodeSelector({
       {/* Show all codes toggle */}
       <button
         onClick={() => setShowAllCodes(!showAllCodes)}
-        className="text-xs text-slate-400 hover:text-slate-300 flex items-center gap-1"
+        className="text-xs text-muted-foreground hover:text-muted-foreground flex items-center gap-1"
       >
         {showAllCodes ? "Hide" : "Show"} all codes
         <svg
@@ -147,28 +147,28 @@ export function EOSCARCodeSelector({
 
       {/* All codes list */}
       {showAllCodes && (
-        <div className="mt-4 space-y-2 pt-4 border-t border-slate-700/50">
+        <div className="mt-4 space-y-2 pt-4 border-t border-border">
           {Object.entries(CODE_INFO).map(([code, info]) => (
             <button
               key={code}
               onClick={() => onCodeSelect(code)}
               className={`w-full text-left p-3 rounded-lg transition-colors ${
                 selectedCode === code
-                  ? "bg-blue-500/20 border border-blue-500/50"
-                  : "bg-slate-700/30 hover:bg-slate-700/50"
+                  ? "bg-primary/20 border border-blue-500/50"
+                  : "bg-muted hover:bg-muted"
               } ${code === "112" ? "opacity-60" : ""}`}
             >
               <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-medium text-slate-200">
+                <span className="text-sm font-medium text-foreground">
                   {code} - {info.name}
                 </span>
                 {selectedCode === code && (
-                  <svg className="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 )}
               </div>
-              <p className="text-xs text-slate-400">{info.description}</p>
+              <p className="text-xs text-muted-foreground">{info.description}</p>
               {info.avoid && (
                 <p className="text-xs text-amber-400 mt-1">⚠️ {info.avoid}</p>
               )}
@@ -178,7 +178,7 @@ export function EOSCARCodeSelector({
       )}
 
       {/* Tip */}
-      <div className="mt-4 pt-4 border-t border-slate-700/50">
+      <div className="mt-4 pt-4 border-t border-border">
         <div className="relative px-4 py-3 rounded-lg bg-gradient-to-r from-amber-500/5 via-amber-500/10 to-amber-500/5 border border-amber-500/20 text-center">
           {/* Glow effect */}
           <div className="absolute inset-0 rounded-lg bg-amber-500/5 blur-sm animate-pulse" />

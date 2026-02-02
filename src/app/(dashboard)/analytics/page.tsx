@@ -147,7 +147,7 @@ export default function AnalyticsPage() {
     return (
       <div className="space-y-6">
         <div className="text-center py-12">
-          <p className="text-slate-400">Failed to load analytics data.</p>
+          <p className="text-muted-foreground">Failed to load analytics data.</p>
         </div>
       </div>
     );
@@ -167,15 +167,15 @@ export default function AnalyticsPage() {
       {/* Header */}
       <div className="flex justify-between items-start relative z-10">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent flex items-center gap-2">
-            <BarChart3 className="w-7 h-7 text-white" />
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent flex items-center gap-2">
+            <BarChart3 className="w-7 h-7 text-foreground" />
             Analytics
           </h1>
-          <p className="text-slate-400 mt-1">Business performance and insights</p>
+          <p className="text-muted-foreground mt-1">Business performance and insights</p>
         </div>
         <div className="flex items-center gap-3">
           {/* Time Range Selector */}
-          <div className="flex bg-slate-800/60 rounded-lg p-1">
+          <div className="flex bg-card rounded-lg p-1">
             {(["1m", "3m", "6m", "1y", "all"] as TimeRange[]).map((range) => (
               <button
                 key={range}
@@ -183,14 +183,14 @@ export default function AnalyticsPage() {
                 className={`px-4 py-2 rounded-md text-xs font-medium transition-all ${
                   timeRange === range
                     ? "bg-purple-500/20 text-purple-400"
-                    : "text-slate-400 hover:text-slate-300"
+                    : "text-muted-foreground hover:text-muted-foreground"
                 }`}
               >
                 {range.toUpperCase()}
               </button>
             ))}
           </div>
-          <button className="px-4 py-2 bg-slate-700/30 border border-slate-600/50 rounded-lg text-sm text-white flex items-center gap-2 hover:bg-slate-700/50 transition-colors">
+          <button className="px-4 py-2 bg-muted border border-input rounded-lg text-sm text-foreground flex items-center gap-2 hover:bg-muted transition-colors">
             <Download className="w-4 h-4" />
             Export Report
           </button>
@@ -278,9 +278,9 @@ export default function AnalyticsPage() {
       {/* Charts Row 1 - Monthly Trends + Success by CRA */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 relative z-10">
         {/* Monthly Trends */}
-        <Card className="bg-slate-800/60 border-slate-700/50 backdrop-blur-xl">
+        <Card className="bg-card border-border backdrop-blur-xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold text-white">Monthly Trends</CardTitle>
+            <CardTitle className="text-sm font-semibold text-foreground">Monthly Trends</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-44 flex items-end justify-between gap-2">
@@ -298,27 +298,27 @@ export default function AnalyticsPage() {
                       title={`${month.deleted} deleted`}
                     />
                   </div>
-                  <span className="text-[11px] text-slate-500 mt-2">{month.month}</span>
+                  <span className="text-[11px] text-muted-foreground mt-2">{month.month}</span>
                 </div>
               ))}
             </div>
             <div className="flex justify-center gap-5 mt-4">
               <div className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 bg-blue-500 rounded-sm" />
-                <span className="text-[11px] text-slate-400">Disputes Sent</span>
+                <span className="text-[11px] text-muted-foreground">Disputes Sent</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 bg-emerald-500 rounded-sm" />
-                <span className="text-[11px] text-slate-400">Items Deleted</span>
+                <span className="text-[11px] text-muted-foreground">Items Deleted</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Success by CRA */}
-        <Card className="bg-slate-800/60 border-slate-700/50 backdrop-blur-xl">
+        <Card className="bg-card border-border backdrop-blur-xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold text-white">Success by Bureau</CardTitle>
+            <CardTitle className="text-sm font-semibold text-foreground">Success by Bureau</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -335,16 +335,16 @@ export default function AnalyticsPage() {
                 return (
                   <div key={cra}>
                     <div className="flex justify-between mb-1.5">
-                      <span className="text-[13px] font-semibold text-white">{cra}</span>
+                      <span className="text-[13px] font-semibold text-foreground">{cra}</span>
                       <span className="text-[13px] font-bold text-emerald-400">{craData.rate}%</span>
                     </div>
-                    <div className="h-2 bg-slate-700/50 rounded overflow-hidden mb-1.5">
+                    <div className="h-2 bg-muted rounded overflow-hidden mb-1.5">
                       <div
                         className="h-full rounded transition-all"
                         style={{ width: `${craData.rate}%`, backgroundColor: colorMap[cra] || "#64748b" }}
                       />
                     </div>
-                    <div className="flex gap-3 text-[11px] text-slate-500">
+                    <div className="flex gap-3 text-[11px] text-muted-foreground">
                       <span>Sent: {craData.sent}</span>
                       <span className="text-emerald-400">Deleted: {craData.deleted}</span>
                       <span className="text-amber-400">Verified: {craData.verified}</span>
@@ -360,9 +360,9 @@ export default function AnalyticsPage() {
       {/* Charts Row 2 - Client Funnel, Success by Flow, Round Performance */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 relative z-10">
         {/* Client Pipeline Funnel */}
-        <Card className="bg-slate-800/60 border-slate-700/50 backdrop-blur-xl">
+        <Card className="bg-card border-border backdrop-blur-xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold text-white">Client Pipeline</CardTitle>
+            <CardTitle className="text-sm font-semibold text-foreground">Client Pipeline</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -374,7 +374,7 @@ export default function AnalyticsPage() {
 
                 if (totalClients === 0) {
                   return (
-                    <div className="text-center py-6 text-slate-500 text-sm">
+                    <div className="text-center py-6 text-muted-foreground text-sm">
                       No clients in pipeline
                     </div>
                   );
@@ -386,7 +386,7 @@ export default function AnalyticsPage() {
                   const hue = 260 - i * 25;
                   return (
                     <div key={stage} className="flex items-center gap-3">
-                      <span className="w-20 text-[11px] text-slate-400 text-right capitalize">
+                      <span className="w-20 text-[11px] text-muted-foreground text-right capitalize">
                         {stage.replace(/([A-Z])/g, ' $1')}
                       </span>
                       <div className="flex-1">
@@ -395,10 +395,10 @@ export default function AnalyticsPage() {
                             className="h-7 rounded flex items-center px-3"
                             style={{ width: `${width}%`, background: `hsl(${hue}, 70%, 50%)` }}
                           >
-                            <span className="text-xs font-semibold text-white">{numCount}</span>
+                            <span className="text-xs font-semibold text-foreground">{numCount}</span>
                           </div>
                         ) : (
-                          <span className="text-xs text-slate-600 pl-1">0</span>
+                          <span className="text-xs text-muted-foreground pl-1">0</span>
                         )}
                       </div>
                     </div>
@@ -410,9 +410,9 @@ export default function AnalyticsPage() {
         </Card>
 
         {/* Success by Flow Type */}
-        <Card className="bg-slate-800/60 border-slate-700/50 backdrop-blur-xl">
+        <Card className="bg-card border-border backdrop-blur-xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold text-white">Success by Flow Type</CardTitle>
+            <CardTitle className="text-sm font-semibold text-foreground">Success by Flow Type</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -429,7 +429,7 @@ export default function AnalyticsPage() {
                 };
                 const colors = colorMap[flow] || { bg: "rgba(100, 116, 139, 0.15)", text: "#64748b" };
                 return (
-                  <div key={flow} className="flex items-center gap-3 p-3 bg-slate-900/50 rounded-lg">
+                  <div key={flow} className="flex items-center gap-3 p-3 bg-background rounded-lg">
                     <div
                       className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold"
                       style={{ backgroundColor: colors.bg, color: colors.text }}
@@ -437,8 +437,8 @@ export default function AnalyticsPage() {
                       {flow[0]}
                     </div>
                     <div className="flex-1">
-                      <span className="block text-[13px] font-semibold text-white">{flow}</span>
-                      <span className="text-[11px] text-slate-500">{flowData.success}/{flowData.total}</span>
+                      <span className="block text-[13px] font-semibold text-foreground">{flow}</span>
+                      <span className="text-[11px] text-muted-foreground">{flowData.success}/{flowData.total}</span>
                     </div>
                     <span className="text-lg font-bold text-emerald-400">{flowData.rate}%</span>
                   </div>
@@ -449,25 +449,25 @@ export default function AnalyticsPage() {
         </Card>
 
         {/* Round Performance */}
-        <Card className="bg-slate-800/60 border-slate-700/50 backdrop-blur-xl">
+        <Card className="bg-card border-border backdrop-blur-xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold text-white">Round Performance</CardTitle>
+            <CardTitle className="text-sm font-semibold text-foreground">Round Performance</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {(data.roundPerformance || []).map((round) => (
                 <div key={round.round}>
                   <div className="flex justify-between mb-1.5">
-                    <span className="text-[13px] font-semibold text-white">{round.round}</span>
+                    <span className="text-[13px] font-semibold text-foreground">{round.round}</span>
                     <span className="text-[13px] font-bold text-emerald-400">{round.rate}%</span>
                   </div>
-                  <div className="h-2 bg-slate-700/50 rounded overflow-hidden mb-1.5">
+                  <div className="h-2 bg-muted rounded overflow-hidden mb-1.5">
                     <div
                       className="h-full rounded bg-gradient-to-r from-purple-600 to-purple-400 transition-all"
                       style={{ width: `${round.rate}%` }}
                     />
                   </div>
-                  <div className="flex gap-3 text-[11px] text-slate-500">
+                  <div className="flex gap-3 text-[11px] text-muted-foreground">
                     <span>Sent: {round.sent}</span>
                     <span className="text-emerald-400">Deleted: {round.deleted}</span>
                   </div>
@@ -481,23 +481,23 @@ export default function AnalyticsPage() {
       {/* Charts Row 3 - Item Type Success, FCRA Violations, Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 relative z-10">
         {/* Top Performing Items */}
-        <Card className="bg-slate-800/60 border-slate-700/50 backdrop-blur-xl">
+        <Card className="bg-card border-border backdrop-blur-xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold text-white">Success by Item Type</CardTitle>
+            <CardTitle className="text-sm font-semibold text-foreground">Success by Item Type</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2.5">
               {(data.topPerformingItems || []).map((item, i) => (
-                <div key={i} className="flex items-center gap-3 p-2.5 bg-slate-900/50 rounded-lg">
-                  <div className="w-7 h-7 rounded-md bg-slate-700/50 flex items-center justify-center text-[11px] font-semibold text-slate-400">
+                <div key={i} className="flex items-center gap-3 p-2.5 bg-background rounded-lg">
+                  <div className="w-7 h-7 rounded-md bg-muted flex items-center justify-center text-[11px] font-semibold text-muted-foreground">
                     #{i + 1}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <span className="block text-[13px] font-medium text-white truncate">{item.type}</span>
-                    <span className="text-[11px] text-slate-500">{item.deleted}/{item.total} deleted</span>
+                    <span className="block text-[13px] font-medium text-foreground truncate">{item.type}</span>
+                    <span className="text-[11px] text-muted-foreground">{item.deleted}/{item.total} deleted</span>
                   </div>
                   <div className="flex items-center gap-2 w-28">
-                    <div className="flex-1 h-1.5 bg-slate-700/50 rounded overflow-hidden">
+                    <div className="flex-1 h-1.5 bg-muted rounded overflow-hidden">
                       <div
                         className="h-full rounded transition-all"
                         style={{
@@ -506,7 +506,7 @@ export default function AnalyticsPage() {
                         }}
                       />
                     </div>
-                    <span className="text-xs font-bold text-white w-9 text-right">{item.rate}%</span>
+                    <span className="text-xs font-bold text-foreground w-9 text-right">{item.rate}%</span>
                   </div>
                 </div>
               ))}
@@ -515,9 +515,9 @@ export default function AnalyticsPage() {
         </Card>
 
         {/* FCRA Compliance */}
-        <Card className="bg-slate-800/60 border-slate-700/50 backdrop-blur-xl">
+        <Card className="bg-card border-border backdrop-blur-xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+            <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
               <Scale className="w-4 h-4" />
               FCRA Compliance
             </CardTitle>
@@ -532,20 +532,20 @@ export default function AnalyticsPage() {
               ].map((stat, i) => (
                 <div key={i} className="p-4 bg-purple-500/10 rounded-lg text-center">
                   <span className="block text-2xl font-bold text-purple-400">{stat.value}</span>
-                  <span className="text-[11px] text-slate-500">{stat.label}</span>
+                  <span className="text-[11px] text-muted-foreground">{stat.label}</span>
                 </div>
               ))}
             </div>
-            <div className="text-[11px] text-slate-500 p-3 bg-slate-900/50 rounded-lg text-center">
+            <div className="text-[11px] text-muted-foreground p-3 bg-background rounded-lg text-center">
               Violations can strengthen future disputes and support potential litigation.
             </div>
           </CardContent>
         </Card>
 
         {/* Recent Activity */}
-        <Card className="bg-slate-800/60 border-slate-700/50 backdrop-blur-xl">
+        <Card className="bg-card border-border backdrop-blur-xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold text-white">Recent Activity</CardTitle>
+            <CardTitle className="text-sm font-semibold text-foreground">Recent Activity</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2.5">
@@ -556,7 +556,7 @@ export default function AnalyticsPage() {
 
                 if (activities.length === 0) {
                   return (
-                    <div className="text-center py-6 text-slate-500 text-sm">
+                    <div className="text-center py-6 text-muted-foreground text-sm">
                       No recent activity
                     </div>
                   );
@@ -579,10 +579,10 @@ export default function AnalyticsPage() {
                         {config.icon}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <span className="block text-xs text-white">
+                        <span className="block text-xs text-foreground">
                           <strong>{activity.client}</strong> - {activity.details}
                         </span>
-                        <span className="text-[11px] text-slate-500">{activity.date}</span>
+                        <span className="text-[11px] text-muted-foreground">{activity.date}</span>
                       </div>
                     </div>
                   );
@@ -595,54 +595,54 @@ export default function AnalyticsPage() {
 
       {/* AI Usage Section */}
       {data.llmStats.totalRequests > 0 && (
-        <Card className="bg-slate-800/60 border-slate-700/50 backdrop-blur-xl relative z-10">
+        <Card className="bg-card border-border backdrop-blur-xl relative z-10">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-foreground flex items-center gap-2">
               <Brain className="w-5 h-5" />
               AI Usage (Last 30 Days)
             </CardTitle>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-muted-foreground">
               Track your AI-powered dispute strategy and letter generation
             </p>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div className="text-center">
-                <div className="text-3xl font-bold text-blue-400">{data.llmStats.totalRequests}</div>
-                <div className="text-sm text-slate-400 mt-1">Total Requests</div>
+                <div className="text-3xl font-bold text-primary">{data.llmStats.totalRequests}</div>
+                <div className="text-sm text-muted-foreground mt-1">Total Requests</div>
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-emerald-400">
                   ${(data.llmStats.totalCostCents / 100).toFixed(2)}
                 </div>
-                <div className="text-sm text-slate-400 mt-1">Total Cost</div>
+                <div className="text-sm text-muted-foreground mt-1">Total Cost</div>
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-amber-400">
                   {(data.llmStats.avgLatencyMs / 1000).toFixed(1)}s
                 </div>
-                <div className="text-sm text-slate-400 mt-1">Avg. Response</div>
+                <div className="text-sm text-muted-foreground mt-1">Avg. Response</div>
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-purple-400">
                   ${((data.llmStats.totalCostCents / data.llmStats.totalRequests) / 100).toFixed(3)}
                 </div>
-                <div className="text-sm text-slate-400 mt-1">Cost/Request</div>
+                <div className="text-sm text-muted-foreground mt-1">Cost/Request</div>
               </div>
             </div>
 
             {/* Provider breakdown */}
             {Object.keys(data.llmStats.byProvider).length > 0 && (
-              <div className="mt-6 pt-6 border-t border-slate-700">
-                <h4 className="text-sm font-medium text-slate-300 mb-4">By Provider</h4>
+              <div className="mt-6 pt-6 border-t border-border">
+                <h4 className="text-sm font-medium text-muted-foreground mb-4">By Provider</h4>
                 <div className="grid grid-cols-2 gap-4">
                   {Object.entries(data.llmStats.byProvider).map(([provider, stats]) => (
-                    <div key={provider} className="bg-slate-700/30 rounded-lg p-4">
+                    <div key={provider} className="bg-muted rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-2">
                         <Zap className={`w-4 h-4 ${provider === "CLAUDE" ? "text-amber-400" : "text-emerald-400"}`} />
-                        <span className="font-medium text-white">{provider}</span>
+                        <span className="font-medium text-foreground">{provider}</span>
                       </div>
-                      <div className="text-sm text-slate-400">
+                      <div className="text-sm text-muted-foreground">
                         {stats.requests} requests · ${(stats.cost / 100).toFixed(2)}
                       </div>
                     </div>
@@ -656,26 +656,26 @@ export default function AnalyticsPage() {
 
       {/* Top Clients */}
       {data.topClients.length > 0 && (
-        <Card className="bg-slate-800/60 border-slate-700/50 backdrop-blur-xl relative z-10">
+        <Card className="bg-card border-border backdrop-blur-xl relative z-10">
           <CardHeader>
-            <CardTitle className="text-white">Top Clients by Activity</CardTitle>
+            <CardTitle className="text-foreground">Top Clients by Activity</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {data.topClients.map((client, i) => (
                 <div
                   key={client.id}
-                  className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg"
+                  className="flex items-center justify-between p-3 bg-muted rounded-lg"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-full bg-slate-600 flex items-center justify-center text-sm text-slate-300">
+                    <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-sm text-muted-foreground">
                       {i + 1}
                     </span>
-                    <span className="text-white">{client.name}</span>
+                    <span className="text-foreground">{client.name}</span>
                   </div>
                   <div className="flex items-center gap-4 text-sm">
-                    <span className="text-slate-400">{client.accountCount} accounts</span>
-                    <Badge variant="outline" className="border-blue-500/50 text-blue-400">
+                    <span className="text-muted-foreground">{client.accountCount} accounts</span>
+                    <Badge variant="outline" className="border-blue-500/50 text-primary">
                       {client.disputeCount} disputes
                     </Badge>
                   </div>
@@ -717,7 +717,7 @@ function KPICard({
   const valueColor = accent ? accentColors[accent] : "#f8fafc";
 
   return (
-    <Card className="bg-slate-800/60 border-slate-700/50 backdrop-blur-xl">
+    <Card className="bg-card border-border backdrop-blur-xl">
       <CardContent className="p-5">
         <div className="flex items-center gap-3">
           <span className="text-2xl">{icon}</span>
@@ -725,7 +725,7 @@ function KPICard({
             <span className="text-2xl font-bold" style={{ color: valueColor }}>
               {value}
             </span>
-            <span className="text-[11px] text-slate-500 uppercase tracking-wide">
+            <span className="text-[11px] text-muted-foreground uppercase tracking-wide">
               {label}
             </span>
             {trend && (
@@ -762,7 +762,7 @@ function AnalyticsSkeleton() {
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Card key={i} className="bg-slate-800/50 border-slate-700">
+          <Card key={i} className="bg-card border-border">
             <CardContent className="p-5">
               <div className="flex items-center gap-3">
                 <Skeleton className="h-10 w-10 rounded" />
@@ -778,7 +778,7 @@ function AnalyticsSkeleton() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {Array.from({ length: 2 }).map((_, i) => (
-          <Card key={i} className="bg-slate-800/50 border-slate-700">
+          <Card key={i} className="bg-card border-border">
             <CardHeader>
               <Skeleton className="h-5 w-32" />
             </CardHeader>
@@ -791,7 +791,7 @@ function AnalyticsSkeleton() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {Array.from({ length: 3 }).map((_, i) => (
-          <Card key={i} className="bg-slate-800/50 border-slate-700">
+          <Card key={i} className="bg-card border-border">
             <CardHeader>
               <Skeleton className="h-5 w-32" />
             </CardHeader>

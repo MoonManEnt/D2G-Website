@@ -43,7 +43,7 @@ const feedbackTypes: { type: FeedbackType; icon: React.ReactNode; label: string;
   { type: "idea", icon: <Lightbulb className="w-4 h-4" />, label: "Idea", color: "bg-amber-500/20 text-amber-400 border-amber-500/30 hover:bg-amber-500/30" },
   { type: "love", icon: <Heart className="w-4 h-4" />, label: "Love It", color: "bg-pink-500/20 text-pink-400 border-pink-500/30 hover:bg-pink-500/30" },
   { type: "frustration", icon: <Frown className="w-4 h-4" />, label: "Frustrated", color: "bg-orange-500/20 text-orange-400 border-orange-500/30 hover:bg-orange-500/30" },
-  { type: "general", icon: <MessageSquarePlus className="w-4 h-4" />, label: "General", color: "bg-blue-500/20 text-blue-400 border-blue-500/30 hover:bg-blue-500/30" },
+  { type: "general", icon: <MessageSquarePlus className="w-4 h-4" />, label: "General", color: "bg-primary/20 text-primary border-primary/30 hover:bg-blue-500/30" },
 ];
 
 const ratingEmojis: { rating: Rating; icon: React.ReactNode; label: string }[] = [
@@ -161,7 +161,7 @@ export function BetaFeedback() {
             </motion.button>
             <button
               onClick={toggleCollapsed}
-              className="text-[10px] text-slate-500 hover:text-slate-300 flex items-center gap-0.5"
+              className="text-[10px] text-muted-foreground hover:text-muted-foreground flex items-center gap-0.5"
             >
               <ChevronUp className="w-3 h-3" />
               Expand
@@ -185,14 +185,14 @@ export function BetaFeedback() {
             >
               <MessageSquarePlus className="w-5 h-5" />
               <span className="font-medium">Beta Feedback</span>
-              <Badge className="bg-white/20 text-white text-[10px] px-1.5 py-0">
+              <Badge className="bg-white/20 text-foreground text-[10px] px-1.5 py-0">
                 <Zap className="w-3 h-3 mr-0.5" />
                 NEW
               </Badge>
             </motion.button>
             <button
               onClick={toggleCollapsed}
-              className="text-[10px] text-slate-500 hover:text-slate-300 flex items-center gap-0.5 mr-2"
+              className="text-[10px] text-muted-foreground hover:text-muted-foreground flex items-center gap-0.5 mr-2"
             >
               <ChevronDown className="w-3 h-3" />
               Minimize
@@ -220,22 +220,22 @@ export function BetaFeedback() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed bottom-24 right-6 z-50 w-[calc(100vw-3rem)] max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden"
+              className="fixed bottom-24 right-6 z-50 w-[calc(100vw-3rem)] max-w-md bg-background border border-border rounded-2xl shadow-2xl overflow-hidden"
             >
               {/* Header */}
-              <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 bg-gradient-to-r from-violet-600/10 to-purple-600/10">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-gradient-to-r from-violet-600/10 to-purple-600/10">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
-                    <MessageSquarePlus className="w-5 h-5 text-white" />
+                    <MessageSquarePlus className="w-5 h-5 text-foreground" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-white">Beta Feedback</h3>
-                    <p className="text-xs text-slate-400">Help us improve Dispute2Go</p>
+                    <h3 className="font-semibold text-foreground">Beta Feedback</h3>
+                    <p className="text-xs text-muted-foreground">Help us improve Dispute2Go</p>
                   </div>
                 </div>
                 <button
                   onClick={handleClose}
-                  className="p-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+                  className="p-2 rounded-lg hover:bg-card text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -253,7 +253,7 @@ export function BetaFeedback() {
                       exit={{ opacity: 0, x: -20 }}
                       className="space-y-4"
                     >
-                      <p className="text-sm text-slate-300">What kind of feedback do you have?</p>
+                      <p className="text-sm text-muted-foreground">What kind of feedback do you have?</p>
                       <div className="grid grid-cols-2 gap-2">
                         {feedbackTypes.map((ft) => (
                           <button
@@ -266,7 +266,7 @@ export function BetaFeedback() {
                           </button>
                         ))}
                       </div>
-                      <p className="text-xs text-slate-500 text-center">
+                      <p className="text-xs text-muted-foreground text-center">
                         Page: {pathname}
                       </p>
                     </motion.div>
@@ -284,11 +284,11 @@ export function BetaFeedback() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => setStep("type")}
-                          className="p-1 rounded hover:bg-slate-800 text-slate-400"
+                          className="p-1 rounded hover:bg-card text-muted-foreground"
                         >
                           ←
                         </button>
-                        <p className="text-sm text-slate-300">
+                        <p className="text-sm text-muted-foreground">
                           How would you rate your experience on this page?
                         </p>
                       </div>
@@ -303,7 +303,7 @@ export function BetaFeedback() {
                             className={`p-3 rounded-xl transition-all ${
                               hoveredRating === r.rating || rating === r.rating
                                 ? "bg-violet-500/20 text-violet-400 scale-110"
-                                : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+                                : "bg-card text-muted-foreground hover:bg-muted"
                             }`}
                           >
                             {r.icon}
@@ -311,7 +311,7 @@ export function BetaFeedback() {
                         ))}
                       </div>
 
-                      <p className="text-center text-sm text-slate-400 h-5">
+                      <p className="text-center text-sm text-muted-foreground h-5">
                         {hoveredRating
                           ? ratingEmojis.find((r) => r.rating === hoveredRating)?.label
                           : "Select a rating"}
@@ -319,7 +319,7 @@ export function BetaFeedback() {
 
                       <button
                         onClick={() => setStep("comment")}
-                        className="w-full text-center text-sm text-slate-500 hover:text-slate-300"
+                        className="w-full text-center text-sm text-muted-foreground hover:text-muted-foreground"
                       >
                         Skip rating →
                       </button>
@@ -338,7 +338,7 @@ export function BetaFeedback() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => setStep("rating")}
-                          className="p-1 rounded hover:bg-slate-800 text-slate-400"
+                          className="p-1 rounded hover:bg-card text-muted-foreground"
                         >
                           ←
                         </button>
@@ -369,11 +369,11 @@ export function BetaFeedback() {
                         }
                         value={comment}
                         onChange={(e) => setComment(e.target.value)}
-                        className="min-h-[120px] bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 resize-none"
+                        className="min-h-[120px] bg-card border-border text-foreground placeholder:text-muted-foreground resize-none"
                       />
 
                       <div className="flex items-center justify-between">
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-muted-foreground">
                           {comment.length}/500 characters
                         </p>
                         <Button
@@ -408,8 +408,8 @@ export function BetaFeedback() {
                       >
                         <CheckCircle className="w-8 h-8 text-green-400" />
                       </motion.div>
-                      <h4 className="text-lg font-semibold text-white mb-2">Thank You!</h4>
-                      <p className="text-sm text-slate-400">
+                      <h4 className="text-lg font-semibold text-foreground mb-2">Thank You!</h4>
+                      <p className="text-sm text-muted-foreground">
                         Your feedback helps us build a better product.
                       </p>
                     </motion.div>
@@ -418,8 +418,8 @@ export function BetaFeedback() {
               </div>
 
               {/* Footer */}
-              <div className="px-5 py-3 border-t border-slate-800 bg-slate-800/30">
-                <p className="text-xs text-slate-500 text-center">
+              <div className="px-5 py-3 border-t border-border bg-card">
+                <p className="text-xs text-muted-foreground text-center">
                   You're using the beta version of Dispute2Go
                 </p>
               </div>

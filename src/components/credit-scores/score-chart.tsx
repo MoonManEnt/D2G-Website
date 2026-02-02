@@ -122,14 +122,14 @@ export function ScoreChart({ scores, stats, chartData, onAddScore }: ScoreChartP
           return (
             <Card
               key={cra}
-              className={`bg-slate-800/50 border-slate-700 ${
+              className={`bg-card border-border ${
                 selectedCRA === cra ? `ring-2 ring-offset-2 ring-offset-slate-900 ${colors.border}` : ""
               }`}
               onClick={() => setSelectedCRA(selectedCRA === cra ? "all" : cra)}
             >
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <Badge className={`${colors.bg} text-white`}>{cra}</Badge>
+                  <Badge className={`${colors.bg} text-foreground`}>{cra}</Badge>
                   {score && (
                     <span className={`text-xs ${scoreLabel?.color}`}>
                       {scoreLabel?.label}
@@ -141,7 +141,7 @@ export function ScoreChart({ scores, stats, chartData, onAddScore }: ScoreChartP
                 {score ? (
                   <>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-4xl font-bold text-white">{score}</span>
+                      <span className="text-4xl font-bold text-foreground">{score}</span>
                       {change30 !== 0 && (
                         <span
                           className={`flex items-center text-sm ${
@@ -157,17 +157,17 @@ export function ScoreChart({ scores, stats, chartData, onAddScore }: ScoreChartP
                         </span>
                       )}
                     </div>
-                    <div className="mt-2 flex items-center gap-4 text-xs text-slate-400">
+                    <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
                       <span>30d: {change30 >= 0 ? "+" : ""}{change30}</span>
                       <span>90d: {change90 >= 0 ? "+" : ""}{change90}</span>
                     </div>
-                    <div className="mt-2 flex items-center gap-4 text-xs text-slate-500">
+                    <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
                       <span>High: {stats.highest[cra]}</span>
                       <span>Low: {stats.lowest[cra]}</span>
                     </div>
                   </>
                 ) : (
-                  <div className="text-slate-500 text-sm">No score recorded</div>
+                  <div className="text-muted-foreground text-sm">No score recorded</div>
                 )}
               </CardContent>
             </Card>
@@ -176,25 +176,25 @@ export function ScoreChart({ scores, stats, chartData, onAddScore }: ScoreChartP
       </div>
 
       {/* Chart */}
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-white flex items-center gap-2">
+              <CardTitle className="text-foreground flex items-center gap-2">
                 <BarChart3 className="w-5 h-5" />
                 Score History
               </CardTitle>
-              <CardDescription className="text-slate-400">
+              <CardDescription className="text-muted-foreground">
                 Track credit score changes over time
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
               <Select value={timeRange} onValueChange={(v) => setTimeRange(v as typeof timeRange)}>
-                <SelectTrigger className="w-32 bg-slate-700/50 border-slate-600 text-white">
+                <SelectTrigger className="w-32 bg-muted border-input text-foreground">
                   <Calendar className="w-4 h-4 mr-2" />
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectContent className="bg-card border-border">
                   <SelectItem value="30">30 days</SelectItem>
                   <SelectItem value="90">90 days</SelectItem>
                   <SelectItem value="180">6 months</SelectItem>
@@ -211,7 +211,7 @@ export function ScoreChart({ scores, stats, chartData, onAddScore }: ScoreChartP
         </CardHeader>
         <CardContent>
           {filteredChartData.length < 2 ? (
-            <div className="h-[200px] flex items-center justify-center text-slate-500">
+            <div className="h-[200px] flex items-center justify-center text-muted-foreground">
               <div className="text-center">
                 <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-50" />
                 <p>Not enough data to display chart</p>
@@ -221,7 +221,7 @@ export function ScoreChart({ scores, stats, chartData, onAddScore }: ScoreChartP
           ) : (
             <div className="relative">
               {/* Y-axis labels */}
-              <div className="absolute left-0 top-0 bottom-0 w-10 flex flex-col justify-between text-xs text-slate-500 pr-2">
+              <div className="absolute left-0 top-0 bottom-0 w-10 flex flex-col justify-between text-xs text-muted-foreground pr-2">
                 <span>850</span>
                 <span>700</span>
                 <span>550</span>
@@ -305,7 +305,7 @@ export function ScoreChart({ scores, stats, chartData, onAddScore }: ScoreChartP
                 </svg>
 
                 {/* X-axis labels */}
-                <div className="flex justify-between text-xs text-slate-500 mt-2">
+                <div className="flex justify-between text-xs text-muted-foreground mt-2">
                   {filteredChartData.length > 0 && (
                     <>
                       <span>
@@ -338,7 +338,7 @@ export function ScoreChart({ scores, stats, chartData, onAddScore }: ScoreChartP
                       className={`flex items-center gap-2 text-sm ${
                         selectedCRA === "all" || selectedCRA === cra
                           ? colors.text
-                          : "text-slate-600"
+                          : "text-muted-foreground"
                       }`}
                     >
                       <span className={`w-3 h-3 rounded-full ${colors.bg}`} />
@@ -353,20 +353,20 @@ export function ScoreChart({ scores, stats, chartData, onAddScore }: ScoreChartP
       </Card>
 
       {/* Recent Scores Table */}
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white text-sm">Recent Score Entries</CardTitle>
+          <CardTitle className="text-foreground text-sm">Recent Score Entries</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-700">
-                  <th className="text-left py-2 px-3 text-slate-400 font-medium">Date</th>
-                  <th className="text-left py-2 px-3 text-slate-400 font-medium">Bureau</th>
-                  <th className="text-left py-2 px-3 text-slate-400 font-medium">Score</th>
-                  <th className="text-left py-2 px-3 text-slate-400 font-medium">Type</th>
-                  <th className="text-left py-2 px-3 text-slate-400 font-medium">Change</th>
+                <tr className="border-b border-border">
+                  <th className="text-left py-2 px-3 text-muted-foreground font-medium">Date</th>
+                  <th className="text-left py-2 px-3 text-muted-foreground font-medium">Bureau</th>
+                  <th className="text-left py-2 px-3 text-muted-foreground font-medium">Score</th>
+                  <th className="text-left py-2 px-3 text-muted-foreground font-medium">Type</th>
+                  <th className="text-left py-2 px-3 text-muted-foreground font-medium">Change</th>
                 </tr>
               </thead>
               <tbody>
@@ -383,19 +383,19 @@ export function ScoreChart({ scores, stats, chartData, onAddScore }: ScoreChartP
                   const label = getScoreLabel(score.score);
 
                   return (
-                    <tr key={score.id} className="border-b border-slate-700/50">
-                      <td className="py-2 px-3 text-slate-300">
+                    <tr key={score.id} className="border-b border-border">
+                      <td className="py-2 px-3 text-muted-foreground">
                         {new Date(score.scoreDate).toLocaleDateString()}
                       </td>
                       <td className="py-2 px-3">
-                        <Badge className={`${colors.bg} text-white text-xs`}>
+                        <Badge className={`${colors.bg} text-foreground text-xs`}>
                           {score.cra}
                         </Badge>
                       </td>
                       <td className="py-2 px-3">
                         <span className={`font-semibold ${label.color}`}>{score.score}</span>
                       </td>
-                      <td className="py-2 px-3 text-slate-400">{score.scoreType}</td>
+                      <td className="py-2 px-3 text-muted-foreground">{score.scoreType}</td>
                       <td className="py-2 px-3">
                         {change !== null ? (
                           <span
@@ -404,7 +404,7 @@ export function ScoreChart({ scores, stats, chartData, onAddScore }: ScoreChartP
                                 ? "text-green-400"
                                 : change < 0
                                 ? "text-red-400"
-                                : "text-slate-400"
+                                : "text-muted-foreground"
                             }`}
                           >
                             {change > 0 ? (
@@ -418,7 +418,7 @@ export function ScoreChart({ scores, stats, chartData, onAddScore }: ScoreChartP
                             {change}
                           </span>
                         ) : (
-                          <span className="text-slate-500">—</span>
+                          <span className="text-muted-foreground">—</span>
                         )}
                       </td>
                     </tr>

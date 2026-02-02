@@ -53,7 +53,7 @@ export function Avatar({
   return (
     <motion.div
       className={cn(
-        "relative rounded-full overflow-hidden bg-slate-700 flex items-center justify-center cursor-pointer",
+        "relative rounded-full overflow-hidden bg-muted flex items-center justify-center cursor-pointer",
         sizeClasses[size],
         editable && "ring-2 ring-transparent hover:ring-brand-500/50 transition-all",
         className
@@ -72,9 +72,9 @@ export function Avatar({
           onError={() => setImageError(true)}
         />
       ) : initials ? (
-        <span className="font-medium text-slate-300">{initials}</span>
+        <span className="font-medium text-muted-foreground">{initials}</span>
       ) : (
-        <User className={cn("text-slate-400", iconSizes[size])} />
+        <User className={cn("text-muted-foreground", iconSizes[size])} />
       )}
 
       {/* Edit overlay */}
@@ -85,7 +85,7 @@ export function Avatar({
           animate={{ opacity: isHovered ? 1 : 0 }}
           transition={{ duration: 0.2 }}
         >
-          <Camera className={cn("text-white", size === "xl" ? "w-8 h-8" : "w-5 h-5")} />
+          <Camera className={cn("text-foreground", size === "xl" ? "w-8 h-8" : "w-5 h-5")} />
         </motion.div>
       )}
     </motion.div>
@@ -121,7 +121,7 @@ export function AvatarWithStatus({
       <Avatar size={size} {...props} />
       <motion.div
         className={cn(
-          "absolute bottom-0 right-0 rounded-full border-2 border-slate-800",
+          "absolute bottom-0 right-0 rounded-full border-2 border-border",
           statusColors[status],
           statusSizes[size]
         )}
@@ -163,14 +163,14 @@ export function AvatarGroup({ avatars, max = 4, size = "sm" }: AvatarGroupProps)
       {remaining > 0 && (
         <motion.div
           className={cn(
-            "rounded-full bg-slate-600 flex items-center justify-center ring-2 ring-slate-800",
+            "rounded-full bg-muted flex items-center justify-center ring-2 ring-slate-800",
             size === "sm" ? "w-8 h-8 text-xs" : "w-10 h-10 text-sm"
           )}
           initial={{ opacity: 0, scale: 0 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: max * 0.05 }}
         >
-          <span className="font-medium text-slate-300">+{remaining}</span>
+          <span className="font-medium text-muted-foreground">+{remaining}</span>
         </motion.div>
       )}
     </div>

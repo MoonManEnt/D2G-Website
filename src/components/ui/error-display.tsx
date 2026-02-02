@@ -82,20 +82,20 @@ export function ErrorDisplay({
       <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-full mb-6">
         <AlertCircle className="w-10 h-10 text-red-400" />
       </div>
-      <h2 className="text-xl font-semibold text-white mb-2">{title}</h2>
-      <p className="text-slate-400 text-center max-w-md mb-6">{message}</p>
+      <h2 className="text-xl font-semibold text-foreground mb-2">{title}</h2>
+      <p className="text-muted-foreground text-center max-w-md mb-6">{message}</p>
 
       {details && (
         <div className="w-full max-w-md mb-6">
           <button
             onClick={() => setShowDetails(!showDetails)}
-            className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-400 mb-2"
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-muted-foreground mb-2"
           >
             <ChevronDown className={`w-3 h-3 transition-transform ${showDetails ? "rotate-180" : ""}`} />
             Technical details
           </button>
           {showDetails && (
-            <pre className="p-3 bg-slate-800/50 border border-slate-700 rounded-lg text-xs text-slate-400 overflow-x-auto">
+            <pre className="p-3 bg-card border border-border rounded-lg text-xs text-muted-foreground overflow-x-auto">
               {details}
             </pre>
           )}
@@ -106,7 +106,7 @@ export function ErrorDisplay({
         {onRetry && (
           <button
             onClick={onRetry}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-medium transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-foreground rounded-lg text-sm font-medium transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
             Try Again
@@ -115,7 +115,7 @@ export function ErrorDisplay({
         {showHome && (
           <Link
             href="/dashboard"
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-card hover:bg-muted text-muted-foreground rounded-lg text-sm font-medium transition-colors"
           >
             <Home className="w-4 h-4" />
             Dashboard

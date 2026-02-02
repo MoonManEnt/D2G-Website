@@ -155,7 +155,7 @@ const SEVERITY_CONFIG: Record<string, { color: string; bg: string; border: strin
   CRITICAL: { color: "text-red-400", bg: "bg-red-500/20", border: "border-red-500/30" },
   HIGH: { color: "text-orange-400", bg: "bg-orange-500/20", border: "border-orange-500/30" },
   MEDIUM: { color: "text-amber-400", bg: "bg-amber-500/20", border: "border-amber-500/30" },
-  LOW: { color: "text-blue-400", bg: "bg-blue-500/20", border: "border-blue-500/30" },
+  LOW: { color: "text-blue-400", bg: "bg-primary/20", border: "border-primary/30" },
 };
 
 const CATEGORY_CONFIG: Record<string, { color: string; bg: string; label: string }> = {
@@ -203,7 +203,7 @@ function ViolationCard({ violation }: { violation: Violation }) {
   const category = CATEGORY_CONFIG[violation.category] || CATEGORY_CONFIG.FCRA;
 
   return (
-    <Card className={`bg-slate-800/50 border-slate-700/50 ${severity.border}`}>
+    <Card className={`bg-card border-border ${severity.border}`}>
       <CardContent className="p-5">
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex-1 min-w-0">
@@ -214,21 +214,21 @@ function ViolationCard({ violation }: { violation: Violation }) {
               <Badge className={`${category.bg} ${category.color} text-xs`}>
                 {category.label}
               </Badge>
-              <span className="text-xs text-slate-500 font-mono">
+              <span className="text-xs text-muted-foreground font-mono">
                 {violation.statuteShortName}
               </span>
             </div>
-            <h4 className="text-sm font-semibold text-white">{violation.title}</h4>
+            <h4 className="text-sm font-semibold text-foreground">{violation.title}</h4>
           </div>
           <div className="text-right flex-shrink-0">
-            <p className="text-xs text-slate-400">Est. Damages</p>
-            <p className="text-sm font-semibold text-white">
+            <p className="text-xs text-muted-foreground">Est. Damages</p>
+            <p className="text-sm font-semibold text-foreground">
               {formatCurrency(violation.estimatedDamagesMin)} - {formatCurrency(violation.estimatedDamagesMax)}
             </p>
           </div>
         </div>
 
-        <p className="text-sm text-slate-400 mb-3">{violation.description}</p>
+        <p className="text-sm text-muted-foreground mb-3">{violation.description}</p>
 
         {/* Affected Accounts Summary */}
         {violation.affectedAccounts.length > 0 && (
@@ -236,7 +236,7 @@ function ViolationCard({ violation }: { violation: Violation }) {
             {violation.affectedAccounts.map((acct) => (
               <span
                 key={acct.accountId}
-                className="px-2 py-0.5 rounded text-xs bg-slate-700/50 text-slate-300"
+                className="px-2 py-0.5 rounded text-xs bg-muted text-muted-foreground"
               >
                 {acct.creditorName} ({acct.cra})
               </span>
@@ -258,15 +258,15 @@ function ViolationCard({ violation }: { violation: Violation }) {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="mt-3 pt-3 border-t border-slate-700/50 space-y-3"
+            className="mt-3 pt-3 border-t border-border space-y-3"
           >
             {/* Evidence */}
             {violation.evidence.length > 0 && (
               <div>
-                <p className="text-xs font-medium text-slate-300 mb-1">Evidence:</p>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Evidence:</p>
                 <ul className="space-y-1">
                   {violation.evidence.map((ev, i) => (
-                    <li key={i} className="text-xs text-slate-400 flex items-start gap-2">
+                    <li key={i} className="text-xs text-muted-foreground flex items-start gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-slate-500 mt-1.5 flex-shrink-0" />
                       {ev.description}
                     </li>
@@ -278,10 +278,10 @@ function ViolationCard({ violation }: { violation: Violation }) {
             {/* Defendants */}
             {violation.defendants.length > 0 && (
               <div>
-                <p className="text-xs font-medium text-slate-300 mb-1">Defendants:</p>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Defendants:</p>
                 <div className="flex flex-wrap gap-1">
                   {violation.defendants.map((def, i) => (
-                    <Badge key={i} variant="outline" className="text-xs text-slate-300 border-slate-600">
+                    <Badge key={i} variant="outline" className="text-xs text-muted-foreground border-input">
                       {def}
                     </Badge>
                   ))}
@@ -292,10 +292,10 @@ function ViolationCard({ violation }: { violation: Violation }) {
             {/* Case Law */}
             {violation.caselaw.length > 0 && (
               <div>
-                <p className="text-xs font-medium text-slate-300 mb-1">Relevant Case Law:</p>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Relevant Case Law:</p>
                 <ul className="space-y-0.5">
                   {violation.caselaw.map((c, i) => (
-                    <li key={i} className="text-xs text-slate-500 italic">
+                    <li key={i} className="text-xs text-muted-foreground italic">
                       {c}
                     </li>
                   ))}
@@ -305,8 +305,8 @@ function ViolationCard({ violation }: { violation: Violation }) {
 
             {/* Statute */}
             <div>
-              <p className="text-xs text-slate-500">
-                Full Citation: <span className="text-slate-400">{violation.statute}</span>
+              <p className="text-xs text-muted-foreground">
+                Full Citation: <span className="text-muted-foreground">{violation.statute}</span>
               </p>
             </div>
           </motion.div>
@@ -332,13 +332,13 @@ function ScanResultsDisplay({ scan }: { scan: LitigationScan }) {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
-          className="rounded-xl bg-slate-800/50 border border-slate-700/50 p-4"
+          className="rounded-xl bg-card border border-border p-4"
         >
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle className="w-4 h-4 text-red-400" />
-            <span className="text-xs text-slate-400">Total Violations</span>
+            <span className="text-xs text-muted-foreground">Total Violations</span>
           </div>
-          <p className="text-2xl font-bold text-white">{scan.totalViolations}</p>
+          <p className="text-2xl font-bold text-foreground">{scan.totalViolations}</p>
           <div className="flex gap-2 mt-1">
             {scan.criticalCount > 0 && (
               <span className="text-[10px] text-red-400">{scan.criticalCount} critical</span>
@@ -353,11 +353,11 @@ function ScanResultsDisplay({ scan }: { scan: LitigationScan }) {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="rounded-xl bg-slate-800/50 border border-slate-700/50 p-4"
+          className="rounded-xl bg-card border border-border p-4"
         >
           <div className="flex items-center gap-2 mb-2">
             <Scale className="w-4 h-4 text-purple-400" />
-            <span className="text-xs text-slate-400">FCRA Violations</span>
+            <span className="text-xs text-muted-foreground">FCRA Violations</span>
           </div>
           <p className="text-2xl font-bold text-purple-400">{scan.fcraViolations}</p>
         </motion.div>
@@ -366,11 +366,11 @@ function ScanResultsDisplay({ scan }: { scan: LitigationScan }) {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="rounded-xl bg-slate-800/50 border border-slate-700/50 p-4"
+          className="rounded-xl bg-card border border-border p-4"
         >
           <div className="flex items-center gap-2 mb-2">
             <Shield className="w-4 h-4 text-sky-400" />
-            <span className="text-xs text-slate-400">FDCPA Violations</span>
+            <span className="text-xs text-muted-foreground">FDCPA Violations</span>
           </div>
           <p className="text-2xl font-bold text-sky-400">{scan.fdcpaViolations}</p>
         </motion.div>
@@ -379,16 +379,16 @@ function ScanResultsDisplay({ scan }: { scan: LitigationScan }) {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="rounded-xl bg-slate-800/50 border border-slate-700/50 p-4"
+          className="rounded-xl bg-card border border-border p-4"
         >
           <div className="flex items-center gap-2 mb-2">
             <Gavel className="w-4 h-4 text-emerald-400" />
-            <span className="text-xs text-slate-400">Est. Damages</span>
+            <span className="text-xs text-muted-foreground">Est. Damages</span>
           </div>
           <p className="text-lg font-bold text-emerald-400">
             {formatCurrency(scan.estimatedTotalMin)}
           </p>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted-foreground">
             to {formatCurrency(scan.estimatedTotalMax)}
           </p>
         </motion.div>
@@ -400,18 +400,18 @@ function ScanResultsDisplay({ scan }: { scan: LitigationScan }) {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
-          className={`rounded-xl p-5 bg-gradient-to-br ${strengthConfig.bg} border border-slate-700/50`}
+          className={`rounded-xl p-5 bg-gradient-to-br ${strengthConfig.bg} border border-border`}
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-slate-400 mb-1">Case Strength</p>
+              <p className="text-xs text-muted-foreground mb-1">Case Strength</p>
               <p className={`text-xl font-bold ${strengthConfig.color}`}>
                 {scan.caseSummary.strengthLabel} ({scan.caseSummary.strengthScore}/100)
               </p>
             </div>
             <div className="text-right">
-              <p className="text-xs text-slate-400 mb-1">Causes of Action</p>
-              <p className="text-lg font-semibold text-white">
+              <p className="text-xs text-muted-foreground mb-1">Causes of Action</p>
+              <p className="text-lg font-semibold text-foreground">
                 {scan.caseSummary.causesOfAction?.length || 0}
               </p>
             </div>
@@ -420,7 +420,7 @@ function ScanResultsDisplay({ scan }: { scan: LitigationScan }) {
       )}
 
       {/* Section Tabs */}
-      <div className="flex gap-1 bg-slate-800/50 rounded-lg p-1 border border-slate-700/50">
+      <div className="flex gap-1 bg-card rounded-lg p-1 border border-border">
         {[
           { key: "violations" as const, label: "Violations", count: scan.totalViolations },
           { key: "damages" as const, label: "Damage Estimate", count: null },
@@ -432,13 +432,13 @@ function ScanResultsDisplay({ scan }: { scan: LitigationScan }) {
             onClick={() => setActiveSection(tab.key)}
             className={`flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all ${
               activeSection === tab.key
-                ? "bg-slate-700 text-white"
-                : "text-slate-400 hover:text-white hover:bg-slate-700/50"
+                ? "bg-muted text-foreground"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted"
             }`}
           >
             {tab.label}
             {tab.count !== null && (
-              <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] bg-slate-600/50">
+              <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] bg-muted">
                 {tab.count}
               </span>
             )}
@@ -454,11 +454,11 @@ function ScanResultsDisplay({ scan }: { scan: LitigationScan }) {
           className="space-y-3"
         >
           {scan.violations.length === 0 ? (
-            <Card className="bg-slate-800/50 border-slate-700/50">
+            <Card className="bg-card border-border">
               <CardContent className="py-8 text-center">
                 <Shield className="w-10 h-10 mx-auto text-emerald-500 mb-3" />
-                <p className="text-slate-300 font-medium">No violations detected</p>
-                <p className="text-slate-500 text-sm mt-1">
+                <p className="text-muted-foreground font-medium">No violations detected</p>
+                <p className="text-muted-foreground text-sm mt-1">
                   The scan did not find any FCRA, FDCPA, or Metro 2 violations.
                 </p>
               </CardContent>
@@ -471,7 +471,7 @@ function ScanResultsDisplay({ scan }: { scan: LitigationScan }) {
                 if (filtered.length === 0) return null;
                 return (
                   <div key={sev}>
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                       {sev} ({filtered.length})
                     </h4>
                     <div className="space-y-2">
@@ -495,9 +495,9 @@ function ScanResultsDisplay({ scan }: { scan: LitigationScan }) {
           className="space-y-4"
         >
           {/* Total Estimate */}
-          <Card className="bg-slate-800/50 border-slate-700/50">
+          <Card className="bg-card border-border">
             <CardHeader className="pb-3">
-              <CardTitle className="text-white text-lg">Total Estimated Damages</CardTitle>
+              <CardTitle className="text-foreground text-lg">Total Estimated Damages</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-center py-4">
@@ -510,23 +510,23 @@ function ScanResultsDisplay({ scan }: { scan: LitigationScan }) {
 
           {/* Breakdown */}
           {scan.damageEstimate.breakdown && scan.damageEstimate.breakdown.length > 0 && (
-            <Card className="bg-slate-800/50 border-slate-700/50">
+            <Card className="bg-card border-border">
               <CardHeader className="pb-3">
-                <CardTitle className="text-white text-lg">Damage Breakdown</CardTitle>
+                <CardTitle className="text-foreground text-lg">Damage Breakdown</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   {scan.damageEstimate.breakdown.map((item, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-slate-700/30">
+                    <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted">
                       <div>
-                        <p className="text-sm font-medium text-white">{item.label}</p>
-                        <p className="text-xs text-slate-400">{item.description}</p>
+                        <p className="text-sm font-medium text-foreground">{item.label}</p>
+                        <p className="text-xs text-muted-foreground">{item.description}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-semibold text-white">
+                        <p className="text-sm font-semibold text-foreground">
                           {formatCurrency(item.min)} - {formatCurrency(item.max)}
                         </p>
-                        <Badge className="text-[10px] bg-slate-600/50 text-slate-300">
+                        <Badge className="text-[10px] bg-muted text-muted-foreground">
                           {item.type}
                         </Badge>
                       </div>
@@ -539,28 +539,28 @@ function ScanResultsDisplay({ scan }: { scan: LitigationScan }) {
 
           {/* Per Defendant */}
           {scan.damageEstimate.perDefendant && scan.damageEstimate.perDefendant.length > 0 && (
-            <Card className="bg-slate-800/50 border-slate-700/50">
+            <Card className="bg-card border-border">
               <CardHeader className="pb-3">
-                <CardTitle className="text-white text-lg">Per Defendant</CardTitle>
+                <CardTitle className="text-foreground text-lg">Per Defendant</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   {scan.damageEstimate.perDefendant.map((def, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-slate-700/30">
+                    <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted">
                       <div className="flex items-center gap-3">
                         <div>
-                          <p className="text-sm font-medium text-white">{def.name}</p>
+                          <p className="text-sm font-medium text-foreground">{def.name}</p>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <Badge className="text-[10px] bg-slate-600/50 text-slate-300">
+                            <Badge className="text-[10px] bg-muted text-muted-foreground">
                               {def.type}
                             </Badge>
-                            <span className="text-xs text-slate-500">
+                            <span className="text-xs text-muted-foreground">
                               {def.violationCount} violations
                             </span>
                           </div>
                         </div>
                       </div>
-                      <p className="text-sm font-semibold text-white">
+                      <p className="text-sm font-semibold text-foreground">
                         {formatCurrency(def.estimatedMin)} - {formatCurrency(def.estimatedMax)}
                       </p>
                     </div>
@@ -581,9 +581,9 @@ function ScanResultsDisplay({ scan }: { scan: LitigationScan }) {
         >
           {/* Key Findings */}
           {scan.caseSummary.keyFindings && scan.caseSummary.keyFindings.length > 0 && (
-            <Card className="bg-slate-800/50 border-slate-700/50">
+            <Card className="bg-card border-border">
               <CardHeader className="pb-3">
-                <CardTitle className="text-white text-lg flex items-center gap-2">
+                <CardTitle className="text-foreground text-lg flex items-center gap-2">
                   <AlertTriangle className="w-5 h-5 text-amber-400" />
                   Key Findings
                 </CardTitle>
@@ -593,7 +593,7 @@ function ScanResultsDisplay({ scan }: { scan: LitigationScan }) {
                   {scan.caseSummary.keyFindings.map((finding, i) => (
                     <li key={i} className="flex items-start gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 flex-shrink-0" />
-                      <span className="text-sm text-slate-300">{finding}</span>
+                      <span className="text-sm text-muted-foreground">{finding}</span>
                     </li>
                   ))}
                 </ul>
@@ -603,9 +603,9 @@ function ScanResultsDisplay({ scan }: { scan: LitigationScan }) {
 
           {/* Causes of Action */}
           {scan.caseSummary.causesOfAction && scan.caseSummary.causesOfAction.length > 0 && (
-            <Card className="bg-slate-800/50 border-slate-700/50">
+            <Card className="bg-card border-border">
               <CardHeader className="pb-3">
-                <CardTitle className="text-white text-lg flex items-center gap-2">
+                <CardTitle className="text-foreground text-lg flex items-center gap-2">
                   <Scale className="w-5 h-5 text-purple-400" />
                   Causes of Action
                 </CardTitle>
@@ -613,16 +613,16 @@ function ScanResultsDisplay({ scan }: { scan: LitigationScan }) {
               <CardContent>
                 <div className="space-y-3">
                   {scan.caseSummary.causesOfAction.map((cause, i) => (
-                    <div key={i} className="p-3 rounded-lg bg-slate-700/30">
+                    <div key={i} className="p-3 rounded-lg bg-muted">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-medium text-white">{cause.shortName}</span>
-                        <span className="text-xs text-slate-500 font-mono">{cause.statute}</span>
+                        <span className="text-sm font-medium text-foreground">{cause.shortName}</span>
+                        <span className="text-xs text-muted-foreground font-mono">{cause.statute}</span>
                         {cause.isWillful && (
                           <Badge className="text-[10px] bg-red-500/20 text-red-400">Willful</Badge>
                         )}
                       </div>
-                      <p className="text-xs text-slate-400">{cause.description}</p>
-                      <p className="text-xs text-slate-500 mt-1">
+                      <p className="text-xs text-muted-foreground">{cause.description}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
                         {cause.violationCount} violation{cause.violationCount !== 1 ? "s" : ""}
                       </p>
                     </div>
@@ -634,9 +634,9 @@ function ScanResultsDisplay({ scan }: { scan: LitigationScan }) {
 
           {/* Defendants */}
           {scan.caseSummary.defendants && scan.caseSummary.defendants.length > 0 && (
-            <Card className="bg-slate-800/50 border-slate-700/50">
+            <Card className="bg-card border-border">
               <CardHeader className="pb-3">
-                <CardTitle className="text-white text-lg flex items-center gap-2">
+                <CardTitle className="text-foreground text-lg flex items-center gap-2">
                   <Gavel className="w-5 h-5 text-red-400" />
                   Potential Defendants
                 </CardTitle>
@@ -644,15 +644,15 @@ function ScanResultsDisplay({ scan }: { scan: LitigationScan }) {
               <CardContent>
                 <div className="space-y-3">
                   {scan.caseSummary.defendants.map((def, i) => (
-                    <div key={i} className="p-3 rounded-lg bg-slate-700/30">
+                    <div key={i} className="p-3 rounded-lg bg-muted">
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-white">{def.name}</span>
-                          <Badge className="text-[10px] bg-slate-600/50 text-slate-300">
+                          <span className="text-sm font-medium text-foreground">{def.name}</span>
+                          <Badge className="text-[10px] bg-muted text-muted-foreground">
                             {def.type}
                           </Badge>
                         </div>
-                        <span className="text-sm font-semibold text-white">
+                        <span className="text-sm font-semibold text-foreground">
                           {formatCurrency(def.estimatedLiabilityMin)} - {formatCurrency(def.estimatedLiabilityMax)}
                         </span>
                       </div>
@@ -672,9 +672,9 @@ function ScanResultsDisplay({ scan }: { scan: LitigationScan }) {
 
           {/* Risk Factors */}
           {scan.caseSummary.riskFactors && scan.caseSummary.riskFactors.length > 0 && (
-            <Card className="bg-slate-800/50 border-slate-700/50">
+            <Card className="bg-card border-border">
               <CardHeader className="pb-3">
-                <CardTitle className="text-white text-lg flex items-center gap-2">
+                <CardTitle className="text-foreground text-lg flex items-center gap-2">
                   <Shield className="w-5 h-5 text-red-400" />
                   Risk Factors
                 </CardTitle>
@@ -684,7 +684,7 @@ function ScanResultsDisplay({ scan }: { scan: LitigationScan }) {
                   {scan.caseSummary.riskFactors.map((risk, i) => (
                     <li key={i} className="flex items-start gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 flex-shrink-0" />
-                      <span className="text-sm text-slate-300">{risk}</span>
+                      <span className="text-sm text-muted-foreground">{risk}</span>
                     </li>
                   ))}
                 </ul>
@@ -700,13 +700,13 @@ function ScanResultsDisplay({ scan }: { scan: LitigationScan }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
-          <Card className="bg-slate-800/50 border-slate-700/50">
+          <Card className="bg-card border-border">
             <CardHeader className="pb-3">
-              <CardTitle className="text-white text-lg flex items-center gap-2">
-                <Scale className="w-5 h-5 text-blue-400" />
+              <CardTitle className="text-foreground text-lg flex items-center gap-2">
+                <Scale className="w-5 h-5 text-primary" />
                 Escalation Plan
               </CardTitle>
-              <CardDescription className="text-slate-400">
+              <CardDescription className="text-muted-foreground">
                 Current stage: {scan.escalationPlan.currentStage?.replace(/_/g, " ") || "N/A"}
               </CardDescription>
             </CardHeader>
@@ -714,7 +714,7 @@ function ScanResultsDisplay({ scan }: { scan: LitigationScan }) {
               {scan.escalationPlan.steps && scan.escalationPlan.steps.length > 0 ? (
                 <div className="relative">
                   {/* Vertical line */}
-                  <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-slate-700" />
+                  <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-muted" />
 
                   <div className="space-y-4">
                     {scan.escalationPlan.steps.map((step, i) => (
@@ -728,36 +728,36 @@ function ScanResultsDisplay({ scan }: { scan: LitigationScan }) {
                                 ? "bg-blue-500 border-blue-400"
                                 : step.isRecommended
                                   ? "bg-amber-500 border-amber-400"
-                                  : "bg-slate-700 border-slate-600"
+                                  : "bg-muted border-input"
                           }`}
                         />
 
                         <div
                           className={`p-4 rounded-lg ${
                             step.isCurrent
-                              ? "bg-blue-500/10 border border-blue-500/30"
+                              ? "bg-primary/10 border border-primary/30"
                               : step.isRecommended
                                 ? "bg-amber-500/10 border border-amber-500/30"
-                                : "bg-slate-700/30"
+                                : "bg-muted"
                           }`}
                         >
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm font-medium text-white">{step.title}</span>
+                            <span className="text-sm font-medium text-foreground">{step.title}</span>
                             {step.isCompleted && (
                               <Badge className="text-[10px] bg-emerald-500/20 text-emerald-400">Completed</Badge>
                             )}
                             {step.isCurrent && (
-                              <Badge className="text-[10px] bg-blue-500/20 text-blue-400">Current</Badge>
+                              <Badge className="text-[10px] bg-primary/20 text-primary">Current</Badge>
                             )}
                             {step.isRecommended && !step.isCurrent && (
                               <Badge className="text-[10px] bg-amber-500/20 text-amber-400">Recommended Next</Badge>
                             )}
                           </div>
-                          <p className="text-xs text-slate-400 mb-2">{step.description}</p>
+                          <p className="text-xs text-muted-foreground mb-2">{step.description}</p>
                           {step.actions.length > 0 && (
                             <ul className="space-y-1">
                               {step.actions.map((action, j) => (
-                                <li key={j} className="text-xs text-slate-500 flex items-center gap-1.5">
+                                <li key={j} className="text-xs text-muted-foreground flex items-center gap-1.5">
                                   <span className="w-1 h-1 rounded-full bg-slate-500" />
                                   {action}
                                 </li>
@@ -770,7 +770,7 @@ function ScanResultsDisplay({ scan }: { scan: LitigationScan }) {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-slate-500 text-center py-4">No escalation steps available.</p>
+                <p className="text-sm text-muted-foreground text-center py-4">No escalation steps available.</p>
               )}
             </CardContent>
           </Card>
@@ -778,7 +778,7 @@ function ScanResultsDisplay({ scan }: { scan: LitigationScan }) {
       )}
 
       {/* Scan Metadata Footer */}
-      <div className="flex items-center justify-between text-xs text-slate-500 pt-2">
+      <div className="flex items-center justify-between text-xs text-muted-foreground pt-2">
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-1">
             <Clock className="w-3 h-3" />
@@ -920,7 +920,7 @@ export default function ClientLitigationPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -954,16 +954,16 @@ export default function ClientLitigationPage() {
         <div className="flex items-center gap-4">
           <Link
             href={`/clients/${clientId}`}
-            className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+            className="p-2 hover:bg-card rounded-lg transition-colors"
           >
-            <ArrowLeft className="w-5 h-5 text-slate-400" />
+            <ArrowLeft className="w-5 h-5 text-muted-foreground" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
               <Gavel className="w-6 h-6 text-purple-400" />
               Litigation Scanner
             </h1>
-            <p className="text-slate-400 text-sm">
+            <p className="text-muted-foreground text-sm">
               FCRA/FDCPA violation detection and damage estimation
             </p>
           </div>
@@ -971,7 +971,7 @@ export default function ClientLitigationPage() {
         <Button
           onClick={() => setScanDialogOpen(true)}
           disabled={scanning}
-          className="gap-2 bg-purple-600 hover:bg-purple-700 text-white"
+          className="gap-2 bg-purple-600 hover:bg-purple-700 text-foreground"
         >
           {scanning ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -993,7 +993,7 @@ export default function ClientLitigationPage() {
           >
             <Loader2 className="w-8 h-8 animate-spin text-purple-400 mx-auto mb-3" />
             <p className="text-purple-300 font-medium">Running Litigation Scan...</p>
-            <p className="text-slate-400 text-sm mt-1">
+            <p className="text-muted-foreground text-sm mt-1">
               Analyzing credit report data for FCRA, FDCPA, and Metro 2 violations.
             </p>
           </motion.div>
@@ -1005,20 +1005,20 @@ export default function ClientLitigationPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-12 text-center"
+          className="bg-card border border-border rounded-xl p-12 text-center"
         >
-          <Gavel className="w-16 h-16 text-slate-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-white mb-2">
+          <Gavel className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-foreground mb-2">
             No litigation scans yet
           </h2>
-          <p className="text-slate-400 max-w-md mx-auto mb-6">
+          <p className="text-muted-foreground max-w-md mx-auto mb-6">
             Run a litigation scan to automatically detect FCRA and FDCPA violations
             in this client&apos;s credit report data. The scanner identifies potential
             legal violations, estimates damages, and provides an escalation plan.
           </p>
           <Button
             onClick={() => setScanDialogOpen(true)}
-            className="gap-2 bg-purple-600 hover:bg-purple-700 text-white"
+            className="gap-2 bg-purple-600 hover:bg-purple-700 text-foreground"
           >
             <Gavel className="w-4 h-4" />
             Run First Scan
@@ -1037,20 +1037,20 @@ export default function ClientLitigationPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-hidden"
+              className="bg-card border border-border rounded-xl overflow-hidden"
             >
               <button
                 onClick={() => setShowPreviousScans(!showPreviousScans)}
-                className="w-full flex items-center justify-between p-5 hover:bg-slate-700/20 transition-colors"
+                className="w-full flex items-center justify-between p-5 hover:bg-muted transition-colors"
               >
-                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-slate-400" />
+                <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-muted-foreground" />
                   Scan History ({scans.length})
                 </h3>
                 {showPreviousScans ? (
-                  <ChevronUp className="w-5 h-5 text-slate-400" />
+                  <ChevronUp className="w-5 h-5 text-muted-foreground" />
                 ) : (
-                  <ChevronDown className="w-5 h-5 text-slate-400" />
+                  <ChevronDown className="w-5 h-5 text-muted-foreground" />
                 )}
               </button>
 
@@ -1069,8 +1069,8 @@ export default function ClientLitigationPage() {
                           key={scan.id}
                           className={`flex items-center gap-4 p-4 rounded-xl transition-all ${
                             isSelected
-                              ? "bg-slate-700/50 border border-blue-500/50"
-                              : "bg-slate-700/20 border border-transparent hover:bg-slate-700/30"
+                              ? "bg-muted border border-blue-500/50"
+                              : "bg-muted border border-transparent hover:bg-muted"
                           }`}
                         >
                           <button
@@ -1079,18 +1079,18 @@ export default function ClientLitigationPage() {
                           >
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
-                                <span className="text-sm font-medium text-white">
+                                <span className="text-sm font-medium text-foreground">
                                   {formatDate(scan.createdAt)}
                                 </span>
                                 {i === 0 && (
-                                  <Badge className="text-[10px] bg-blue-500/20 text-blue-400">
+                                  <Badge className="text-[10px] bg-primary/20 text-primary">
                                     Latest
                                   </Badge>
                                 )}
                               </div>
-                              <div className="flex items-center gap-3 text-xs text-slate-400">
+                              <div className="flex items-center gap-3 text-xs text-muted-foreground">
                                 <span>{scan.totalViolations} violations</span>
-                                <span className="text-slate-600">|</span>
+                                <span className="text-muted-foreground">|</span>
                                 <span className="text-emerald-400">
                                   {formatCurrency(scan.estimatedTotalMin)} - {formatCurrency(scan.estimatedTotalMax)}
                                 </span>
@@ -1134,28 +1134,28 @@ export default function ClientLitigationPage() {
 
       {/* Run Scan Dialog */}
       <Dialog open={scanDialogOpen} onOpenChange={setScanDialogOpen}>
-        <DialogContent className="bg-slate-800 border-slate-700">
+        <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
+            <DialogTitle className="text-foreground flex items-center gap-2">
               <Gavel className="w-5 h-5 text-purple-400" />
               Run Litigation Scan
             </DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogDescription className="text-muted-foreground">
               Scan the client&apos;s credit report data for FCRA, FDCPA, and Metro 2 violations.
               Optionally provide a state code for statute of limitations analysis.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label className="text-slate-200">State Code (Optional)</Label>
+              <Label className="text-foreground">State Code (Optional)</Label>
               <Input
                 value={stateCode}
                 onChange={(e) => setStateCode(e.target.value.toUpperCase())}
                 placeholder="e.g., TX, CA, NY"
                 maxLength={2}
-                className="bg-slate-700/50 border-slate-600 text-white uppercase"
+                className="bg-muted border-input text-foreground uppercase"
               />
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 2-letter state code for statute of limitations lookup. If not provided,
                 the client&apos;s address state will be used.
               </p>
@@ -1171,7 +1171,7 @@ export default function ClientLitigationPage() {
             </Button>
             <Button
               onClick={handleRunScan}
-              className="gap-2 bg-purple-600 hover:bg-purple-700 text-white"
+              className="gap-2 bg-purple-600 hover:bg-purple-700 text-foreground"
             >
               <Gavel className="w-4 h-4" />
               Start Scan
@@ -1187,13 +1187,13 @@ export default function ClientLitigationPage() {
           if (!open) setDeleteConfirmScanId(null);
         }}
       >
-        <DialogContent className="bg-slate-800 border-slate-700">
+        <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
+            <DialogTitle className="text-foreground flex items-center gap-2">
               <Trash2 className="w-5 h-5 text-red-400" />
               Delete Scan
             </DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogDescription className="text-muted-foreground">
               Are you sure you want to delete this litigation scan? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>

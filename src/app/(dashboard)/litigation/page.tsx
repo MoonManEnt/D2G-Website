@@ -113,21 +113,21 @@ function StatCard({
     purple: { bg: "bg-purple-500/10", text: "text-purple-400", icon: "text-purple-400" },
     red: { bg: "bg-red-500/10", text: "text-red-400", icon: "text-red-400" },
     emerald: { bg: "bg-emerald-500/10", text: "text-emerald-400", icon: "text-emerald-400" },
-    blue: { bg: "bg-blue-500/10", text: "text-blue-400", icon: "text-blue-400" },
+    blue: { bg: "bg-primary/10", text: "text-primary", icon: "text-primary" },
     amber: { bg: "bg-amber-500/10", text: "text-amber-400", icon: "text-amber-400" },
   };
 
   const colors = colorClasses[color] || colorClasses.purple;
 
   return (
-    <div className={`rounded-xl ${colors.bg} border border-slate-700/50 p-4`}>
+    <div className={`rounded-xl ${colors.bg} border border-border p-4`}>
       <div className="flex items-center gap-3">
         <div className={`p-2 rounded-lg ${colors.bg}`}>
           <Icon className={`w-5 h-5 ${colors.icon}`} />
         </div>
         <div>
           <p className={`text-2xl font-bold ${colors.text}`}>{value}</p>
-          <p className="text-xs text-slate-400">{label}</p>
+          <p className="text-xs text-muted-foreground">{label}</p>
         </div>
       </div>
     </div>
@@ -301,7 +301,7 @@ export default function LitigationOverviewPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -320,18 +320,18 @@ export default function LitigationOverviewPage() {
       {/* Header */}
       <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <Gavel className="w-6 h-6 text-purple-400" />
             Litigation Scanner
           </h1>
-          <p className="text-slate-400 mt-1">
+          <p className="text-muted-foreground mt-1">
             FCRA/FDCPA violation detection across your client portfolio
           </p>
         </div>
         <Button
           onClick={loadAllScanData}
           disabled={loadingScanData}
-          className="gap-2 bg-purple-600 hover:bg-purple-700 text-white"
+          className="gap-2 bg-purple-600 hover:bg-purple-700 text-foreground"
         >
           {loadingScanData ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -384,10 +384,10 @@ export default function LitigationOverviewPage() {
                   <TrendingUp className="w-5 h-5 text-purple-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white mb-1">
+                  <p className="text-sm font-medium text-foreground mb-1">
                     Load scan data to see aggregate statistics
                   </p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-muted-foreground">
                     Click &quot;Load All Scan Data&quot; to fetch litigation scan results for all
                     clients. You can also view individual client scans by clicking on a client
                     below. To run a new scan, visit a client&apos;s litigation page.
@@ -402,12 +402,12 @@ export default function LitigationOverviewPage() {
       {/* Search */}
       <motion.div variants={itemVariants}>
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Search clients by name or email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-slate-800/50 border-slate-700 text-white"
+            className="pl-10 bg-card border-border text-foreground"
           />
         </div>
       </motion.div>
@@ -416,13 +416,13 @@ export default function LitigationOverviewPage() {
       {sortedClients.length === 0 ? (
         <motion.div
           variants={itemVariants}
-          className="rounded-2xl bg-slate-800/40 border border-slate-700/50 py-12 text-center"
+          className="rounded-2xl bg-card border border-border py-12 text-center"
         >
-          <Users className="w-12 h-12 mx-auto text-slate-600" />
-          <h3 className="text-lg font-medium text-white mt-4">
+          <Users className="w-12 h-12 mx-auto text-muted-foreground" />
+          <h3 className="text-lg font-medium text-foreground mt-4">
             {searchQuery ? "No clients match your search" : "No clients found"}
           </h3>
-          <p className="text-slate-400 mt-2">
+          <p className="text-muted-foreground mt-2">
             {searchQuery
               ? "Try adjusting your search terms."
               : "Add clients from the Clients page to get started."}
@@ -431,10 +431,10 @@ export default function LitigationOverviewPage() {
       ) : (
         <motion.div
           variants={itemVariants}
-          className="rounded-2xl bg-slate-800/40 border border-slate-700/50 overflow-hidden"
+          className="rounded-2xl bg-card border border-border overflow-hidden"
         >
           {/* Table Header */}
-          <div className="grid grid-cols-12 gap-4 px-4 py-3 bg-slate-800/60 border-b border-slate-700/50 text-xs font-semibold text-slate-400 uppercase tracking-wide">
+          <div className="grid grid-cols-12 gap-4 px-4 py-3 bg-card border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             <div className="col-span-3">Client</div>
             <div className="col-span-2">Scan Status</div>
             <div className="col-span-2">Violations</div>
@@ -444,27 +444,27 @@ export default function LitigationOverviewPage() {
           </div>
 
           {/* Table Body */}
-          <div className="divide-y divide-slate-700/30">
+          <div className="divide-y divide-border">
             {sortedClients.map((client, index) => (
               <motion.div
                 key={client.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.03 }}
-                className="grid grid-cols-12 gap-4 px-4 py-3 hover:bg-slate-700/30 transition-colors items-center group"
+                className="grid grid-cols-12 gap-4 px-4 py-3 hover:bg-muted transition-colors items-center group"
               >
                 {/* Client Name */}
                 <div className="col-span-3 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center border border-slate-600/50">
-                    <span className="text-sm font-medium text-white">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center border border-input">
+                    <span className="text-sm font-medium text-foreground">
                       {client.firstName.charAt(0)}{client.lastName.charAt(0)}
                     </span>
                   </div>
                   <div className="min-w-0">
-                    <p className="font-medium text-white truncate">
+                    <p className="font-medium text-foreground truncate">
                       {client.firstName} {client.lastName}
                     </p>
-                    <p className="text-xs text-slate-400 truncate">
+                    <p className="text-xs text-muted-foreground truncate">
                       {client.email || "No email"}
                     </p>
                   </div>
@@ -477,7 +477,7 @@ export default function LitigationOverviewPage() {
                       {client.scanSummary.totalScans} scan{client.scanSummary.totalScans !== 1 ? "s" : ""}
                     </Badge>
                   ) : (
-                    <Badge className="bg-slate-500/20 text-slate-400 text-xs">
+                    <Badge className="bg-muted text-muted-foreground text-xs">
                       Not Scanned
                     </Badge>
                   )}
@@ -487,7 +487,7 @@ export default function LitigationOverviewPage() {
                 <div className="col-span-2">
                   {client.scanSummary ? (
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-white font-medium">
+                      <span className="text-sm text-foreground font-medium">
                         {client.scanSummary.totalViolations}
                       </span>
                       {client.scanSummary.criticalCount > 0 && (
@@ -502,7 +502,7 @@ export default function LitigationOverviewPage() {
                       )}
                     </div>
                   ) : (
-                    <span className="text-slate-500 text-sm">--</span>
+                    <span className="text-muted-foreground text-sm">--</span>
                   )}
                 </div>
 
@@ -513,23 +513,23 @@ export default function LitigationOverviewPage() {
                       <p className="text-sm font-medium text-emerald-400">
                         {formatCurrency(client.scanSummary.estimatedDamagesMin)}
                       </p>
-                      <p className="text-[10px] text-slate-500">
+                      <p className="text-[10px] text-muted-foreground">
                         to {formatCurrency(client.scanSummary.estimatedDamagesMax)}
                       </p>
                     </div>
                   ) : (
-                    <span className="text-slate-500 text-sm">--</span>
+                    <span className="text-muted-foreground text-sm">--</span>
                   )}
                 </div>
 
                 {/* Last Scanned */}
                 <div className="col-span-2">
                   {client.scanSummary?.latestScanDate ? (
-                    <span className="text-sm text-slate-400">
+                    <span className="text-sm text-muted-foreground">
                       {formatDate(client.scanSummary.latestScanDate)}
                     </span>
                   ) : (
-                    <span className="text-sm text-slate-500">Never</span>
+                    <span className="text-sm text-muted-foreground">Never</span>
                   )}
                 </div>
 

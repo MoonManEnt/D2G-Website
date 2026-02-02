@@ -187,10 +187,10 @@ export function AddReminderModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-slate-800 border-slate-700">
+      <DialogContent className="bg-card border-border">
         <DialogHeader>
-          <DialogTitle className="text-white">Add Reminder</DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogTitle className="text-foreground">Add Reminder</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
             Schedule a reminder for client follow-up
           </DialogDescription>
         </DialogHeader>
@@ -199,15 +199,15 @@ export function AddReminderModal({
           {/* Client Selection */}
           {!initialClientId && (
             <div className="space-y-2">
-              <Label className="text-slate-300">Client</Label>
+              <Label className="text-muted-foreground">Client</Label>
               <Select
                 value={formData.clientId}
                 onValueChange={(v) => setFormData({ ...formData, clientId: v, disputeId: "" })}
               >
-                <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+                <SelectTrigger className="bg-muted border-input text-foreground">
                   <SelectValue placeholder={loadingClients ? "Loading..." : "Select client"} />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectContent className="bg-card border-border">
                   {clients.map((client) => (
                     <SelectItem key={client.id} value={client.id}>
                       {client.firstName} {client.lastName}
@@ -221,15 +221,15 @@ export function AddReminderModal({
           {/* Dispute Selection (optional) */}
           {!initialDisputeId && formData.clientId && disputes.length > 0 && (
             <div className="space-y-2">
-              <Label className="text-slate-300">Related Dispute (Optional)</Label>
+              <Label className="text-muted-foreground">Related Dispute (Optional)</Label>
               <Select
                 value={formData.disputeId}
                 onValueChange={(v) => setFormData({ ...formData, disputeId: v })}
               >
-                <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+                <SelectTrigger className="bg-muted border-input text-foreground">
                   <SelectValue placeholder={loadingDisputes ? "Loading..." : "Select dispute"} />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectContent className="bg-card border-border">
                   <SelectItem value="">No dispute</SelectItem>
                   {disputes.map((dispute) => (
                     <SelectItem key={dispute.id} value={dispute.id}>
@@ -243,15 +243,15 @@ export function AddReminderModal({
 
           {/* Reminder Type */}
           <div className="space-y-2">
-            <Label className="text-slate-300">Type</Label>
+            <Label className="text-muted-foreground">Type</Label>
             <Select
               value={formData.reminderType}
               onValueChange={(v) => setFormData({ ...formData, reminderType: v })}
             >
-              <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+              <SelectTrigger className="bg-muted border-input text-foreground">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectContent className="bg-card border-border">
                 {REMINDER_TYPES.map((type) => (
                   <SelectItem key={type.value} value={type.value}>
                     {type.label}
@@ -263,24 +263,24 @@ export function AddReminderModal({
 
           {/* Title */}
           <div className="space-y-2">
-            <Label className="text-slate-300">Title</Label>
+            <Label className="text-muted-foreground">Title</Label>
             <Input
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               placeholder="Follow up on dispute status"
-              className="bg-slate-700/50 border-slate-600 text-white"
+              className="bg-muted border-input text-foreground"
               required
             />
           </div>
 
           {/* Description */}
           <div className="space-y-2">
-            <Label className="text-slate-300">Description (Optional)</Label>
+            <Label className="text-muted-foreground">Description (Optional)</Label>
             <Textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Additional notes..."
-              className="bg-slate-700/50 border-slate-600 text-white resize-none"
+              className="bg-muted border-input text-foreground resize-none"
               rows={2}
             />
           </div>
@@ -288,22 +288,22 @@ export function AddReminderModal({
           {/* Date and Time */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-slate-300">Date</Label>
+              <Label className="text-muted-foreground">Date</Label>
               <Input
                 type="date"
                 value={formData.scheduledFor}
                 onChange={(e) => setFormData({ ...formData, scheduledFor: e.target.value })}
-                className="bg-slate-700/50 border-slate-600 text-white"
+                className="bg-muted border-input text-foreground"
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-300">Time</Label>
+              <Label className="text-muted-foreground">Time</Label>
               <Input
                 type="time"
                 value={formData.scheduledTime}
                 onChange={(e) => setFormData({ ...formData, scheduledTime: e.target.value })}
-                className="bg-slate-700/50 border-slate-600 text-white"
+                className="bg-muted border-input text-foreground"
                 required
               />
             </div>
@@ -311,15 +311,15 @@ export function AddReminderModal({
 
           {/* Repeat */}
           <div className="space-y-2">
-            <Label className="text-slate-300">Repeat</Label>
+            <Label className="text-muted-foreground">Repeat</Label>
             <Select
               value={formData.repeatInterval}
               onValueChange={(v) => setFormData({ ...formData, repeatInterval: v })}
             >
-              <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+              <SelectTrigger className="bg-muted border-input text-foreground">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectContent className="bg-card border-border">
                 {REPEAT_OPTIONS.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
@@ -335,7 +335,7 @@ export function AddReminderModal({
               type="button"
               variant="ghost"
               onClick={() => onOpenChange(false)}
-              className="text-slate-400"
+              className="text-muted-foreground"
             >
               Cancel
             </Button>

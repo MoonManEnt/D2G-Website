@@ -103,22 +103,22 @@ export default async function SentryClientPage({ params }: PageProps) {
         <div className="mb-8">
           <a
             href="/sentry"
-            className="text-sm text-slate-400 hover:text-slate-300 flex items-center gap-1 mb-4"
+            className="text-sm text-muted-foreground hover:text-muted-foreground flex items-center gap-1 mb-4"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             Back to Sentry
           </a>
-          <h1 className="text-2xl font-bold text-slate-200">
+          <h1 className="text-2xl font-bold text-foreground">
             Sentry Dispute - {client.firstName} {client.lastName}
           </h1>
         </div>
 
         {/* No accounts message */}
-        <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-12 text-center">
+        <div className="bg-card rounded-xl border border-border p-12 text-center">
           <svg
-            className="w-16 h-16 text-slate-600 mx-auto mb-4"
+            className="w-16 h-16 text-muted-foreground mx-auto mb-4"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -130,14 +130,14 @@ export default async function SentryClientPage({ params }: PageProps) {
               d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
             />
           </svg>
-          <h2 className="text-lg font-semibold text-slate-200 mb-2">No Accounts Found</h2>
-          <p className="text-slate-400 mb-6">
+          <h2 className="text-lg font-semibold text-foreground mb-2">No Accounts Found</h2>
+          <p className="text-muted-foreground mb-6">
             This client doesn't have any credit report accounts yet.
             Upload a credit report to get started.
           </p>
           <a
             href={`/clients/${client.id}`}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-foreground rounded-lg hover:bg-primary transition-colors"
           >
             Go to Client Profile
           </a>
@@ -151,7 +151,7 @@ export default async function SentryClientPage({ params }: PageProps) {
       {/* Back link */}
       <a
         href="/sentry"
-        className="text-sm text-slate-400 hover:text-slate-300 flex items-center gap-1 mb-6"
+        className="text-sm text-muted-foreground hover:text-muted-foreground flex items-center gap-1 mb-6"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />

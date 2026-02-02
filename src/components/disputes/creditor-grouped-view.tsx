@@ -92,8 +92,8 @@ export function CreditorGroupedView({
   if (groups.length === 0) {
     return (
       <div className="py-8 text-center">
-        <Building2 className="w-10 h-10 mx-auto text-slate-600" />
-        <p className="text-sm text-slate-400 mt-2">No accounts to group</p>
+        <Building2 className="w-10 h-10 mx-auto text-muted-foreground" />
+        <p className="text-sm text-muted-foreground mt-2">No accounts to group</p>
       </div>
     );
   }
@@ -118,30 +118,30 @@ export function CreditorGroupedView({
               "rounded-xl border overflow-hidden transition-all",
               hasInconsistencies
                 ? "border-amber-500/30 bg-amber-950/10"
-                : "border-slate-700/50 bg-slate-800/40"
+                : "border-border bg-card"
             )}
           >
             {/* Group Header */}
             <button
               onClick={() => toggleGroup(group.normalizedName)}
-              className="w-full flex items-center gap-3 p-4 hover:bg-slate-700/20 transition-colors"
+              className="w-full flex items-center gap-3 p-4 hover:bg-muted transition-colors"
             >
               <div className="flex-shrink-0">
                 {isExpanded ? (
-                  <ChevronDown className="w-4 h-4 text-slate-400" />
+                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
                 ) : (
-                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
                 )}
               </div>
 
               <div className="flex-1 text-left">
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold text-white">
+                  <span className="font-semibold text-foreground">
                     {group.normalizedName}
                   </span>
                   <Badge
                     variant="outline"
-                    className="text-xs border-slate-600 text-slate-400"
+                    className="text-xs border-input text-muted-foreground"
                   >
                     {group.accounts.length} account{group.accounts.length !== 1 ? "s" : ""}
                   </Badge>
@@ -159,7 +159,7 @@ export function CreditorGroupedView({
                     (name, idx) => (
                       <span
                         key={idx}
-                        className="text-xs text-slate-500 bg-slate-700/30 px-1.5 py-0.5 rounded"
+                        className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded"
                       >
                         {name}
                       </span>
@@ -202,7 +202,7 @@ export function CreditorGroupedView({
                   transition={{ duration: 0.2 }}
                   className="overflow-hidden"
                 >
-                  <div className="px-4 pb-4 space-y-3 border-t border-slate-700/50 pt-3">
+                  <div className="px-4 pb-4 space-y-3 border-t border-border pt-3">
                     {/* Inconsistencies Alert */}
                     {hasInconsistencies && (
                       <div className="space-y-2">
@@ -246,7 +246,7 @@ export function CreditorGroupedView({
                                 ? "border-amber-500/30 bg-amber-950/20 opacity-60"
                                 : isSelected
                                 ? "border-purple-500/50 bg-purple-500/10"
-                                : "border-slate-700/50 bg-slate-800/40 hover:border-slate-600/50"
+                                : "border-border bg-card hover:border-input"
                             )}
                           >
                             {/* Checkbox */}
@@ -259,11 +259,11 @@ export function CreditorGroupedView({
                                   ? "bg-amber-500/20 border-amber-500/30 cursor-not-allowed"
                                   : isSelected
                                   ? "bg-purple-500 border-purple-500"
-                                  : "border-slate-600 hover:border-purple-500/50"
+                                  : "border-input hover:border-purple-500/50"
                               )}
                             >
                               {isSelected && !isLocked && (
-                                <CheckCircle2 className="w-3 h-3 text-white" />
+                                <CheckCircle2 className="w-3 h-3 text-foreground" />
                               )}
                               {isLocked && (
                                 <span className="text-[10px] text-amber-400">!</span>
@@ -273,7 +273,7 @@ export function CreditorGroupedView({
                             {/* Account Info */}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className="text-sm text-white truncate">
+                                <span className="text-sm text-foreground truncate">
                                   {account.originalCreditorName}
                                 </span>
                                 <Badge
@@ -282,13 +282,13 @@ export function CreditorGroupedView({
                                     "text-[10px]",
                                     isSameBureau
                                       ? "border-green-500/30 text-green-400"
-                                      : "border-slate-600 text-slate-400"
+                                      : "border-input text-muted-foreground"
                                   )}
                                 >
                                   {account.bureau}
                                 </Badge>
                               </div>
-                              <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                                 {account.accountNumber && (
                                   <span>#{account.accountNumber}</span>
                                 )}
@@ -298,7 +298,7 @@ export function CreditorGroupedView({
                                   </span>
                                 )}
                                 {account.status && (
-                                  <span className="text-slate-400">
+                                  <span className="text-muted-foreground">
                                     {account.status}
                                   </span>
                                 )}

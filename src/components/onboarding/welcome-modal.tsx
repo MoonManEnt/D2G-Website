@@ -27,7 +27,7 @@ export function WelcomeModal() {
 
           {/* Modal */}
           <motion.div
-            className="relative bg-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl shadow-black/50 ring-1 ring-white/10 max-w-xl w-full overflow-hidden"
+            className="relative bg-background border border-border rounded-2xl shadow-2xl shadow-black/50 ring-1 ring-white/10 max-w-xl w-full overflow-hidden"
             initial={{ scale: 0.95, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 20 }}
@@ -60,11 +60,11 @@ export function WelcomeModal() {
                 animate={{ rotate: 0 }}
                 transition={{ type: "spring", stiffness: 300 }}
               >
-                <Shield className="w-8 h-8 text-white" />
+                <Shield className="w-8 h-8 text-foreground" />
               </motion.div>
 
               <motion.h1
-                className="text-3xl font-bold text-white mb-2"
+                className="text-3xl font-bold text-foreground mb-2"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
@@ -81,20 +81,20 @@ export function WelcomeModal() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3 }}
               >
-                <p className="text-slate-300 text-base leading-relaxed">
+                <p className="text-muted-foreground text-base leading-relaxed">
                   The credit dispute operating system built for professionals. Import any IdentityIQ report and watch it transform into a complete, actionable dispute workflow—automatically sequenced by FCRA statute, legally compliant, and ready to send.
                 </p>
-                <p className="text-slate-300 text-base leading-relaxed">
+                <p className="text-muted-foreground text-base leading-relaxed">
                   No more manual letter drafting. No more guessing which violations to cite. Just powerful, precise disputes that get results.
                 </p>
-                <p className="text-slate-400 text-base font-medium mt-6">
+                <p className="text-muted-foreground text-base font-medium mt-6">
                   Good luck out there.
                 </p>
               </motion.div>
 
               {/* Quote */}
               <motion.div
-                className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 mb-8"
+                className="bg-card border border-border rounded-xl p-4 mb-8"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
@@ -102,10 +102,10 @@ export function WelcomeModal() {
                 <div className="flex items-start gap-3">
                   <Quote className="w-5 h-5 text-brand-400 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-slate-300 italic">
+                    <p className="text-muted-foreground italic">
                       "Willing is not enough; we must do."
                     </p>
-                    <p className="text-slate-500 text-sm mt-1">— Robert F. Smith</p>
+                    <p className="text-muted-foreground text-sm mt-1">— Robert F. Smith</p>
                   </div>
                 </div>
               </motion.div>

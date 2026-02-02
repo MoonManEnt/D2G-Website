@@ -679,8 +679,8 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Disputes</h1>
-          <p className="text-slate-400 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Disputes</h1>
+          <p className="text-muted-foreground mt-1">
             Create and manage credit report dispute letters
           </p>
         </div>
@@ -691,7 +691,7 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
             <select
               value={selectedClientId}
               onChange={(e) => setSelectedClientId(e.target.value)}
-              className="bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm min-w-[200px]"
+              className="bg-muted border border-input rounded-lg px-3 py-2 text-foreground text-sm min-w-[200px]"
             >
               <option value="">Select Client</option>
               {clients.map((c) => (
@@ -701,15 +701,15 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
               ))}
             </select>
             {client && client.firstName && (
-              <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-700/50 border border-slate-600/50 rounded-xl min-w-[180px]">
+              <div className="flex items-center gap-3 px-4 py-2.5 bg-muted border border-input/50 rounded-xl min-w-[180px]">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500/30 to-purple-600/20 flex items-center justify-center text-purple-400 text-sm font-bold border border-purple-500/30">
                   {client.firstName?.[0] || ""}{client.lastName?.[0] || ""}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <span className="text-sm font-semibold text-white block truncate">
+                  <span className="text-sm font-semibold text-foreground block truncate">
                     {client.firstName} {client.lastName}
                   </span>
-                  <span className="text-xs text-slate-400 uppercase tracking-wide">
+                  <span className="text-xs text-muted-foreground uppercase tracking-wide">
                     Round {client.currentRound || 1}
                   </span>
                 </div>
@@ -721,46 +721,46 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
 
       {/* Stats Bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="bg-card border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <span className="text-2xl">📊</span>
               <div>
-                <p className="text-2xl font-bold text-white">{stats.totalAccounts}</p>
-                <p className="text-xs text-slate-400 uppercase tracking-wider">Negative Accounts</p>
+                <p className="text-2xl font-bold text-foreground">{stats.totalAccounts}</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Negative Accounts</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="bg-card border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <span className="text-2xl">🔥</span>
               <div>
                 <p className="text-2xl font-bold text-red-400">{stats.highPriority}</p>
-                <p className="text-xs text-slate-400 uppercase tracking-wider">High Priority</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">High Priority</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="bg-card border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <span className="text-2xl">📋</span>
               <div>
                 <p className="text-2xl font-bold text-amber-400">{stats.collections}</p>
-                <p className="text-xs text-slate-400 uppercase tracking-wider">Collections</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Collections</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="bg-card border-border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <span className="text-2xl">💰</span>
               <div>
                 <p className="text-2xl font-bold text-emerald-400">${stats.totalBalance.toLocaleString()}</p>
-                <p className="text-xs text-slate-400 uppercase tracking-wider">Total Balance</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Total Balance</p>
               </div>
             </div>
           </CardContent>
@@ -769,24 +769,24 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="bg-slate-800/50 border border-slate-700/50 p-1 w-full justify-start">
-          <TabsTrigger value="create" className="gap-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
+        <TabsList className="bg-card border border-border p-1 w-full justify-start">
+          <TabsTrigger value="create" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-muted-foreground">
             <Sparkles className="w-4 h-4" />
             Create Dispute
           </TabsTrigger>
-          <TabsTrigger value="cfpb" className="gap-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
+          <TabsTrigger value="cfpb" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-muted-foreground">
             <Building className="w-4 h-4" />
             CFPB Complaints
           </TabsTrigger>
-          <TabsTrigger value="rounds" className="gap-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
+          <TabsTrigger value="rounds" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-muted-foreground">
             <BarChart3 className="w-4 h-4" />
             Round Flow
           </TabsTrigger>
-          <TabsTrigger value="responses" className="gap-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
+          <TabsTrigger value="responses" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-muted-foreground">
             <MessageSquareText className="w-4 h-4" />
             Responses
           </TabsTrigger>
-          <TabsTrigger value="history" className="gap-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
+          <TabsTrigger value="history" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-muted-foreground">
             <History className="w-4 h-4" />
             History
           </TabsTrigger>
@@ -798,8 +798,8 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
             {/* Left Panel */}
             <div className="space-y-5">
               {/* CRA Selector */}
-              <Card className="bg-slate-800/60 border-slate-700/50 p-5">
-                <h3 className="flex items-center gap-2 text-sm font-semibold text-white mb-4">
+              <Card className="bg-card border-border p-5">
+                <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground mb-4">
                   <Building className="w-4 h-4" />
                   Select Bureau
                 </h3>
@@ -811,8 +811,8 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
               </Card>
 
               {/* Flow Selector */}
-              <Card className="bg-slate-800/60 border-slate-700/50 p-5">
-                <h3 className="flex items-center gap-2 text-sm font-semibold text-white mb-4">
+              <Card className="bg-card border-border p-5">
+                <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground mb-4">
                   🔀 Dispute Flow
                 </h3>
                 <FlowSelector
@@ -822,26 +822,26 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
               </Card>
 
               {/* Parsed Accounts - Smart Workflow */}
-              <Card className="bg-slate-800/60 border-slate-700/50 p-5">
+              <Card className="bg-card border-border p-5">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="flex items-center gap-2 text-sm font-semibold text-white">
+                    <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
                       📋 {selectedCRA} Accounts
                     </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       Showing accounts reported to this bureau only
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
                     {/* View Mode Toggle */}
-                    <div className="flex items-center bg-slate-700/50 rounded-lg p-0.5 mr-2">
+                    <div className="flex items-center bg-muted rounded-lg p-0.5 mr-2">
                       <button
                         onClick={() => setViewMode("list")}
                         className={cn(
                           "flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-colors",
                           viewMode === "list"
-                            ? "bg-slate-600 text-white"
-                            : "text-slate-400 hover:text-white"
+                            ? "bg-muted text-foreground"
+                            : "text-muted-foreground hover:text-foreground"
                         )}
                       >
                         <List className="w-3.5 h-3.5" />
@@ -852,8 +852,8 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
                         className={cn(
                           "flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-colors",
                           viewMode === "grouped"
-                            ? "bg-slate-600 text-white"
-                            : "text-slate-400 hover:text-white"
+                            ? "bg-muted text-foreground"
+                            : "text-muted-foreground hover:text-foreground"
                         )}
                       >
                         <Layers className="w-3.5 h-3.5" />
@@ -862,7 +862,7 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
                     </div>
                     {/* Selection count */}
                     {parsedAccounts.length > 0 && (
-                      <span className="text-xs text-slate-400">
+                      <span className="text-xs text-muted-foreground">
                         {selectedAccounts.length} of {parsedAccounts.filter(a => !a.activeDispute).length} selected
                       </span>
                     )}
@@ -883,7 +883,7 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="text-slate-400 border-slate-600 hover:text-white hover:bg-slate-700/50"
+                      className="text-muted-foreground border-input hover:text-foreground hover:bg-muted"
                       onClick={() => setSelectedAccounts([])}
                       disabled={selectedAccounts.length === 0}
                     >
@@ -895,19 +895,19 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
 
                 {accountsLoading ? (
                   <div className="py-8 text-center">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-slate-400" />
-                    <p className="text-sm text-slate-400 mt-2">Loading {selectedCRA} accounts...</p>
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground mt-2">Loading {selectedCRA} accounts...</p>
                   </div>
                 ) : parsedAccounts.length === 0 ? (
                   <div className="py-8 text-center">
-                    <Scale className="w-10 h-10 mx-auto text-slate-600" />
-                    <p className="text-sm text-slate-400 mt-2">
+                    <Scale className="w-10 h-10 mx-auto text-muted-foreground/50" />
+                    <p className="text-sm text-muted-foreground mt-2">
                       {selectedClientId
                         ? `No negative accounts found on ${selectedCRA} report`
                         : "Select a client to view accounts"}
                     </p>
                     {selectedClientId && (
-                      <p className="text-xs text-slate-500 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         Try selecting a different bureau
                       </p>
                     )}
@@ -940,11 +940,11 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
                     {parsedAccounts.some(a => !a.activeDispute) &&
                      parsedAccounts.some(a => a.activeDispute) && (
                       <div className="flex items-center gap-3 py-2">
-                        <div className="flex-1 border-t border-slate-600/50" />
+                        <div className="flex-1 border-t border-input/50" />
                         <span className="text-xs text-amber-500/70 font-medium uppercase tracking-wider">
                           Awaiting Response
                         </span>
-                        <div className="flex-1 border-t border-slate-600/50" />
+                        <div className="flex-1 border-t border-input/50" />
                       </div>
                     )}
 
@@ -972,20 +972,20 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
 
               {/* Personal Info Disputes (R1 Only) */}
               {client && (client.previousNames?.length || client.previousAddresses?.length || client.hardInquiries?.length) && (
-                <Card className="bg-slate-800/60 border-slate-700/50 p-5">
-                  <h3 className="flex items-center gap-2 text-sm font-semibold text-white mb-1">
+                <Card className="bg-card border-border p-5">
+                  <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground mb-1">
                     👤 Personal Info Disputes
                     <Badge className="ml-auto bg-amber-500/20 text-amber-400 text-[10px]">
                       R1 Only
                     </Badge>
                   </h3>
-                  <p className="text-xs text-slate-500 mb-4">
+                  <p className="text-xs text-muted-foreground mb-4">
                     Round 1 includes disputes for incorrect personal information found on the report.
                   </p>
 
                   {client.previousNames && client.previousNames.length > 0 && (
                     <div className="mb-3">
-                      <span className="block text-xs text-slate-500 font-medium mb-2">
+                      <span className="block text-xs text-muted-foreground font-medium mb-2">
                         Previous Names to Remove:
                       </span>
                       <div className="flex flex-wrap gap-2">
@@ -1000,7 +1000,7 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
 
                   {client.previousAddresses && client.previousAddresses.length > 0 && (
                     <div className="mb-3">
-                      <span className="block text-xs text-slate-500 font-medium mb-2">
+                      <span className="block text-xs text-muted-foreground font-medium mb-2">
                         Old Addresses to Remove:
                       </span>
                       <div className="flex flex-wrap gap-2">
@@ -1015,7 +1015,7 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
 
                   {client.hardInquiries && client.hardInquiries.filter((i) => i.cra === selectedCRA).length > 0 && (
                     <div>
-                      <span className="block text-xs text-slate-500 font-medium mb-2">
+                      <span className="block text-xs text-muted-foreground font-medium mb-2">
                         Unauthorized Inquiries:
                       </span>
                       <div className="flex flex-wrap gap-2">
@@ -1049,8 +1049,8 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
 
               {/* eOSCAR Detection Score */}
               {eoscarScore && (
-                <Card className="bg-slate-800/60 border-slate-700/50 p-5">
-                  <h3 className="flex items-center gap-2 text-sm font-semibold text-white mb-4">
+                <Card className="bg-card border-border p-5">
+                  <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground mb-4">
                     🛡️ eOSCAR Detection Risk
                   </h3>
                   <div className="flex items-center gap-3 mb-4">
@@ -1076,17 +1076,17 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
                     </span>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
-                    <div className="p-2.5 bg-slate-700/30 rounded-lg text-center">
-                      <span className="block text-lg font-bold text-white">{eoscarScore.uniquenessScore}%</span>
-                      <span className="text-[10px] text-slate-500 uppercase">Uniqueness</span>
+                    <div className="p-2.5 bg-muted/30 rounded-lg text-center">
+                      <span className="block text-lg font-bold text-foreground">{eoscarScore.uniquenessScore}%</span>
+                      <span className="text-[10px] text-muted-foreground uppercase">Uniqueness</span>
                     </div>
-                    <div className="p-2.5 bg-slate-700/30 rounded-lg text-center">
-                      <span className="block text-lg font-bold text-white">{eoscarScore.humanizingPhrases}</span>
-                      <span className="text-[10px] text-slate-500 uppercase">Human Phrases</span>
+                    <div className="p-2.5 bg-muted/30 rounded-lg text-center">
+                      <span className="block text-lg font-bold text-foreground">{eoscarScore.humanizingPhrases}</span>
+                      <span className="text-[10px] text-muted-foreground uppercase">Human Phrases</span>
                     </div>
-                    <div className="p-2.5 bg-slate-700/30 rounded-lg text-center">
-                      <span className="block text-lg font-bold text-white">{eoscarScore.flaggedPhrases}</span>
-                      <span className="text-[10px] text-slate-500 uppercase">Flagged</span>
+                    <div className="p-2.5 bg-muted/30 rounded-lg text-center">
+                      <span className="block text-lg font-bold text-foreground">{eoscarScore.flaggedPhrases}</span>
+                      <span className="text-[10px] text-muted-foreground uppercase">Flagged</span>
                     </div>
                   </div>
                 </Card>
@@ -1115,7 +1115,7 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
                   )}
                 </Button>
               </div>
-              <p className="text-xs text-slate-500 text-center mt-2">
+              <p className="text-xs text-muted-foreground text-center mt-2">
                 Creates draft dispute with AMELIA-generated letter for review
               </p>
             </div>
@@ -1170,9 +1170,9 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
               onRefresh={refreshDisputesList}
             />
           ) : (
-            <Card className="bg-slate-800/60 border-slate-700/50 p-12 text-center">
-              <Scale className="w-12 h-12 mx-auto text-slate-600 mb-4" />
-              <p className="text-slate-400">Select a client to view their dispute round flow</p>
+            <Card className="bg-card border-border p-12 text-center">
+              <Scale className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+              <p className="text-muted-foreground">Select a client to view their dispute round flow</p>
             </Card>
           )}
         </TabsContent>
@@ -1200,11 +1200,11 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
 
         {/* Responses Tab */}
         <TabsContent value="responses" className="mt-6">
-          <Card className="bg-slate-800/60 border-slate-700/50 p-6">
+          <Card className="bg-card border-border p-6">
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h2 className="text-lg font-bold text-white">Response Tracker</h2>
-                <p className="text-sm text-slate-400 mt-1">
+                <h2 className="text-lg font-bold text-foreground">Response Tracker</h2>
+                <p className="text-sm text-muted-foreground mt-1">
                   Track pending responses and FCRA deadlines
                 </p>
               </div>
@@ -1220,13 +1220,13 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
 
             {responsesLoading ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
               </div>
             ) : pendingResponses.length === 0 ? (
               <div className="py-12 text-center">
-                <MessageSquareText className="w-12 h-12 mx-auto text-slate-600 mb-4" />
-                <h3 className="text-lg font-medium text-white mb-2">No Pending Responses</h3>
-                <p className="text-slate-400 max-w-md mx-auto">
+                <MessageSquareText className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-2">No Pending Responses</h3>
+                <p className="text-muted-foreground max-w-md mx-auto">
                   Disputes that have been sent will appear here with their 30-day FCRA deadline tracking.
                 </p>
               </div>
@@ -1240,10 +1240,10 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
                     <div
                       key={response.id}
                       className={cn(
-                        "flex items-center gap-4 p-4 rounded-lg border transition-colors cursor-pointer hover:bg-slate-700/30",
+                        "flex items-center gap-4 p-4 rounded-lg border transition-colors cursor-pointer hover:bg-muted/30",
                         isUrgent ? "border-red-500/30 bg-red-500/5" :
                         isWarning ? "border-amber-500/30 bg-amber-500/5" :
-                        "border-slate-700/50 bg-slate-800/30"
+                        "border-border bg-card/30"
                       )}
                       onClick={() => router.push(`/clients/${response.clientId}?tab=disputes`)}
                     >
@@ -1267,7 +1267,7 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
                       {/* Client & Details */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-white">{response.clientName}</span>
+                          <span className="font-semibold text-foreground">{response.clientName}</span>
                           <Badge className={cn(
                             "text-[10px]",
                             response.cra === "TRANSUNION" ? "bg-blue-500/20 text-blue-400" :
@@ -1277,7 +1277,7 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
                             {response.cra.slice(0, 2)}
                           </Badge>
                         </div>
-                        <p className="text-sm text-slate-400 mt-0.5">
+                        <p className="text-sm text-muted-foreground mt-0.5">
                           R{response.round} • {response.flow} • {response.itemCount} items • Sent {new Date(response.sentDate).toLocaleDateString()}
                         </p>
                       </div>
@@ -1292,7 +1292,7 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
                         )}>
                           {isUrgent ? "Urgent" : isWarning ? "Soon" : "On Track"}
                         </span>
-                        <p className="text-xs text-slate-500 mt-0.5">
+                        <p className="text-xs text-muted-foreground mt-0.5">
                           {response.daysElapsed} days elapsed
                         </p>
                       </div>
@@ -1306,23 +1306,23 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
 
         {/* History Tab */}
         <TabsContent value="history" className="mt-6">
-          <Card className="bg-slate-800/60 border-slate-700/50 p-6">
+          <Card className="bg-card border-border p-6">
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h2 className="text-lg font-bold text-white">Dispute History</h2>
-                <p className="text-sm text-slate-400 mt-1">
+                <h2 className="text-lg font-bold text-foreground">Dispute History</h2>
+                <p className="text-sm text-muted-foreground mt-1">
                   {selectedClientId ? "Showing disputes for selected client" : "Showing all active dispute campaigns"}
                 </p>
               </div>
               <div className="flex gap-2">
-                <select className="bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-1.5 text-sm text-white">
+                <select className="bg-muted border border-input rounded-lg px-3 py-1.5 text-sm text-foreground">
                   <option value="">All Statuses</option>
                   <option value="DRAFT">Draft</option>
                   <option value="SENT">Sent</option>
                   <option value="RESPONDED">Responded</option>
                   <option value="APPROVED">Approved</option>
                 </select>
-                <select className="bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-1.5 text-sm text-white">
+                <select className="bg-muted border border-input rounded-lg px-3 py-1.5 text-sm text-foreground">
                   <option value="">All Bureaus</option>
                   <option value="TRANSUNION">TransUnion</option>
                   <option value="EXPERIAN">Experian</option>
@@ -1340,9 +1340,9 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
               if (filteredDisputes.length === 0) {
                 return (
                   <div className="py-12 text-center">
-                    <History className="w-12 h-12 mx-auto text-slate-600 mb-4" />
-                    <h3 className="text-lg font-medium text-white mb-2">No Dispute Campaigns</h3>
-                    <p className="text-slate-400 max-w-md mx-auto">
+                    <History className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+                    <h3 className="text-lg font-medium text-foreground mb-2">No Dispute Campaigns</h3>
+                    <p className="text-muted-foreground max-w-md mx-auto">
                       {selectedClientId
                         ? "No disputes have been created for this client yet. Start by selecting accounts and creating a dispute."
                         : "Create your first dispute campaign by selecting a client and choosing accounts to dispute."}
@@ -1363,32 +1363,32 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
                   {filteredDisputes.map((dispute) => (
                     <div
                       key={dispute.id}
-                      className="flex items-center gap-4 p-4 bg-slate-700/30 rounded-xl border border-slate-600/50 hover:border-slate-500/50 transition-all"
+                      className="flex items-center gap-4 p-4 bg-muted/30 rounded-xl border border-input/50 hover:border-input transition-all"
                     >
-                      <div className="w-10 h-10 rounded-lg bg-slate-600/30 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-lg bg-muted/30 flex items-center justify-center">
                         <Scale className="w-5 h-5 text-purple-400" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-white">
+                        <div className="font-medium text-foreground">
                           {dispute.client?.firstName || "Unknown"} {dispute.client?.lastName || "Client"}
                         </div>
                         <div className="flex items-center gap-2 flex-wrap mt-1">
-                          <Badge className={CRA_COLORS[dispute.cra]?.tailwind || "bg-slate-500/20 text-slate-400"}>
+                          <Badge className={CRA_COLORS[dispute.cra]?.tailwind || "bg-muted/50 text-muted-foreground"}>
                             {dispute.cra}
                           </Badge>
-                          <span className="text-xs text-slate-400 font-medium">Round {dispute.round}</span>
-                          <span className="text-xs text-slate-500">{dispute.flow}</span>
-                          <span className="text-xs text-slate-400 font-medium">{dispute.itemCount} items</span>
-                          <span className="text-xs text-slate-500">
+                          <span className="text-xs text-muted-foreground font-medium">Round {dispute.round}</span>
+                          <span className="text-xs text-muted-foreground">{dispute.flow}</span>
+                          <span className="text-xs text-muted-foreground font-medium">{dispute.itemCount} items</span>
+                          <span className="text-xs text-muted-foreground">
                             {new Date(dispute.createdAt).toLocaleDateString()}
                           </span>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <Badge className={STATUS_COLORS[dispute.status] || "bg-slate-500/20 text-slate-400"}>
+                        <Badge className={STATUS_COLORS[dispute.status] || "bg-muted/50 text-muted-foreground"}>
                           {dispute.status}
                         </Badge>
-                        <Button size="sm" variant="ghost" className="text-slate-400 hover:text-white">
+                        <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground">
                           <Eye className="w-4 h-4 mr-1" />
                           View
                         </Button>

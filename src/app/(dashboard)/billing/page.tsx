@@ -127,8 +127,8 @@ export default function BillingPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Billing</h1>
-        <p className="text-slate-400 mt-1">Manage your subscription and billing</p>
+        <h1 className="text-2xl font-bold text-foreground">Billing</h1>
+        <p className="text-muted-foreground mt-1">Manage your subscription and billing</p>
       </div>
 
       {/* Success banner for PRO users */}
@@ -138,15 +138,15 @@ export default function BillingPage() {
             <CheckCircle2 className="w-6 h-6 text-emerald-400" />
           </div>
           <div className="flex-1">
-            <h3 className="text-white font-medium">You're on Dispute2Go Pro!</h3>
-            <p className="text-slate-400 text-sm">All premium features are unlocked for your organization.</p>
+            <h3 className="text-foreground font-medium">You're on Dispute2Go Pro!</h3>
+            <p className="text-muted-foreground text-sm">All premium features are unlocked for your organization.</p>
           </div>
           <Button
             variant="outline"
             size="sm"
             onClick={handleManageBilling}
             disabled={isLoading === "portal"}
-            className="border-slate-600 text-slate-300 hover:bg-slate-700"
+            className="border-input text-muted-foreground hover:bg-muted"
           >
             {isLoading === "portal" ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -166,7 +166,7 @@ export default function BillingPage() {
           <AlertCircle className="w-6 h-6 text-amber-400" />
           <div className="flex-1">
             <h3 className="text-amber-400 font-medium">Payment Past Due</h3>
-            <p className="text-slate-400 text-sm">Please update your payment method to continue using Pro features.</p>
+            <p className="text-muted-foreground text-sm">Please update your payment method to continue using Pro features.</p>
           </div>
           <Button
             onClick={handleManageBilling}
@@ -179,9 +179,9 @@ export default function BillingPage() {
       )}
 
       {/* Current Plan */}
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
+          <CardTitle className="text-foreground flex items-center gap-2">
             <CreditCard className="w-5 h-5" />
             Current Plan
           </CardTitle>
@@ -194,7 +194,7 @@ export default function BillingPage() {
                   className={
                     currentTier === "PROFESSIONAL"
                       ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 text-lg px-4 py-1"
-                      : "bg-slate-600 text-slate-200 text-lg px-4 py-1"
+                      : "bg-muted text-foreground text-lg px-4 py-1"
                   }
                 >
                   {currentTier === "PROFESSIONAL" && <Sparkles className="w-4 h-4 mr-1" />}
@@ -202,7 +202,7 @@ export default function BillingPage() {
                 </Badge>
                 {currentTier === "PROFESSIONAL" && getStatusBadge()}
               </div>
-              <p className="text-slate-400 mt-2">
+              <p className="text-muted-foreground mt-2">
                 {currentTier === "PROFESSIONAL"
                   ? "You have access to all features"
                   : "Upgrade to unlock all features and remove limits"}
@@ -213,7 +213,7 @@ export default function BillingPage() {
                 variant="outline"
                 onClick={handleManageBilling}
                 disabled={isLoading === "portal"}
-                className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                className="border-input text-muted-foreground hover:bg-muted"
               >
                 {isLoading === "portal" ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -229,28 +229,28 @@ export default function BillingPage() {
       {/* Plan Comparison */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Free Plan */}
-        <Card className={`bg-slate-800/50 border-slate-700 ${currentTier === "FREE" ? "ring-2 ring-blue-500" : ""}`}>
+        <Card className={`bg-card border-border ${currentTier === "FREE" ? "ring-2 ring-blue-500" : ""}`}>
           <CardHeader>
-            <CardTitle className="text-white">Free</CardTitle>
-            <CardDescription className="text-slate-400">
+            <CardTitle className="text-foreground">Free</CardTitle>
+            <CardDescription className="text-muted-foreground">
               Get started with basic features
             </CardDescription>
             <div className="pt-4">
-              <span className="text-4xl font-bold text-white">$0</span>
-              <span className="text-slate-400">/forever</span>
+              <span className="text-4xl font-bold text-foreground">$0</span>
+              <span className="text-muted-foreground">/forever</span>
             </div>
           </CardHeader>
           <CardContent>
             <ul className="space-y-3">
               {PLAN_FEATURES.FREE.features.map((feature) => (
-                <li key={feature} className="flex items-center gap-2 text-slate-300">
+                <li key={feature} className="flex items-center gap-2 text-muted-foreground">
                   <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
                   {feature}
                 </li>
               ))}
             </ul>
             {currentTier === "FREE" && (
-              <Button variant="outline" className="w-full mt-6 border-slate-600" disabled>
+              <Button variant="outline" className="w-full mt-6 border-input" disabled>
                 Current Plan
               </Button>
             )}
@@ -258,7 +258,7 @@ export default function BillingPage() {
         </Card>
 
         {/* Pro Plan */}
-        <Card className={`bg-slate-800/50 border-slate-700 relative ${currentTier === "PROFESSIONAL" ? "ring-2 ring-amber-500" : ""}`}>
+        <Card className={`bg-card border-border relative ${currentTier === "PROFESSIONAL" ? "ring-2 ring-amber-500" : ""}`}>
           <div className="absolute -top-3 right-4">
             <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0">
               <Sparkles className="w-3 h-3 mr-1" />
@@ -266,22 +266,22 @@ export default function BillingPage() {
             </Badge>
           </div>
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-foreground flex items-center gap-2">
               Pro
               <Zap className="w-5 h-5 text-amber-400" />
             </CardTitle>
-            <CardDescription className="text-slate-400">
+            <CardDescription className="text-muted-foreground">
               Full access to all features
             </CardDescription>
             <div className="pt-4">
-              <span className="text-4xl font-bold text-white">${PLAN_FEATURES.PRO.price}</span>
-              <span className="text-slate-400">/month</span>
+              <span className="text-4xl font-bold text-foreground">${PLAN_FEATURES.PRO.price}</span>
+              <span className="text-muted-foreground">/month</span>
             </div>
           </CardHeader>
           <CardContent>
             <ul className="space-y-3">
               {PLAN_FEATURES.PRO.features.map((feature) => (
-                <li key={feature} className="flex items-center gap-2 text-slate-300">
+                <li key={feature} className="flex items-center gap-2 text-muted-foreground">
                   <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
                   {feature}
                 </li>
@@ -311,7 +311,7 @@ export default function BillingPage() {
                   variant="outline"
                   onClick={() => handleUpgrade("yearly")}
                   disabled={isLoading !== null}
-                  className="w-full border-slate-600 text-slate-300 hover:bg-slate-700"
+                  className="w-full border-input text-muted-foreground hover:bg-muted"
                 >
                   {isLoading === "yearly" ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -327,7 +327,7 @@ export default function BillingPage() {
       </div>
 
       {/* Trust badges */}
-      <div className="flex flex-wrap items-center justify-center gap-6 pt-4 text-sm text-slate-500">
+      <div className="flex flex-wrap items-center justify-center gap-6 pt-4 text-sm text-muted-foreground">
         <div className="flex items-center gap-2">
           <Shield className="w-4 h-4" />
           Secure payment via Stripe

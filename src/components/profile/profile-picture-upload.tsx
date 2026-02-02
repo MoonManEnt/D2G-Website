@@ -198,10 +198,10 @@ export function ProfilePictureUpload({
       />
 
       <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-        <DialogContent className="bg-slate-800 border-slate-700 max-w-md">
+        <DialogContent className="bg-card border-border max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-white">Update Profile Picture</DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogTitle className="text-foreground">Update Profile Picture</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Upload a new profile picture or remove your current one.
             </DialogDescription>
           </DialogHeader>
@@ -211,7 +211,7 @@ export function ProfilePictureUpload({
             <motion.div
               className={`relative aspect-square max-w-[240px] mx-auto rounded-full overflow-hidden border-2 transition-colors ${isDragging
                 ? "border-brand-500 bg-brand-500/10"
-                : "border-slate-600 bg-slate-700/50"
+                : "border-input bg-muted"
                 }`}
               onDragOver={(e) => {
                 e.preventDefault();
@@ -248,8 +248,8 @@ export function ProfilePictureUpload({
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                   >
-                    <Image className="w-12 h-12 text-slate-500 mb-3" />
-                    <p className="text-sm text-slate-400">
+                    <Image className="w-12 h-12 text-muted-foreground mb-3" />
+                    <p className="text-sm text-muted-foreground">
                       Drag and drop an image or
                     </p>
                     <Button
@@ -277,27 +277,27 @@ export function ProfilePictureUpload({
                   variant="outline"
                   size="icon"
                   onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))}
-                  className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                  className="border-input text-muted-foreground hover:bg-muted"
                 >
                   <ZoomOut className="w-4 h-4" />
                 </Button>
-                <span className="text-xs text-slate-400 w-12 text-center">
+                <span className="text-xs text-muted-foreground w-12 text-center">
                   {Math.round(zoom * 100)}%
                 </span>
                 <Button
                   variant="outline"
                   size="icon"
                   onClick={() => setZoom((z) => Math.min(2, z + 0.1))}
-                  className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                  className="border-input text-muted-foreground hover:bg-muted"
                 >
                   <ZoomIn className="w-4 h-4" />
                 </Button>
-                <div className="w-px h-6 bg-slate-600" />
+                <div className="w-px h-6 bg-muted" />
                 <Button
                   variant="outline"
                   size="icon"
                   onClick={() => setRotation((r) => (r + 90) % 360)}
-                  className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                  className="border-input text-muted-foreground hover:bg-muted"
                 >
                   <RotateCw className="w-4 h-4" />
                 </Button>
@@ -316,7 +316,7 @@ export function ProfilePictureUpload({
               <Button
                 variant="outline"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex-1 border-slate-600 text-slate-300 hover:bg-slate-700"
+                className="flex-1 border-input text-muted-foreground hover:bg-muted"
               >
                 <Upload className="w-4 h-4 mr-2" />
                 {previewUrl ? "Change Image" : "Upload Image"}
@@ -332,7 +332,7 @@ export function ProfilePictureUpload({
               )}
             </div>
 
-            <p className="text-xs text-slate-500 text-center">
+            <p className="text-xs text-muted-foreground text-center">
               Supported formats: JPEG, PNG, GIF, WebP (max 5MB)
             </p>
           </div>
@@ -341,7 +341,7 @@ export function ProfilePictureUpload({
             <Button
               variant="outline"
               onClick={() => setIsOpen(false)}
-              className="border-slate-600 text-slate-300 hover:bg-slate-700"
+              className="border-input text-muted-foreground hover:bg-muted"
             >
               Cancel
             </Button>

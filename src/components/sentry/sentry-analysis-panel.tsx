@@ -66,17 +66,17 @@ export function SentryAnalysisPanel({
   ];
 
   return (
-    <div className="bg-slate-900/50 rounded-xl border border-slate-800">
+    <div className="bg-background rounded-xl border border-border">
       {/* Tabs */}
-      <div className="flex border-b border-slate-800 overflow-x-auto">
+      <div className="flex border-b border-border overflow-x-auto">
         {tabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             className={`flex items-center gap-1.5 px-3 py-3 text-xs font-medium whitespace-nowrap flex-shrink-0 transition-colors ${
               activeTab === tab.key
-                ? "text-blue-400 border-b-2 border-blue-400 -mb-px"
-                : "text-slate-400 hover:text-slate-300"
+                ? "text-primary border-b-2 border-blue-400 -mb-px"
+                : "text-muted-foreground hover:text-muted-foreground"
             }`}
           >
             {tab.icon}
@@ -151,7 +151,7 @@ function OverviewTab({
   return (
     <div className="space-y-4">
       {/* Overall score */}
-      <div className="text-center py-6 bg-slate-800/30 rounded-lg">
+      <div className="text-center py-6 bg-card rounded-lg">
         <div className="text-5xl font-bold mb-2">
           <span className={
             overallScore >= 70 ? "text-emerald-400" :
@@ -160,9 +160,9 @@ function OverviewTab({
           }>
             {overallScore}
           </span>
-          <span className="text-xl text-slate-500">/100</span>
+          <span className="text-xl text-muted-foreground">/100</span>
         </div>
-        <p className="text-sm text-slate-400">Overall Dispute Quality Score</p>
+        <p className="text-sm text-muted-foreground">Overall Dispute Quality Score</p>
       </div>
 
       {/* Metric cards */}
@@ -173,8 +173,8 @@ function OverviewTab({
           analysis.ocrScore >= 40 ? "bg-amber-500/10 border-amber-500/30" :
           "bg-red-500/10 border-red-500/30"
         }`}>
-          <div className="text-2xl font-bold text-slate-200">{analysis.ocrScore}</div>
-          <div className="text-xs text-slate-400">OCR Safety</div>
+          <div className="text-2xl font-bold text-foreground">{analysis.ocrScore}</div>
+          <div className="text-xs text-muted-foreground">OCR Safety</div>
           <div className={`text-xs mt-1 ${
             analysis.ocrScore >= 70 ? "text-emerald-400" :
             analysis.ocrScore >= 40 ? "text-amber-400" :
@@ -190,10 +190,10 @@ function OverviewTab({
             ? "bg-emerald-500/10 border-emerald-500/30"
             : "bg-red-500/10 border-red-500/30"
         }`}>
-          <div className="text-2xl font-bold text-slate-200">
+          <div className="text-2xl font-bold text-foreground">
             {analysis.citationValidation.validCitations.length}
           </div>
-          <div className="text-xs text-slate-400">Valid Citations</div>
+          <div className="text-xs text-muted-foreground">Valid Citations</div>
           <div className={`text-xs mt-1 ${
             analysis.citationValidation.isValid ? "text-emerald-400" : "text-red-400"
           }`}>
@@ -207,10 +207,10 @@ function OverviewTab({
           analysis.successPrediction.probability >= 0.5 ? "bg-amber-500/10 border-amber-500/30" :
           "bg-red-500/10 border-red-500/30"
         }`}>
-          <div className="text-2xl font-bold text-slate-200">
+          <div className="text-2xl font-bold text-foreground">
             {analysis.successPrediction.probabilityPercent}%
           </div>
-          <div className="text-xs text-slate-400">Success Rate</div>
+          <div className="text-xs text-muted-foreground">Success Rate</div>
           <div className={`text-xs mt-1 ${
             analysis.successPrediction.probability >= 0.7 ? "text-emerald-400" :
             analysis.successPrediction.probability >= 0.5 ? "text-amber-400" :
@@ -227,7 +227,7 @@ function OverviewTab({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-amber-400">Improvements Available</p>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 {analysis.ocrFindings.length} OCR issues, {analysis.citationValidation.invalidCitations.length} citation issues
               </p>
             </div>
@@ -265,11 +265,11 @@ function OverviewTab({
         !onApplyRecommendation) &&
         analysis.successPrediction.recommendations.length > 0 && (
           <div>
-            <h4 className="text-xs font-medium text-slate-400 mb-2">Top Recommendations</h4>
+            <h4 className="text-xs font-medium text-muted-foreground mb-2">Top Recommendations</h4>
             <ul className="space-y-1">
               {analysis.successPrediction.recommendations.slice(0, 3).map((rec, i) => (
-                <li key={i} className="text-xs text-slate-300 flex items-start gap-2">
-                  <span className="text-blue-400">→</span>
+                <li key={i} className="text-xs text-muted-foreground flex items-start gap-2">
+                  <span className="text-primary">→</span>
                   {rec}
                 </li>
               ))}

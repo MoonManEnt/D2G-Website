@@ -257,7 +257,7 @@ export function LoadingSpinner({ size = 24, className }: { size?: number; classN
 export function AnimatedSkeleton({ className }: { className?: string }) {
   return (
     <motion.div
-      className={`bg-slate-700/50 rounded ${className}`}
+      className={`bg-muted rounded ${className}`}
       animate={{
         backgroundPosition: ["200% 0", "-200% 0"],
       }}

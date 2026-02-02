@@ -440,13 +440,13 @@ export function DisputeCommandCenter({
       <CRAProgressHeader status={craStatus} />
 
       {/* Account Selection */}
-      <Card className="bg-slate-800/50 border-slate-700/50">
+      <Card className="bg-card border-border">
         <CardContent className="p-5">
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-sm font-semibold text-white">Accounts to Dispute</h3>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <h3 className="text-sm font-semibold text-foreground">Accounts to Dispute</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
                 {totalSelected} of {totalAvailable} available selected
               </p>
             </div>
@@ -465,7 +465,7 @@ export function DisputeCommandCenter({
               <Button
                 size="sm"
                 variant="outline"
-                className="text-slate-400 border-slate-600 hover:bg-slate-700/50"
+                className="text-muted-foreground border-input hover:bg-muted"
                 onClick={clearAllSelections}
                 disabled={totalSelected === 0}
               >
@@ -491,11 +491,11 @@ export function DisputeCommandCenter({
               return (
                 <div
                   key={group.creditorName}
-                  className="border border-slate-700/50 rounded-lg overflow-hidden"
+                  className="border border-border rounded-lg overflow-hidden"
                 >
                   {/* Group Header */}
                   <div
-                    className="flex items-center justify-between p-3 bg-slate-800/50 cursor-pointer hover:bg-slate-700/30 transition-colors"
+                    className="flex items-center justify-between p-3 bg-card cursor-pointer hover:bg-muted transition-colors"
                     onClick={() => toggleCreditorExpanded(group.creditorName)}
                   >
                     <div className="flex items-center gap-3">
@@ -524,9 +524,9 @@ export function DisputeCommandCenter({
                         className="data-[state=checked]:bg-purple-600"
                       />
                       <div>
-                        <span className="font-medium text-white">{group.displayName}</span>
+                        <span className="font-medium text-foreground">{group.displayName}</span>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs text-slate-400">
+                          <span className="text-xs text-muted-foreground">
                             ${group.totalBalance.toLocaleString()}
                           </span>
                           {group.totalIssues > 0 && (
@@ -553,16 +553,16 @@ export function DisputeCommandCenter({
                         </Badge>
                       ))}
                       {isExpanded ? (
-                        <ChevronUp className="w-4 h-4 text-slate-500" />
+                        <ChevronUp className="w-4 h-4 text-muted-foreground" />
                       ) : (
-                        <ChevronDown className="w-4 h-4 text-slate-500" />
+                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
                       )}
                     </div>
                   </div>
 
                   {/* Expanded Account Rows */}
                   {isExpanded && (
-                    <div className="border-t border-slate-700/50">
+                    <div className="border-t border-border">
                       {group.accounts.map((account) => {
                         const cra = account.cra as keyof typeof selections;
                         const isSelected = selections[cra]?.includes(account.id);
@@ -572,13 +572,13 @@ export function DisputeCommandCenter({
                           <div
                             key={account.id}
                             className={cn(
-                              "flex items-center gap-3 px-4 py-2 border-b border-slate-700/30 last:border-b-0 transition-colors",
-                              isLocked ? "opacity-50" : "hover:bg-slate-700/20",
+                              "flex items-center gap-3 px-4 py-2 border-b border-border last:border-b-0 transition-colors",
+                              isLocked ? "opacity-50" : "hover:bg-muted",
                               isSelected && !isLocked && "bg-purple-500/10"
                             )}
                           >
                             {isLocked ? (
-                              <Lock className="w-4 h-4 text-slate-500" />
+                              <Lock className="w-4 h-4 text-muted-foreground" />
                             ) : (
                               <Checkbox
                                 checked={isSelected}
@@ -589,7 +589,7 @@ export function DisputeCommandCenter({
 
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className="text-sm text-slate-300 font-mono">
+                                <span className="text-sm text-muted-foreground font-mono">
                                   {account.maskedAccountId || "N/A"}
                                 </span>
                                 <Badge
@@ -602,7 +602,7 @@ export function DisputeCommandCenter({
                                   {cra.slice(0, 2)}
                                 </Badge>
                               </div>
-                              <span className="text-xs text-slate-500">
+                              <span className="text-xs text-muted-foreground">
                                 {account.accountType || "Unknown"}
                               </span>
                             </div>
@@ -632,7 +632,7 @@ export function DisputeCommandCenter({
 
             {accountGroups.length === 0 && (
               <div className="py-8 text-center">
-                <p className="text-slate-400">No negative accounts found</p>
+                <p className="text-muted-foreground">No negative accounts found</p>
               </div>
             )}
           </div>
@@ -651,10 +651,10 @@ export function DisputeCommandCenter({
 
       {/* Sent Disputes - Mail Actions */}
       {existingDisputes.filter((d) => d.status === "SENT" || d.status === "RESPONDED").length > 0 && (
-        <Card className="bg-slate-800/50 border-slate-700/50">
+        <Card className="bg-card border-border">
           <CardContent className="p-5">
-            <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-              <Mail className="w-4 h-4 text-blue-400" />
+            <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+              <Mail className="w-4 h-4 text-primary" />
               Active Disputes
             </h3>
             <div className="space-y-2">
@@ -665,7 +665,7 @@ export function DisputeCommandCenter({
                   return (
                     <div
                       key={dispute.id}
-                      className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg"
+                      className="flex items-center justify-between p-3 bg-muted rounded-lg"
                     >
                       <div className="flex items-center gap-3">
                         <Badge
@@ -677,7 +677,7 @@ export function DisputeCommandCenter({
                         >
                           {dispute.cra}
                         </Badge>
-                        <span className="text-sm text-slate-300">
+                        <span className="text-sm text-muted-foreground">
                           Round {dispute.round}
                         </span>
                         <Badge className="text-[10px] bg-purple-500/20 text-purple-400">
@@ -688,7 +688,7 @@ export function DisputeCommandCenter({
                         size="sm"
                         variant="outline"
                         onClick={() => openMailDialog(dispute.id, dispute.cra)}
-                        className="gap-1.5 border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20"
+                        className="gap-1.5 border-primary/30 bg-primary/10 text-primary hover:bg-primary/20"
                       >
                         <Mail className="w-3.5 h-3.5" />
                         Mail Letter

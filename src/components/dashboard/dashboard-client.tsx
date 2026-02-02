@@ -132,16 +132,16 @@ function ActionQueueItemCard({ item }: { item: ActionQueueItem }) {
       {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2.5 mb-1">
-          <span className="text-sm font-semibold text-white">{item.title}</span>
+          <span className="text-sm font-semibold text-foreground">{item.title}</span>
           {item.priority === "urgent" && (
             <span className="px-2 py-0.5 bg-red-500/20 rounded text-[10px] font-bold text-red-500 uppercase tracking-wide">
               Urgent
             </span>
           )}
         </div>
-        <div className="flex items-center gap-1.5 text-[13px] text-slate-500">
-          <span className="font-medium text-slate-400">{item.client.name}</span>
-          <span className="text-slate-600">•</span>
+        <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
+          <span className="font-medium text-muted-foreground">{item.client.name}</span>
+          <span className="text-muted-foreground/70">•</span>
           <span>{item.detail}</span>
         </div>
       </div>
@@ -154,7 +154,7 @@ function ActionQueueItemCard({ item }: { item: ActionQueueItem }) {
       )}
 
       {/* Time */}
-      <span className="text-xs text-slate-500 min-w-[80px] text-right flex-shrink-0">
+      <span className="text-xs text-muted-foreground min-w-[80px] text-right flex-shrink-0">
         {item.age}
       </span>
 
@@ -224,9 +224,9 @@ export function DashboardClient({
   });
 
   return (
-    <div className="min-h-full text-slate-50 relative">
+    <div className="min-h-full text-foreground relative">
       {/* Background Effects - positioned absolute within container, not fixed */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-900 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-background pointer-events-none" />
       <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-[radial-gradient(ellipse,rgba(99,102,241,0.08)_0%,transparent_70%)] blur-[60px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[radial-gradient(ellipse,rgba(16,185,129,0.05)_0%,transparent_70%)] blur-[60px] pointer-events-none" />
 
@@ -235,10 +235,10 @@ export function DashboardClient({
         {/* Welcome Bar */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
           <div>
-            <h1 className="text-[28px] font-bold text-white">
+            <h1 className="text-[28px] font-bold text-foreground">
               {greeting}, {userName}
             </h1>
-            <p className="text-[15px] text-slate-500 mt-1">
+            <p className="text-[15px] text-muted-foreground mt-1">
               {urgentCount > 0 ? (
                 <>
                   You have{" "}
@@ -253,14 +253,14 @@ export function DashboardClient({
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <div className="px-3.5 py-2 bg-white/[0.03] border border-white/[0.06] rounded-lg">
-              <span className="text-sm font-semibold text-white font-mono tracking-wide">
+            <div className="px-3.5 py-2 bg-muted/50 border border-border rounded-lg">
+              <span className="text-sm font-semibold text-foreground font-mono tracking-wide">
                 {localTime}
               </span>
             </div>
             <Link
               href="/clients"
-              className="flex items-center gap-2.5 px-5 py-2.5 bg-white/[0.05] border border-white/10 rounded-xl text-sm font-medium text-white hover:bg-white/[0.08] transition-colors"
+              className="flex items-center gap-2.5 px-5 py-2.5 bg-muted/50 border border-border rounded-xl text-sm font-medium text-foreground hover:bg-muted transition-colors"
             >
               <span className="text-lg">📄</span>
               <span>Upload Report</span>
@@ -272,7 +272,7 @@ export function DashboardClient({
         <section className="mb-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
             <div className="flex items-center gap-3">
-              <h2 className="text-lg font-semibold text-white">Action Queue</h2>
+              <h2 className="text-lg font-semibold text-foreground">Action Queue</h2>
               <span className="px-3 py-1 bg-indigo-500/15 rounded-full text-xs font-semibold text-indigo-400">
                 {actionQueue.length} items
               </span>
@@ -284,8 +284,8 @@ export function DashboardClient({
                   onClick={() => setFilter(f)}
                   className={`px-3.5 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
                     filter === f
-                      ? "bg-white/10 border-white/15 text-white"
-                      : "bg-transparent border-white/[0.08] text-slate-500 hover:text-white"
+                      ? "bg-primary/10 border-primary/20 text-foreground"
+                      : "bg-transparent border-border text-muted-foreground hover:text-foreground"
                   } border`}
                 >
                   {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -293,7 +293,7 @@ export function DashboardClient({
               ))}
               <button
                 onClick={() => router.push("/responses")}
-                className="px-3.5 py-2 rounded-lg text-xs font-medium transition-all duration-200 bg-transparent border border-white/[0.08] text-slate-500 hover:text-white hover:bg-indigo-500/20 hover:border-indigo-500/30"
+                className="px-3.5 py-2 rounded-lg text-xs font-medium transition-all duration-200 bg-transparent border border-border text-muted-foreground hover:text-foreground hover:bg-primary/20 hover:border-primary/30"
               >
                 Responses →
               </button>
@@ -302,10 +302,10 @@ export function DashboardClient({
 
           <div className="flex flex-col gap-2.5">
             {filteredQueue.length === 0 ? (
-              <div className="p-12 rounded-xl bg-white/[0.02] border border-white/[0.06] text-center">
+              <div className="p-12 rounded-xl bg-muted/30 border border-border text-center">
                 <div className="text-4xl mb-3">🎉</div>
-                <p className="text-slate-400">No pending actions</p>
-                <p className="text-sm text-slate-600 mt-1">You're all caught up!</p>
+                <p className="text-muted-foreground">No pending actions</p>
+                <p className="text-sm text-muted-foreground/70 mt-1">You're all caught up!</p>
               </div>
             ) : (
               filteredQueue.map((item) => (
@@ -318,9 +318,9 @@ export function DashboardClient({
         {/* Bottom Row: Responses + Deadlines */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {/* Recent Responses */}
-          <section className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5">
+          <section className="bg-card/50 border border-border rounded-2xl p-5">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="flex items-center gap-2.5 text-[15px] font-semibold text-white">
+              <h3 className="flex items-center gap-2.5 text-[15px] font-semibold text-foreground">
                 <span className="text-base">📬</span>
                 Recent Responses
               </h3>
@@ -333,13 +333,13 @@ export function DashboardClient({
             </div>
             <div className="flex flex-col gap-2.5">
               {responses.length === 0 ? (
-                <div className="py-8 text-center text-slate-500">
+                <div className="py-8 text-center text-muted-foreground">
                   <p className="text-sm">No responses yet</p>
                 </div>
               ) : (
                 responses.map((response) => (
                   <Link key={response.id} href={`/clients/${response.clientId}`}>
-                    <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-xl hover:bg-white/[0.04] transition-colors cursor-pointer">
+                    <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer">
                       <div
                         className={`w-9 h-9 rounded-lg flex items-center justify-center text-[11px] font-bold text-white ${
                           response.bureau === "TU"
@@ -352,10 +352,10 @@ export function DashboardClient({
                         {response.bureau}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <span className="block text-[13px] font-semibold text-white">
+                        <span className="block text-[13px] font-semibold text-foreground">
                           {response.client}
                         </span>
-                        <span className="text-[11px] text-slate-500">{response.time}</span>
+                        <span className="text-[11px] text-muted-foreground">{response.time}</span>
                       </div>
                       <div
                         className={`px-3 py-1 rounded-md text-[11px] font-semibold ${
@@ -380,9 +380,9 @@ export function DashboardClient({
           </section>
 
           {/* Approaching Deadlines */}
-          <section className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5">
+          <section className="bg-card/50 border border-border rounded-2xl p-5">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="flex items-center gap-2.5 text-[15px] font-semibold text-white">
+              <h3 className="flex items-center gap-2.5 text-[15px] font-semibold text-foreground">
                 <span className="text-base">⏰</span>
                 Approaching Deadlines
               </h3>
@@ -395,13 +395,13 @@ export function DashboardClient({
             </div>
             <div className="flex flex-col gap-2.5">
               {deadlines.length === 0 ? (
-                <div className="py-8 text-center text-slate-500">
+                <div className="py-8 text-center text-muted-foreground">
                   <p className="text-sm">No pending deadlines</p>
                 </div>
               ) : (
                 deadlines.map((deadline) => (
                   <Link key={deadline.id} href={`/clients/${deadline.clientId}`}>
-                    <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-xl hover:bg-white/[0.04] transition-colors cursor-pointer">
+                    <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer">
                       <div
                         className={`w-10 h-10 rounded-lg border flex items-center justify-center text-[13px] font-bold ${
                           deadline.daysLeft <= 5
@@ -414,10 +414,10 @@ export function DashboardClient({
                         {deadline.daysLeft}d
                       </div>
                       <div className="flex-1 min-w-0">
-                        <span className="block text-[13px] font-semibold text-white">
+                        <span className="block text-[13px] font-semibold text-foreground">
                           {deadline.client}
                         </span>
-                        <span className="text-[11px] text-slate-500">
+                        <span className="text-[11px] text-muted-foreground">
                           R{deadline.round} • {deadline.bureau} • Sent {deadline.sentDate}
                         </span>
                       </div>
@@ -436,25 +436,25 @@ export function DashboardClient({
       </div>
 
       {/* Quick Stats Bar - sticky at bottom of content area, not fixed to viewport */}
-      <div className="sticky bottom-0 z-20 flex justify-center items-center gap-10 py-4 px-8 bg-slate-900/95 backdrop-blur-xl border-t border-white/[0.05]">
+      <div className="sticky bottom-0 z-20 flex justify-center items-center gap-10 py-4 px-8 bg-background/95 backdrop-blur-xl border-t border-border">
         <div className="text-center">
-          <span className="block text-2xl font-bold text-white">{stats.totalClients}</span>
-          <span className="text-[11px] text-slate-500">Total Clients</span>
+          <span className="block text-2xl font-bold text-foreground">{stats.totalClients}</span>
+          <span className="text-[11px] text-muted-foreground">Total Clients</span>
         </div>
-        <div className="w-px h-9 bg-white/[0.08]" />
+        <div className="w-px h-9 bg-border" />
         <div className="text-center">
-          <span className="block text-2xl font-bold text-white">{stats.activeDisputes}</span>
-          <span className="text-[11px] text-slate-500">Active Disputes</span>
+          <span className="block text-2xl font-bold text-foreground">{stats.activeDisputes}</span>
+          <span className="text-[11px] text-muted-foreground">Active Disputes</span>
         </div>
-        <div className="w-px h-9 bg-white/[0.08]" />
+        <div className="w-px h-9 bg-border" />
         <div className="text-center">
           <span className="block text-2xl font-bold text-emerald-400">{stats.successRate}%</span>
-          <span className="text-[11px] text-slate-500">Success Rate</span>
+          <span className="text-[11px] text-muted-foreground">Success Rate</span>
         </div>
-        <div className="w-px h-9 bg-white/[0.08]" />
+        <div className="w-px h-9 bg-border" />
         <div className="text-center">
           <span className="block text-2xl font-bold text-amber-400">{stats.deletionsThisMonth}</span>
-          <span className="text-[11px] text-slate-500">Deletions This Month</span>
+          <span className="text-[11px] text-muted-foreground">Deletions This Month</span>
         </div>
       </div>
     </div>

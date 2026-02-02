@@ -54,14 +54,14 @@ export default function PortalLoginPage() {
           <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <ShieldCheck className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold text-white">Client Portal</h1>
-          <p className="text-slate-400 mt-2">Access your credit repair progress</p>
+          <h1 className="text-2xl font-bold text-foreground">Client Portal</h1>
+          <p className="text-muted-foreground mt-2">Access your credit repair progress</p>
         </div>
 
-        <Card className="bg-slate-800/80 border-slate-700 backdrop-blur">
+        <Card className="bg-card border-border backdrop-blur">
           <CardHeader>
-            <CardTitle className="text-white">Sign In</CardTitle>
-            <CardDescription className="text-slate-400">
+            <CardTitle className="text-foreground">Sign In</CardTitle>
+            <CardDescription className="text-muted-foreground">
               Enter your credentials to access your account
             </CardDescription>
           </CardHeader>
@@ -75,25 +75,25 @@ export default function PortalLoginPage() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-slate-300">Email</Label>
+                <Label className="text-muted-foreground">Email</Label>
                 <Input
                   type="email"
                   placeholder="your@email.com"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
+                  className="bg-muted border-input text-foreground placeholder:text-muted-foreground"
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label className="text-slate-300">Password</Label>
+                <Label className="text-muted-foreground">Password</Label>
                 <Input
                   type="password"
                   placeholder="Enter your password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
+                  className="bg-muted border-input text-foreground placeholder:text-muted-foreground"
                   required
                 />
               </div>
@@ -107,7 +107,7 @@ export default function PortalLoginPage() {
             <div className="mt-6 text-center">
               <Link
                 href="/portal/forgot-password"
-                className="text-sm text-slate-400 hover:text-primary transition-colors"
+                className="text-sm text-muted-foreground hover:text-primary transition-colors"
               >
                 Forgot your password?
               </Link>
@@ -115,7 +115,7 @@ export default function PortalLoginPage() {
           </CardContent>
         </Card>
 
-        <p className="text-center text-slate-500 text-sm mt-6">
+        <p className="text-center text-muted-foreground text-sm mt-6">
           Don&apos;t have an account? Contact your credit repair specialist.
         </p>
       </div>

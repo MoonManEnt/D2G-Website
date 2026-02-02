@@ -26,9 +26,9 @@ const typeConfig: Record<
   }
 > = {
   CRA: {
-    color: "text-blue-400",
-    bg: "bg-blue-500/15",
-    border: "border-blue-500/30",
+    color: "text-primary",
+    bg: "bg-primary/15",
+    border: "border-primary/30",
     icon: Landmark,
     label: "Credit Reporting Agency",
   },
@@ -65,7 +65,7 @@ export function DefendantList({ defendants }: DefendantListProps) {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-semibold text-slate-300">
+      <h3 className="text-sm font-semibold text-muted-foreground">
         Defendants ({sortedDefendants.length})
       </h3>
 
@@ -77,7 +77,7 @@ export function DefendantList({ defendants }: DefendantListProps) {
           return (
             <Card
               key={idx}
-              className={`bg-slate-800/50 ${config.border} hover:shadow-lg transition-shadow duration-200`}
+              className={`bg-card ${config.border} hover:shadow-lg transition-shadow duration-200`}
             >
               <CardContent className="p-4">
                 {/* Header */}
@@ -87,10 +87,10 @@ export function DefendantList({ defendants }: DefendantListProps) {
                       <TypeIcon className={`w-4 h-4 ${config.color}`} />
                     </div>
                     <div>
-                      <h4 className="text-sm font-semibold text-slate-100">
+                      <h4 className="text-sm font-semibold text-foreground">
                         {defendant.name}
                       </h4>
-                      <p className="text-[10px] text-slate-500">
+                      <p className="text-[10px] text-muted-foreground">
                         {config.label}
                       </p>
                     </div>
@@ -105,8 +105,8 @@ export function DefendantList({ defendants }: DefendantListProps) {
                 </div>
 
                 {/* Violation count */}
-                <div className="flex items-center justify-between mb-3 bg-slate-900/40 rounded-lg px-3 py-2">
-                  <span className="text-xs text-slate-400">Violations</span>
+                <div className="flex items-center justify-between mb-3 bg-background rounded-lg px-3 py-2">
+                  <span className="text-xs text-muted-foreground">Violations</span>
                   <Badge
                     className={`text-xs font-bold px-2.5 py-0.5 border-0 ${
                       defendant.violationCount >= 5
@@ -123,14 +123,14 @@ export function DefendantList({ defendants }: DefendantListProps) {
                 {/* Primary statutes */}
                 {defendant.primaryStatutes.length > 0 && (
                   <div className="mb-3">
-                    <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
                       Primary Statutes
                     </p>
                     <div className="flex flex-wrap gap-1">
                       {defendant.primaryStatutes.map((statute, sIdx) => (
                         <span
                           key={sIdx}
-                          className="text-[10px] font-mono text-slate-400 bg-slate-700/50 px-2 py-0.5 rounded"
+                          className="text-[10px] font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded"
                         >
                           {statute}
                         </span>
@@ -141,7 +141,7 @@ export function DefendantList({ defendants }: DefendantListProps) {
 
                 {/* Estimated liability */}
                 <div className="bg-emerald-500/8 rounded-lg px-3 py-2 border border-emerald-500/15">
-                  <p className="text-[10px] text-slate-500 mb-0.5">
+                  <p className="text-[10px] text-muted-foreground mb-0.5">
                     Estimated Liability
                   </p>
                   <p className="text-sm font-bold text-emerald-400">

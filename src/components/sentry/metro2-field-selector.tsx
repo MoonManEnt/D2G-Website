@@ -39,11 +39,11 @@ export function Metro2FieldSelector({
   };
 
   return (
-    <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-4">
+    <div className="bg-card rounded-lg border border-border p-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-slate-300">Metro 2 Field Targeting</h3>
-        <span className="text-xs text-slate-500">
+        <h3 className="text-sm font-medium text-muted-foreground">Metro 2 Field Targeting</h3>
+        <span className="text-xs text-muted-foreground">
           {selectedFields.length} selected
         </span>
       </div>
@@ -55,10 +55,10 @@ export function Metro2FieldSelector({
           placeholder="Search fields..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600/50 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/50"
+          className="w-full px-3 py-2 bg-muted border border-input rounded-lg text-sm text-foreground placeholder-slate-500 focus:outline-none focus:border-primary/50"
         />
         <svg
-          className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500"
+          className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -74,7 +74,7 @@ export function Metro2FieldSelector({
             <h4 className="text-xs font-medium text-emerald-400">Recommended for this account</h4>
             <button
               onClick={() => selectAll(recommendedFields)}
-              className="text-xs text-slate-400 hover:text-slate-300"
+              className="text-xs text-muted-foreground hover:text-muted-foreground"
             >
               Select all
             </button>
@@ -96,7 +96,7 @@ export function Metro2FieldSelector({
       {/* Other fields */}
       {otherFields.length > 0 && (
         <div>
-          <h4 className="text-xs font-medium text-slate-400 mb-2">Other fields</h4>
+          <h4 className="text-xs font-medium text-muted-foreground mb-2">Other fields</h4>
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {otherFields.map((field) => (
               <FieldCard
@@ -112,15 +112,15 @@ export function Metro2FieldSelector({
 
       {/* Empty state */}
       {filteredFields.length === 0 && (
-        <p className="text-sm text-slate-500 text-center py-4">
+        <p className="text-sm text-muted-foreground text-center py-4">
           No fields match your search
         </p>
       )}
 
       {/* Tip */}
-      <div className="mt-4 pt-4 border-t border-slate-700/50">
-        <p className="text-xs text-slate-500">
-          <strong className="text-slate-400">Tip:</strong> Targeting specific Metro 2 fields forces furnishers to verify exact data elements instead of batch-verifying the whole account.
+      <div className="mt-4 pt-4 border-t border-border">
+        <p className="text-xs text-muted-foreground">
+          <strong className="text-muted-foreground">Tip:</strong> Targeting specific Metro 2 fields forces furnishers to verify exact data elements instead of batch-verifying the whole account.
         </p>
       </div>
     </div>
@@ -145,27 +145,27 @@ function FieldCard({
         isSelected
           ? isRecommended
             ? "bg-emerald-500/20 border border-emerald-500/50"
-            : "bg-blue-500/20 border border-blue-500/50"
-          : "bg-slate-700/30 hover:bg-slate-700/50 border border-transparent"
+            : "bg-primary/20 border border-blue-500/50"
+          : "bg-muted hover:bg-muted border border-transparent"
       }`}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-mono text-slate-500">{field.code}</span>
-            <span className="text-sm font-medium text-slate-200">{field.name}</span>
+            <span className="text-xs font-mono text-muted-foreground">{field.code}</span>
+            <span className="text-sm font-medium text-foreground">{field.name}</span>
           </div>
-          <p className="text-xs text-slate-400 line-clamp-2">{field.description}</p>
+          <p className="text-xs text-muted-foreground line-clamp-2">{field.description}</p>
         </div>
         <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ml-2 ${
           isSelected
             ? isRecommended
               ? "bg-emerald-500"
               : "bg-blue-500"
-            : "border border-slate-600"
+            : "border border-input"
         }`}>
           {isSelected && (
-            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-3 h-3 text-foreground" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
             </svg>
           )}

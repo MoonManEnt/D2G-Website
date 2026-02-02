@@ -26,11 +26,11 @@ interface Recommendation {
 
 const CATEGORY_COLORS: Record<string, string> = {
   CREDIT_REPAIR: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-  DEBT_MANAGEMENT: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+  DEBT_MANAGEMENT: "bg-primary/20 text-primary border-primary/30",
   FINANCIAL_COACHING: "bg-amber-500/20 text-amber-400 border-amber-500/30",
   CREDIT_MONITORING: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
   CREDIT_BUILDER: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-  OTHER: "bg-slate-500/20 text-slate-400 border-slate-500/30",
+  OTHER: "bg-muted text-muted-foreground border-border",
 };
 
 function formatCategory(cat: string): string {
@@ -100,10 +100,10 @@ export function VendorRecommendationsCard({ clientId }: VendorRecommendationsCar
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-      <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6">
+      <div className="bg-card backdrop-blur-xl border border-border rounded-2xl p-6">
         <div className="flex items-center gap-2 mb-4">
           <Sparkles className="w-5 h-5 text-amber-400" />
-          <h3 className="text-lg font-semibold text-white">Recommended Services</h3>
+          <h3 className="text-lg font-semibold text-foreground">Recommended Services</h3>
         </div>
 
         <div className="space-y-4">
@@ -115,10 +115,10 @@ export function VendorRecommendationsCard({ clientId }: VendorRecommendationsCar
             return (
               <div
                 key={`${rec.vendorId}-${rec.ruleId}`}
-                className="bg-slate-700/30 border border-slate-600/30 rounded-xl p-4 hover:border-slate-600/50 transition-colors"
+                className="bg-muted border border-input rounded-xl p-4 hover:border-input transition-colors"
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="font-medium text-white">{rec.vendorName}</span>
+                  <span className="font-medium text-foreground">{rec.vendorName}</span>
                   <Badge
                     className={`text-[10px] border ${colorClass}`}
                   >
@@ -126,10 +126,10 @@ export function VendorRecommendationsCard({ clientId }: VendorRecommendationsCar
                   </Badge>
                 </div>
 
-                <p className="text-sm font-semibold text-slate-200 mb-1">
+                <p className="text-sm font-semibold text-foreground mb-1">
                   {rec.recommendationTitle}
                 </p>
-                <p className="text-sm text-slate-400 mb-3 leading-relaxed">
+                <p className="text-sm text-muted-foreground mb-3 leading-relaxed">
                   {rec.recommendationBody}
                 </p>
 

@@ -173,8 +173,8 @@ const ScoreChart = ({ reports }: { reports: CreditReportData[] }) => {
   if (!hasValidScores) {
     return (
       <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
-        <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-          <BarChart2 size={16} className="text-blue-400" />
+        <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+          <BarChart2 size={16} className="text-primary" />
           Score Progression Over Time
         </h3>
         <div className="flex items-center justify-center h-[200px] text-zinc-500 text-sm">
@@ -186,8 +186,8 @@ const ScoreChart = ({ reports }: { reports: CreditReportData[] }) => {
 
   return (
     <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
-      <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-        <BarChart2 size={16} className="text-blue-400" />
+      <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+        <BarChart2 size={16} className="text-primary" />
         Score Progression Over Time
       </h3>
 
@@ -312,7 +312,7 @@ const ComparisonTable = ({ reports }: { reports: CreditReportData[] }) => {
   };
 
   const bureaus = [
-    { key: "transunion" as const, label: "TransUnion", color: "text-blue-400" },
+    { key: "transunion" as const, label: "TransUnion", color: "text-primary" },
     { key: "equifax" as const, label: "Equifax", color: "text-red-400" },
     { key: "experian" as const, label: "Experian", color: "text-indigo-400" },
   ];
@@ -320,8 +320,8 @@ const ComparisonTable = ({ reports }: { reports: CreditReportData[] }) => {
   return (
     <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
       <div className="p-4 border-b border-zinc-800">
-        <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-          <GitCompare size={16} className="text-blue-400" />
+        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <GitCompare size={16} className="text-primary" />
           First vs Latest Report
         </h3>
       </div>
@@ -351,11 +351,11 @@ const ComparisonTable = ({ reports }: { reports: CreditReportData[] }) => {
               return (
                 <tr key={bureau.key} className="border-b border-zinc-800/50">
                   <td className={`px-4 py-3 text-sm font-medium ${bureau.color}`}>{bureau.label} Score</td>
-                  <td className="px-4 py-3 text-center text-sm text-white">{oldScore ?? "—"}</td>
+                  <td className="px-4 py-3 text-center text-sm text-foreground">{oldScore ?? "—"}</td>
                   <td className="px-4 py-3 text-center">
                     {change !== null && <ChangeArrow value={change} />}
                   </td>
-                  <td className="px-4 py-3 text-center text-sm text-white font-semibold">{newScore ?? "—"}</td>
+                  <td className="px-4 py-3 text-center text-sm text-foreground font-semibold">{newScore ?? "—"}</td>
                   <td className="px-4 py-3 text-center">
                     {change !== null && (
                       <span
@@ -372,7 +372,7 @@ const ComparisonTable = ({ reports }: { reports: CreditReportData[] }) => {
               );
             })}
             <tr className="border-b border-zinc-800/50 bg-zinc-800/20">
-              <td className="px-4 py-3 text-sm font-medium text-white">Negative Items</td>
+              <td className="px-4 py-3 text-sm font-medium text-foreground">Negative Items</td>
               <td className="px-4 py-3 text-center text-sm text-red-400">{oldest.summary?.negativeItems ?? 0}</td>
               <td className="px-4 py-3 text-center">
                 <ChangeArrow value={(oldest.summary?.negativeItems ?? 0) - (latest.summary?.negativeItems ?? 0)} />
@@ -396,7 +396,7 @@ const ComparisonTable = ({ reports }: { reports: CreditReportData[] }) => {
               </td>
             </tr>
             <tr className="border-b border-zinc-800/50">
-              <td className="px-4 py-3 text-sm font-medium text-white">Collections</td>
+              <td className="px-4 py-3 text-sm font-medium text-foreground">Collections</td>
               <td className="px-4 py-3 text-center text-sm text-orange-400">{oldest.summary?.collections ?? 0}</td>
               <td className="px-4 py-3 text-center">
                 <ChangeArrow value={(oldest.summary?.collections ?? 0) - (latest.summary?.collections ?? 0)} />
@@ -420,7 +420,7 @@ const ComparisonTable = ({ reports }: { reports: CreditReportData[] }) => {
               </td>
             </tr>
             <tr>
-              <td className="px-4 py-3 text-sm font-medium text-white">Inquiries</td>
+              <td className="px-4 py-3 text-sm font-medium text-foreground">Inquiries</td>
               <td className="px-4 py-3 text-center text-sm text-amber-400">{oldest.summary?.inquiries ?? 0}</td>
               <td className="px-4 py-3 text-center">
                 <ChangeArrow value={(oldest.summary?.inquiries ?? 0) - (latest.summary?.inquiries ?? 0)} />
@@ -549,7 +549,7 @@ const InsightsPanel = ({ reports }: { reports: CreditReportData[] }) => {
 
   return (
     <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
-      <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+      <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
         <Target size={16} className="text-purple-400" />
         Key Insights
       </h3>
@@ -668,11 +668,11 @@ export function ReportComparisonModal({
               {/* Header */}
               <div className="p-5 border-b border-zinc-800 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-blue-500/20">
-                    <GitCompare size={20} className="text-blue-400" />
+                  <div className="p-2 rounded-xl bg-primary/20">
+                    <GitCompare size={20} className="text-primary" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-white">Report Comparison</h2>
+                    <h2 className="text-lg font-bold text-foreground">Report Comparison</h2>
                     <p className="text-xs text-zinc-500">{clientName} • {reports.length} reports analyzed</p>
                   </div>
                 </div>
@@ -689,7 +689,7 @@ export function ReportComparisonModal({
                 <div className="p-5 border-b border-zinc-800 bg-zinc-800/30">
                   <div className="grid grid-cols-4 gap-4">
                     <div className="text-center">
-                      <p className="text-2xl font-bold text-white">{summaryStats.latestAvg || "—"}</p>
+                      <p className="text-2xl font-bold text-foreground">{summaryStats.latestAvg || "—"}</p>
                       <p className="text-xs text-zinc-500">Current Avg Score</p>
                       {summaryStats.totalChange !== 0 && (
                         <p
@@ -707,7 +707,7 @@ export function ReportComparisonModal({
                       <p className="text-xs text-zinc-500">Items Removed</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-2xl font-bold text-blue-400">{summaryStats.totalInquiriesDropped}</p>
+                      <p className="text-2xl font-bold text-primary">{summaryStats.totalInquiriesDropped}</p>
                       <p className="text-xs text-zinc-500">Inquiries Dropped</p>
                     </div>
                     <div className="text-center">
@@ -735,7 +735,7 @@ export function ReportComparisonModal({
                 <Button variant="ghost" onClick={onClose}>
                   Close
                 </Button>
-                <Button className="bg-blue-600 hover:bg-blue-700">
+                <Button className="bg-primary hover:bg-primary/90">
                   <TrendingUp size={16} className="mr-2" />
                   Generate Progress Report
                 </Button>

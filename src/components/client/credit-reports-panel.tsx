@@ -150,7 +150,7 @@ const ScoreBadge = ({ score, size = "md" }: { score: number | null; size?: "sm" 
 
 const BureauLogo = ({ bureau, size = 20 }: { bureau: string; size?: number }) => {
   const colors: Record<string, string> = {
-    transunion: "text-blue-400",
+    transunion: "text-primary",
     equifax: "text-red-400",
     experian: "text-indigo-400",
   };
@@ -190,7 +190,7 @@ const ChangeIndicator = ({ value, suffix = "" }: { value: number | null | undefi
 const StatusBadge = ({ status }: { status: string }) => {
   const config: Record<string, { icon: typeof CheckCircle; bg: string; text: string; label: string; animate?: boolean }> = {
     parsed: { icon: CheckCircle, bg: "bg-emerald-500/20", text: "text-emerald-400", label: "Parsed" },
-    parsing: { icon: Loader2, bg: "bg-blue-500/20", text: "text-blue-400", label: "Parsing...", animate: true },
+    parsing: { icon: Loader2, bg: "bg-primary/20", text: "text-primary", label: "Parsing...", animate: true },
     error: { icon: AlertCircle, bg: "bg-red-500/20", text: "text-red-400", label: "Error" },
     pending: { icon: Clock, bg: "bg-amber-500/20", text: "text-amber-400", label: "Pending" },
   };
@@ -258,8 +258,8 @@ const UploadZone = ({
       <div className="border-2 border-dashed border-blue-500/50 rounded-2xl p-6 bg-blue-500/5">
         <div className="flex flex-col items-center gap-4">
           <div className="relative">
-            <div className="w-14 h-14 rounded-full bg-blue-500/20 flex items-center justify-center">
-              <FileUp size={24} className="text-blue-400 animate-pulse" />
+            <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center">
+              <FileUp size={24} className="text-primary animate-pulse" />
             </div>
             <svg className="absolute inset-0 w-14 h-14 -rotate-90">
               <circle
@@ -277,7 +277,7 @@ const UploadZone = ({
             </svg>
           </div>
           <div className="text-center">
-            <p className="text-white font-medium text-sm">
+            <p className="text-foreground font-medium text-sm">
               {uploadProgress < 100 ? "Uploading..." : "Processing..."}
             </p>
             <p className="text-xs text-zinc-400 mt-1">{uploadProgress}% complete</p>
@@ -296,7 +296,7 @@ const UploadZone = ({
   return (
     <div
       className={`relative border-2 border-dashed rounded-2xl p-6 transition-all cursor-pointer group ${
-        isDragging ? "border-blue-500 bg-blue-500/10" : "border-zinc-700 hover:border-zinc-600 hover:bg-zinc-800/30"
+        isDragging ? "border-blue-500 bg-primary/10" : "border-zinc-700 hover:border-zinc-600 hover:bg-zinc-800/30"
       }`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -314,14 +314,14 @@ const UploadZone = ({
       <div className="flex flex-col items-center gap-3">
         <div
           className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
-            isDragging ? "bg-blue-500/20 scale-110" : "bg-zinc-800 group-hover:bg-zinc-700"
+            isDragging ? "bg-primary/20 scale-110" : "bg-zinc-800 group-hover:bg-zinc-700"
           }`}
         >
-          <Upload size={22} className={isDragging ? "text-blue-400" : "text-zinc-400 group-hover:text-white"} />
+          <Upload size={22} className={isDragging ? "text-primary" : "text-zinc-400 group-hover:text-foreground"} />
         </div>
 
         <div className="text-center">
-          <p className="text-white font-medium text-sm">
+          <p className="text-foreground font-medium text-sm">
             {isDragging ? "Drop your report here" : "Drop IdentityIQ report or click to browse"}
           </p>
           <p className="text-xs text-zinc-500 mt-1">Supports PDF files from IdentityIQ</p>
@@ -441,7 +441,7 @@ const SuccessCelebrationModal = ({
                 >
                   <div className="absolute inset-0 bg-emerald-500/30 rounded-full animate-ping" />
                   <div className="relative w-full h-full bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/30">
-                    <CheckCircle size={40} className="text-white" />
+                    <CheckCircle size={40} className="text-foreground" />
                   </div>
                 </motion.div>
 
@@ -449,7 +449,7 @@ const SuccessCelebrationModal = ({
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
-                  className="text-2xl font-bold text-white mb-1"
+                  className="text-2xl font-bold text-foreground mb-1"
                 >
                   Credit Report Upload - Success!
                 </motion.h2>
@@ -474,7 +474,7 @@ const SuccessCelebrationModal = ({
                   <div className="flex gap-3">
                     <div className="text-4xl text-emerald-500/50 font-serif leading-none">"</div>
                     <div>
-                      <p className="text-white text-sm leading-relaxed italic mb-2">
+                      <p className="text-foreground text-sm leading-relaxed italic mb-2">
                         {quote.quote}
                       </p>
                       <p className="text-zinc-500 text-xs">— {quote.author}</p>
@@ -487,9 +487,9 @@ const SuccessCelebrationModal = ({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.6 }}
-                  className="flex items-center gap-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg mb-6"
+                  className="flex items-center gap-3 p-3 bg-primary/10 border border-primary/20 rounded-lg mb-6"
                 >
-                  <Sparkles size={18} className="text-blue-400 flex-shrink-0" />
+                  <Sparkles size={18} className="text-primary flex-shrink-0" />
                   <p className="text-xs text-blue-300">
                     Your report has been parsed and analyzed. You can now start creating disputes from the negative items found.
                   </p>
@@ -513,7 +513,7 @@ const SuccessCelebrationModal = ({
                       setMuteConfirmations(!muteConfirmations);
                     }}
                   >
-                    {muteConfirmations && <Check size={12} className="text-white" />}
+                    {muteConfirmations && <Check size={12} className="text-foreground" />}
                   </div>
                   <span className="text-xs text-zinc-400 group-hover:text-zinc-300">
                     Don't show success confirmations for future uploads
@@ -600,15 +600,15 @@ const ParsingProgress = ({
     <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-5">
       <div className="flex items-start justify-between mb-5">
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${allComplete ? "bg-emerald-500/20" : "bg-blue-500/20"}`}>
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${allComplete ? "bg-emerald-500/20" : "bg-primary/20"}`}>
             {allComplete ? (
               <CheckCircle size={20} className="text-emerald-400" />
             ) : (
-              <FileCheck size={20} className="text-blue-400" />
+              <FileCheck size={20} className="text-primary" />
             )}
           </div>
           <div>
-            <p className="font-medium text-white text-sm">
+            <p className="font-medium text-foreground text-sm">
               {allComplete ? "Parsing Complete!" : "Parsing Report"}
             </p>
             <p className="text-xs text-zinc-500 truncate max-w-[180px]">{filename}</p>
@@ -617,7 +617,7 @@ const ParsingProgress = ({
         {!allComplete && (
           <button
             onClick={onCancel}
-            className="p-1.5 text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
+            className="p-1.5 text-zinc-500 hover:text-foreground hover:bg-zinc-800 rounded-lg transition-colors"
           >
             <X size={16} />
           </button>
@@ -635,14 +635,14 @@ const ParsingProgress = ({
                   isCurrentlyComplete
                     ? "bg-emerald-500/20"
                     : s.status === "active"
-                    ? "bg-blue-500/20"
+                    ? "bg-primary/20"
                     : "bg-zinc-800"
                 }`}
               >
                 {isCurrentlyComplete ? (
                   <Check size={14} className="text-emerald-400" />
                 ) : s.status === "active" ? (
-                  <Loader2 size={14} className="text-blue-400 animate-spin" />
+                  <Loader2 size={14} className="text-primary animate-spin" />
                 ) : (
                   <Icon size={14} className="text-zinc-500" />
                 )}
@@ -652,14 +652,14 @@ const ParsingProgress = ({
                   isCurrentlyComplete
                     ? "text-emerald-400"
                     : s.status === "active"
-                    ? "text-white"
+                    ? "text-foreground"
                     : "text-zinc-500"
                 }`}
               >
                 {s.label}
               </span>
               {s.status === "active" && !isComplete && (
-                <span className="ml-auto text-[10px] text-blue-400">Processing...</span>
+                <span className="ml-auto text-[10px] text-primary">Processing...</span>
               )}
             </div>
           );
@@ -734,16 +734,16 @@ const ReportCard = ({
           <div className="flex items-center gap-2">
             <div
               className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-                isLatest ? "bg-blue-500/20" : "bg-zinc-800"
+                isLatest ? "bg-primary/20" : "bg-zinc-800"
               }`}
             >
-              <FileText size={16} className={isLatest ? "text-blue-400" : "text-zinc-400"} />
+              <FileText size={16} className={isLatest ? "text-primary" : "text-zinc-400"} />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <p className="font-medium text-white text-sm">{safeFormatDate(report.reportDate)}</p>
+                <p className="font-medium text-foreground text-sm">{safeFormatDate(report.reportDate)}</p>
                 {isLatest && (
-                  <span className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 text-[9px] font-medium rounded-full">
+                  <span className="px-1.5 py-0.5 bg-primary/20 text-primary text-[9px] font-medium rounded-full">
                     LATEST
                   </span>
                 )}
@@ -757,7 +757,7 @@ const ReportCard = ({
           <div className="relative">
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className="p-1.5 text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
+              className="p-1.5 text-zinc-500 hover:text-foreground hover:bg-zinc-800 rounded-lg transition-colors"
             >
               <MoreHorizontal size={14} />
             </button>
@@ -771,7 +771,7 @@ const ReportCard = ({
                       onView();
                       setShowMenu(false);
                     }}
-                    className="w-full px-3 py-2 text-left text-xs text-zinc-300 hover:bg-zinc-700 hover:text-white flex items-center gap-2"
+                    className="w-full px-3 py-2 text-left text-xs text-zinc-300 hover:bg-zinc-700 hover:text-foreground flex items-center gap-2"
                   >
                     <Eye size={12} /> View Details
                   </button>
@@ -780,11 +780,11 @@ const ReportCard = ({
                       onCompare();
                       setShowMenu(false);
                     }}
-                    className="w-full px-3 py-2 text-left text-xs text-zinc-300 hover:bg-zinc-700 hover:text-white flex items-center gap-2"
+                    className="w-full px-3 py-2 text-left text-xs text-zinc-300 hover:bg-zinc-700 hover:text-foreground flex items-center gap-2"
                   >
                     <GitCompare size={12} /> Compare Reports
                   </button>
-                  <button className="w-full px-3 py-2 text-left text-xs text-zinc-300 hover:bg-zinc-700 hover:text-white flex items-center gap-2">
+                  <button className="w-full px-3 py-2 text-left text-xs text-zinc-300 hover:bg-zinc-700 hover:text-foreground flex items-center gap-2">
                     <Download size={12} /> Download PDF
                   </button>
                   <div className="border-t border-zinc-700 my-1" />
@@ -824,7 +824,7 @@ const ReportCard = ({
         {/* Summary Stats */}
         <div className="grid grid-cols-4 gap-1.5 mb-3">
           <div className="text-center p-1.5 bg-zinc-800/30 rounded-lg">
-            <p className="text-sm font-bold text-white">{report.summary.totalAccounts}</p>
+            <p className="text-sm font-bold text-foreground">{report.summary.totalAccounts}</p>
             <p className="text-[9px] text-zinc-500">Creditors</p>
           </div>
           <div className="text-center p-1.5 bg-zinc-800/30 rounded-lg">
@@ -861,7 +861,7 @@ const ReportCard = ({
         <div className="flex items-center gap-2">
           <button
             onClick={onView}
-            className="flex-1 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5"
+            className="flex-1 py-2 bg-zinc-800 hover:bg-zinc-700 text-foreground text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5"
           >
             <Eye size={14} />
             View Report
@@ -869,7 +869,7 @@ const ReportCard = ({
           {!isLatest && (
             <button
               onClick={onCompare}
-              className="py-2 px-3 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5"
+              className="py-2 px-3 bg-primary/20 hover:bg-blue-500/30 text-primary text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5"
             >
               <GitCompare size={14} />
               Compare
@@ -922,7 +922,7 @@ const QuickStats = ({ reports }: { reports: CreditReportData[] }) => {
           Current Avg Score
         </div>
         <div className="flex items-baseline gap-2">
-          <span className="text-xl font-bold text-white">{latestAvg || "—"}</span>
+          <span className="text-xl font-bold text-foreground">{latestAvg || "—"}</span>
           {totalChange !== 0 && (
             <span className={`text-xs font-medium ${totalChange > 0 ? "text-emerald-400" : "text-red-400"}`}>
               {totalChange > 0 ? "+" : ""}
@@ -960,7 +960,7 @@ const QuickStats = ({ reports }: { reports: CreditReportData[] }) => {
           Reports Uploaded
         </div>
         <div className="flex items-baseline gap-2">
-          <span className="text-xl font-bold text-white">{reports.length}</span>
+          <span className="text-xl font-bold text-foreground">{reports.length}</span>
           <span className="text-xs text-zinc-500">
             spanning {reports.length > 1 ? `${reports.length} months` : "1 month"}
           </span>
@@ -979,27 +979,27 @@ const EmptyState = () => (
     <div className="w-16 h-16 rounded-xl bg-zinc-800/50 flex items-center justify-center mx-auto mb-4">
       <FileText size={28} className="text-zinc-600" />
     </div>
-    <h3 className="text-base font-medium text-white mb-1">No reports uploaded yet</h3>
+    <h3 className="text-base font-medium text-foreground mb-1">No reports uploaded yet</h3>
     <p className="text-xs text-zinc-500 max-w-xs mx-auto mb-4">
       Upload your first IdentityIQ report to begin tracking credit changes and generating dispute letters.
     </p>
     <div className="flex flex-col items-center gap-2">
       <div className="flex items-center gap-2 text-xs text-zinc-500">
-        <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center text-[10px] text-blue-400 font-bold">
+        <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-[10px] text-primary font-bold">
           1
         </div>
         <span>Download report from IdentityIQ</span>
       </div>
       <div className="w-px h-3 bg-zinc-800" />
       <div className="flex items-center gap-2 text-xs text-zinc-500">
-        <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center text-[10px] text-blue-400 font-bold">
+        <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-[10px] text-primary font-bold">
           2
         </div>
         <span>Upload PDF above</span>
       </div>
       <div className="w-px h-3 bg-zinc-800" />
       <div className="flex items-center gap-2 text-xs text-zinc-500">
-        <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center text-[10px] text-blue-400 font-bold">
+        <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-[10px] text-primary font-bold">
           3
         </div>
         <span>Auto-parsed into disputable items</span>
@@ -1221,7 +1221,7 @@ export function CreditReportsPanel({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -1232,10 +1232,10 @@ export function CreditReportsPanel({
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <div className="p-1.5 rounded-lg bg-blue-500/20">
-              <FileText size={18} className="text-blue-400" />
+            <div className="p-1.5 rounded-lg bg-primary/20">
+              <FileText size={18} className="text-primary" />
             </div>
-            <h2 className="text-lg font-bold text-white">Credit Reports</h2>
+            <h2 className="text-lg font-bold text-foreground">Credit Reports</h2>
           </div>
           <p className="text-xs text-zinc-500">
             Upload and manage IdentityIQ credit reports • Track changes over time
@@ -1248,7 +1248,7 @@ export function CreditReportsPanel({
               <button
                 onClick={() => setViewMode("grid")}
                 className={`px-2 py-1 rounded text-xs font-medium transition-all ${
-                  viewMode === "grid" ? "bg-zinc-800 text-white" : "text-zinc-500 hover:text-white"
+                  viewMode === "grid" ? "bg-zinc-800 text-foreground" : "text-zinc-500 hover:text-foreground"
                 }`}
               >
                 Grid
@@ -1256,7 +1256,7 @@ export function CreditReportsPanel({
               <button
                 onClick={() => setViewMode("timeline")}
                 className={`px-2 py-1 rounded text-xs font-medium transition-all ${
-                  viewMode === "timeline" ? "bg-zinc-800 text-white" : "text-zinc-500 hover:text-white"
+                  viewMode === "timeline" ? "bg-zinc-800 text-foreground" : "text-zinc-500 hover:text-foreground"
                 }`}
               >
                 Timeline
@@ -1321,7 +1321,7 @@ export function CreditReportsPanel({
       {/* Reports Section */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <Calendar size={14} className="text-zinc-500" />
             Uploaded Reports
             <span className="text-xs text-zinc-500 font-normal">({reports.length})</span>
@@ -1330,7 +1330,7 @@ export function CreditReportsPanel({
           {reports.length > 1 && (
             <button
               onClick={() => onCompareAll?.(reports)}
-              className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-primary hover:bg-primary/10 rounded-lg transition-colors"
             >
               <GitCompare size={14} />
               Compare All
@@ -1396,11 +1396,11 @@ export function CreditReportsPanel({
                     >
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-white text-sm">
+                          <span className="font-medium text-foreground text-sm">
                             {safeFormatDate(report.reportDate)}
                           </span>
                           {index === 0 && (
-                            <span className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 text-[9px] font-medium rounded-full">
+                            <span className="px-1.5 py-0.5 bg-primary/20 text-primary text-[9px] font-medium rounded-full">
                               LATEST
                             </span>
                           )}
@@ -1422,7 +1422,7 @@ export function CreditReportsPanel({
 
                       <div className="flex items-center gap-4 text-xs">
                         <span className="text-zinc-500">
-                          <span className="text-white font-medium">{report.summary.totalAccounts}</span> creditors
+                          <span className="text-foreground font-medium">{report.summary.totalAccounts}</span> creditors
                         </span>
                         <span className="text-zinc-500">
                           <span className="text-red-400 font-medium">{report.summary.negativeItems}</span>{" "}
@@ -1438,7 +1438,7 @@ export function CreditReportsPanel({
 
                         <button
                           onClick={() => handleViewReport(report)}
-                          className="ml-auto text-blue-400 hover:text-blue-300 flex items-center gap-0.5"
+                          className="ml-auto text-primary hover:text-blue-300 flex items-center gap-0.5"
                         >
                           View <ChevronRight size={12} />
                         </button>
@@ -1460,7 +1460,7 @@ export function CreditReportsPanel({
               <Sparkles size={16} className="text-purple-400" />
             </div>
             <div className="flex-1">
-              <h4 className="font-medium text-white text-sm mb-1">Pro Tip: Monthly Uploads</h4>
+              <h4 className="font-medium text-foreground text-sm mb-1">Pro Tip: Monthly Uploads</h4>
               <p className="text-xs text-zinc-400 mb-2">
                 Upload a new report every month to track progress and identify which disputes are working. Our
                 diff engine will automatically highlight changes and calculate score improvements.

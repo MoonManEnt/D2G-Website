@@ -93,7 +93,7 @@ export default function CreditDNAPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
       </div>
     );
@@ -101,7 +101,7 @@ export default function CreditDNAPage() {
 
   if (error || !dna) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-background flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-400 mb-4">{error || "No data available"}</p>
           <Button onClick={() => router.back()}>Go Back</Button>
@@ -114,7 +114,7 @@ export default function CreditDNAPage() {
   const scorePercent = ((dna.scores.average - 300) / 550) * 100;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-background text-foreground p-6">
       {/* Ambient glow */}
       <div className="fixed top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
       
@@ -123,15 +123,15 @@ export default function CreditDNAPage() {
         <div className="flex items-center gap-4">
           <button 
             onClick={() => router.back()}
-            className="p-2 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 transition-colors"
+            className="p-2 rounded-lg bg-card hover:bg-muted transition-colors"
           >
-            <ArrowLeft className="w-5 h-5 text-slate-400" />
+            <ArrowLeft className="w-5 h-5 text-muted-foreground" />
           </button>
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-100 to-slate-400 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
               Credit DNA
             </h1>
-            <p className="text-slate-400 text-sm">{dna.clientName}</p>
+            <p className="text-muted-foreground text-sm">{dna.clientName}</p>
           </div>
         </div>
         <Button onClick={fetchDNA} variant="outline" className="gap-2">
@@ -144,7 +144,7 @@ export default function CreditDNAPage() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className={"relative z-10 rounded-2xl p-6 mb-6 bg-gradient-to-br " + config.bg + " border border-slate-700/50 backdrop-blur-xl"}
+        className={"relative z-10 rounded-2xl p-6 mb-6 bg-gradient-to-br " + config.bg + " border border-border backdrop-blur-xl"}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -158,7 +158,7 @@ export default function CreditDNAPage() {
               <h2 className={"text-2xl font-bold " + config.color}>
                 {dna.classification.replace("_", " ")}
               </h2>
-              <p className="text-slate-400 text-sm max-w-md">{dna.classificationDescription}</p>
+              <p className="text-muted-foreground text-sm max-w-md">{dna.classificationDescription}</p>
             </div>
           </div>
 
@@ -176,7 +176,7 @@ export default function CreditDNAPage() {
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               <span className="text-3xl font-bold">{dna.scores.average}</span>
-              <span className="text-xs text-slate-400">AVG SCORE</span>
+              <span className="text-xs text-muted-foreground">AVG SCORE</span>
             </div>
           </div>
         </div>
@@ -188,10 +188,10 @@ export default function CreditDNAPage() {
             { label: "Experian", key: "EX", color: "bg-blue-500" },
             { label: "Equifax", key: "EQ", color: "bg-red-500" },
           ].map((bureau) => (
-            <div key={bureau.key} className="bg-slate-800/50 rounded-xl p-4">
+            <div key={bureau.key} className="bg-card rounded-xl p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className={"w-2 h-2 rounded-full " + bureau.color} />
-                <span className="text-xs text-slate-400">{bureau.label}</span>
+                <span className="text-xs text-muted-foreground">{bureau.label}</span>
               </div>
               <span className="text-2xl font-bold">
                 {dna.scores.current[bureau.key as keyof typeof dna.scores.current] || "—"}
@@ -208,7 +208,7 @@ export default function CreditDNAPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6"
+          className="bg-card backdrop-blur-xl border border-border rounded-2xl p-6"
         >
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <BarChart3 className="w-5 h-5 text-purple-400" />
@@ -225,10 +225,10 @@ export default function CreditDNAPage() {
             ].map((metric) => (
               <div key={metric.label}>
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="text-slate-400">{metric.label}</span>
+                  <span className="text-muted-foreground">{metric.label}</span>
                   <span className="font-medium">{metric.value}%</span>
                 </div>
-                <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
                   <div 
                     className={metric.color + " h-full rounded-full transition-all duration-500"}
                     style={{ width: metric.value + "%" }}
@@ -244,7 +244,7 @@ export default function CreditDNAPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6"
+          className="bg-card backdrop-blur-xl border border-border rounded-2xl p-6"
         >
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-emerald-400" />
@@ -252,23 +252,23 @@ export default function CreditDNAPage() {
           </h3>
           <div className="text-center mb-6">
             <span className="text-4xl font-bold text-emerald-400">{dna.improvement.score}%</span>
-            <p className="text-slate-400 text-sm mt-1">Potential: {dna.improvement.totalPotential}</p>
+            <p className="text-muted-foreground text-sm mt-1">Potential: {dna.improvement.totalPotential}</p>
           </div>
           <div className="space-y-3">
             {dna.improvement.factors.map((factor, i) => (
-              <div key={i} className="bg-slate-700/30 rounded-lg p-3">
+              <div key={i} className="bg-muted rounded-lg p-3">
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-sm font-medium">{factor.factor}</span>
                   <span className="text-emerald-400 text-sm font-medium">{factor.impact}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 h-1.5 bg-slate-600 rounded-full overflow-hidden">
+                  <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-emerald-500 rounded-full"
                       style={{ width: factor.probability + "%" }}
                     />
                   </div>
-                  <span className="text-xs text-slate-400">{factor.probability}%</span>
+                  <span className="text-xs text-muted-foreground">{factor.probability}%</span>
                 </div>
               </div>
             ))}
@@ -280,7 +280,7 @@ export default function CreditDNAPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6"
+          className="bg-card backdrop-blur-xl border border-border rounded-2xl p-6"
         >
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <Zap className="w-5 h-5 text-amber-400" />
@@ -290,12 +290,12 @@ export default function CreditDNAPage() {
           {/* Urgency Meter */}
           <div className="mb-6">
             <div className="flex justify-between text-sm mb-2">
-              <span className="text-slate-400">Urgency Level</span>
+              <span className="text-muted-foreground">Urgency Level</span>
               <span className={"font-semibold " + (dna.urgency.level === "HIGH" ? "text-red-400" : dna.urgency.level === "MEDIUM" ? "text-amber-400" : "text-emerald-400")}>
                 {dna.urgency.level}
               </span>
             </div>
-            <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
+            <div className="h-3 bg-muted rounded-full overflow-hidden">
               <div 
                 className={"h-full rounded-full " + (dna.urgency.score > 70 ? "bg-red-500" : dna.urgency.score > 40 ? "bg-amber-500" : "bg-emerald-500")}
                 style={{ width: dna.urgency.score + "%" }}
@@ -303,7 +303,7 @@ export default function CreditDNAPage() {
             </div>
             <div className="mt-3 space-y-1">
               {dna.urgency.reasons.map((reason, i) => (
-                <p key={i} className="text-xs text-slate-400 flex items-start gap-2">
+                <p key={i} className="text-xs text-muted-foreground flex items-start gap-2">
                   <AlertTriangle className="w-3 h-3 mt-0.5 text-amber-400 flex-shrink-0" />
                   {reason}
                 </p>
@@ -312,16 +312,16 @@ export default function CreditDNAPage() {
           </div>
 
           {/* Strategy */}
-          <div className="border-t border-slate-700 pt-4">
+          <div className="border-t border-border pt-4">
             <div className="flex items-center gap-2 mb-3">
-              <Target className="w-4 h-4 text-blue-400" />
+              <Target className="w-4 h-4 text-primary" />
               <span className="text-sm font-medium">Recommended Flow</span>
             </div>
-            <div className={"inline-block px-3 py-1 rounded-lg text-sm font-medium " + (dna.strategy.recommendedFlow === "COLLECTION" ? "bg-red-500/20 text-red-400" : "bg-blue-500/20 text-blue-400")}>
+            <div className={"inline-block px-3 py-1 rounded-lg text-sm font-medium " + (dna.strategy.recommendedFlow === "COLLECTION" ? "bg-red-500/20 text-red-400" : "bg-primary/20 text-primary")}>
               {dna.strategy.recommendedFlow}
             </div>
-            <p className="text-xs text-slate-400 mt-3">{dna.strategy.approach}</p>
-            <div className="flex items-center gap-4 mt-3 text-xs text-slate-400">
+            <p className="text-xs text-muted-foreground mt-3">{dna.strategy.approach}</p>
+            <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
               <span>Est. {dna.strategy.estimatedRounds}</span>
               {dna.strategy.cfpbRecommended && (
                 <span className="flex items-center gap-1 text-purple-400">
@@ -341,24 +341,24 @@ export default function CreditDNAPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6"
+          className="bg-card backdrop-blur-xl border border-border rounded-2xl p-6"
         >
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <PieChart className="w-5 h-5 text-blue-400" />
+            <PieChart className="w-5 h-5 text-primary" />
             Account Breakdown
           </h3>
           <div className="grid grid-cols-3 gap-4">
             {[
-              { label: "Total", value: dna.accountBreakdown.total, color: "text-slate-100" },
+              { label: "Total", value: dna.accountBreakdown.total, color: "text-foreground" },
               { label: "Positive", value: dna.accountBreakdown.positive, color: "text-emerald-400" },
               { label: "Negative", value: dna.accountBreakdown.negative, color: "text-red-400" },
               { label: "Collections", value: dna.accountBreakdown.collections, color: "text-amber-400" },
               { label: "Charge-offs", value: dna.accountBreakdown.chargeoffs, color: "text-orange-400" },
               { label: "Late Payments", value: dna.accountBreakdown.latePayments, color: "text-yellow-400" },
             ].map((item) => (
-              <div key={item.label} className="bg-slate-700/30 rounded-lg p-3 text-center">
+              <div key={item.label} className="bg-muted rounded-lg p-3 text-center">
                 <span className={"text-2xl font-bold " + item.color}>{item.value}</span>
-                <p className="text-xs text-slate-400 mt-1">{item.label}</p>
+                <p className="text-xs text-muted-foreground mt-1">{item.label}</p>
               </div>
             ))}
           </div>
@@ -369,7 +369,7 @@ export default function CreditDNAPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6"
+          className="bg-card backdrop-blur-xl border border-border rounded-2xl p-6"
         >
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <Shield className="w-5 h-5 text-purple-400" />
@@ -379,7 +379,7 @@ export default function CreditDNAPage() {
             {dna.riskFactors.map((rf, i) => (
               <div key={i} className="flex items-start gap-3">
                 <div className={"w-2 h-2 rounded-full mt-1.5 flex-shrink-0 " + (rf.type === "positive" ? "bg-emerald-500" : rf.type === "negative" ? "bg-red-500" : "bg-slate-500")} />
-                <span className="text-sm text-slate-300">{rf.factor}</span>
+                <span className="text-sm text-muted-foreground">{rf.factor}</span>
               </div>
             ))}
           </div>
@@ -392,12 +392,12 @@ export default function CreditDNAPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
-          className="relative z-10 mt-6 bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6"
+          className="relative z-10 mt-6 bg-card backdrop-blur-xl border border-border rounded-2xl p-6"
         >
           <h3 className="text-lg font-semibold mb-4">Priority Accounts</h3>
           <div className="flex flex-wrap gap-2">
             {dna.strategy.priorityAccounts.map((account, i) => (
-              <span key={i} className="px-3 py-1.5 bg-slate-700/50 rounded-lg text-sm">
+              <span key={i} className="px-3 py-1.5 bg-muted rounded-lg text-sm">
                 {i + 1}. {account}
               </span>
             ))}

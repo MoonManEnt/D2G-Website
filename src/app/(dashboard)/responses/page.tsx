@@ -48,7 +48,7 @@ const CRA_COLORS: Record<string, { bg: string; text: string; border: string }> =
 const RESPONSE_TYPES: Record<string, { label: string; color: string; icon: string }> = {
   DELETED: { label: "Deleted", color: "text-emerald-400", icon: "check" },
   VERIFIED: { label: "Verified", color: "text-amber-400", icon: "alert" },
-  UPDATED: { label: "Updated", color: "text-blue-400", icon: "edit" },
+  UPDATED: { label: "Updated", color: "text-primary", icon: "edit" },
   FRIVOLOUS: { label: "Frivolous", color: "text-red-400", icon: "x" },
   NO_RESPONSE: { label: "No Response", color: "text-purple-400", icon: "clock" },
 };
@@ -100,26 +100,26 @@ export default function ResponseTrackerPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-background text-foreground p-6">
       {/* Ambient glow */}
       <div className="fixed top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
 
       {/* Header */}
       <header className="relative z-10 flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-100 to-slate-400 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
             Response Tracker
           </h1>
-          <p className="text-slate-400 text-sm">Monitor CRA responses and FCRA compliance</p>
+          <p className="text-muted-foreground text-sm">Monitor CRA responses and FCRA compliance</p>
         </div>
-        <Button variant="outline" className="gap-2 bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white">
+        <Button variant="outline" className="gap-2 bg-card border-border text-muted-foreground hover:bg-muted hover:text-foreground">
           <Download className="w-4 h-4" />
           Export Report
         </Button>
@@ -140,18 +140,18 @@ export default function ResponseTrackerPage() {
       </motion.div>
 
       {/* Tabs */}
-      <div className="relative z-10 flex gap-2 mb-6 bg-slate-800/50 p-1.5 rounded-xl w-fit">
+      <div className="relative z-10 flex gap-2 mb-6 bg-card p-1.5 rounded-xl w-fit">
         <button
           onClick={() => setActiveTab("pending")}
           className={"px-4 py-2 rounded-lg text-sm font-medium transition-all " +
-            (activeTab === "pending" ? "bg-purple-600 text-white" : "text-slate-400 hover:text-white")}
+            (activeTab === "pending" ? "bg-purple-600 text-foreground" : "text-muted-foreground hover:text-foreground")}
         >
           Pending Responses ({pendingResponses.length})
         </button>
         <button
           onClick={() => setActiveTab("logged")}
           className={"px-4 py-2 rounded-lg text-sm font-medium transition-all " +
-            (activeTab === "logged" ? "bg-purple-600 text-white" : "text-slate-400 hover:text-white")}
+            (activeTab === "logged" ? "bg-purple-600 text-foreground" : "text-muted-foreground hover:text-foreground")}
         >
           Logged Responses ({loggedResponses.length})
         </button>
@@ -162,7 +162,7 @@ export default function ResponseTrackerPage() {
         {activeTab === "pending" ? (
           <div className="space-y-4">
             {pendingResponses.length === 0 ? (
-              <div className="text-center py-12 text-slate-400">
+              <div className="text-center py-12 text-muted-foreground">
                 <Clock className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>No pending responses</p>
                 <p className="text-sm">Disputes awaiting CRA response will appear here</p>
@@ -180,7 +180,7 @@ export default function ResponseTrackerPage() {
         ) : (
           <div className="space-y-4">
             {loggedResponses.length === 0 ? (
-              <div className="text-center py-12 text-slate-400">
+              <div className="text-center py-12 text-muted-foreground">
                 <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>No logged responses yet</p>
               </div>
@@ -214,12 +214,12 @@ export default function ResponseTrackerPage() {
 
 function StatCard({ icon, label, value, accent }: { icon: React.ReactNode; label: string; value: string | number; accent?: string }) {
   return (
-    <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-4">
+    <div className="bg-card backdrop-blur-xl border border-border rounded-xl p-4">
       <div className="flex items-center gap-3">
-        <div className="text-slate-400">{icon}</div>
+        <div className="text-muted-foreground">{icon}</div>
         <div>
-          <span className={"text-2xl font-bold " + (accent || "text-slate-100")}>{value}</span>
-          <p className="text-xs text-slate-400 uppercase tracking-wide">{label}</p>
+          <span className={"text-2xl font-bold " + (accent || "text-foreground")}>{value}</span>
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">{label}</p>
         </div>
       </div>
     </div>
@@ -235,8 +235,8 @@ function PendingResponseCard({ response, onLogResponse }: { response: PendingRes
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={"bg-slate-800/50 backdrop-blur-xl border rounded-xl p-5 " +
-        (isOverdue ? "border-red-500/50" : isDueSoon ? "border-amber-500/50" : "border-slate-700/50")}
+      className={"bg-card backdrop-blur-xl border rounded-xl p-5 " +
+        (isOverdue ? "border-red-500/50" : isDueSoon ? "border-amber-500/50" : "border-border")}
     >
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-4">
@@ -245,7 +245,7 @@ function PendingResponseCard({ response, onLogResponse }: { response: PendingRes
           </div>
           <div>
             <h3 className="font-semibold text-lg">{response.clientName}</h3>
-            <div className="flex items-center gap-3 mt-1 text-sm text-slate-400">
+            <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
               <span className={"px-2 py-0.5 rounded " + craColor.bg + " " + craColor.text}>{response.cra}</span>
               <span>Round {response.round}</span>
               <span>{response.flow}</span>
@@ -255,10 +255,10 @@ function PendingResponseCard({ response, onLogResponse }: { response: PendingRes
         </div>
 
         <div className="text-right">
-          <div className={"text-2xl font-bold " + (isOverdue ? "text-red-400" : isDueSoon ? "text-amber-400" : "text-slate-100")}>
+          <div className={"text-2xl font-bold " + (isOverdue ? "text-red-400" : isDueSoon ? "text-amber-400" : "text-foreground")}>
             {isOverdue ? "OVERDUE" : response.daysRemaining + " days"}
           </div>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-muted-foreground">
             Deadline: {format(new Date(response.responseDeadline), "MMM d, yyyy")}
           </p>
         </div>
@@ -266,12 +266,12 @@ function PendingResponseCard({ response, onLogResponse }: { response: PendingRes
 
       {/* Progress Bar */}
       <div className="mt-4">
-        <div className="flex justify-between text-xs text-slate-400 mb-1">
+        <div className="flex justify-between text-xs text-muted-foreground mb-1">
           <span>Sent: {format(new Date(response.sentDate), "MMM d")}</span>
           <span>30-day window</span>
           <span>Deadline: {format(new Date(response.responseDeadline), "MMM d")}</span>
         </div>
-        <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+        <div className="h-2 bg-muted rounded-full overflow-hidden">
           <div
             className={"h-full rounded-full transition-all " + (isOverdue ? "bg-red-500" : isDueSoon ? "bg-amber-500" : "bg-blue-500")}
             style={{ width: Math.min(100, (response.daysElapsed / 30) * 100) + "%" }}
@@ -282,18 +282,18 @@ function PendingResponseCard({ response, onLogResponse }: { response: PendingRes
       {/* Accounts */}
       <div className="mt-4 flex flex-wrap gap-2">
         {response.accounts.slice(0, 3).map((acc, i) => (
-          <span key={i} className="text-xs bg-slate-700/50 px-2 py-1 rounded">
+          <span key={i} className="text-xs bg-muted px-2 py-1 rounded">
             {acc.name}
           </span>
         ))}
         {response.accounts.length > 3 && (
-          <span className="text-xs text-slate-400">+{response.accounts.length - 3} more</span>
+          <span className="text-xs text-muted-foreground">+{response.accounts.length - 3} more</span>
         )}
       </div>
 
       {/* Actions */}
       <div className="mt-4 flex justify-end gap-2">
-        <Button variant="outline" size="sm" onClick={onLogResponse} className="bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white">
+        <Button variant="outline" size="sm" onClick={onLogResponse} className="bg-card border-border text-muted-foreground hover:bg-muted hover:text-foreground">
           Log Response
         </Button>
         {isOverdue && (
@@ -314,8 +314,8 @@ function LoggedResponseCard({ response }: { response: LoggedResponse }) {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={"bg-slate-800/50 backdrop-blur-xl border rounded-xl p-5 " +
-        (response.fcraViolation ? "border-purple-500/50" : "border-slate-700/50")}
+      className={"bg-card backdrop-blur-xl border rounded-xl p-5 " +
+        (response.fcraViolation ? "border-purple-500/50" : "border-border")}
     >
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-4">
@@ -324,7 +324,7 @@ function LoggedResponseCard({ response }: { response: LoggedResponse }) {
           </div>
           <div>
             <h3 className="font-semibold">{response.clientName}</h3>
-            <div className="flex items-center gap-3 mt-1 text-sm text-slate-400">
+            <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
               <span>Round {response.round}</span>
               <span>{response.flow}</span>
               {response.responseDate && (
@@ -336,7 +336,7 @@ function LoggedResponseCard({ response }: { response: LoggedResponse }) {
 
         <div className="text-right">
           <span className={"px-3 py-1 rounded-lg text-sm font-medium " +
-            (response.fcraViolation ? "bg-purple-500/20 text-purple-400" : "bg-slate-700/50 text-slate-300")}>
+            (response.fcraViolation ? "bg-purple-500/20 text-purple-400" : "bg-muted text-muted-foreground")}>
             {response.fcraViolation ? "FCRA VIOLATION" : response.status}
           </span>
         </div>
@@ -353,7 +353,7 @@ function LoggedResponseCard({ response }: { response: LoggedResponse }) {
           <span className="text-sm">{response.results.verified} Verified</span>
         </div>
         <div className="flex items-center gap-2">
-          <FileText className="w-4 h-4 text-blue-400" />
+          <FileText className="w-4 h-4 text-primary" />
           <span className="text-sm">{response.results.updated} Updated</span>
         </div>
       </div>
@@ -361,7 +361,7 @@ function LoggedResponseCard({ response }: { response: LoggedResponse }) {
       {/* Next Action */}
       <div className="mt-4 flex items-center gap-2 text-sm">
         <ChevronRight className="w-4 h-4 text-purple-400" />
-        <span className="text-slate-300">{response.nextAction}</span>
+        <span className="text-muted-foreground">{response.nextAction}</span>
       </div>
     </motion.div>
   );
@@ -400,10 +400,10 @@ function LogResponseModal({ dispute, onClose, onSave }: { dispute: PendingRespon
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="relative w-full max-w-lg bg-slate-900 rounded-2xl border border-slate-700 p-6"
+        className="relative w-full max-w-lg bg-background rounded-2xl border border-border p-6"
       >
         <h2 className="text-xl font-bold mb-4">Log CRA Response</h2>
-        <p className="text-slate-400 text-sm mb-6">
+        <p className="text-muted-foreground text-sm mb-6">
           {dispute.clientName} - {dispute.cra} Round {dispute.round}
         </p>
 
@@ -418,7 +418,7 @@ function LogResponseModal({ dispute, onClose, onSave }: { dispute: PendingRespon
                 className={"p-3 rounded-lg border text-sm font-medium transition-all " +
                   (responseType === type
                     ? "border-purple-500 bg-purple-500/20 " + config.color
-                    : "border-slate-700 text-slate-400 hover:border-slate-600")}
+                    : "border-border text-muted-foreground hover:border-input")}
               >
                 {config.label}
               </button>
@@ -431,12 +431,12 @@ function LogResponseModal({ dispute, onClose, onSave }: { dispute: PendingRespon
           <label className="block text-sm font-medium mb-2">Per-Account Results</label>
           <div className="space-y-2 max-h-48 overflow-y-auto">
             {dispute.accounts.map((acc) => (
-              <div key={acc.accountId} className="flex items-center justify-between bg-slate-800/50 p-3 rounded-lg">
+              <div key={acc.accountId} className="flex items-center justify-between bg-card p-3 rounded-lg">
                 <span className="text-sm">{acc.name}</span>
                 <select
                   value={accountResults[acc.accountId]}
                   onChange={(e) => setAccountResults({ ...accountResults, [acc.accountId]: e.target.value })}
-                  className="bg-slate-700 border-none rounded px-2 py-1 text-sm"
+                  className="bg-muted border-none rounded px-2 py-1 text-sm"
                 >
                   <option value="DELETED">Deleted</option>
                   <option value="VERIFIED">Verified</option>
@@ -449,8 +449,8 @@ function LogResponseModal({ dispute, onClose, onSave }: { dispute: PendingRespon
 
         {/* Actions */}
         <div className="flex justify-end gap-3">
-          <Button variant="ghost" onClick={onClose} className="text-slate-400 hover:text-white hover:bg-slate-800">Cancel</Button>
-          <Button onClick={handleSave} disabled={saving} className="bg-purple-600 hover:bg-purple-700 text-white">
+          <Button variant="ghost" onClick={onClose} className="text-muted-foreground hover:text-foreground hover:bg-card">Cancel</Button>
+          <Button onClick={handleSave} disabled={saving} className="bg-purple-600 hover:bg-purple-700 text-foreground">
             {saving ? "Saving..." : "Log Response"}
           </Button>
         </div>

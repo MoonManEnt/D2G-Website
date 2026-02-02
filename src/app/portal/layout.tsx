@@ -128,7 +128,7 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -138,7 +138,7 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
     <PortalContext.Provider
       value={{ user, organization, accessToken, isLoading, login, logout, getAuthHeader }}
     >
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="min-h-screen bg-gradient-to-br from-background via-card to-background">
         {children}
       </div>
     </PortalContext.Provider>

@@ -417,29 +417,29 @@ export function LetterGenerator({
   };
 
   return (
-    <div className="h-full flex flex-col bg-slate-900">
+    <div className="h-full flex flex-col bg-background">
       {/* Top Bar */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border">
         <div className="flex items-center gap-3">
           {onBack && (
-            <Button variant="ghost" size="sm" onClick={onBack} className="text-slate-400 hover:text-white">
+            <Button variant="ghost" size="sm" onClick={onBack} className="text-muted-foreground hover:text-foreground">
               ← Back
             </Button>
           )}
           <Badge className="bg-violet-500/20 text-violet-400 border-violet-500/30">
             AMELIA-Powered
           </Badge>
-          <h1 className="text-lg font-semibold text-white">
+          <h1 className="text-lg font-semibold text-foreground">
             {isEditing ? "Edit Letter" : "Generate Dispute Letter"}
           </h1>
-          <span className="text-sm text-slate-400">
+          <span className="text-sm text-muted-foreground">
             {clientName} • {bureau} • Round {round}
           </span>
         </div>
         <div className="flex items-center gap-2">
           {isEditing ? (
             <>
-              <Button variant="outline" size="sm" onClick={() => setIsEditing(false)} className="border-slate-700 text-slate-300">
+              <Button variant="outline" size="sm" onClick={() => setIsEditing(false)} className="border-border text-muted-foreground">
                 <X className="w-4 h-4 mr-2" />
                 Cancel
               </Button>
@@ -450,19 +450,19 @@ export function LetterGenerator({
             </>
           ) : (
             <>
-              <Button variant="outline" size="sm" onClick={() => { setEditedContent(letterContent); setIsEditing(true); }} className="border-slate-700 text-slate-300">
+              <Button variant="outline" size="sm" onClick={() => { setEditedContent(letterContent); setIsEditing(true); }} className="border-border text-muted-foreground">
                 <Edit3 className="w-4 h-4 mr-2" />
                 Edit
               </Button>
-              <Button variant="outline" size="sm" onClick={handleCopy} className={`border-slate-700 ${copied ? "bg-emerald-600 border-emerald-600 text-white" : "text-slate-300"}`}>
+              <Button variant="outline" size="sm" onClick={handleCopy} className={`border-border ${copied ? "bg-emerald-600 border-emerald-600 text-white" : "text-muted-foreground"}`}>
                 {copied ? <CheckCircle className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
                 {copied ? "Copied!" : "Copy"}
               </Button>
-              <Button variant="outline" size="sm" onClick={handlePrint} className="border-slate-700 text-slate-300">
+              <Button variant="outline" size="sm" onClick={handlePrint} className="border-border text-muted-foreground">
                 <Printer className="w-4 h-4 mr-2" />
                 Print
               </Button>
-              <Button size="sm" onClick={handleDownload} className="bg-blue-600 hover:bg-blue-700">
+              <Button size="sm" onClick={handleDownload} className="bg-primary hover:bg-primary/90">
                 <Download className="w-4 h-4 mr-2" />
                 Download
               </Button>
@@ -474,8 +474,8 @@ export function LetterGenerator({
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Panel - Letter Type Selector */}
-        <div className="w-64 border-r border-slate-800 p-4 overflow-y-auto">
-          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-4">Letter Type</h3>
+        <div className="w-64 border-r border-border p-4 overflow-y-auto">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-4">Letter Type</h3>
           <div className="space-y-2">
             {LETTER_TYPES.map((type) => (
               <button
@@ -483,25 +483,25 @@ export function LetterGenerator({
                 onClick={() => setSelectedType(type.id)}
                 className={`w-full text-left p-3 rounded-xl transition-all ${
                   selectedType === type.id
-                    ? "bg-blue-500/20 border border-blue-500/50"
-                    : "bg-slate-800/50 border border-slate-700/50 hover:bg-slate-800"
+                    ? "bg-primary/20 border border-blue-500/50"
+                    : "bg-card border border-border hover:bg-card"
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className={`font-medium ${selectedType === type.id ? "text-blue-400" : "text-white"}`}>
+                  <span className={`font-medium ${selectedType === type.id ? "text-primary" : "text-foreground"}`}>
                     {type.label}
                   </span>
-                  <Badge variant="outline" className={`text-xs ${selectedType === type.id ? "border-blue-500/50 text-blue-400" : "border-slate-600 text-slate-400"}`}>
+                  <Badge variant="outline" className={`text-xs ${selectedType === type.id ? "border-blue-500/50 text-primary" : "border-input text-muted-foreground"}`}>
                     {type.round}
                   </Badge>
                 </div>
-                <p className="text-xs text-slate-500 mt-1">{type.description}</p>
+                <p className="text-xs text-muted-foreground mt-1">{type.description}</p>
               </button>
             ))}
           </div>
 
           {/* Legal Citations */}
-          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mt-8 mb-4">Legal Citations</h3>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mt-8 mb-4">Legal Citations</h3>
           <div className="space-y-2">
             {LEGAL_CITATIONS.map((cite) => (
               <button
@@ -510,40 +510,40 @@ export function LetterGenerator({
                   navigator.clipboard.writeText(cite.code);
                   toast({ title: "Copied", description: `${cite.code} copied to clipboard` });
                 }}
-                className="w-full text-left p-2 rounded-lg bg-slate-800/50 border border-slate-700/50 hover:bg-slate-800 transition-all group"
+                className="w-full text-left p-2 rounded-lg bg-card border border-border hover:bg-card transition-all group"
               >
-                <span className="text-sm text-blue-400 group-hover:underline">{cite.code}</span>
-                <p className="text-xs text-slate-500">{cite.label}</p>
+                <span className="text-sm text-primary group-hover:underline">{cite.code}</span>
+                <p className="text-xs text-muted-foreground">{cite.label}</p>
               </button>
             ))}
           </div>
 
           {/* EOSCAR Risk Meter */}
-          <div className="mt-8 p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
+          <div className="mt-8 p-4 rounded-xl bg-card border border-border">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">EOSCAR Risk</span>
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">EOSCAR Risk</span>
               <span className={`text-lg font-bold ${getEoscarRiskColor(eoscarRisk)}`}>
                 {eoscarRisk}%
               </span>
             </div>
             <Progress value={eoscarRisk} className="h-2" />
-            <p className="text-xs text-slate-500 mt-2">{getEoscarRiskLabel(eoscarRisk)}</p>
+            <p className="text-xs text-muted-foreground mt-2">{getEoscarRiskLabel(eoscarRisk)}</p>
           </div>
         </div>
 
         {/* Center - Letter Preview/Editor */}
-        <div className="flex-1 p-6 overflow-y-auto bg-slate-950/50">
+        <div className="flex-1 p-6 overflow-y-auto bg-background">
           <div className="max-w-2xl mx-auto">
             {isEditing ? (
               /* Edit Mode */
-              <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-4">
+              <div className="bg-card rounded-xl border border-border p-4">
                 <Textarea
                   value={editedContent}
                   onChange={(e) => setEditedContent(e.target.value)}
-                  className="min-h-[600px] bg-slate-900 border-slate-700 text-white font-mono text-sm"
+                  className="min-h-[600px] bg-background border-border text-foreground font-mono text-sm"
                   placeholder="Edit your dispute letter..."
                 />
-                <p className="text-xs text-slate-500 mt-2">{editedContent.length} characters</p>
+                <p className="text-xs text-muted-foreground mt-2">{editedContent.length} characters</p>
               </div>
             ) : (
               /* Preview Mode */
@@ -557,7 +557,7 @@ export function LetterGenerator({
                     {letterContent}
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+                  <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
                     <FileText className="w-12 h-12 mb-4" />
                     <p>No letter content yet</p>
                     <Button onClick={handleGenerateLetter} className="mt-4" disabled={isGenerating}>
@@ -581,35 +581,35 @@ export function LetterGenerator({
         </div>
 
         {/* Right Panel - AMELIA Assistant */}
-        <div className="w-80 border-l border-slate-800 p-4 overflow-y-auto">
+        <div className="w-80 border-l border-border p-4 overflow-y-auto">
           {/* AMELIA Header */}
           <div className="flex items-center gap-3 mb-6">
             <div className="relative">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
-                <Bot className="w-6 h-6 text-white" />
+                <Bot className="w-6 h-6 text-foreground" />
               </div>
               <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
-                <Sparkles className="w-3 h-3 text-white" />
+                <Sparkles className="w-3 h-3 text-foreground" />
               </div>
             </div>
             <div>
-              <h3 className="font-semibold text-white">AMELIA</h3>
-              <p className="text-xs text-slate-400">AI Writing Assistant</p>
+              <h3 className="font-semibold text-foreground">AMELIA</h3>
+              <p className="text-xs text-muted-foreground">AI Writing Assistant</p>
             </div>
             <div className="ml-auto text-right">
               <p className="text-2xl font-bold text-emerald-400">{ameliaConfidence}%</p>
-              <p className="text-xs text-slate-400">Confidence</p>
+              <p className="text-xs text-muted-foreground">Confidence</p>
             </div>
           </div>
 
           {/* Suggestions */}
-          <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
+          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
             Suggestions
             {isLoadingSuggestions && <Loader2 className="w-3 h-3 ml-2 inline animate-spin" />}
           </h4>
           <div className="space-y-2 mb-4">
             {suggestions.length === 0 && !isLoadingSuggestions && (
-              <p className="text-sm text-slate-500">No suggestions available. Generate a letter first.</p>
+              <p className="text-sm text-muted-foreground">No suggestions available. Generate a letter first.</p>
             )}
             {suggestions.map((suggestion) => (
               <motion.div
@@ -619,7 +619,7 @@ export function LetterGenerator({
                 className={`p-3 rounded-xl border transition-all ${
                   suggestion.applied
                     ? "bg-emerald-500/10 border-emerald-500/30"
-                    : "bg-slate-800/50 border-slate-700/50"
+                    : "bg-card border-border"
                 }`}
               >
                 <div className="flex items-start gap-3">
@@ -628,14 +628,14 @@ export function LetterGenerator({
                   ) : suggestion.impact === "high" ? (
                     <Zap className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
                   ) : (
-                    <Sparkles className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
+                    <Sparkles className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className={`text-sm ${suggestion.applied ? "text-emerald-300" : "text-white"}`}>
+                    <p className={`text-sm ${suggestion.applied ? "text-emerald-300" : "text-foreground"}`}>
                       {suggestion.text}
                     </p>
                     {suggestion.reasoning && !suggestion.applied && (
-                      <p className="text-xs text-slate-500 mt-1">{suggestion.reasoning}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{suggestion.reasoning}</p>
                     )}
                   </div>
                   {!suggestion.applied && (
@@ -643,7 +643,7 @@ export function LetterGenerator({
                       size="sm"
                       onClick={() => handleApplySuggestion(suggestion)}
                       disabled={isApplyingSuggestion === suggestion.id}
-                      className="bg-blue-600 hover:bg-blue-700 text-xs h-7 flex-shrink-0"
+                      className="bg-primary hover:bg-primary/90 text-xs h-7 flex-shrink-0"
                     >
                       {isApplyingSuggestion === suggestion.id ? (
                         <Loader2 className="w-3 h-3 animate-spin" />
@@ -666,10 +666,10 @@ export function LetterGenerator({
           )}
 
           {/* Version History */}
-          <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Version History</h4>
+          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Version History</h4>
           <div className="space-y-2 mb-4">
             {versions.length === 0 ? (
-              <p className="text-sm text-slate-500">No versions yet</p>
+              <p className="text-sm text-muted-foreground">No versions yet</p>
             ) : (
               versions.slice(0, 5).map((version) => (
                 <button
@@ -677,19 +677,19 @@ export function LetterGenerator({
                   onClick={() => handleRevertVersion(version)}
                   className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${
                     version.isCurrent
-                      ? "bg-blue-500/20 border border-blue-500/50"
-                      : "bg-slate-800/50 border border-slate-700/50 hover:bg-slate-800"
+                      ? "bg-primary/20 border border-blue-500/50"
+                      : "bg-card border border-border hover:bg-card"
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    <span className={`font-medium ${version.isCurrent ? "text-blue-400" : "text-white"}`}>
+                    <span className={`font-medium ${version.isCurrent ? "text-primary" : "text-foreground"}`}>
                       {version.version}
                     </span>
                     {version.isCurrent && (
-                      <Badge className="bg-blue-500/20 text-blue-400 text-[10px]">current</Badge>
+                      <Badge className="bg-primary/20 text-primary text-[10px]">current</Badge>
                     )}
                   </div>
-                  <span className="text-xs text-slate-500">{version.timestamp}</span>
+                  <span className="text-xs text-muted-foreground">{version.timestamp}</span>
                 </button>
               ))
             )}
@@ -699,7 +699,7 @@ export function LetterGenerator({
           <button
             onClick={handleUndo}
             disabled={versions.length <= 1}
-            className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:bg-slate-800 transition-all text-slate-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-card border border-border hover:bg-card transition-all text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Undo2 className="w-4 h-4" />
             <span className="text-sm">Undo Last Change</span>
@@ -710,7 +710,7 @@ export function LetterGenerator({
             onClick={handleGenerateLetter}
             disabled={isGenerating}
             variant="outline"
-            className="w-full mt-4 border-slate-700"
+            className="w-full mt-4 border-border"
           >
             {isGenerating ? (
               <>

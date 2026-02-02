@@ -62,12 +62,12 @@ interface ReminderListProps {
 }
 
 const REMINDER_TYPE_LABELS: Record<string, { label: string; color: string }> = {
-  FOLLOW_UP: { label: "Follow-up", color: "bg-blue-500/20 text-blue-400" },
+  FOLLOW_UP: { label: "Follow-up", color: "bg-primary/20 text-blue-400" },
   DEADLINE: { label: "Deadline", color: "bg-red-500/20 text-red-400" },
   DOCUMENT_REQUEST: { label: "Document", color: "bg-amber-500/20 text-amber-400" },
   RESPONSE_DUE: { label: "Response Due", color: "bg-purple-500/20 text-purple-400" },
   SCORE_CHECK: { label: "Score Check", color: "bg-green-500/20 text-green-400" },
-  CUSTOM: { label: "Custom", color: "bg-slate-500/20 text-slate-400" },
+  CUSTOM: { label: "Custom", color: "bg-muted text-muted-foreground" },
 };
 
 export function ReminderList({ clientId, showStats = true, compact = false }: ReminderListProps) {
@@ -180,9 +180,9 @@ export function ReminderList({ clientId, showStats = true, compact = false }: Re
 
   if (loading) {
     return (
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="py-8">
-          <Loader2 className="w-6 h-6 animate-spin mx-auto text-slate-400" />
+          <Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />
         </CardContent>
       </Card>
     );
@@ -192,46 +192,46 @@ export function ReminderList({ clientId, showStats = true, compact = false }: Re
     <div className="space-y-4">
       {showStats && stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-card border-border">
             <CardContent className="p-4 text-center">
-              <Clock className="w-6 h-6 mx-auto text-blue-400" />
-              <p className="text-2xl font-bold text-white mt-1">{stats.pending}</p>
-              <p className="text-xs text-slate-400">Pending</p>
+              <Clock className="w-6 h-6 mx-auto text-primary" />
+              <p className="text-2xl font-bold text-foreground mt-1">{stats.pending}</p>
+              <p className="text-xs text-muted-foreground">Pending</p>
             </CardContent>
           </Card>
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-card border-border">
             <CardContent className="p-4 text-center">
               <AlertTriangle className="w-6 h-6 mx-auto text-red-400" />
               <p className="text-2xl font-bold text-red-400 mt-1">{stats.overdue}</p>
-              <p className="text-xs text-slate-400">Overdue</p>
+              <p className="text-xs text-muted-foreground">Overdue</p>
             </CardContent>
           </Card>
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-card border-border">
             <CardContent className="p-4 text-center">
               <CheckCircle className="w-6 h-6 mx-auto text-green-400" />
-              <p className="text-2xl font-bold text-white mt-1">{stats.completed}</p>
-              <p className="text-xs text-slate-400">Completed</p>
+              <p className="text-2xl font-bold text-foreground mt-1">{stats.completed}</p>
+              <p className="text-xs text-muted-foreground">Completed</p>
             </CardContent>
           </Card>
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-card border-border">
             <CardContent className="p-4 text-center">
               <Bell className="w-6 h-6 mx-auto text-amber-400" />
-              <p className="text-2xl font-bold text-white mt-1">{stats.snoozed}</p>
-              <p className="text-xs text-slate-400">Snoozed</p>
+              <p className="text-2xl font-bold text-foreground mt-1">{stats.snoozed}</p>
+              <p className="text-xs text-muted-foreground">Snoozed</p>
             </CardContent>
           </Card>
         </div>
       )}
 
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-white flex items-center gap-2">
+              <CardTitle className="text-foreground flex items-center gap-2">
                 <Bell className="w-5 h-5" />
                 {compact ? "Upcoming Reminders" : "Reminders"}
               </CardTitle>
-              <CardDescription className="text-slate-400">
+              <CardDescription className="text-muted-foreground">
                 Stay on top of client follow-ups
               </CardDescription>
             </div>
@@ -244,11 +244,11 @@ export function ReminderList({ clientId, showStats = true, compact = false }: Re
         <CardContent>
           {reminders.length === 0 ? (
             <div className="text-center py-8">
-              <Bell className="w-12 h-12 mx-auto text-slate-600" />
-              <p className="text-slate-400 mt-2">No upcoming reminders</p>
+              <Bell className="w-12 h-12 mx-auto text-muted-foreground" />
+              <p className="text-muted-foreground mt-2">No upcoming reminders</p>
               <Button
                 variant="outline"
-                className="mt-4 border-slate-600 text-slate-300"
+                className="mt-4 border-input text-muted-foreground"
                 onClick={() => setAddModalOpen(true)}
               >
                 <Plus className="w-4 h-4 mr-1" />
@@ -267,24 +267,24 @@ export function ReminderList({ clientId, showStats = true, compact = false }: Re
                     className={`p-3 rounded-lg border ${
                       dateInfo.isOverdue
                         ? "bg-red-900/20 border-red-500/30"
-                        : "bg-slate-700/30 border-slate-600"
+                        : "bg-muted border-input"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <span className="font-medium text-white">{reminder.title}</span>
+                          <span className="font-medium text-foreground">{reminder.title}</span>
                           <Badge className={typeInfo.color}>{typeInfo.label}</Badge>
                           {reminder.repeatInterval !== "NONE" && (
-                            <Badge className="bg-slate-600/50 text-slate-300">
+                            <Badge className="bg-muted text-muted-foreground">
                               {reminder.repeatInterval.toLowerCase()}
                             </Badge>
                           )}
                         </div>
                         {reminder.description && (
-                          <p className="text-sm text-slate-400 mb-2">{reminder.description}</p>
+                          <p className="text-sm text-muted-foreground mb-2">{reminder.description}</p>
                         )}
-                        <div className="flex items-center gap-4 text-xs text-slate-500">
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <User className="w-3 h-3" />
                             {reminder.client.firstName} {reminder.client.lastName}
@@ -316,25 +316,25 @@ export function ReminderList({ clientId, showStats = true, compact = false }: Re
                         </Button>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button size="sm" variant="ghost" className="text-slate-400">
+                            <Button size="sm" variant="ghost" className="text-muted-foreground">
                               <MoreVertical className="w-4 h-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent className="bg-slate-800 border-slate-700">
+                          <DropdownMenuContent className="bg-card border-border">
                             <DropdownMenuItem
-                              className="text-slate-300"
+                              className="text-muted-foreground"
                               onClick={() => handleSnooze(reminder.id, 1)}
                             >
                               Snooze 1 hour
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              className="text-slate-300"
+                              className="text-muted-foreground"
                               onClick={() => handleSnooze(reminder.id, 24)}
                             >
                               Snooze 1 day
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              className="text-slate-300"
+                              className="text-muted-foreground"
                               onClick={() => handleSnooze(reminder.id, 168)}
                             >
                               Snooze 1 week

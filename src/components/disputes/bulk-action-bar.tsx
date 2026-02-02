@@ -28,10 +28,10 @@ const CRA_CONFIG = {
   TRANSUNION: {
     name: "TransUnion",
     shortName: "TU",
-    textClass: "text-blue-400",
-    bgClass: "bg-blue-500/10",
-    borderClass: "border-blue-500/30",
-    hoverClass: "hover:bg-blue-500/20 hover:border-blue-500/50",
+    textClass: "text-primary",
+    bgClass: "bg-primary/10",
+    borderClass: "border-primary/30",
+    hoverClass: "hover:bg-primary/20 hover:border-blue-500/50",
   },
   EQUIFAX: {
     name: "Equifax",
@@ -74,8 +74,8 @@ export function BulkActionBar({
 
   if (totalSelected === 0) {
     return (
-      <div className="p-4 bg-slate-800/50 border border-slate-700/50 rounded-xl text-center">
-        <p className="text-sm text-slate-400">
+      <div className="p-4 bg-card border border-border rounded-xl text-center">
+        <p className="text-sm text-muted-foreground">
           Select accounts above to create disputes
         </p>
       </div>
@@ -83,12 +83,12 @@ export function BulkActionBar({
   }
 
   return (
-    <div className="p-4 bg-slate-800/50 border border-slate-700/50 rounded-xl space-y-4">
+    <div className="p-4 bg-card border border-border rounded-xl space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-white">Bulk Actions</h3>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <h3 className="text-sm font-semibold text-foreground">Bulk Actions</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
             {totalSelected} account{totalSelected !== 1 ? "s" : ""} selected across {activeCRAs.length} bureau{activeCRAs.length !== 1 ? "s" : ""}
           </p>
         </div>
@@ -148,7 +148,7 @@ export function BulkActionBar({
                 <span className={cn("block text-sm font-semibold", config.textClass)}>
                   {config.name}
                 </span>
-                <span className="block text-xs text-slate-400">
+                <span className="block text-xs text-muted-foreground">
                   {count > 0 ? `${count} account${count !== 1 ? "s" : ""}` : "None selected"}
                 </span>
               </div>
@@ -171,8 +171,8 @@ export function BulkActionBar({
 
       {/* Flow Detection Summary */}
       {activeCRAs.length > 0 && (
-        <div className="pt-3 border-t border-slate-700/50">
-          <p className="text-xs text-slate-500 mb-2">Auto-detected flows:</p>
+        <div className="pt-3 border-t border-border">
+          <p className="text-xs text-muted-foreground mb-2">Auto-detected flows:</p>
           <div className="flex flex-wrap gap-2">
             {activeCRAs.map((cra) => {
               const flow = detectedFlows[cra];
@@ -182,10 +182,10 @@ export function BulkActionBar({
               return (
                 <div
                   key={cra}
-                  className="flex items-center gap-2 px-2 py-1 bg-slate-700/30 rounded text-xs"
+                  className="flex items-center gap-2 px-2 py-1 bg-muted rounded text-xs"
                 >
                   <span className={CRA_CONFIG[cra].textClass}>{CRA_CONFIG[cra].shortName}</span>
-                  <span className="text-slate-400">→</span>
+                  <span className="text-muted-foreground">→</span>
                   <span
                     style={{ color: FLOW_COLORS[flow] }}
                     title={flowInfo.description}

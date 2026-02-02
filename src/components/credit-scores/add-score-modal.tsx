@@ -166,10 +166,10 @@ export function AddScoreModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-slate-800 border-slate-700">
+      <DialogContent className="bg-card border-border">
         <DialogHeader>
-          <DialogTitle className="text-white">Add Credit Score</DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogTitle className="text-foreground">Add Credit Score</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
             Record a new credit score for this client
           </DialogDescription>
         </DialogHeader>
@@ -179,7 +179,7 @@ export function AddScoreModal({
             variant={bulkMode ? "outline" : "default"}
             size="sm"
             onClick={() => setBulkMode(false)}
-            className={!bulkMode ? "bg-primary" : "border-slate-600 text-slate-300"}
+            className={!bulkMode ? "bg-primary" : "border-input text-muted-foreground"}
           >
             Single Score
           </Button>
@@ -187,7 +187,7 @@ export function AddScoreModal({
             variant={bulkMode ? "default" : "outline"}
             size="sm"
             onClick={() => setBulkMode(true)}
-            className={bulkMode ? "bg-primary" : "border-slate-600 text-slate-300"}
+            className={bulkMode ? "bg-primary" : "border-input text-muted-foreground"}
           >
             All Bureaus
           </Button>
@@ -198,7 +198,7 @@ export function AddScoreModal({
             <div className="grid grid-cols-3 gap-3">
               {CRAS.map((cra) => (
                 <div key={cra} className="space-y-2">
-                  <Label className="text-slate-300 text-xs">{cra}</Label>
+                  <Label className="text-muted-foreground text-xs">{cra}</Label>
                   <Input
                     type="number"
                     min={300}
@@ -208,7 +208,7 @@ export function AddScoreModal({
                     onChange={(e) =>
                       setBulkScores({ ...bulkScores, [cra]: e.target.value })
                     }
-                    className="bg-slate-700/50 border-slate-600 text-white text-center"
+                    className="bg-muted border-input text-foreground text-center"
                   />
                 </div>
               ))}
@@ -216,28 +216,28 @@ export function AddScoreModal({
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-slate-300">Date</Label>
+                <Label className="text-muted-foreground">Date</Label>
                 <Input
                   type="date"
                   value={formData.scoreDate}
                   onChange={(e) =>
                     setFormData({ ...formData, scoreDate: e.target.value })
                   }
-                  className="bg-slate-700/50 border-slate-600 text-white"
+                  className="bg-muted border-input text-foreground"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-300">Score Type</Label>
+                <Label className="text-muted-foreground">Score Type</Label>
                 <Select
                   value={formData.scoreType}
                   onValueChange={(v) =>
                     setFormData({ ...formData, scoreType: v as typeof formData.scoreType })
                   }
                 >
-                  <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+                  <SelectTrigger className="bg-muted border-input text-foreground">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700">
+                  <SelectContent className="bg-card border-border">
                     {SCORE_TYPES.map((type) => (
                       <SelectItem key={type} value={type}>
                         {type}
@@ -253,7 +253,7 @@ export function AddScoreModal({
                 type="button"
                 variant="ghost"
                 onClick={() => onOpenChange(false)}
-                className="text-slate-400"
+                className="text-muted-foreground"
               >
                 Cancel
               </Button>
@@ -267,17 +267,17 @@ export function AddScoreModal({
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-slate-300">Credit Bureau</Label>
+                <Label className="text-muted-foreground">Credit Bureau</Label>
                 <Select
                   value={formData.cra}
                   onValueChange={(v) =>
                     setFormData({ ...formData, cra: v as typeof formData.cra })
                   }
                 >
-                  <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+                  <SelectTrigger className="bg-muted border-input text-foreground">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700">
+                  <SelectContent className="bg-card border-border">
                     {CRAS.map((cra) => (
                       <SelectItem key={cra} value={cra}>
                         {cra}
@@ -287,7 +287,7 @@ export function AddScoreModal({
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-300">Score</Label>
+                <Label className="text-muted-foreground">Score</Label>
                 <Input
                   type="number"
                   min={300}
@@ -295,7 +295,7 @@ export function AddScoreModal({
                   placeholder="300-850"
                   value={formData.score}
                   onChange={(e) => setFormData({ ...formData, score: e.target.value })}
-                  className="bg-slate-700/50 border-slate-600 text-white"
+                  className="bg-muted border-input text-foreground"
                   required
                 />
               </div>
@@ -303,29 +303,29 @@ export function AddScoreModal({
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-slate-300">Date</Label>
+                <Label className="text-muted-foreground">Date</Label>
                 <Input
                   type="date"
                   value={formData.scoreDate}
                   onChange={(e) =>
                     setFormData({ ...formData, scoreDate: e.target.value })
                   }
-                  className="bg-slate-700/50 border-slate-600 text-white"
+                  className="bg-muted border-input text-foreground"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-300">Score Type</Label>
+                <Label className="text-muted-foreground">Score Type</Label>
                 <Select
                   value={formData.scoreType}
                   onValueChange={(v) =>
                     setFormData({ ...formData, scoreType: v as typeof formData.scoreType })
                   }
                 >
-                  <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+                  <SelectTrigger className="bg-muted border-input text-foreground">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700">
+                  <SelectContent className="bg-card border-border">
                     {SCORE_TYPES.map((type) => (
                       <SelectItem key={type} value={type}>
                         {type}
@@ -341,7 +341,7 @@ export function AddScoreModal({
                 type="button"
                 variant="ghost"
                 onClick={() => onOpenChange(false)}
-                className="text-slate-400"
+                className="text-muted-foreground"
               >
                 Cancel
               </Button>

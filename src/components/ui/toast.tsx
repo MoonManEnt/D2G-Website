@@ -42,7 +42,7 @@ const toastVariants = cva(
     variants: {
       variant: {
         default: [
-          "border-slate-700/50 bg-slate-900/95 text-slate-100",
+          "border-border bg-background/95 text-foreground",
           "shadow-slate-900/50",
         ].join(" "),
         destructive: [
@@ -78,7 +78,7 @@ const ToastIcon = ({ variant }: { variant?: "default" | "destructive" | "success
     case "warning":
       return <AlertCircle className={cn(iconClass, "text-amber-400 animate-in zoom-in-50 duration-300")} />;
     default:
-      return <Info className={cn(iconClass, "text-blue-400 animate-in zoom-in-50 duration-300")} />;
+      return <Info className={cn(iconClass, "text-primary animate-in zoom-in-50 duration-300")} />;
   }
 };
 
@@ -114,15 +114,15 @@ const ToastAction = React.forwardRef<
       // Base styles
       "inline-flex h-8 shrink-0 items-center justify-center rounded-lg px-3 text-xs font-medium",
       // Colors
-      "border border-slate-600/50 bg-slate-800/50 text-slate-200",
+      "border border-input/50 bg-card/50 text-foreground",
       // Transitions
       "transition-all duration-200 ease-out",
       // Hover states
-      "hover:bg-slate-700/70 hover:border-slate-500/50 hover:scale-[1.02]",
+      "hover:bg-muted/70 hover:border-border hover:scale-[1.02]",
       // Active state
       "active:scale-[0.98]",
       // Focus states
-      "focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-1 focus:ring-offset-transparent",
+      "focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-1 focus:ring-offset-transparent",
       // Disabled
       "disabled:pointer-events-none disabled:opacity-50",
       // Destructive variant
@@ -146,11 +146,11 @@ const ToastClose = React.forwardRef<
       // Base styles
       "absolute right-2 top-2 rounded-lg p-1.5",
       // Colors and opacity
-      "text-slate-400 opacity-60",
+      "text-muted-foreground opacity-60",
       // Transitions for smooth micro-animations
       "transition-all duration-200 ease-out",
       // Hover states with scale animation
-      "hover:opacity-100 hover:text-slate-200 hover:bg-slate-700/50 hover:scale-110",
+      "hover:opacity-100 hover:text-foreground hover:bg-muted/50 hover:scale-110",
       // Active state
       "active:scale-95",
       // Focus states

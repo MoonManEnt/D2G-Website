@@ -268,20 +268,20 @@ ${narrative}`;
   const getToneColor = (toneId: string) => {
     const tone = TONES.find(t => t.id === toneId);
     const colors: Record<string, string> = {
-      blue: "bg-blue-500/20 border-blue-500/50 text-blue-400",
+      blue: "bg-primary/20 border-blue-500/50 text-primary",
       orange: "bg-orange-500/20 border-orange-500/50 text-orange-400",
       purple: "bg-purple-500/20 border-purple-500/50 text-purple-400",
-      slate: "bg-slate-500/20 border-slate-500/50 text-slate-400",
+      slate: "bg-muted border-border text-muted-foreground",
     };
     return colors[tone?.color || "blue"];
   };
 
   return (
-    <div className="h-full flex flex-col bg-slate-900">
+    <div className="h-full flex flex-col bg-background">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border">
         <div className="flex items-center gap-4">
-          <button onClick={onBack} className="p-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors">
+          <button onClick={onBack} className="p-2 rounded-lg hover:bg-card text-muted-foreground hover:text-foreground transition-colors">
             <ChevronLeft className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-3">
@@ -289,13 +289,13 @@ ${narrative}`;
               <FileText className="w-5 h-5 text-amber-400" />
             </div>
             <div>
-              <h1 className="font-semibold text-white">CFPB Complaint Generator</h1>
-              <p className="text-sm text-slate-400">{clientName} • {bureau} • Round {disputeRound}</p>
+              <h1 className="font-semibold text-foreground">CFPB Complaint Generator</h1>
+              <p className="text-sm text-muted-foreground">{clientName} • {bureau} • Round {disputeRound}</p>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => onSaveDraft?.(narrative)} className="border-slate-700 text-slate-300">
+          <Button variant="outline" size="sm" onClick={() => onSaveDraft?.(narrative)} className="border-border text-muted-foreground">
             <Save className="w-4 h-4 mr-2" />
             Save Draft
           </Button>
@@ -309,17 +309,17 @@ ${narrative}`;
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left - Complaint Details */}
-        <div className="w-80 border-r border-slate-800 p-6 overflow-y-auto">
-          <h3 className="font-semibold text-white mb-6">Complaint Details</h3>
+        <div className="w-80 border-r border-border p-6 overflow-y-auto">
+          <h3 className="font-semibold text-foreground mb-6">Complaint Details</h3>
 
           {/* Product */}
           <div className="mb-4">
-            <label className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-2 block">Product</label>
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 block">Product</label>
             <Select value={product} onValueChange={setProduct}>
-              <SelectTrigger className="bg-slate-800/50 border-slate-700 text-white">
+              <SelectTrigger className="bg-card border-border text-foreground">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectContent className="bg-card border-border">
                 {PRODUCTS.map((p) => (
                   <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
                 ))}
@@ -329,12 +329,12 @@ ${narrative}`;
 
           {/* Company */}
           <div className="mb-4">
-            <label className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-2 block">Company</label>
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 block">Company</label>
             <Select value={company} onValueChange={setCompany}>
-              <SelectTrigger className="bg-slate-800/50 border-slate-700 text-white">
+              <SelectTrigger className="bg-card border-border text-foreground">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectContent className="bg-card border-border">
                 {COMPANIES.map((c) => (
                   <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
                 ))}
@@ -344,12 +344,12 @@ ${narrative}`;
 
           {/* Issue */}
           <div className="mb-4">
-            <label className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-2 block">Issue</label>
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 block">Issue</label>
             <Select value={issue} onValueChange={setIssue}>
-              <SelectTrigger className="bg-slate-800/50 border-slate-700 text-white">
+              <SelectTrigger className="bg-card border-border text-foreground">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectContent className="bg-card border-border">
                 {ISSUES.map((i) => (
                   <SelectItem key={i.value} value={i.value}>{i.label}</SelectItem>
                 ))}
@@ -359,12 +359,12 @@ ${narrative}`;
 
           {/* Sub-Issue */}
           <div className="mb-8">
-            <label className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-2 block">Sub-Issue</label>
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 block">Sub-Issue</label>
             <Select value={subIssue} onValueChange={setSubIssue}>
-              <SelectTrigger className="bg-slate-800/50 border-slate-700 text-white">
+              <SelectTrigger className="bg-card border-border text-foreground">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectContent className="bg-card border-border">
                 {SUB_ISSUES.map((s) => (
                   <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
                 ))}
@@ -373,7 +373,7 @@ ${narrative}`;
           </div>
 
           {/* Narrative Tone */}
-          <h3 className="font-semibold text-white mb-4">Narrative Tone</h3>
+          <h3 className="font-semibold text-foreground mb-4">Narrative Tone</h3>
           <div className="grid grid-cols-2 gap-2 mb-6">
             {TONES.map((tone) => (
               <button
@@ -382,13 +382,13 @@ ${narrative}`;
                 className={`p-3 rounded-xl text-left transition-all border-2 ${
                   selectedTone === tone.id
                     ? getToneColor(tone.id)
-                    : "bg-slate-800/50 border-slate-700/50 hover:bg-slate-800 hover:border-slate-600"
+                    : "bg-card border-border hover:bg-card hover:border-input"
                 }`}
               >
-                <span className={`font-medium text-sm ${selectedTone === tone.id ? "" : "text-white"}`}>
+                <span className={`font-medium text-sm ${selectedTone === tone.id ? "" : "text-foreground"}`}>
                   {tone.label}
                 </span>
-                <p className="text-xs text-slate-500 mt-0.5">{tone.description}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{tone.description}</p>
               </button>
             ))}
           </div>
@@ -410,15 +410,15 @@ ${narrative}`;
         {/* Center - Narrative Preview */}
         <div className="flex-1 p-6 overflow-y-auto">
           {/* Tabs */}
-          <div className="flex items-center gap-1 mb-4 border-b border-slate-800">
+          <div className="flex items-center gap-1 mb-4 border-b border-border">
             {(["preview", "edit", "tips"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`px-4 py-2 text-sm font-medium capitalize transition-colors border-b-2 -mb-px ${
                   activeTab === tab
-                    ? "text-white border-amber-500"
-                    : "text-slate-400 border-transparent hover:text-white"
+                    ? "text-foreground border-amber-500"
+                    : "text-muted-foreground border-transparent hover:text-foreground"
                 }`}
               >
                 {tab}
@@ -441,7 +441,7 @@ ${narrative}`;
             <Textarea
               value={narrative}
               onChange={(e) => setNarrative(e.target.value)}
-              className="min-h-[400px] bg-slate-800/30 border-slate-700 text-white"
+              className="min-h-[400px] bg-card border-border text-foreground"
               placeholder="Edit your CFPB complaint narrative..."
             />
           )}
@@ -453,16 +453,16 @@ ${narrative}`;
                   <CheckCircle className="w-5 h-5 text-emerald-400 mt-0.5" />
                   <div>
                     <h4 className="font-medium text-emerald-400">Be Specific About Dates</h4>
-                    <p className="text-sm text-slate-300 mt-1">Include exactly when you sent your dispute and how many days have passed. The CFPB tracks response times.</p>
+                    <p className="text-sm text-muted-foreground mt-1">Include exactly when you sent your dispute and how many days have passed. The CFPB tracks response times.</p>
                   </div>
                 </div>
               </div>
-              <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30">
+              <div className="p-4 rounded-xl bg-primary/10 border border-primary/30">
                 <div className="flex items-start gap-3">
-                  <Lightbulb className="w-5 h-5 text-blue-400 mt-0.5" />
+                  <Lightbulb className="w-5 h-5 text-primary mt-0.5" />
                   <div>
-                    <h4 className="font-medium text-blue-400">Describe Personal Impact</h4>
-                    <p className="text-sm text-slate-300 mt-1">Explain how the inaccurate information has affected you - denied credit, higher rates, stress. Make it real.</p>
+                    <h4 className="font-medium text-primary">Describe Personal Impact</h4>
+                    <p className="text-sm text-muted-foreground mt-1">Explain how the inaccurate information has affected you - denied credit, higher rates, stress. Make it real.</p>
                   </div>
                 </div>
               </div>
@@ -471,7 +471,7 @@ ${narrative}`;
                   <User className="w-5 h-5 text-purple-400 mt-0.5" />
                   <div>
                     <h4 className="font-medium text-purple-400">Sound Human, Not Legal</h4>
-                    <p className="text-sm text-slate-300 mt-1">Write like you're explaining the problem to a friend. Avoid legal jargon and statute citations - those go in your dispute letters.</p>
+                    <p className="text-sm text-muted-foreground mt-1">Write like you're explaining the problem to a friend. Avoid legal jargon and statute citations - those go in your dispute letters.</p>
                   </div>
                 </div>
               </div>
@@ -480,7 +480,7 @@ ${narrative}`;
                   <AlertTriangle className="w-5 h-5 text-amber-400 mt-0.5" />
                   <div>
                     <h4 className="font-medium text-amber-400">State What You Want</h4>
-                    <p className="text-sm text-slate-300 mt-1">Be clear about your desired outcome: accurate reporting, removal of incorrect items, proper investigation.</p>
+                    <p className="text-sm text-muted-foreground mt-1">Be clear about your desired outcome: accurate reporting, removal of incorrect items, proper investigation.</p>
                   </div>
                 </div>
               </div>
@@ -489,12 +489,12 @@ ${narrative}`;
 
           {/* Footer */}
           <div className="flex items-center justify-between mt-4">
-            <span className="text-sm text-slate-500">{narrative.length} characters</span>
+            <span className="text-sm text-muted-foreground">{narrative.length} characters</span>
             <Button
               variant="outline"
               size="sm"
               onClick={handleCopy}
-              className={`border-slate-700 ${copied ? "bg-emerald-600 border-emerald-600 text-white" : ""}`}
+              className={`border-border ${copied ? "bg-emerald-600 border-emerald-600 text-white" : ""}`}
             >
               {copied ? (
                 <>
@@ -512,24 +512,24 @@ ${narrative}`;
         </div>
 
         {/* Right - Client Info & Actions */}
-        <div className="w-72 border-l border-slate-800 p-4 overflow-y-auto">
+        <div className="w-72 border-l border-border p-4 overflow-y-auto">
           {/* Client Information */}
-          <div className="rounded-xl bg-slate-800/40 border border-slate-700/50 p-4 mb-4">
-            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Client Information</h4>
+          <div className="rounded-xl bg-card border border-border p-4 mb-4">
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Client Information</h4>
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <User className="w-4 h-4 text-slate-500" />
-                <span className="text-white">{clientName}</span>
+                <User className="w-4 h-4 text-muted-foreground" />
+                <span className="text-foreground">{clientName}</span>
               </div>
               <div className="flex items-center gap-3">
-                <Calendar className="w-4 h-4 text-slate-500" />
-                <span className="text-slate-300 text-sm">
+                <Calendar className="w-4 h-4 text-muted-foreground" />
+                <span className="text-muted-foreground text-sm">
                   Dispute: {disputeDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                 </span>
               </div>
               <div className="flex items-center gap-3">
-                <Clock className="w-4 h-4 text-slate-500" />
-                <span className={`text-sm ${daysElapsed > 30 ? "text-red-400 font-medium" : "text-slate-300"}`}>
+                <Clock className="w-4 h-4 text-muted-foreground" />
+                <span className={`text-sm ${daysElapsed > 30 ? "text-red-400 font-medium" : "text-muted-foreground"}`}>
                   {daysElapsed} days elapsed {daysElapsed > 30 && "(OVERDUE)"}
                 </span>
               </div>
@@ -537,27 +537,27 @@ ${narrative}`;
           </div>
 
           {/* Dispute Context */}
-          <div className="rounded-xl bg-slate-800/40 border border-slate-700/50 p-4 mb-4">
-            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Dispute Context</h4>
+          <div className="rounded-xl bg-card border border-border p-4 mb-4">
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Dispute Context</h4>
             <div className="flex items-center gap-2 mb-2">
               <Badge className="bg-purple-500/20 text-purple-400">{disputeFlow}</Badge>
-              <Badge className="bg-blue-500/20 text-blue-400">Round {disputeRound}</Badge>
+              <Badge className="bg-primary/20 text-primary">Round {disputeRound}</Badge>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted-foreground">
               This CFPB complaint supports your {disputeFlow.toLowerCase()} dispute letter sent to {bureau}.
             </p>
           </div>
 
           {/* Disputed Accounts */}
-          <div className="rounded-xl bg-slate-800/40 border border-slate-700/50 p-4 mb-4">
-            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Disputed Accounts</h4>
+          <div className="rounded-xl bg-card border border-border p-4 mb-4">
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Disputed Accounts</h4>
             <div className="space-y-3">
               {disputedAccounts.map((account, index) => (
-                <div key={index} className="pb-3 border-b border-slate-700/50 last:border-0 last:pb-0">
-                  <p className="font-medium text-white text-sm">{account.creditorName}</p>
-                  <p className="text-xs text-slate-400">{account.accountNumber}</p>
+                <div key={index} className="pb-3 border-b border-border last:border-0 last:pb-0">
+                  <p className="font-medium text-foreground text-sm">{account.creditorName}</p>
+                  <p className="text-xs text-muted-foreground">{account.accountNumber}</p>
                   <div className="flex items-center justify-between mt-1">
-                    <span className="text-sm text-white">${account.balance?.toLocaleString() || "N/A"}</span>
+                    <span className="text-sm text-foreground">${account.balance?.toLocaleString() || "N/A"}</span>
                     <Badge className="bg-red-500/20 text-red-400 text-xs">{account.status || "Disputed"}</Badge>
                   </div>
                 </div>
@@ -566,11 +566,11 @@ ${narrative}`;
           </div>
 
           {/* Quick Actions */}
-          <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Quick Actions</h4>
+          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Quick Actions</h4>
           <div className="space-y-2 mb-4">
             <Button
               variant="outline"
-              className="w-full justify-start border-slate-700 text-slate-300"
+              className="w-full justify-start border-border text-muted-foreground"
               onClick={handleRegenerate}
               disabled={isRegenerating}
             >
@@ -581,7 +581,7 @@ ${narrative}`;
               )}
               {isRegenerating ? "Regenerating..." : "Regenerate Narrative"}
             </Button>
-            <Button variant="outline" className="w-full justify-start border-slate-700 text-slate-300">
+            <Button variant="outline" className="w-full justify-start border-border text-muted-foreground">
               <History className="w-4 h-4 mr-2" />
               View Dispute History
             </Button>
@@ -595,11 +595,11 @@ ${narrative}`;
           </div>
 
           {/* Help Box */}
-          <div className="rounded-xl bg-blue-500/10 border border-blue-500/30 p-4">
+          <div className="rounded-xl bg-primary/10 border border-primary/30 p-4">
             <div className="flex items-start gap-3">
-              <HelpCircle className="w-5 h-5 text-blue-400 mt-0.5" />
+              <HelpCircle className="w-5 h-5 text-primary mt-0.5" />
               <div>
-                <h4 className="font-medium text-blue-400 text-sm">About CFPB Complaints</h4>
+                <h4 className="font-medium text-primary text-sm">About CFPB Complaints</h4>
                 <p className="text-xs text-blue-300/70 mt-1">
                   Companies typically respond within 15 days. The CFPB shares complaints with the company and tracks their response.
                 </p>

@@ -564,7 +564,7 @@ export default function EvidencePage() {
       case "EQUIFAX":
         return "bg-red-500/20 text-red-300 border-red-500/30";
       default:
-        return "bg-slate-500/20 text-slate-300 border-slate-500/30";
+        return "bg-muted/50 text-muted-foreground border-border";
     }
   };
 
@@ -609,11 +609,11 @@ export default function EvidencePage() {
       {/* Header */}
       <div className="flex items-center justify-between relative z-10">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent flex items-center gap-3">
-            <FolderOpen className="w-7 h-7 text-white" />
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent flex items-center gap-3">
+            <FolderOpen className="w-7 h-7 text-foreground" />
             Evidence Center
           </h1>
-          <p className="text-slate-400 mt-1">
+          <p className="text-muted-foreground mt-1">
             Capture, annotate, and organize dispute evidence
           </p>
         </div>
@@ -622,7 +622,7 @@ export default function EvidencePage() {
       {/* Client/Report Selection */}
       <div className="flex items-end gap-4 relative z-10">
         <div className="flex-1 max-w-xs">
-          <label className="text-xs text-slate-500 mb-1.5 block font-medium">
+          <label className="text-xs text-muted-foreground mb-1.5 block font-medium">
             <User className="w-3 h-3 inline mr-1" />
             Client
           </label>
@@ -633,14 +633,14 @@ export default function EvidencePage() {
               setSelectedReportId(null);
             }}
           >
-            <SelectTrigger className="bg-slate-800/60 border-slate-700/50 text-white">
+            <SelectTrigger className="bg-card border-border text-foreground">
               <SelectValue placeholder={loadingClients ? "Loading clients..." : "Select a client..."} />
             </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-slate-700">
+            <SelectContent className="bg-card border-border">
               {clients.map((client) => (
                 <SelectItem key={client.id} value={client.id}>
                   {client.firstName} {client.lastName}
-                  <span className="text-slate-500 ml-2">({client._count.reports} reports)</span>
+                  <span className="text-muted-foreground ml-2">({client._count.reports} reports)</span>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -648,7 +648,7 @@ export default function EvidencePage() {
         </div>
 
         <div className="flex-1 max-w-xs">
-          <label className="text-xs text-slate-500 mb-1.5 block font-medium">
+          <label className="text-xs text-muted-foreground mb-1.5 block font-medium">
             <FileText className="w-3 h-3 inline mr-1" />
             Credit Report
           </label>
@@ -657,7 +657,7 @@ export default function EvidencePage() {
             onValueChange={(value) => setSelectedReportId(value || null)}
             disabled={!selectedClientId || loadingReports}
           >
-            <SelectTrigger className="bg-slate-800/60 border-slate-700/50 text-white disabled:opacity-50">
+            <SelectTrigger className="bg-card border-border text-foreground disabled:opacity-50">
               <SelectValue
                 placeholder={
                   loadingReports
@@ -668,7 +668,7 @@ export default function EvidencePage() {
                 }
               />
             </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-slate-700">
+            <SelectContent className="bg-card border-border">
               {reports.map((report) => (
                 <SelectItem key={report.id} value={report.id}>
                   {new Date(report.reportDate).toLocaleDateString("en-US", {
@@ -676,7 +676,7 @@ export default function EvidencePage() {
                     day: "numeric",
                     year: "numeric",
                   })}
-                  <span className="text-slate-500 ml-2">
+                  <span className="text-muted-foreground ml-2">
                     ({report.summary.totalAccounts} accounts, {report.summary.negativeItems} negative)
                   </span>
                 </SelectItem>
@@ -689,7 +689,7 @@ export default function EvidencePage() {
           <Button
             variant="ghost"
             size="sm"
-            className="text-slate-400 hover:text-white"
+            className="text-muted-foreground hover:text-foreground"
             onClick={() => {
               setSelectedClientId(null);
               setSelectedReportId(null);
@@ -710,7 +710,7 @@ export default function EvidencePage() {
 
       {/* Tab Navigation */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="relative z-10">
-        <TabsList className="bg-slate-800/60 border border-slate-700/50">
+        <TabsList className="bg-card border border-border">
           <TabsTrigger value="library" className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-400">
             <Layers className="w-4 h-4 mr-2" />
             Library
@@ -756,7 +756,7 @@ export default function EvidencePage() {
                   <Clock className="w-5 h-5" />
                   Pending Evidence Captures ({pendingEvidence.length})
                 </CardTitle>
-                <p className="text-sm text-slate-400">
+                <p className="text-sm text-muted-foreground">
                   These accounts have detected issues. Capture evidence to support your disputes.
                 </p>
               </CardHeader>
@@ -769,14 +769,14 @@ export default function EvidencePage() {
                     return (
                       <div
                         key={item.id}
-                        className="p-4 bg-slate-800/60 rounded-lg border border-slate-700/50 hover:border-amber-500/30 transition-colors"
+                        className="p-4 bg-card rounded-lg border border-border hover:border-amber-500/30 transition-colors"
                       >
                         <div className="flex items-start justify-between gap-2 mb-2">
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-white truncate">
+                            <p className="font-medium text-foreground truncate">
                               {item.accountItem.creditorName}
                             </p>
-                            <p className="text-xs text-slate-400">
+                            <p className="text-xs text-muted-foreground">
                               {item.accountItem.client.firstName} {item.accountItem.client.lastName}
                             </p>
                           </div>
@@ -793,7 +793,7 @@ export default function EvidencePage() {
                             {item.accountItem.cra.slice(0, 2)}
                           </Badge>
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-slate-400 mb-3">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
                           <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-[10px]">
                             {item.accountItem.issueCount} Issues
                           </Badge>
@@ -816,7 +816,7 @@ export default function EvidencePage() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="text-slate-400 hover:text-slate-300"
+                            className="text-muted-foreground hover:text-muted-foreground"
                             onClick={() => handleDismissPending(item.id)}
                           >
                             <XCircle className="w-4 h-4" />
@@ -827,7 +827,7 @@ export default function EvidencePage() {
                   })}
                 </div>
                 {pendingEvidence.length > 6 && (
-                  <p className="text-sm text-slate-400 mt-3 text-center">
+                  <p className="text-sm text-muted-foreground mt-3 text-center">
                     +{pendingEvidence.length - 6} more pending captures
                   </p>
                 )}
@@ -838,63 +838,63 @@ export default function EvidencePage() {
           {/* Stats Cards */}
           {stats && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Card className="bg-slate-800/60 border-slate-700/50 backdrop-blur-xl">
+              <Card className="bg-card border-border backdrop-blur-xl">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
                     <div className="p-2.5 rounded-lg bg-blue-500/20">
                       <FileText className="w-5 h-5 text-blue-400" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-white">{stats.total}</p>
-                      <p className="text-xs text-slate-400">Total Evidence</p>
+                      <p className="text-2xl font-bold text-foreground">{stats.total}</p>
+                      <p className="text-xs text-muted-foreground">Total Evidence</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-slate-800/60 border-slate-700/50 backdrop-blur-xl">
+              <Card className="bg-card border-border backdrop-blur-xl">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
                     <div className="p-2.5 rounded-lg bg-emerald-500/20">
                       <CheckCircle className="w-5 h-5 text-emerald-400" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-white">
+                      <p className="text-2xl font-bold text-foreground">
                         {stats.attachedToDisputes}
                       </p>
-                      <p className="text-xs text-slate-400">Attached to Disputes</p>
+                      <p className="text-xs text-muted-foreground">Attached to Disputes</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-slate-800/60 border-slate-700/50 backdrop-blur-xl">
+              <Card className="bg-card border-border backdrop-blur-xl">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
                     <div className="p-2.5 rounded-lg bg-amber-500/20">
                       <AlertCircle className="w-5 h-5 text-amber-400" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-white">
+                      <p className="text-2xl font-bold text-foreground">
                         {stats.total - stats.attachedToDisputes}
                       </p>
-                      <p className="text-xs text-slate-400">Unattached</p>
+                      <p className="text-xs text-muted-foreground">Unattached</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-slate-800/60 border-slate-700/50 backdrop-blur-xl">
+              <Card className="bg-card border-border backdrop-blur-xl">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
                     <div className="p-2.5 rounded-lg bg-purple-500/20">
                       <Building2 className="w-5 h-5 text-purple-400" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-white">
+                      <p className="text-2xl font-bold text-foreground">
                         {Object.keys(stats.byCra).length}
                       </p>
-                      <p className="text-xs text-slate-400">Credit Bureaus</p>
+                      <p className="text-xs text-muted-foreground">Credit Bureaus</p>
                     </div>
                   </div>
                 </CardContent>
@@ -905,22 +905,22 @@ export default function EvidencePage() {
           {/* Filters */}
           <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search by account, client, or description..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-slate-800/60 border-slate-700/50 text-white"
+                className="pl-10 bg-card border-border text-foreground"
               />
             </div>
 
             <div className="flex gap-2">
               <Select value={filterCra} onValueChange={setFilterCra}>
-                <SelectTrigger className="w-[140px] bg-slate-800/60 border-slate-700/50 text-white">
+                <SelectTrigger className="w-[140px] bg-card border-border text-foreground">
                   <Filter className="w-4 h-4 mr-2" />
                   <SelectValue placeholder="CRA" />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectContent className="bg-card border-border">
                   <SelectItem value="all">All CRAs</SelectItem>
                   <SelectItem value="TRANSUNION">TransUnion</SelectItem>
                   <SelectItem value="EXPERIAN">Experian</SelectItem>
@@ -929,10 +929,10 @@ export default function EvidencePage() {
               </Select>
 
               <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger className="w-[150px] bg-slate-800/60 border-slate-700/50 text-white">
+                <SelectTrigger className="w-[150px] bg-card border-border text-foreground">
                   <SelectValue placeholder="Type" />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectContent className="bg-card border-border">
                   <SelectItem value="all">All Types</SelectItem>
                   <SelectItem value="PDF_TEXT_EXTRACT">Text Extract</SelectItem>
                   <SelectItem value="SCREENSHOT">Screenshot</SelectItem>
@@ -942,10 +942,10 @@ export default function EvidencePage() {
               </Select>
 
               <Select value={filterAttached} onValueChange={setFilterAttached}>
-                <SelectTrigger className="w-[150px] bg-slate-800/60 border-slate-700/50 text-white">
+                <SelectTrigger className="w-[150px] bg-card border-border text-foreground">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectContent className="bg-card border-border">
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="attached">Attached</SelectItem>
                   <SelectItem value="unattached">Unattached</SelectItem>
@@ -956,13 +956,13 @@ export default function EvidencePage() {
 
           {/* Evidence Grid */}
           {loading ? (
-            <div className="text-center py-12 text-slate-400">Loading evidence...</div>
+            <div className="text-center py-12 text-muted-foreground">Loading evidence...</div>
           ) : filteredEvidence.length === 0 ? (
-            <Card className="bg-slate-800/60 border-slate-700/50 backdrop-blur-xl">
+            <Card className="bg-card border-border backdrop-blur-xl">
               <CardContent className="py-12 text-center">
-                <Image className="w-12 h-12 mx-auto text-slate-600" />
-                <h3 className="text-lg font-medium text-white mt-4">No evidence found</h3>
-                <p className="text-slate-400 mt-2">
+                <Image className="w-12 h-12 mx-auto text-muted-foreground/50" />
+                <h3 className="text-lg font-medium text-foreground mt-4">No evidence found</h3>
+                <p className="text-muted-foreground mt-2">
                   {searchQuery || filterCra !== "all" || filterType !== "all"
                     ? "Try adjusting your filters"
                     : "Capture evidence from the Negative Items page to get started"}
@@ -974,7 +974,7 @@ export default function EvidencePage() {
               {filteredEvidence.map((item) => (
                 <Card
                   key={item.id}
-                  className="bg-slate-800/60 border-slate-700/50 backdrop-blur-xl hover:border-purple-500/50 transition-all cursor-pointer group"
+                  className="bg-card border-border backdrop-blur-xl hover:border-purple-500/50 transition-all cursor-pointer group"
                   onClick={() => {
                     setSelectedEvidence(item);
                     setDetailDialogOpen(true);
@@ -983,14 +983,14 @@ export default function EvidencePage() {
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2">
-                        <div className="p-2 rounded-lg bg-slate-700/50">
+                        <div className="p-2 rounded-lg bg-muted">
                           {getTypeIcon(item.evidenceType)}
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-white truncate max-w-[180px]">
+                          <p className="text-sm font-medium text-foreground truncate max-w-[180px]">
                             {item.title || "Untitled Evidence"}
                           </p>
-                          <p className="text-xs text-slate-400">
+                          <p className="text-xs text-muted-foreground">
                             {getTypeLabel(item.evidenceType)}
                           </p>
                         </div>
@@ -1000,7 +1000,7 @@ export default function EvidencePage() {
                           Attached
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="text-slate-400 border-slate-600">
+                        <Badge variant="outline" className="text-muted-foreground border-input">
                           Unattached
                         </Badge>
                       )}
@@ -1009,15 +1009,15 @@ export default function EvidencePage() {
                     {item.accountItem && (
                       <div className="space-y-2 mb-3">
                         <div className="flex items-center gap-2">
-                          <Building2 className="w-3 h-3 text-slate-500" />
-                          <p className="text-sm text-slate-300 truncate">
+                          <Building2 className="w-3 h-3 text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground truncate">
                             {item.accountItem.creditorName}
                           </p>
                         </div>
                         {item.accountItem.report?.client && (
                           <div className="flex items-center gap-2">
-                            <User className="w-3 h-3 text-slate-500" />
-                            <p className="text-sm text-slate-400">
+                            <User className="w-3 h-3 text-muted-foreground" />
+                            <p className="text-sm text-muted-foreground">
                               {item.accountItem.report.client.firstName}{" "}
                               {item.accountItem.report.client.lastName}
                             </p>
@@ -1066,7 +1066,7 @@ export default function EvidencePage() {
                       </Button>
                     </div>
 
-                    <div className="flex items-center justify-between pt-3 border-t border-slate-700/50">
+                    <div className="flex items-center justify-between pt-3 border-t border-border">
                       <div className="flex items-center gap-2">
                         {item.accountItem?.cra && (
                           <Badge
@@ -1077,12 +1077,12 @@ export default function EvidencePage() {
                           </Badge>
                         )}
                         {item.sourcePageNum && (
-                          <Badge variant="outline" className="text-slate-400 border-slate-600">
+                          <Badge variant="outline" className="text-muted-foreground border-input">
                             Page {item.sourcePageNum}
                           </Badge>
                         )}
                       </div>
-                      <div className="flex items-center gap-1 text-xs text-slate-500">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Calendar className="w-3 h-3" />
                         {formatDate(item.createdAt)}
                       </div>
@@ -1175,10 +1175,10 @@ export default function EvidencePage() {
 
       {/* Evidence Detail Dialog */}
       <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
-        <DialogContent className="bg-slate-800 border-slate-700 max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="bg-card border-border max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-white">Evidence Details</DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogTitle className="text-foreground">Evidence Details</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               {selectedEvidence?.title || "Untitled Evidence"}
             </DialogDescription>
           </DialogHeader>
@@ -1188,30 +1188,30 @@ export default function EvidencePage() {
               {/* Evidence Info */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <p className="text-xs text-slate-500 uppercase">Type</p>
+                  <p className="text-xs text-muted-foreground uppercase">Type</p>
                   <div className="flex items-center gap-2">
                     {getTypeIcon(selectedEvidence.evidenceType)}
-                    <p className="text-sm text-white">
+                    <p className="text-sm text-foreground">
                       {getTypeLabel(selectedEvidence.evidenceType)}
                     </p>
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs text-slate-500 uppercase">Source Page</p>
-                  <p className="text-sm text-white">
+                  <p className="text-xs text-muted-foreground uppercase">Source Page</p>
+                  <p className="text-sm text-foreground">
                     {selectedEvidence.sourcePageNum
                       ? `Page ${selectedEvidence.sourcePageNum}`
                       : "N/A"}
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs text-slate-500 uppercase">Captured</p>
-                  <p className="text-sm text-white">
+                  <p className="text-xs text-muted-foreground uppercase">Captured</p>
+                  <p className="text-sm text-foreground">
                     {formatDate(selectedEvidence.createdAt)}
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs text-slate-500 uppercase">Status</p>
+                  <p className="text-xs text-muted-foreground uppercase">Status</p>
                   {selectedEvidence.documentAttachments.length > 0 ? (
                     <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30">
                       Attached to {selectedEvidence.documentAttachments.length} document(s)
@@ -1226,25 +1226,25 @@ export default function EvidencePage() {
 
               {/* Account Info */}
               {selectedEvidence.accountItem && (
-                <Card className="bg-slate-900/50 border-slate-700">
+                <Card className="bg-background border-border">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-white">Account Information</CardTitle>
+                    <CardTitle className="text-sm text-foreground">Account Information</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-400">Creditor</span>
-                      <span className="text-sm text-white font-medium">
+                      <span className="text-sm text-muted-foreground">Creditor</span>
+                      <span className="text-sm text-foreground font-medium">
                         {selectedEvidence.accountItem.creditorName}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-400">Account #</span>
-                      <span className="text-sm text-white">
+                      <span className="text-sm text-muted-foreground">Account #</span>
+                      <span className="text-sm text-foreground">
                         {selectedEvidence.accountItem.maskedAccountId || "N/A"}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-400">Credit Bureau</span>
+                      <span className="text-sm text-muted-foreground">Credit Bureau</span>
                       <Badge
                         variant="outline"
                         className={getCraBadgeColor(selectedEvidence.accountItem.cra)}
@@ -1253,19 +1253,19 @@ export default function EvidencePage() {
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-400">Status</span>
-                      <span className="text-sm text-white">
+                      <span className="text-sm text-muted-foreground">Status</span>
+                      <span className="text-sm text-foreground">
                         {selectedEvidence.accountItem.accountStatus}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-400">Issues Detected</span>
+                      <span className="text-sm text-muted-foreground">Issues Detected</span>
                       <Badge
                         variant="outline"
                         className={
                           selectedEvidence.accountItem.issueCount > 0
                             ? "bg-red-500/20 text-red-300 border-red-500/30"
-                            : "text-slate-400 border-slate-600"
+                            : "text-muted-foreground border-input"
                         }
                       >
                         {selectedEvidence.accountItem.issueCount} issues
@@ -1278,9 +1278,9 @@ export default function EvidencePage() {
               {/* Description */}
               {selectedEvidence.description && (
                 <div className="space-y-2">
-                  <p className="text-xs text-slate-500 uppercase">Description / Extract</p>
-                  <div className="p-3 rounded-lg bg-slate-900/50 border border-slate-700">
-                    <p className="text-sm text-slate-300 whitespace-pre-wrap">
+                  <p className="text-xs text-muted-foreground uppercase">Description / Extract</p>
+                  <div className="p-3 rounded-lg bg-background border border-border">
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                       {selectedEvidence.description}
                     </p>
                   </div>
@@ -1288,7 +1288,7 @@ export default function EvidencePage() {
               )}
 
               {/* Quick Actions */}
-              <div className="flex gap-2 pt-4 border-t border-slate-700">
+              <div className="flex gap-2 pt-4 border-t border-border">
                 <Button
                   variant="outline"
                   className="flex-1 border-purple-500/50 text-purple-400 hover:bg-purple-500/20"
@@ -1325,11 +1325,11 @@ export default function EvidencePage() {
               </div>
 
               {/* Actions */}
-              <div className="flex justify-end gap-2 pt-4 border-t border-slate-700">
+              <div className="flex justify-end gap-2 pt-4 border-t border-border">
                 <Button
                   variant="ghost"
                   onClick={() => setDetailDialogOpen(false)}
-                  className="text-slate-400 hover:text-white"
+                  className="text-muted-foreground hover:text-foreground"
                 >
                   Close
                 </Button>
@@ -1348,16 +1348,16 @@ export default function EvidencePage() {
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="bg-slate-800 border-slate-700">
+        <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">Delete Evidence?</AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-400">
+            <AlertDialogTitle className="text-foreground">Delete Evidence?</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
               This action cannot be undone. This will permanently delete the evidence
               and remove it from any associated disputes.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting} className="border-slate-600">
+            <AlertDialogCancel disabled={deleting} className="border-input">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
@@ -1487,14 +1487,14 @@ function EvidenceAnnotator({
 
   if (!evidence) {
     return (
-      <Card className="bg-slate-800/60 border-slate-700/50 backdrop-blur-xl">
+      <Card className="bg-card border-border backdrop-blur-xl">
         <CardContent className="py-16 text-center">
-          <Edit3 className="w-12 h-12 mx-auto text-slate-600" />
-          <h3 className="text-lg font-medium text-white mt-4">No Evidence Selected</h3>
-          <p className="text-slate-400 mt-2 mb-6">
+          <Edit3 className="w-12 h-12 mx-auto text-muted-foreground/50" />
+          <h3 className="text-lg font-medium text-foreground mt-4">No Evidence Selected</h3>
+          <p className="text-muted-foreground mt-2 mb-6">
             Select evidence from the Library to start annotating
           </p>
-          <Button onClick={onBack} variant="outline" className="border-slate-600">
+          <Button onClick={onBack} variant="outline" className="border-input">
             Go to Library
           </Button>
         </CardContent>
@@ -1505,9 +1505,9 @@ function EvidenceAnnotator({
   return (
     <div className="flex gap-4 h-[calc(100vh-280px)]">
       {/* Left Toolbar */}
-      <div className="w-16 bg-slate-800/60 border border-slate-700/50 rounded-xl p-3 flex flex-col gap-4 backdrop-blur-xl">
+      <div className="w-16 bg-card border border-border rounded-xl p-3 flex flex-col gap-4 backdrop-blur-xl">
         <div className="flex flex-col items-center gap-2">
-          <span className="text-[10px] text-slate-500 uppercase">Tools</span>
+          <span className="text-[10px] text-muted-foreground uppercase">Tools</span>
           {ANNOTATION_TOOLS.map((tool) => (
             <button
               key={tool.id}
@@ -1515,7 +1515,7 @@ function EvidenceAnnotator({
               className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg transition-all ${
                 activeTool === tool.id
                   ? "bg-purple-500/30 ring-2 ring-purple-500"
-                  : "bg-slate-700/50 hover:bg-slate-700"
+                  : "bg-muted hover:bg-muted"
               }`}
               title={tool.label}
             >
@@ -1525,7 +1525,7 @@ function EvidenceAnnotator({
         </div>
 
         <div className="flex flex-col items-center gap-2">
-          <span className="text-[10px] text-slate-500 uppercase">Color</span>
+          <span className="text-[10px] text-muted-foreground uppercase">Color</span>
           {ANNOTATION_COLORS.map((c) => (
             <button
               key={c.id}
@@ -1540,17 +1540,17 @@ function EvidenceAnnotator({
         </div>
 
         <div className="flex flex-col items-center gap-2">
-          <span className="text-[10px] text-slate-500 uppercase">Zoom</span>
+          <span className="text-[10px] text-muted-foreground uppercase">Zoom</span>
           <button
             onClick={() => setZoom((z) => Math.min(2, z + 0.25))}
-            className="w-8 h-6 bg-slate-700/50 rounded text-white text-sm hover:bg-slate-700"
+            className="w-8 h-6 bg-muted rounded text-foreground text-sm hover:bg-muted"
           >
             +
           </button>
-          <span className="text-[10px] text-slate-400">{Math.round(zoom * 100)}%</span>
+          <span className="text-[10px] text-muted-foreground">{Math.round(zoom * 100)}%</span>
           <button
             onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))}
-            className="w-8 h-6 bg-slate-700/50 rounded text-white text-sm hover:bg-slate-700"
+            className="w-8 h-6 bg-muted rounded text-foreground text-sm hover:bg-muted"
           >
             −
           </button>
@@ -1560,13 +1560,13 @@ function EvidenceAnnotator({
           <button
             onClick={deleteSelected}
             disabled={selectedAnnotation === null}
-            className="w-full p-2 bg-slate-700/50 rounded-lg text-xs text-slate-400 hover:bg-red-500/20 hover:text-red-400 disabled:opacity-50"
+            className="w-full p-2 bg-muted rounded-lg text-xs text-muted-foreground hover:bg-red-500/20 hover:text-red-400 disabled:opacity-50"
           >
             🗑️ Del
           </button>
           <button
             onClick={clearAll}
-            className="w-full p-2 bg-slate-700/50 rounded-lg text-xs text-slate-400 hover:bg-slate-700"
+            className="w-full p-2 bg-muted rounded-lg text-xs text-muted-foreground hover:bg-muted"
           >
             🧹 Clear
           </button>
@@ -1574,31 +1574,31 @@ function EvidenceAnnotator({
       </div>
 
       {/* Canvas Area */}
-      <div className="flex-1 bg-slate-900/50 rounded-xl border border-slate-700/50 overflow-auto p-4">
+      <div className="flex-1 bg-background rounded-xl border border-border overflow-auto p-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <Button onClick={onBack} variant="ghost" size="sm" className="text-slate-400">
+            <Button onClick={onBack} variant="ghost" size="sm" className="text-muted-foreground">
               ← Back
             </Button>
             <div>
-              <h3 className="text-white font-medium">{evidence.accountItem?.creditorName || "Evidence"}</h3>
-              <p className="text-xs text-slate-500">
+              <h3 className="text-foreground font-medium">{evidence.accountItem?.creditorName || "Evidence"}</h3>
+              <p className="text-xs text-muted-foreground">
                 {evidence.accountItem?.maskedAccountId || ""} • Page {evidence.sourcePageNum || "N/A"}
               </p>
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="ghost" size="sm" className="text-slate-400">
+            <Button variant="ghost" size="sm" className="text-muted-foreground">
               <Undo2 className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="sm" className="text-slate-400">
+            <Button variant="ghost" size="sm" className="text-muted-foreground">
               <Redo2 className="w-4 h-4" />
             </Button>
             <Button onClick={() => onSave(annotations)} size="sm" className="bg-purple-600 hover:bg-purple-700">
               <Save className="w-4 h-4 mr-2" />
               Save
             </Button>
-            <Button variant="outline" size="sm" className="border-slate-600">
+            <Button variant="outline" size="sm" className="border-input">
               <Download className="w-4 h-4 mr-2" />
               Export
             </Button>
@@ -1621,13 +1621,13 @@ function EvidenceAnnotator({
             ) : (
               /* Fallback: Show account summary if no rendered image */
               <div className="absolute inset-0 p-4">
-                <div className="bg-slate-800 text-white p-3 rounded-t-lg font-bold">
+                <div className="bg-card text-foreground p-3 rounded-t-lg font-bold">
                   {evidence.accountItem?.creditorName || "ACCOUNT"}
                 </div>
                 <div className="bg-white border border-slate-300 p-8 text-center">
-                  <Image className="w-16 h-16 mx-auto text-slate-400 mb-4" />
-                  <p className="text-slate-600 mb-2">No captured image available</p>
-                  <p className="text-sm text-slate-400">
+                  <Image className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground/50 mb-2">No captured image available</p>
+                  <p className="text-sm text-muted-foreground">
                     Capture evidence from the client page to annotate
                   </p>
                 </div>
@@ -1671,15 +1671,15 @@ function EvidenceAnnotator({
 
       {/* Right Panel - Amelia AI */}
       {showAmeliaPanel && (
-        <div className="w-80 bg-slate-800/60 border border-slate-700/50 rounded-xl backdrop-blur-xl flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between p-4 border-b border-slate-700/50">
+        <div className="w-80 bg-card border border-border rounded-xl backdrop-blur-xl flex flex-col overflow-hidden">
+          <div className="flex items-center justify-between p-4 border-b border-border">
             <div className="flex items-center gap-2 text-emerald-400">
               <Brain className="w-5 h-5" />
               <span className="font-semibold">Amelia AI</span>
             </div>
             <button
               onClick={() => setShowAmeliaPanel(false)}
-              className="w-7 h-7 bg-slate-700/50 rounded-lg flex items-center justify-center text-slate-400 hover:text-white"
+              className="w-7 h-7 bg-muted rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground"
             >
               <X className="w-4 h-4" />
             </button>
@@ -1687,8 +1687,8 @@ function EvidenceAnnotator({
 
           <div className="flex-1 overflow-y-auto">
             {/* Detected Violations */}
-            <div className="p-4 border-b border-slate-700/50">
-              <h4 className="text-xs font-semibold text-slate-400 uppercase mb-3">
+            <div className="p-4 border-b border-border">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-3">
                 Detected Violations
               </h4>
               {detectedViolations.map((v, i) => (
@@ -1698,12 +1698,12 @@ function EvidenceAnnotator({
                       {v.type.replace(/_/g, " ")}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-400 mb-2">Field: {v.field}</p>
+                  <p className="text-xs text-muted-foreground mb-2">Field: {v.field}</p>
                   <div className="space-y-1 mb-2">
                     {Object.entries(v.values).map(([bureau, value]) => (
                       <div key={bureau} className="flex gap-2 text-xs">
-                        <span className="text-slate-500 w-6">{bureau}:</span>
-                        <span className="text-white font-mono">{value}</span>
+                        <span className="text-muted-foreground w-6">{bureau}:</span>
+                        <span className="text-foreground font-mono">{value}</span>
                       </div>
                     ))}
                   </div>
@@ -1723,8 +1723,8 @@ function EvidenceAnnotator({
             </div>
 
             {/* Quick Callouts */}
-            <div className="p-4 border-b border-slate-700/50">
-              <h4 className="text-xs font-semibold text-slate-400 uppercase mb-3">
+            <div className="p-4 border-b border-border">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-3">
                 Quick Callouts
               </h4>
               <div className="flex flex-wrap gap-2">
@@ -1732,7 +1732,7 @@ function EvidenceAnnotator({
                   <button
                     key={preset.id}
                     onClick={() => addPresetCallout(preset)}
-                    className="px-2 py-1 bg-slate-700/50 border border-slate-600/50 rounded text-[10px] text-white hover:bg-slate-700"
+                    className="px-2 py-1 bg-muted border border-input/50 rounded text-[10px] text-foreground hover:bg-muted"
                   >
                     {preset.icon} {preset.text}
                   </button>
@@ -1742,11 +1742,11 @@ function EvidenceAnnotator({
 
             {/* Annotations List */}
             <div className="p-4">
-              <h4 className="text-xs font-semibold text-slate-400 uppercase mb-3">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-3">
                 Annotations ({annotations.length})
               </h4>
               {annotations.length === 0 ? (
-                <p className="text-xs text-slate-500 text-center py-4">No annotations yet</p>
+                <p className="text-xs text-muted-foreground text-center py-4">No annotations yet</p>
               ) : (
                 <div className="space-y-2">
                   {annotations.map((ann, i) => (
@@ -1756,14 +1756,14 @@ function EvidenceAnnotator({
                       className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all ${
                         selectedAnnotation === i
                           ? "bg-purple-500/20 ring-1 ring-purple-500"
-                          : "bg-slate-700/30 hover:bg-slate-700/50"
+                          : "bg-muted/30 hover:bg-muted"
                       }`}
                     >
                       <span
                         className="w-3 h-3 rounded-sm shrink-0"
                         style={{ background: ann.color }}
                       />
-                      <span className="text-xs text-white truncate">
+                      <span className="text-xs text-foreground truncate">
                         {ann.type === "text" ? `"${ann.text}"` : ann.type}
                       </span>
                     </div>
@@ -1906,10 +1906,10 @@ function ExhibitBuilder({
       {/* Left Panel - Available Evidence */}
       <div className="w-72 shrink-0">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-white font-semibold">Available Evidence</h3>
-          <span className="text-xs text-slate-500">{unusedEvidence.length} items</span>
+          <h3 className="text-foreground font-semibold">Available Evidence</h3>
+          <span className="text-xs text-muted-foreground">{unusedEvidence.length} items</span>
         </div>
-        <p className="text-xs text-slate-500 mb-4">Drag evidence to add to exhibits</p>
+        <p className="text-xs text-muted-foreground mb-4">Drag evidence to add to exhibits</p>
 
         <div className="space-y-2 max-h-[calc(100vh-400px)] overflow-y-auto pr-2">
           {unusedEvidence.map((ev) => (
@@ -1917,16 +1917,16 @@ function ExhibitBuilder({
               key={ev.id}
               draggable
               onDragStart={() => setDraggedItem({ item: ev, type: "evidence" })}
-              className="flex items-start gap-3 p-3 bg-slate-800/60 border border-slate-700/50 rounded-xl cursor-grab hover:border-purple-500/50 transition-colors"
+              className="flex items-start gap-3 p-3 bg-card border border-border rounded-xl cursor-grab hover:border-purple-500/50 transition-colors"
             >
-              <div className="p-2 bg-slate-700/50 rounded-lg text-lg">
+              <div className="p-2 bg-muted rounded-lg text-lg">
                 {getTypeIcon(ev.evidenceType)}
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-medium text-white truncate">
+                <h4 className="text-sm font-medium text-foreground truncate">
                   {ev.accountItem?.creditorName || "Evidence"}
                 </h4>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   {ev.evidenceType === "SCREENSHOT" ? "Screenshot" : "Text Extract"}
                 </p>
                 {ev.accountItem?.cra && (
@@ -1953,7 +1953,7 @@ function ExhibitBuilder({
           ))}
 
           {unusedEvidence.length === 0 && (
-            <div className="text-center py-8 text-slate-500">
+            <div className="text-center py-8 text-muted-foreground">
               <CheckCircle className="w-8 h-8 mx-auto mb-2 text-emerald-500" />
               <p className="text-sm">All evidence added</p>
             </div>
@@ -1964,7 +1964,7 @@ function ExhibitBuilder({
       {/* Main - Exhibit Builder */}
       <div className="flex-1">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-white font-semibold">Exhibit Package</h3>
+          <h3 className="text-foreground font-semibold">Exhibit Package</h3>
           <div className="flex gap-2">
             <span className="px-3 py-1.5 bg-purple-500/15 rounded-lg text-xs font-semibold text-purple-400">
               {exhibits.length} Exhibit{exhibits.length !== 1 ? "s" : ""}
@@ -1973,7 +1973,7 @@ function ExhibitBuilder({
               onClick={() => setShowPreview(true)}
               variant="outline"
               size="sm"
-              className="border-slate-600"
+              className="border-input"
               disabled={exhibits.length === 0}
             >
               <Eye className="w-4 h-4 mr-2" />
@@ -2005,19 +2005,19 @@ function ExhibitBuilder({
             <div
               key={exhibit.id}
               onClick={() => setSelectedExhibit(exhibit.id)}
-              className={`flex items-stretch bg-slate-800/60 border rounded-xl overflow-hidden cursor-pointer transition-all ${
+              className={`flex items-stretch bg-card border rounded-xl overflow-hidden cursor-pointer transition-all ${
                 selectedExhibit === exhibit.id
                   ? "border-purple-500 bg-purple-500/10"
-                  : "border-slate-700/50 hover:border-slate-600"
+                  : "border-border hover:border-input"
               }`}
             >
               {/* Exhibit Label */}
               <div className="w-14 bg-gradient-to-b from-purple-600 to-purple-700 flex items-center justify-center shrink-0">
-                <span className="text-2xl font-bold text-white">{exhibit.label}</span>
+                <span className="text-2xl font-bold text-foreground">{exhibit.label}</span>
               </div>
 
               {/* Thumbnail */}
-              <div className="w-20 bg-slate-900/50 flex items-center justify-center shrink-0 overflow-hidden">
+              <div className="w-20 bg-background flex items-center justify-center shrink-0 overflow-hidden">
                 {exhibit.evidence.renderedFile?.id ? (
                   <EvidenceImage
                     fileId={exhibit.evidence.renderedFile.id}
@@ -2033,36 +2033,36 @@ function ExhibitBuilder({
 
               {/* Content */}
               <div className="flex-1 p-3 min-w-0">
-                <h4 className="text-sm font-semibold text-white truncate">
+                <h4 className="text-sm font-semibold text-foreground truncate">
                   {exhibit.evidence.accountItem?.creditorName || "Evidence"}
                 </h4>
-                <p className="text-xs text-slate-500 mb-2">
+                <p className="text-xs text-muted-foreground mb-2">
                   {exhibit.evidence.evidenceType === "SCREENSHOT" ? "Screenshot" : "Text Extract"}
                 </p>
                 <div onClick={(e) => e.stopPropagation()}>
-                  <label className="text-[10px] text-slate-500 block mb-1">Caption:</label>
+                  <label className="text-[10px] text-muted-foreground block mb-1">Caption:</label>
                   <input
                     type="text"
                     value={exhibit.caption}
                     onChange={(e) => updateCaption(exhibit.id, e.target.value)}
-                    className="w-full px-2 py-1.5 bg-slate-900/50 border border-slate-700/50 rounded text-xs text-white outline-none focus:border-purple-500"
+                    className="w-full px-2 py-1.5 bg-background border border-border rounded text-xs text-foreground outline-none focus:border-purple-500"
                     placeholder="Enter exhibit caption..."
                   />
                 </div>
               </div>
 
               {/* Actions */}
-              <div className="flex flex-col items-center justify-between p-2 bg-slate-900/30">
+              <div className="flex flex-col items-center justify-between p-2 bg-muted/30">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     removeExhibit(exhibit.id);
                   }}
-                  className="w-8 h-8 bg-slate-700/50 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-400 hover:bg-red-500/20"
+                  className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center text-muted-foreground hover:text-red-400 hover:bg-red-500/20"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
-                <div className="text-slate-600 cursor-grab">
+                <div className="text-muted-foreground/50 cursor-grab">
                   <GripVertical className="w-4 h-4" />
                 </div>
               </div>
@@ -2082,11 +2082,11 @@ function ExhibitBuilder({
             className={`p-8 border-2 border-dashed rounded-xl text-center transition-all ${
               draggedItem?.type === "evidence"
                 ? "border-emerald-500 bg-emerald-500/10"
-                : "border-slate-700/50"
+                : "border-border"
             }`}
           >
-            <Plus className="w-8 h-8 mx-auto text-slate-600 mb-2" />
-            <p className="text-sm text-slate-500">
+            <Plus className="w-8 h-8 mx-auto text-muted-foreground/50 mb-2" />
+            <p className="text-sm text-muted-foreground">
               {draggedItem?.type === "evidence"
                 ? `Drop to add as Exhibit ${EXHIBIT_LABELS[exhibits.length]}`
                 : "Drag evidence here to add"}
@@ -2097,7 +2097,7 @@ function ExhibitBuilder({
 
       {/* Right Panel - Amelia Suggestions */}
       <div className="w-72 shrink-0">
-        <Card className="bg-gradient-to-b from-emerald-500/10 to-slate-800/60 border-emerald-500/20">
+        <Card className="bg-gradient-to-b from-emerald-500/10 to-card border-emerald-500/20">
           <CardHeader className="pb-2 border-b border-emerald-500/20">
             <CardTitle className="flex items-center gap-2 text-sm text-emerald-400">
               <Brain className="w-4 h-4" />
@@ -2105,19 +2105,19 @@ function ExhibitBuilder({
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
-            <p className="text-xs text-slate-400 mb-4">
+            <p className="text-xs text-muted-foreground mb-4">
               For ACCURACY disputes, I recommend including:
             </p>
             <ul className="space-y-2 mb-4">
-              <li className="flex items-center gap-2 text-xs text-white">
+              <li className="flex items-center gap-2 text-xs text-foreground">
                 <span className="text-emerald-400">✓</span>
                 Bureau comparison for balance discrepancies
               </li>
-              <li className="flex items-center gap-2 text-xs text-white">
+              <li className="flex items-center gap-2 text-xs text-foreground">
                 <span className="text-emerald-400">✓</span>
                 Prior dispute documentation
               </li>
-              <li className="flex items-center gap-2 text-xs text-slate-500">
+              <li className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span>○</span>
                 Payment history differences
               </li>
@@ -2132,10 +2132,10 @@ function ExhibitBuilder({
       {/* Preview Modal */}
       {showPreview && (
         <Dialog open={showPreview} onOpenChange={setShowPreview}>
-          <DialogContent className="bg-slate-800 border-slate-700 max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogContent className="bg-card border-border max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
             <DialogHeader>
-              <DialogTitle className="text-white">Exhibit Package Preview</DialogTitle>
-              <DialogDescription className="text-slate-400">
+              <DialogTitle className="text-foreground">Exhibit Package Preview</DialogTitle>
+              <DialogDescription className="text-muted-foreground">
                 {exhibits.length + 1} pages total
               </DialogDescription>
             </DialogHeader>
@@ -2163,7 +2163,7 @@ function ExhibitBuilder({
               {/* Exhibit Pages */}
               {(exhibits || []).map((ex) => (
                 <div key={ex.id} className="bg-white rounded-lg overflow-hidden">
-                  <div className="bg-slate-900 text-white text-center py-2 font-bold tracking-widest">
+                  <div className="bg-slate-900 text-foreground text-center py-2 font-bold tracking-widest">
                     EXHIBIT {ex.label}
                   </div>
                   <div className="p-8">
@@ -2178,24 +2178,24 @@ function ExhibitBuilder({
                       </div>
                     ) : (
                       <div className="h-64 bg-slate-100 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center">
-                        <FileText className="w-12 h-12 text-slate-400 mb-2" />
+                        <FileText className="w-12 h-12 text-muted-foreground mb-2" />
                         <p className="font-semibold text-slate-700">{ex.evidence.accountItem?.creditorName}</p>
-                        <p className="text-sm text-slate-500">
+                        <p className="text-sm text-muted-foreground">
                           {ex.evidence.evidenceType === "SCREENSHOT" ? "Screenshot" : "Text Extract"}
                         </p>
                       </div>
                     )}
                   </div>
-                  <div className="px-8 pb-4 text-center text-sm text-slate-500 italic border-t border-slate-200 pt-4">
+                  <div className="px-8 pb-4 text-center text-sm text-muted-foreground italic border-t border-slate-200 pt-4">
                     {ex.caption}
                   </div>
                 </div>
               ))}
             </div>
-            <div className="flex justify-between items-center pt-4 border-t border-slate-700">
-              <span className="text-sm text-slate-500">{exhibits.length + 1} pages total</span>
+            <div className="flex justify-between items-center pt-4 border-t border-border">
+              <span className="text-sm text-muted-foreground">{exhibits.length + 1} pages total</span>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setShowPreview(false)} className="border-slate-600">
+                <Button variant="outline" onClick={() => setShowPreview(false)} className="border-input">
                   Close
                 </Button>
                 <Button className="bg-purple-600 hover:bg-purple-700">
@@ -2278,14 +2278,14 @@ function BureauComparison({
 
   if (!evidence) {
     return (
-      <Card className="bg-slate-800/60 border-slate-700/50 backdrop-blur-xl">
+      <Card className="bg-card border-border backdrop-blur-xl">
         <CardContent className="py-16 text-center">
-          <GitCompare className="w-12 h-12 mx-auto text-slate-600" />
-          <h3 className="text-lg font-medium text-white mt-4">No Evidence Selected</h3>
-          <p className="text-slate-400 mt-2 mb-6">
+          <GitCompare className="w-12 h-12 mx-auto text-muted-foreground/50" />
+          <h3 className="text-lg font-medium text-foreground mt-4">No Evidence Selected</h3>
+          <p className="text-muted-foreground mt-2 mb-6">
             Select evidence from the Library to compare across bureaus
           </p>
-          <Button onClick={onBack} variant="outline" className="border-slate-600">
+          <Button onClick={onBack} variant="outline" className="border-input">
             Go to Library
           </Button>
         </CardContent>
@@ -2298,12 +2298,12 @@ function BureauComparison({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button onClick={onBack} variant="ghost" size="sm" className="text-slate-400">
+          <Button onClick={onBack} variant="ghost" size="sm" className="text-muted-foreground">
             ← Back
           </Button>
           <div>
-            <h3 className="text-white font-semibold">{evidence.accountItem?.creditorName || "Account"}</h3>
-            <p className="text-xs text-slate-500">
+            <h3 className="text-foreground font-semibold">{evidence.accountItem?.creditorName || "Account"}</h3>
+            <p className="text-xs text-muted-foreground">
               {evidence.accountItem?.report?.client?.firstName}{" "}
               {evidence.accountItem?.report?.client?.lastName}
             </p>
@@ -2313,7 +2313,7 @@ function BureauComparison({
           <Button
             variant="outline"
             size="sm"
-            className="border-slate-600"
+            className="border-input"
             onClick={() => onAddToExhibit(evidence)}
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -2328,11 +2328,11 @@ function BureauComparison({
 
       {/* Stats Row */}
       <div className="flex gap-4">
-        <Card className="bg-slate-800/60 border-slate-700/50 p-4 flex items-center gap-3">
+        <Card className="bg-card border-border p-4 flex items-center gap-3">
           <span className="text-2xl">📊</span>
           <div>
-            <p className="text-xl font-bold text-white">{mockDivergences.length}</p>
-            <p className="text-xs text-slate-500">Total Divergences</p>
+            <p className="text-xl font-bold text-foreground">{mockDivergences.length}</p>
+            <p className="text-xs text-muted-foreground">Total Divergences</p>
           </div>
         </Card>
         {Object.entries(divergenceCounts).map(([severity, count]) => {
@@ -2341,7 +2341,7 @@ function BureauComparison({
           return (
             <Card
               key={severity}
-              className="border-slate-700/50 p-4 flex items-center gap-3"
+              className="border-border p-4 flex items-center gap-3"
               style={{ background: config.bg }}
             >
               <span className="text-2xl">{config.icon}</span>
@@ -2349,7 +2349,7 @@ function BureauComparison({
                 <p className="text-xl font-bold" style={{ color: config.color }}>
                   {count}
                 </p>
-                <p className="text-xs text-slate-500">{config.label}</p>
+                <p className="text-xs text-muted-foreground">{config.label}</p>
               </div>
             </Card>
           );
@@ -2360,7 +2360,7 @@ function BureauComparison({
         {/* Left Panel - Divergence List */}
         <div className="w-80 shrink-0 space-y-4">
           <div className="flex items-center justify-between">
-            <h4 className="text-white font-semibold">Detected Divergences</h4>
+            <h4 className="text-foreground font-semibold">Detected Divergences</h4>
             <Badge className="bg-red-500/20 text-red-400">{mockDivergences.length}</Badge>
           </div>
 
@@ -2375,7 +2375,7 @@ function BureauComparison({
                   className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${
                     isSelected
                       ? `border-[${config.color}]`
-                      : "border-transparent bg-slate-800/50"
+                      : "border-transparent bg-card"
                   }`}
                   style={{
                     borderColor: isSelected ? config.color : "transparent",
@@ -2389,11 +2389,11 @@ function BureauComparison({
                     >
                       {config.icon} {config.label}
                     </span>
-                    <span className="text-[10px] text-slate-500 uppercase">
+                    <span className="text-[10px] text-muted-foreground uppercase">
                       {div.type.replace(/_/g, " ")}
                     </span>
                   </div>
-                  <h5 className="text-sm font-semibold text-white mb-2">{div.label}</h5>
+                  <h5 className="text-sm font-semibold text-foreground mb-2">{div.label}</h5>
                   <div className="space-y-1">
                     {Object.entries(div.values).map(([bureau, value]) => {
                       const bureauName = bureau === "TU" ? "TRANSUNION" : bureau === "EX" ? "EXPERIAN" : "EQUIFAX";
@@ -2406,7 +2406,7 @@ function BureauComparison({
                           >
                             {bureau}
                           </span>
-                          <span className="text-xs text-white font-mono">{value}</span>
+                          <span className="text-xs text-foreground font-mono">{value}</span>
                         </div>
                       );
                     })}
@@ -2417,7 +2417,7 @@ function BureauComparison({
                     </div>
                   )}
                   {isSelected && (
-                    <p className="mt-2 p-2 bg-slate-900/50 rounded text-xs text-slate-400">
+                    <p className="mt-2 p-2 bg-background rounded text-xs text-muted-foreground">
                       {div.note}
                     </p>
                   )}
@@ -2427,7 +2427,7 @@ function BureauComparison({
           </div>
 
           {/* Amelia Card */}
-          <Card className="bg-gradient-to-b from-emerald-500/10 to-slate-800/60 border-emerald-500/20">
+          <Card className="bg-gradient-to-b from-emerald-500/10 to-card border-emerald-500/20">
             <CardHeader className="pb-2 border-b border-emerald-500/20">
               <CardTitle className="flex items-center gap-2 text-sm text-emerald-400">
                 <Brain className="w-4 h-4" />
@@ -2435,12 +2435,12 @@ function BureauComparison({
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
-              <p className="text-xs text-slate-400 mb-3">
-                <strong className="text-white">{divergenceCounts.HIGH} actionable violations</strong> detected.
+              <p className="text-xs text-muted-foreground mb-3">
+                <strong className="text-foreground">{divergenceCounts.HIGH} actionable violations</strong> detected.
                 The balance discrepancy and account number mismatch are strong grounds for FCRA § 1681e(b) accuracy claims.
               </p>
-              <p className="text-xs text-slate-400 mb-4">
-                Prior dispute comments on both bureaus make this ideal for <strong className="text-white">R3+ escalation</strong>.
+              <p className="text-xs text-muted-foreground mb-4">
+                Prior dispute comments on both bureaus make this ideal for <strong className="text-foreground">R3+ escalation</strong>.
               </p>
               <Button className="w-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25">
                 ✨ Generate Dispute Points
@@ -2453,7 +2453,7 @@ function BureauComparison({
         <div className="flex-1 space-y-4">
           {/* Controls */}
           <div className="flex gap-6">
-            <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer">
+            <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
               <input
                 type="checkbox"
                 checked={highlightDivergences}
@@ -2462,7 +2462,7 @@ function BureauComparison({
               />
               Highlight divergences
             </label>
-            <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer">
+            <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
               <input
                 type="checkbox"
                 checked={showOnlyDivergent}
@@ -2474,12 +2474,12 @@ function BureauComparison({
           </div>
 
           {/* Comparison Table */}
-          <Card className="bg-slate-800/60 border-slate-700/50 overflow-hidden">
+          <Card className="bg-card border-border overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-slate-900/50">
-                    <th className="p-3 text-left text-xs font-semibold text-slate-400">Field</th>
+                  <tr className="bg-background">
+                    <th className="p-3 text-left text-xs font-semibold text-muted-foreground">Field</th>
                     {["TRANSUNION", "EXPERIAN", "EQUIFAX"].map((bureau) => (
                       <th
                         key={bureau}
@@ -2491,7 +2491,7 @@ function BureauComparison({
                       >
                         {bureau === "TRANSUNION" ? "TransUnion" : bureau === "EXPERIAN" ? "Experian" : "Equifax"}
                         {bureau === "EXPERIAN" && (
-                          <span className="block text-[10px] text-slate-500">Not Reporting</span>
+                          <span className="block text-[10px] text-muted-foreground">Not Reporting</span>
                         )}
                       </th>
                     ))}
@@ -2519,12 +2519,12 @@ function BureauComparison({
                       return (
                         <tr
                           key={i}
-                          className="border-b border-slate-700/30"
+                          className="border-b border-border/30"
                           style={{
                             background: highlightDivergences && divergence ? config?.bg : "transparent",
                           }}
                         >
-                          <td className="p-3 text-sm text-slate-400 flex items-center gap-2">
+                          <td className="p-3 text-sm text-muted-foreground flex items-center gap-2">
                             {row.field}
                             {divergence && (
                               <span
@@ -2544,7 +2544,7 @@ function BureauComparison({
                           >
                             {row.tu}
                           </td>
-                          <td className="p-3 text-sm text-center font-mono text-slate-500 opacity-30">
+                          <td className="p-3 text-sm text-center font-mono text-muted-foreground opacity-30">
                             {row.ex}
                           </td>
                           <td
@@ -2565,8 +2565,8 @@ function BureauComparison({
           </Card>
 
           {/* Payment History */}
-          <Card className="bg-slate-800/60 border-slate-700/50 p-4">
-            <h4 className="text-sm font-semibold text-white mb-4">Payment History Comparison</h4>
+          <Card className="bg-card border-border p-4">
+            <h4 className="text-sm font-semibold text-foreground mb-4">Payment History Comparison</h4>
             <div className="space-y-3">
               {["TRANSUNION", "EQUIFAX"].map((bureau) => (
                 <div key={bureau} className="flex items-center gap-3">
@@ -2589,7 +2589,7 @@ function BureauComparison({
                           title={`Month ${i + 1}: ${status}`}
                         >
                           {status !== "OK" && (
-                            <span className="text-[8px] font-bold text-white">{status}</span>
+                            <span className="text-[8px] font-bold text-foreground">{status}</span>
                           )}
                         </div>
                       );
@@ -2598,17 +2598,17 @@ function BureauComparison({
                 </div>
               ))}
             </div>
-            <div className="flex gap-4 mt-4 pt-4 border-t border-slate-700/50">
-              <span className="flex items-center gap-2 text-xs text-slate-500">
+            <div className="flex gap-4 mt-4 pt-4 border-t border-border">
+              <span className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span className="w-3 h-3 rounded bg-emerald-500" /> OK
               </span>
-              <span className="flex items-center gap-2 text-xs text-slate-500">
+              <span className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span className="w-3 h-3 rounded bg-amber-500" /> 30 Days
               </span>
-              <span className="flex items-center gap-2 text-xs text-slate-500">
+              <span className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span className="w-3 h-3 rounded bg-red-500" /> 60 Days
               </span>
-              <span className="flex items-center gap-2 text-xs text-slate-500">
+              <span className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span className="w-3 h-3 rounded bg-red-700" /> 90+ Days
               </span>
             </div>

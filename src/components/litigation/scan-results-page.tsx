@@ -152,19 +152,19 @@ export function ScanResultsPage({ scan }: ScanResultsPageProps) {
         className="flex items-center justify-between flex-wrap gap-3"
       >
         <div>
-          <h1 className="text-xl font-bold text-slate-100">
+          <h1 className="text-xl font-bold text-foreground">
             Litigation Scan Results
           </h1>
-          <p className="text-sm text-slate-400 mt-0.5">
+          <p className="text-sm text-muted-foreground mt-0.5">
             {formatDate(scan.createdAt)}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge className="bg-slate-700/50 text-slate-300 text-xs border-0 flex items-center gap-1">
+          <Badge className="bg-muted text-muted-foreground text-xs border-0 flex items-center gap-1">
             <Zap className="w-3 h-3" />
             {scan.computeTimeMs}ms
           </Badge>
-          <Badge className="bg-slate-700/50 text-slate-300 text-xs border-0 font-mono">
+          <Badge className="bg-muted text-muted-foreground text-xs border-0 font-mono">
             {scan.id.slice(0, 8)}
           </Badge>
         </div>
@@ -179,7 +179,7 @@ export function ScanResultsPage({ scan }: ScanResultsPageProps) {
       >
         {/* Case Strength Gauge */}
         <div className="lg:col-span-3">
-          <Card className="bg-slate-800/50 border-slate-700/50 h-full">
+          <Card className="bg-card border-border h-full">
             <CardContent className="p-6 flex items-center justify-center">
               {scan.caseSummary && (
                 <CaseStrengthGauge
@@ -195,64 +195,64 @@ export function ScanResultsPage({ scan }: ScanResultsPageProps) {
         {/* Violation Stats */}
         <div className="lg:col-span-9 grid grid-cols-2 sm:grid-cols-4 gap-3">
           {/* By Category */}
-          <Card className="bg-slate-800/50 border-purple-500/20">
+          <Card className="bg-card border-purple-500/20">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Scale className="w-4 h-4 text-purple-400" />
-                <span className="text-xs text-slate-400">FCRA</span>
+                <span className="text-xs text-muted-foreground">FCRA</span>
               </div>
               <p className="text-2xl font-bold text-purple-400">
                 {scan.fcraViolations}
               </p>
-              <p className="text-[10px] text-slate-500">violations found</p>
+              <p className="text-[10px] text-muted-foreground">violations found</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800/50 border-blue-500/20">
+          <Card className="bg-card border-primary/20">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
-                <Shield className="w-4 h-4 text-blue-400" />
-                <span className="text-xs text-slate-400">FDCPA</span>
+                <Shield className="w-4 h-4 text-primary" />
+                <span className="text-xs text-muted-foreground">FDCPA</span>
               </div>
-              <p className="text-2xl font-bold text-blue-400">
+              <p className="text-2xl font-bold text-primary">
                 {scan.fdcpaViolations}
               </p>
-              <p className="text-[10px] text-slate-500">violations found</p>
+              <p className="text-[10px] text-muted-foreground">violations found</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800/50 border-slate-500/20">
+          <Card className="bg-card border-border">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
-                <FileText className="w-4 h-4 text-slate-300" />
-                <span className="text-xs text-slate-400">Metro 2</span>
+                <FileText className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Metro 2</span>
               </div>
-              <p className="text-2xl font-bold text-slate-300">
+              <p className="text-2xl font-bold text-muted-foreground">
                 {scan.metro2Errors}
               </p>
-              <p className="text-[10px] text-slate-500">errors detected</p>
+              <p className="text-[10px] text-muted-foreground">errors detected</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800/50 border-red-500/20">
+          <Card className="bg-card border-red-500/20">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <AlertTriangle className="w-4 h-4 text-red-400" />
-                <span className="text-xs text-slate-400">Critical</span>
+                <span className="text-xs text-muted-foreground">Critical</span>
               </div>
               <p className="text-2xl font-bold text-red-400">
                 {scan.criticalCount}
               </p>
-              <p className="text-[10px] text-slate-500">critical issues</p>
+              <p className="text-[10px] text-muted-foreground">critical issues</p>
             </CardContent>
           </Card>
 
           {/* Severity row */}
-          <Card className="bg-slate-800/50 border-orange-500/15">
+          <Card className="bg-card border-orange-500/15">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <AlertCircle className="w-4 h-4 text-orange-400" />
-                <span className="text-xs text-slate-400">High</span>
+                <span className="text-xs text-muted-foreground">High</span>
               </div>
               <p className="text-2xl font-bold text-orange-400">
                 {scan.highCount}
@@ -260,11 +260,11 @@ export function ScanResultsPage({ scan }: ScanResultsPageProps) {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800/50 border-yellow-500/15">
+          <Card className="bg-card border-yellow-500/15">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <AlertCircle className="w-4 h-4 text-yellow-400" />
-                <span className="text-xs text-slate-400">Medium</span>
+                <span className="text-xs text-muted-foreground">Medium</span>
               </div>
               <p className="text-2xl font-bold text-yellow-400">
                 {scan.mediumCount}
@@ -272,23 +272,23 @@ export function ScanResultsPage({ scan }: ScanResultsPageProps) {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800/50 border-blue-500/15">
+          <Card className="bg-card border-primary/15">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
-                <AlertCircle className="w-4 h-4 text-blue-400" />
-                <span className="text-xs text-slate-400">Low</span>
+                <AlertCircle className="w-4 h-4 text-primary" />
+                <span className="text-xs text-muted-foreground">Low</span>
               </div>
-              <p className="text-2xl font-bold text-blue-400">
+              <p className="text-2xl font-bold text-primary">
                 {scan.lowCount}
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800/50 border-emerald-500/15">
+          <Card className="bg-card border-emerald-500/15">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Scale className="w-4 h-4 text-emerald-400" />
-                <span className="text-xs text-slate-400">Total</span>
+                <span className="text-xs text-muted-foreground">Total</span>
               </div>
               <p className="text-2xl font-bold text-emerald-400">
                 {scan.totalViolations}
@@ -305,31 +305,31 @@ export function ScanResultsPage({ scan }: ScanResultsPageProps) {
         transition={{ duration: 0.4, delay: 0.2 }}
       >
         <Tabs defaultValue="violations" className="space-y-4">
-          <TabsList className="bg-slate-800/50 border border-slate-700/30">
+          <TabsList className="bg-card border border-border">
             <TabsTrigger
               value="violations"
-              className="data-[state=active]:bg-slate-700/50 data-[state=active]:text-slate-100"
+              className="data-[state=active]:bg-muted data-[state=active]:text-foreground"
             >
               <AlertTriangle className="w-3.5 h-3.5 mr-1.5" />
               Violations
             </TabsTrigger>
             <TabsTrigger
               value="damages"
-              className="data-[state=active]:bg-slate-700/50 data-[state=active]:text-slate-100"
+              className="data-[state=active]:bg-muted data-[state=active]:text-foreground"
             >
               <Scale className="w-3.5 h-3.5 mr-1.5" />
               Damages
             </TabsTrigger>
             <TabsTrigger
               value="case-summary"
-              className="data-[state=active]:bg-slate-700/50 data-[state=active]:text-slate-100"
+              className="data-[state=active]:bg-muted data-[state=active]:text-foreground"
             >
               <BookOpen className="w-3.5 h-3.5 mr-1.5" />
               Case Summary
             </TabsTrigger>
             <TabsTrigger
               value="escalation"
-              className="data-[state=active]:bg-slate-700/50 data-[state=active]:text-slate-100"
+              className="data-[state=active]:bg-muted data-[state=active]:text-foreground"
             >
               <Zap className="w-3.5 h-3.5 mr-1.5" />
               Escalation
@@ -359,10 +359,10 @@ export function ScanResultsPage({ scan }: ScanResultsPageProps) {
                 ))}
               </div>
             ) : (
-              <Card className="bg-slate-800/30 border-slate-700/30">
+              <Card className="bg-card border-border">
                 <CardContent className="p-8 text-center">
-                  <AlertCircle className="w-8 h-8 text-slate-500 mx-auto mb-3" />
-                  <p className="text-sm text-slate-400">
+                  <AlertCircle className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground">
                     No violations match the current filters.
                   </p>
                   <button
@@ -406,9 +406,9 @@ export function ScanResultsPage({ scan }: ScanResultsPageProps) {
                 {/* Key Findings */}
                 {scan.caseSummary.keyFindings &&
                   scan.caseSummary.keyFindings.length > 0 && (
-                    <Card className="bg-slate-800/50 border-slate-700/50">
+                    <Card className="bg-card border-border">
                       <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-semibold text-slate-300 flex items-center gap-2">
+                        <CardTitle className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
                           <BookOpen className="w-4 h-4 text-purple-400" />
                           Key Findings
                         </CardTitle>
@@ -419,10 +419,10 @@ export function ScanResultsPage({ scan }: ScanResultsPageProps) {
                             (finding: string, idx: number) => (
                               <div
                                 key={idx}
-                                className="flex items-start gap-2.5 bg-slate-900/40 rounded-lg p-3 border border-slate-700/20"
+                                className="flex items-start gap-2.5 bg-background rounded-lg p-3 border border-border"
                               >
                                 <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                                <p className="text-sm text-slate-300">
+                                <p className="text-sm text-muted-foreground">
                                   {finding}
                                 </p>
                               </div>
@@ -436,10 +436,10 @@ export function ScanResultsPage({ scan }: ScanResultsPageProps) {
                 {/* Causes of Action */}
                 {scan.caseSummary.causesOfAction &&
                   scan.caseSummary.causesOfAction.length > 0 && (
-                    <Card className="bg-slate-800/50 border-slate-700/50">
+                    <Card className="bg-card border-border">
                       <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-semibold text-slate-300 flex items-center gap-2">
-                          <Scale className="w-4 h-4 text-blue-400" />
+                        <CardTitle className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                          <Scale className="w-4 h-4 text-primary" />
                           Causes of Action
                         </CardTitle>
                       </CardHeader>
@@ -449,20 +449,20 @@ export function ScanResultsPage({ scan }: ScanResultsPageProps) {
                             (cause: any, idx: number) => (
                               <div
                                 key={idx}
-                                className="bg-slate-900/40 rounded-lg p-4 border border-slate-700/20"
+                                className="bg-background rounded-lg p-4 border border-border"
                               >
                                 <div className="flex items-center gap-2 mb-2">
-                                  <h4 className="text-sm font-semibold text-slate-200">
+                                  <h4 className="text-sm font-semibold text-foreground">
                                     {cause.title || cause.statute || `Cause ${idx + 1}`}
                                   </h4>
                                   {cause.statute && (
-                                    <Badge className="bg-blue-500/15 text-blue-400 text-[10px] border-0 font-mono">
+                                    <Badge className="bg-primary/15 text-primary text-[10px] border-0 font-mono">
                                       {cause.statute}
                                     </Badge>
                                   )}
                                 </div>
                                 {cause.description && (
-                                  <p className="text-xs text-slate-400 mb-2">
+                                  <p className="text-xs text-muted-foreground mb-2">
                                     {cause.description}
                                   </p>
                                 )}
@@ -472,9 +472,9 @@ export function ScanResultsPage({ scan }: ScanResultsPageProps) {
                                       (element: string, eIdx: number) => (
                                         <li
                                           key={eIdx}
-                                          className="text-xs text-slate-400 flex items-start gap-2"
+                                          className="text-xs text-muted-foreground flex items-start gap-2"
                                         >
-                                          <span className="text-blue-400 mt-0.5">
+                                          <span className="text-primary mt-0.5">
                                             *
                                           </span>
                                           {element}
@@ -494,13 +494,13 @@ export function ScanResultsPage({ scan }: ScanResultsPageProps) {
                 {/* Risk Factors */}
                 {scan.caseSummary.riskFactors &&
                   scan.caseSummary.riskFactors.length > 0 && (
-                    <Card className="bg-slate-800/50 border-amber-500/20">
+                    <Card className="bg-card border-amber-500/20">
                       <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-semibold text-slate-300 flex items-center gap-2">
+                        <CardTitle className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
                           <AlertTriangle className="w-4 h-4 text-amber-400" />
                           Risk Factors
                         </CardTitle>
-                        <CardDescription className="text-xs text-slate-500">
+                        <CardDescription className="text-xs text-muted-foreground">
                           Potential weaknesses or considerations that may affect
                           case outcome
                         </CardDescription>
@@ -515,13 +515,13 @@ export function ScanResultsPage({ scan }: ScanResultsPageProps) {
                               >
                                 <XCircle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
                                 <div>
-                                  <p className="text-sm text-slate-300">
+                                  <p className="text-sm text-muted-foreground">
                                     {typeof risk === "string"
                                       ? risk
                                       : risk.description || risk.title}
                                   </p>
                                   {typeof risk !== "string" && risk.mitigation && (
-                                    <p className="text-xs text-slate-500 mt-1">
+                                    <p className="text-xs text-muted-foreground mt-1">
                                       Mitigation: {risk.mitigation}
                                     </p>
                                   )}
@@ -536,15 +536,15 @@ export function ScanResultsPage({ scan }: ScanResultsPageProps) {
 
                 {/* Summary narrative */}
                 {scan.caseSummary.narrative && (
-                  <Card className="bg-slate-800/50 border-slate-700/50">
+                  <Card className="bg-card border-border">
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-semibold text-slate-300 flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-slate-400" />
+                      <CardTitle className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-muted-foreground" />
                         Case Narrative
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-0">
-                      <p className="text-sm text-slate-400 leading-relaxed whitespace-pre-line">
+                      <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
                         {scan.caseSummary.narrative}
                       </p>
                     </CardContent>
@@ -557,7 +557,7 @@ export function ScanResultsPage({ scan }: ScanResultsPageProps) {
           {/* Escalation Tab */}
           <TabsContent value="escalation">
             {scan.escalationPlan && (
-              <Card className="bg-slate-800/50 border-slate-700/50">
+              <Card className="bg-card border-border">
                 <CardContent className="p-6">
                   <CaseTimeline escalationPlan={scan.escalationPlan} />
                 </CardContent>

@@ -52,7 +52,7 @@ const ResponsiveDialogContent = React.forwardRef<
         ref={ref}
         className={cn(
           // Base styles
-          "fixed z-50 bg-slate-900 border border-slate-700 shadow-2xl",
+          "fixed z-50 bg-background border border-border shadow-2xl",
           // Mobile: Full width bottom sheet
           "inset-x-4 bottom-4 top-auto max-h-[85vh]",
           // Desktop: Centered modal
@@ -74,7 +74,7 @@ const ResponsiveDialogContent = React.forwardRef<
         {...props}
       >
         {children}
-        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-lg p-2 text-slate-400 opacity-70 transition-all hover:opacity-100 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:pointer-events-none">
+        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-lg p-2 text-muted-foreground opacity-70 transition-all hover:opacity-100 hover:bg-muted focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:pointer-events-none">
           <X className="h-5 w-5" />
           <span className="sr-only">Close</span>
         </DialogPrimitive.Close>
@@ -90,7 +90,7 @@ const ResponsiveDialogHeader = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex flex-col space-y-1.5 p-6 pb-4 border-b border-slate-800",
+      "flex flex-col space-y-1.5 p-6 pb-4 border-b border-border",
       className
     )}
     {...props}
@@ -106,7 +106,7 @@ const ResponsiveDialogBody = ({
     className={cn(
       "flex-1 overflow-y-auto p-6",
       // Custom scrollbar
-      "scrollbar-thin scrollbar-track-slate-800 scrollbar-thumb-slate-700",
+      "scrollbar-thin scrollbar-track-muted scrollbar-thumb-muted-foreground/30",
       className
     )}
     {...props}
@@ -120,7 +120,7 @@ const ResponsiveDialogFooter = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex flex-col-reverse sm:flex-row sm:justify-end gap-2 p-6 pt-4 border-t border-slate-800 bg-slate-800/30",
+      "flex flex-col-reverse sm:flex-row sm:justify-end gap-2 p-6 pt-4 border-t border-border bg-card/30",
       className
     )}
     {...props}
@@ -135,7 +135,7 @@ const ResponsiveDialogTitle = React.forwardRef<
   <DialogPrimitive.Title
     ref={ref}
     className={cn(
-      "text-lg font-semibold text-white leading-none tracking-tight",
+      "text-lg font-semibold text-foreground leading-none tracking-tight",
       className
     )}
     {...props}
@@ -149,7 +149,7 @@ const ResponsiveDialogDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Description
     ref={ref}
-    className={cn("text-sm text-slate-400", className)}
+    className={cn("text-sm text-muted-foreground", className)}
     {...props}
   />
 ));

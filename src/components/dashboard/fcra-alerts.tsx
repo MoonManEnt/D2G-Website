@@ -107,9 +107,9 @@ export function FCRAAlerts() {
 
   if (loading) {
     return (
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="p-6 flex items-center justify-center">
-          <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
         </CardContent>
       </Card>
     );
@@ -117,13 +117,13 @@ export function FCRAAlerts() {
 
   if (!alerts || (alerts.totalOverdue === 0 && alerts.totalApproaching === 0)) {
     return (
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="p-6">
           <div className="flex items-center gap-3 text-green-400">
             <CheckCircle className="w-5 h-5" />
             <div>
               <p className="font-medium">All FCRA Deadlines Met</p>
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-muted-foreground">
                 No disputes are approaching or past the 30-day deadline
               </p>
             </div>
@@ -136,10 +136,10 @@ export function FCRAAlerts() {
   const getCRAColor = (cra: string) => {
     const colors: Record<string, string> = {
       TRANSUNION: "bg-sky-600/20 text-sky-400 border-sky-600/30",
-      EXPERIAN: "bg-blue-600/20 text-blue-400 border-blue-600/30",
+      EXPERIAN: "bg-primary/20 text-primary border-blue-600/30",
       EQUIFAX: "bg-red-600/20 text-red-400 border-red-600/30",
     };
-    return colors[cra] || "bg-slate-500/20 text-slate-400 border-slate-500/30";
+    return colors[cra] || "bg-muted text-muted-foreground border-border";
   };
 
   return (
@@ -174,7 +174,7 @@ export function FCRAAlerts() {
 
         <CardHeader className="relative pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-foreground flex items-center gap-2">
               {alerts.totalOverdue > 0 ? (
                 <ShieldAlert className="w-5 h-5 text-red-400" />
               ) : (
@@ -247,10 +247,10 @@ export function FCRAAlerts() {
                               {alert.cra}
                             </Badge>
                             <div>
-                              <p className="text-sm font-medium text-white">
+                              <p className="text-sm font-medium text-foreground">
                                 {alert.clientName}
                               </p>
-                              <p className="text-xs text-slate-400">
+                              <p className="text-xs text-muted-foreground">
                                 Round {alert.round} • {alert.itemCount} items
                               </p>
                             </div>
@@ -260,12 +260,12 @@ export function FCRAAlerts() {
                               <p className="text-sm font-bold text-red-400">
                                 {Math.abs(alert.daysRemaining)} days overdue
                               </p>
-                              <p className="text-xs text-slate-400">
+                              <p className="text-xs text-muted-foreground">
                                 Sent{" "}
                                 {new Date(alert.sentDate).toLocaleDateString()}
                               </p>
                             </div>
-                            <ChevronRight className="w-4 h-4 text-slate-400" />
+                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
                           </div>
                         </div>
                       </motion.div>
@@ -301,10 +301,10 @@ export function FCRAAlerts() {
                               {alert.cra}
                             </Badge>
                             <div>
-                              <p className="text-sm font-medium text-white">
+                              <p className="text-sm font-medium text-foreground">
                                 {alert.clientName}
                               </p>
-                              <p className="text-xs text-slate-400">
+                              <p className="text-xs text-muted-foreground">
                                 Round {alert.round} • {alert.itemCount} items
                               </p>
                             </div>
@@ -315,7 +315,7 @@ export function FCRAAlerts() {
                                 {alert.daysRemaining} day
                                 {alert.daysRemaining !== 1 ? "s" : ""} left
                               </p>
-                              <p className="text-xs text-slate-400">
+                              <p className="text-xs text-muted-foreground">
                                 Deadline{" "}
                                 {new Date(
                                   new Date(alert.sentDate).getTime() +
@@ -323,7 +323,7 @@ export function FCRAAlerts() {
                                 ).toLocaleDateString()}
                               </p>
                             </div>
-                            <ChevronRight className="w-4 h-4 text-slate-400" />
+                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
                           </div>
                         </div>
                       </motion.div>
@@ -339,7 +339,7 @@ export function FCRAAlerts() {
               variant="ghost"
               size="sm"
               onClick={() => setExpanded(!expanded)}
-              className="w-full text-slate-400 hover:text-white"
+              className="w-full text-muted-foreground hover:text-foreground"
             >
               {expanded ? "Show Less" : "Show All Alerts"}
             </Button>

@@ -24,10 +24,10 @@ export function LegalCitationChecker({
   ];
 
   return (
-    <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-4">
+    <div className="bg-card rounded-lg border border-border p-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-slate-300">Legal Citation Validation</h3>
+        <h3 className="text-sm font-medium text-muted-foreground">Legal Citation Validation</h3>
         <span className={`text-xs px-2 py-0.5 rounded ${
           validation.isValid
             ? "bg-emerald-500/20 text-emerald-400"
@@ -45,8 +45,8 @@ export function LegalCitationChecker({
             onClick={() => setActiveTab(tab.key)}
             className={`px-3 py-1.5 text-xs rounded-lg transition-colors flex items-center gap-1.5 ${
               activeTab === tab.key
-                ? "bg-slate-700 text-slate-200"
-                : "text-slate-400 hover:text-slate-300"
+                ? "bg-muted text-foreground"
+                : "text-muted-foreground hover:text-muted-foreground"
             }`}
           >
             {tab.label}
@@ -56,7 +56,7 @@ export function LegalCitationChecker({
                   ? "bg-red-500/20 text-red-400"
                   : tab.key === "warnings" && tab.count > 0
                   ? "bg-amber-500/20 text-amber-400"
-                  : "bg-slate-600 text-slate-400"
+                  : "bg-muted text-muted-foreground"
               }`}>
                 {tab.count}
               </span>
@@ -80,15 +80,15 @@ export function LegalCitationChecker({
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                   <div>
-                    <p className="text-sm font-medium text-slate-200">{citation.statute}</p>
-                    <p className="text-xs text-slate-400">{citation.name}</p>
-                    <p className="text-xs text-slate-500 mt-1">{citation.description}</p>
+                    <p className="text-sm font-medium text-foreground">{citation.statute}</p>
+                    <p className="text-xs text-muted-foreground">{citation.name}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{citation.description}</p>
                   </div>
                 </div>
               </div>
             ))
           ) : (
-            <p className="text-sm text-slate-500 text-center py-4">No citations detected</p>
+            <p className="text-sm text-muted-foreground text-center py-4">No citations detected</p>
           )
         )}
 
@@ -105,12 +105,12 @@ export function LegalCitationChecker({
                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                   </svg>
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-200">{citation.statute}</p>
+                    <p className="text-sm font-medium text-foreground">{citation.statute}</p>
                     <p className="text-xs text-red-400 mt-1">{citation.reason}</p>
                     {citation.suggestion && (
-                      <div className="mt-2 p-2 rounded bg-slate-800/50 flex items-center justify-between">
-                        <p className="text-xs text-slate-400">
-                          <span className="text-slate-500">Suggestion:</span> {citation.suggestion}
+                      <div className="mt-2 p-2 rounded bg-card flex items-center justify-between">
+                        <p className="text-xs text-muted-foreground">
+                          <span className="text-muted-foreground">Suggestion:</span> {citation.suggestion}
                         </p>
                         {onFixCitation && (
                           <button
@@ -149,22 +149,22 @@ export function LegalCitationChecker({
                     <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                   </svg>
                   <div>
-                    <p className="text-sm font-medium text-slate-200">{warning.statute}</p>
+                    <p className="text-sm font-medium text-foreground">{warning.statute}</p>
                     <p className="text-xs text-amber-400">{warning.warning}</p>
                   </div>
                 </div>
               </div>
             ))
           ) : (
-            <p className="text-sm text-slate-500 text-center py-4">No warnings</p>
+            <p className="text-sm text-muted-foreground text-center py-4">No warnings</p>
           )
         )}
       </div>
 
       {/* Tips */}
-      <div className="mt-4 pt-4 border-t border-slate-700/50">
-        <p className="text-xs text-slate-500">
-          <strong className="text-slate-400">Common mistakes:</strong> FDCPA (1692) citations sent to CRAs, criminal statutes (1681q/r), and the "excluded information" theory (1681a(d)(2)).
+      <div className="mt-4 pt-4 border-t border-border">
+        <p className="text-xs text-muted-foreground">
+          <strong className="text-muted-foreground">Common mistakes:</strong> FDCPA (1692) citations sent to CRAs, criminal statutes (1681q/r), and the "excluded information" theory (1681a(d)(2)).
         </p>
       </div>
     </div>

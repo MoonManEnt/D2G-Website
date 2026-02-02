@@ -65,14 +65,14 @@ function CopyableField({ label, value, isLarge, onCopy }: CopyableFieldProps) {
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <label className="text-xs text-slate-500 uppercase tracking-wide">{label}</label>
+        <label className="text-xs text-muted-foreground uppercase tracking-wide">{label}</label>
         <button
           onClick={handleCopy}
           className={cn(
             "flex items-center gap-1 px-2 py-0.5 rounded text-xs transition-all",
             justCopied
               ? "bg-emerald-500/20 text-emerald-400"
-              : "bg-slate-700/50 text-slate-400 hover:bg-slate-700 hover:text-white"
+              : "bg-muted text-muted-foreground hover:bg-muted hover:text-foreground"
           )}
         >
           {justCopied ? (
@@ -90,7 +90,7 @@ function CopyableField({ label, value, isLarge, onCopy }: CopyableFieldProps) {
       </div>
       <div
         className={cn(
-          "p-3 rounded-lg bg-slate-700/30 text-sm text-white",
+          "p-3 rounded-lg bg-muted text-sm text-foreground",
           isLarge && "whitespace-pre-wrap max-h-[200px] overflow-y-auto leading-relaxed"
         )}
       >
@@ -454,39 +454,39 @@ ${complaint.desiredResolution}`;
             🏛️
           </div>
           <div>
-            <h2 className="text-lg font-bold text-white">CFPB Complaint Generator</h2>
-            <p className="text-xs text-slate-400">Consumer Financial Protection Bureau</p>
+            <h2 className="text-lg font-bold text-foreground">CFPB Complaint Generator</h2>
+            <p className="text-xs text-muted-foreground">Consumer Financial Protection Bureau</p>
           </div>
         </div>
 
         {/* Info Cards */}
-        <Card className="bg-slate-800/60 border-slate-700/50 p-4 space-y-3">
-          <div className="flex items-start gap-3 text-sm text-slate-300">
-            <Clock className="w-5 h-5 text-blue-400 flex-shrink-0" />
+        <Card className="bg-card border-border p-4 space-y-3">
+          <div className="flex items-start gap-3 text-sm text-muted-foreground">
+            <Clock className="w-5 h-5 text-primary flex-shrink-0" />
             <div>
-              <strong className="block text-white">15-Day Response</strong>
-              <span className="text-slate-400">Companies must respond within 15 days</span>
+              <strong className="block text-foreground">15-Day Response</strong>
+              <span className="text-muted-foreground">Companies must respond within 15 days</span>
             </div>
           </div>
-          <div className="flex items-start gap-3 text-sm text-slate-300">
+          <div className="flex items-start gap-3 text-sm text-muted-foreground">
             <BarChart3 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
             <div>
-              <strong className="block text-white">97% Response Rate</strong>
-              <span className="text-slate-400">Companies respond to almost all complaints</span>
+              <strong className="block text-foreground">97% Response Rate</strong>
+              <span className="text-muted-foreground">Companies respond to almost all complaints</span>
             </div>
           </div>
-          <div className="flex items-start gap-3 text-sm text-slate-300">
+          <div className="flex items-start gap-3 text-sm text-muted-foreground">
             <Search className="w-5 h-5 text-purple-400 flex-shrink-0" />
             <div>
-              <strong className="block text-white">Public Database</strong>
-              <span className="text-slate-400">Complaints are tracked and published</span>
+              <strong className="block text-foreground">Public Database</strong>
+              <span className="text-muted-foreground">Complaints are tracked and published</span>
             </div>
           </div>
         </Card>
 
         {/* CRA Selection */}
-        <Card className="bg-slate-800/60 border-slate-700/50 p-4">
-          <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+        <Card className="bg-card border-border p-4">
+          <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
             <Building2 className="w-4 h-4" />
             Target Bureau
           </h3>
@@ -502,7 +502,7 @@ ${complaint.desiredResolution}`;
                     "flex-1 px-3 py-2.5 rounded-lg border text-xs font-semibold transition-all",
                     isSelected
                       ? colors.tailwind
-                      : "bg-slate-700/30 border-slate-600/50 text-slate-400 hover:border-slate-500/50"
+                      : "bg-muted border-input text-muted-foreground hover:border-border"
                   )}
                 >
                   {cra}
@@ -513,9 +513,9 @@ ${complaint.desiredResolution}`;
         </Card>
 
         {/* Item Selection with Tabs */}
-        <Card className="bg-slate-800/60 border-slate-700/50 p-4">
+        <Card className="bg-card border-border p-4">
           <Tabs value={activeItemTab} onValueChange={(v) => setActiveItemTab(v as typeof activeItemTab)}>
-            <TabsList className="bg-slate-700/50 w-full justify-start mb-3">
+            <TabsList className="bg-muted w-full justify-start mb-3">
               <TabsTrigger value="accounts" className="text-xs flex items-center gap-1.5">
                 <FileText className="w-3.5 h-3.5" />
                 Accounts
@@ -544,7 +544,7 @@ ${complaint.desiredResolution}`;
             {/* Accounts Tab */}
             <TabsContent value="accounts" className="mt-0">
               {loadingHistory && (
-                <div className="flex items-center gap-2 text-xs text-slate-400 mb-2">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
                   <Loader2 className="w-3 h-3 animate-spin" />
                   Loading dispute history...
                 </div>
@@ -564,7 +564,7 @@ ${complaint.desiredResolution}`;
                     "block p-3 rounded-lg cursor-pointer transition-all",
                     selectedAccounts.includes(acc.id)
                       ? "bg-purple-500/15 ring-1 ring-purple-500/30"
-                      : "bg-slate-700/30 hover:bg-slate-700/50"
+                      : "bg-muted hover:bg-muted"
                   )}
                 >
                   <div className="flex items-start gap-2.5">
@@ -574,35 +574,35 @@ ${complaint.desiredResolution}`;
                       className="mt-0.5 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
                     />
                     <div className="flex-1 min-w-0">
-                      <span className="block text-sm font-medium text-white truncate">
+                      <span className="block text-sm font-medium text-foreground truncate">
                         {acc.creditorName}
                       </span>
-                      <span className="block text-xs text-slate-500 truncate">
+                      <span className="block text-xs text-muted-foreground truncate">
                         {acc.detectedIssues?.[0]?.description || "No issues detected"}
                       </span>
 
                       {/* Dispute History for this CRA */}
                       {hasDisputes && (
-                        <div className="mt-2 pt-2 border-t border-slate-600/30">
+                        <div className="mt-2 pt-2 border-t border-input">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <Badge
                               className={cn(
                                 "text-[10px] px-1.5",
-                                CRA_COLORS[selectedCRA]?.tailwind || "bg-slate-500/20 text-slate-400"
+                                CRA_COLORS[selectedCRA]?.tailwind || "bg-muted text-muted-foreground"
                               )}
                             >
                               {selectedCRA.slice(0, 2)}
                             </Badge>
-                            <span className="text-[10px] text-slate-400">
+                            <span className="text-[10px] text-muted-foreground">
                               R{latestDispute.round}
                             </span>
-                            <Badge className="text-[10px] px-1.5 bg-slate-600/30 text-slate-300">
+                            <Badge className="text-[10px] px-1.5 bg-muted text-muted-foreground">
                               {latestDispute.flow}
                             </Badge>
                             <Badge
                               className={cn(
                                 "text-[10px] px-1.5",
-                                latestDispute.status === "SENT" && "bg-blue-500/20 text-blue-400",
+                                latestDispute.status === "SENT" && "bg-primary/20 text-primary",
                                 latestDispute.status === "DRAFT" && "bg-amber-500/20 text-amber-400",
                                 latestDispute.status === "RESPONDED" && "bg-purple-500/20 text-purple-400",
                                 latestDispute.status === "RESOLVED" && "bg-emerald-500/20 text-emerald-400"
@@ -634,7 +634,7 @@ ${complaint.desiredResolution}`;
 
                           {/* Sent Date */}
                           {latestDispute.sentDate && (
-                            <div className="flex items-center gap-1 mt-1 text-[10px] text-slate-500">
+                            <div className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground">
                               <Send className="w-2.5 h-2.5" />
                               <span>
                                 Sent {new Date(latestDispute.sentDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
@@ -646,8 +646,8 @@ ${complaint.desiredResolution}`;
 
                       {/* No disputes yet indicator */}
                       {!hasDisputes && acc.disputeHistory.length > 0 && (
-                        <div className="mt-2 pt-2 border-t border-slate-600/30">
-                          <span className="text-[10px] text-slate-500">
+                        <div className="mt-2 pt-2 border-t border-input">
+                          <span className="text-[10px] text-muted-foreground">
                             Not disputed with {selectedCRA} yet
                           </span>
                           {/* Show other CRAs this was disputed with */}
@@ -657,7 +657,7 @@ ${complaint.desiredResolution}`;
                                 key={cra}
                                 className={cn(
                                   "text-[9px] px-1",
-                                  CRA_COLORS[cra]?.tailwind || "bg-slate-500/20 text-slate-400"
+                                  CRA_COLORS[cra]?.tailwind || "bg-muted text-muted-foreground"
                                 )}
                               >
                                 {cra.slice(0, 2)}
@@ -672,7 +672,7 @@ ${complaint.desiredResolution}`;
               );
             })}
               {accountsWithHistory.length === 0 && (
-                <p className="text-sm text-slate-500 text-center py-4">
+                <p className="text-sm text-muted-foreground text-center py-4">
                   No accounts available
                 </p>
               )}
@@ -690,7 +690,7 @@ ${complaint.desiredResolution}`;
                         "block p-3 rounded-lg cursor-pointer transition-all",
                         selectedInquiries.includes(inquiry.id)
                           ? "bg-purple-500/15 ring-1 ring-purple-500/30"
-                          : "bg-slate-700/30 hover:bg-slate-700/50"
+                          : "bg-muted hover:bg-muted"
                       )}
                     >
                       <div className="flex items-start gap-2.5">
@@ -700,14 +700,14 @@ ${complaint.desiredResolution}`;
                           className="mt-0.5 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
                         />
                         <div className="flex-1 min-w-0">
-                          <span className="block text-sm font-medium text-white truncate">
+                          <span className="block text-sm font-medium text-foreground truncate">
                             {inquiry.creditorName}
                           </span>
-                          <span className="block text-xs text-slate-500">
+                          <span className="block text-xs text-muted-foreground">
                             Inquiry Date: {new Date(inquiry.inquiryDate).toLocaleDateString()}
                           </span>
                           {inquiry.bureau && (
-                            <Badge className="mt-1 text-[10px] px-1.5 bg-slate-600/30 text-slate-300">
+                            <Badge className="mt-1 text-[10px] px-1.5 bg-muted text-muted-foreground">
                               {inquiry.bureau}
                             </Badge>
                           )}
@@ -716,7 +716,7 @@ ${complaint.desiredResolution}`;
                     </label>
                   ))
                 ) : (
-                  <p className="text-sm text-slate-500 text-center py-4">
+                  <p className="text-sm text-muted-foreground text-center py-4">
                     No hard inquiries found
                   </p>
                 )}
@@ -729,7 +729,7 @@ ${complaint.desiredResolution}`;
                 {/* Previous Names */}
                 {personalInfo?.previousNames && personalInfo.previousNames.length > 0 && (
                   <div>
-                    <h4 className="text-xs font-semibold text-slate-400 mb-2 flex items-center gap-1.5">
+                    <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
                       <User className="w-3.5 h-3.5" />
                       Previous Names
                     </h4>
@@ -741,7 +741,7 @@ ${complaint.desiredResolution}`;
                             "block p-3 rounded-lg cursor-pointer transition-all",
                             selectedPersonalItems.names.includes(name)
                               ? "bg-purple-500/15 ring-1 ring-purple-500/30"
-                              : "bg-slate-700/30 hover:bg-slate-700/50"
+                              : "bg-muted hover:bg-muted"
                           )}
                         >
                           <div className="flex items-center gap-2.5">
@@ -750,7 +750,7 @@ ${complaint.desiredResolution}`;
                               onCheckedChange={() => togglePersonalName(name)}
                               className="data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
                             />
-                            <span className="text-sm text-white">{name}</span>
+                            <span className="text-sm text-foreground">{name}</span>
                           </div>
                         </label>
                       ))}
@@ -761,7 +761,7 @@ ${complaint.desiredResolution}`;
                 {/* Previous Addresses */}
                 {personalInfo?.previousAddresses && personalInfo.previousAddresses.length > 0 && (
                   <div>
-                    <h4 className="text-xs font-semibold text-slate-400 mb-2 flex items-center gap-1.5">
+                    <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
                       <MapPin className="w-3.5 h-3.5" />
                       Previous Addresses
                     </h4>
@@ -773,7 +773,7 @@ ${complaint.desiredResolution}`;
                             "block p-3 rounded-lg cursor-pointer transition-all",
                             selectedPersonalItems.addresses.includes(address)
                               ? "bg-purple-500/15 ring-1 ring-purple-500/30"
-                              : "bg-slate-700/30 hover:bg-slate-700/50"
+                              : "bg-muted hover:bg-muted"
                           )}
                         >
                           <div className="flex items-start gap-2.5">
@@ -782,7 +782,7 @@ ${complaint.desiredResolution}`;
                               onCheckedChange={() => togglePersonalAddress(address)}
                               className="mt-0.5 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
                             />
-                            <span className="text-sm text-white">{address}</span>
+                            <span className="text-sm text-foreground">{address}</span>
                           </div>
                         </label>
                       ))}
@@ -791,7 +791,7 @@ ${complaint.desiredResolution}`;
                 )}
 
                 {(!personalInfo?.previousNames?.length && !personalInfo?.previousAddresses?.length) && (
-                  <p className="text-sm text-slate-500 text-center py-4">
+                  <p className="text-sm text-muted-foreground text-center py-4">
                     No personal information to dispute
                   </p>
                 )}
@@ -820,12 +820,12 @@ ${complaint.desiredResolution}`;
       </div>
 
       {/* Right Side - Preview */}
-      <Card className="bg-slate-800/60 border-slate-700/50 p-6 overflow-y-auto">
+      <Card className="bg-card border-border p-6 overflow-y-auto">
         {!complaint ? (
           <div className="h-full flex flex-col items-center justify-center text-center">
             <span className="text-5xl opacity-50 mb-4">📋</span>
-            <h3 className="text-lg font-semibold text-white mb-2">No Complaint Generated</h3>
-            <p className="text-sm text-slate-500 max-w-xs">
+            <h3 className="text-lg font-semibold text-foreground mb-2">No Complaint Generated</h3>
+            <p className="text-sm text-muted-foreground max-w-xs">
               Select accounts and click generate to preview your CFPB complaint
             </p>
           </div>
@@ -833,11 +833,11 @@ ${complaint.desiredResolution}`;
           <div className="space-y-4">
             {/* Preview Header */}
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-white">Complaint Preview</h3>
+              <h3 className="text-lg font-semibold text-foreground">Complaint Preview</h3>
               <Button
                 size="sm"
                 variant="ghost"
-                className="text-slate-400 hover:text-white"
+                className="text-muted-foreground hover:text-foreground"
                 onClick={copyToClipboard}
               >
                 {copied ? (
@@ -902,7 +902,7 @@ ${complaint.desiredResolution}`;
             </div>
 
             {/* Actions */}
-            <div className="flex gap-3 pt-4 border-t border-slate-700">
+            <div className="flex gap-3 pt-4 border-t border-border">
               <a
                 href="https://www.consumerfinance.gov/complaint/"
                 target="_blank"
@@ -916,7 +916,7 @@ ${complaint.desiredResolution}`;
               </a>
               <Button
                 variant="outline"
-                className="flex-1 border-slate-600 text-white hover:bg-slate-700"
+                className="flex-1 border-input text-foreground hover:bg-muted"
               >
                 💾 Save Draft
               </Button>

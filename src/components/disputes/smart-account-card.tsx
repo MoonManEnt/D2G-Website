@@ -168,15 +168,15 @@ export function SmartAccountCard({
               >
                 {activeDispute.flow} R{activeDispute.round}
               </Badge>
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-muted-foreground">
                 Sent {activeDispute.sentDate ? new Date(activeDispute.sentDate).toLocaleDateString() : "N/A"}
               </span>
             </div>
             <div className="flex items-center gap-1">
-              <Timer className="w-3 h-3 text-slate-500" />
+              <Timer className="w-3 h-3 text-muted-foreground" />
               <span className={cn(
                 "text-xs font-medium",
-                isOverdue ? "text-red-400" : daysRemaining <= 7 ? "text-amber-400" : "text-slate-400"
+                isOverdue ? "text-red-400" : daysRemaining <= 7 ? "text-amber-400" : "text-muted-foreground"
               )}>
                 {isOverdue
                   ? `${Math.abs(daysRemaining)} days overdue`
@@ -189,7 +189,7 @@ export function SmartAccountCard({
             <Button
               size="sm"
               variant="ghost"
-              className="text-slate-400 hover:text-white"
+              className="text-muted-foreground hover:text-foreground"
               onClick={() => onViewDispute(activeDispute.disputeId)}
             >
               <Eye className="w-3 h-3 mr-1" />
@@ -206,10 +206,10 @@ export function SmartAccountCard({
       className={cn(
         "rounded-xl border transition-all",
         isLocked
-          ? "bg-slate-800/30 border-slate-600/30 opacity-75"
+          ? "bg-card border-input opacity-75"
           : isSelected
             ? "bg-purple-500/15 border-purple-500/30"
-            : "bg-slate-700/30 border-slate-600/50 hover:border-slate-500/50"
+            : "bg-muted border-input hover:border-border"
       )}
     >
       {/* Header */}
@@ -222,7 +222,7 @@ export function SmartAccountCard({
       >
         <div className="pt-0.5">
           {isLocked ? (
-            <Lock className="w-4 h-4 text-slate-500" />
+            <Lock className="w-4 h-4 text-muted-foreground" />
           ) : (
             <Checkbox
               checked={isSelected}
@@ -233,10 +233,10 @@ export function SmartAccountCard({
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="font-semibold text-sm text-white truncate">
+          <div className="font-semibold text-sm text-foreground truncate">
             {account.creditorName}
           </div>
-          <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
             <span className="font-mono">{account.maskedAccountId || "N/A"}</span>
             <span className="opacity-70">{account.accountType || "Unknown"}</span>
           </div>
@@ -270,13 +270,13 @@ export function SmartAccountCard({
               <div key={i} className="flex items-start gap-2 text-xs">
                 <span
                   className={cn(
-                    "w-4 h-4 rounded flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0",
+                    "w-4 h-4 rounded flex items-center justify-center text-[10px] font-bold text-foreground flex-shrink-0",
                     getSeverityColor(issue.severity)
                   )}
                 >
                   {issue.severity[0]}
                 </span>
-                <span className="text-slate-400 leading-snug">{issue.description}</span>
+                <span className="text-muted-foreground leading-snug">{issue.description}</span>
               </div>
             ))}
             {issues.length > 2 && (
@@ -306,7 +306,7 @@ export function SmartAccountCard({
 
       {/* Applicable Flows Section - Only for non-locked accounts */}
       {!isLocked && (
-        <div className="px-3.5 py-2.5 border-t border-slate-600/30">
+        <div className="px-3.5 py-2.5 border-t border-input">
           <button
             className="w-full flex items-center justify-between text-xs"
             onClick={(e) => {
@@ -314,7 +314,7 @@ export function SmartAccountCard({
               setShowFlows(!showFlows);
             }}
           >
-            <span className="text-slate-500 font-medium">Applicable Flows</span>
+            <span className="text-muted-foreground font-medium">Applicable Flows</span>
             <div className="flex items-center gap-2">
               {applicableFlows.map((flow) => (
                 <Badge
@@ -336,9 +336,9 @@ export function SmartAccountCard({
                 </Badge>
               ))}
               {showFlows ? (
-                <ChevronUp className="w-3 h-3 text-slate-500" />
+                <ChevronUp className="w-3 h-3 text-muted-foreground" />
               ) : (
-                <ChevronDown className="w-3 h-3 text-slate-500" />
+                <ChevronDown className="w-3 h-3 text-muted-foreground" />
               )}
             </div>
           </button>
@@ -358,7 +358,7 @@ export function SmartAccountCard({
                       "w-full flex items-center gap-3 p-2 rounded-lg border transition-all text-left",
                       isSelectedFlow
                         ? "border-opacity-50"
-                        : "bg-slate-700/20 border-slate-600/30 hover:border-slate-500/30"
+                        : "bg-muted border-input hover:border-border"
                     )}
                     style={isSelectedFlow ? {
                       background: `${info?.color}15`,
@@ -377,13 +377,13 @@ export function SmartAccountCard({
                       <span
                         className={cn(
                           "text-xs font-semibold",
-                          isSelectedFlow ? "" : "text-slate-400"
+                          isSelectedFlow ? "" : "text-muted-foreground"
                         )}
                         style={isSelectedFlow ? { color: info?.color } : undefined}
                       >
                         {flow}
                       </span>
-                      <span className="text-[10px] text-slate-500 ml-2">
+                      <span className="text-[10px] text-muted-foreground ml-2">
                         {info?.description}
                       </span>
                     </div>
@@ -391,7 +391,7 @@ export function SmartAccountCard({
                       {isSelectedFlow && (
                         <CheckCircle className="w-3 h-3 text-emerald-400" />
                       )}
-                      <span className="text-[10px] text-slate-500 px-1.5 py-0.5 bg-slate-700/30 rounded">
+                      <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
                         R{nextRound}
                       </span>
                     </div>
@@ -405,21 +405,21 @@ export function SmartAccountCard({
 
       {/* Bureau Divergence - Compact for locked items */}
       <div className={cn(
-        "flex gap-2 px-3.5 py-2.5 border-t border-slate-600/30",
+        "flex gap-2 px-3.5 py-2.5 border-t border-input",
         isLocked && "opacity-50"
       )}>
         {Object.entries(account.bureauData || {}).map(([cra, data]) => (
           <div
             key={cra}
             className={cn(
-              "flex-1 px-2 py-1.5 rounded-md bg-slate-800/50 text-center transition-opacity",
+              "flex-1 px-2 py-1.5 rounded-md bg-card text-center transition-opacity",
               cra === selectedCRA ? "opacity-100" : "opacity-50"
             )}
           >
-            <span className="block text-[10px] font-semibold text-slate-500">
+            <span className="block text-[10px] font-semibold text-muted-foreground">
               {cra.slice(0, 2)}
             </span>
-            <span className="block text-xs font-semibold text-white">
+            <span className="block text-xs font-semibold text-foreground">
               {data?.balance !== null && data?.balance !== undefined
                 ? `$${data.balance.toLocaleString()}`
                 : "—"}
@@ -431,11 +431,11 @@ export function SmartAccountCard({
       {/* Confidence Score Footer */}
       {!isLocked && (
         <div className="flex items-center justify-between px-3.5 pb-3 text-xs">
-          <span className="text-slate-500">
+          <span className="text-muted-foreground">
             {account.confidenceScore}% match confidence
           </span>
           {account.suggestedFlow && (
-            <span className="text-slate-400">
+            <span className="text-muted-foreground">
               Suggested: <span style={{ color: FLOW_INFO[account.suggestedFlow]?.color }}>
                 {account.suggestedFlow}
               </span>

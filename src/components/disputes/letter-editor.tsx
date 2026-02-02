@@ -266,31 +266,31 @@ export function LetterEditor({
 
   const getCraBadgeColor = (cra: string) => {
     switch (cra) {
-      case "TRANSUNION": return "bg-blue-500/20 text-blue-300 border-blue-500/30";
+      case "TRANSUNION": return "bg-primary/20 text-blue-300 border-primary/30";
       case "EXPERIAN": return "bg-emerald-500/20 text-emerald-300 border-emerald-500/30";
       case "EQUIFAX": return "bg-purple-500/20 text-purple-300 border-purple-500/30";
-      default: return "bg-slate-500/20 text-slate-300 border-slate-500/30";
+      default: return "bg-muted text-muted-foreground border-border";
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-slate-900 border-slate-800 max-w-[95vw] w-[1400px] h-[95vh] flex flex-col p-0 overflow-hidden shadow-2xl">
+      <DialogContent className="bg-background border-border max-w-[95vw] w-[1400px] h-[95vh] flex flex-col p-0 overflow-hidden shadow-2xl">
         {/* Header Bar */}
-        <div className="flex items-center justify-between p-4 px-6 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-10">
+        <div className="flex items-center justify-between p-4 px-6 border-b border-border bg-background backdrop-blur-md sticky top-0 z-10">
           <div className="flex items-center gap-4">
             <div className="p-2 bg-indigo-500/10 rounded-lg">
               <FileText className="w-6 h-6 text-indigo-400" />
             </div>
             <div>
-              <DialogTitle className="text-white text-xl font-bold tracking-tight">
+              <DialogTitle className="text-foreground text-xl font-bold tracking-tight">
                 {documentTitle}
               </DialogTitle>
               <div className="flex items-center gap-2 mt-1">
                 <Badge variant="outline" className={cn("px-2 py-0 h-5 text-[10px] font-bold uppercase", getCraBadgeColor(cra))}>
                   {cra}
                 </Badge>
-                <span className="text-xs text-slate-500 font-medium tracking-wide">DOCUMENT CENTER</span>
+                <span className="text-xs text-muted-foreground font-medium tracking-wide">DOCUMENT CENTER</span>
               </div>
             </div>
           </div>
@@ -300,7 +300,7 @@ export function LetterEditor({
               size="sm"
               variant="outline"
               onClick={handleDownloadTxt}
-              className="border-slate-700 text-slate-300 hover:bg-slate-800 h-9"
+              className="border-border text-muted-foreground hover:bg-card h-9"
             >
               <Download className="w-4 h-4 mr-2" />
               .TXT
@@ -318,17 +318,17 @@ export function LetterEditor({
               size="sm"
               variant="outline"
               onClick={handlePrint}
-              className="border-slate-700 text-slate-300 hover:bg-slate-800 h-9"
+              className="border-border text-muted-foreground hover:bg-card h-9"
             >
               <Printer className="w-4 h-4 mr-2" />
               Print
             </Button>
-            <div className="w-[1px] h-6 bg-slate-800 mx-2" />
+            <div className="w-[1px] h-6 bg-card mx-2" />
             <Button
               size="sm"
               variant="ghost"
               onClick={() => onOpenChange(false)}
-              className="text-slate-400 hover:text-white hover:bg-slate-800"
+              className="text-muted-foreground hover:text-foreground hover:bg-card"
             >
               <X className="w-5 h-5" />
             </Button>
@@ -336,18 +336,18 @@ export function LetterEditor({
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-          <div className="px-6 border-b border-slate-800 bg-slate-900/30">
+          <div className="px-6 border-b border-border bg-muted/30">
             <TabsList className="bg-transparent border-none w-full justify-start p-0 h-12 gap-6">
               <TabsTrigger
                 value="letter"
-                className="data-[state=active]:bg-transparent data-[state=active]:text-indigo-400 data-[state=active]:border-b-2 data-[state=active]:border-indigo-400 rounded-none bg-transparent hover:text-slate-200 px-0"
+                className="data-[state=active]:bg-transparent data-[state=active]:text-indigo-400 data-[state=active]:border-b-2 data-[state=active]:border-indigo-400 rounded-none bg-transparent hover:text-foreground px-0"
               >
                 <FileText className="w-4 h-4 mr-2" />
                 Dispute Letter
               </TabsTrigger>
               <TabsTrigger
                 value="cfpb"
-                className="data-[state=active]:bg-transparent data-[state=active]:text-amber-400 data-[state=active]:border-b-2 data-[state=active]:border-amber-400 rounded-none bg-transparent hover:text-slate-200 px-0"
+                className="data-[state=active]:bg-transparent data-[state=active]:text-amber-400 data-[state=active]:border-b-2 data-[state=active]:border-amber-400 rounded-none bg-transparent hover:text-foreground px-0"
               >
                 <Scale className="w-4 h-4 mr-2" />
                 CFPB Complaint
@@ -357,9 +357,9 @@ export function LetterEditor({
 
           <TabsContent value="letter" className="flex-1 flex flex-row min-h-0 mt-0">
             {/* Sidebar Navigator */}
-            <div className="w-64 border-r border-slate-800 bg-slate-900/50 flex flex-col">
-              <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Navigator</span>
+            <div className="w-64 border-r border-border bg-background flex flex-col">
+              <div className="p-4 border-b border-border flex items-center justify-between">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Navigator</span>
                 {isEditing ? (
                   <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20 text-[10px]">Editing</Badge>
                 ) : (
@@ -375,17 +375,17 @@ export function LetterEditor({
                       "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all group",
                       activeSectionId === section.id
                         ? "bg-indigo-500/10 text-indigo-300"
-                        : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                        : "text-muted-foreground hover:bg-card hover:text-foreground"
                     )}
                   >
-                    <section.icon className={cn("w-4 h-4", activeSectionId === section.id ? "text-indigo-400" : "text-slate-500 group-hover:text-slate-300")} />
+                    <section.icon className={cn("w-4 h-4", activeSectionId === section.id ? "text-indigo-400" : "text-muted-foreground group-hover:text-muted-foreground")} />
                     <span className="flex-1 text-left font-medium">{section.title}</span>
                     {activeSectionId === section.id && <ChevronRight className="w-3 h-3 text-indigo-500" />}
                   </button>
                 ))}
               </div>
 
-              <div className="p-4 mt-auto border-t border-slate-800 bg-slate-900/80">
+              <div className="p-4 mt-auto border-t border-border bg-background">
                 <div className="space-y-3">
                   {isEditing ? (
                     <div className="flex flex-col gap-2">
@@ -399,7 +399,7 @@ export function LetterEditor({
                       </Button>
                       <Button
                         variant="ghost"
-                        className="w-full text-slate-400 hover:bg-slate-800 h-10"
+                        className="w-full text-muted-foreground hover:bg-card h-10"
                         onClick={() => { setContent(letterContent); setIsEditing(false); }}
                       >
                         <X className="w-4 h-4 mr-2" />
@@ -410,14 +410,14 @@ export function LetterEditor({
                     <>
                       <Button
                         onClick={handleCopy}
-                        className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 h-10"
+                        className="w-full bg-card hover:bg-muted text-foreground border border-border h-10"
                       >
                         {copied ? <Check className="w-4 h-4 mr-2 text-emerald-400" /> : <Copy className="w-4 h-4 mr-2" />}
                         {copied ? "Copied!" : "Copy Full Text"}
                       </Button>
                       <Button
                         onClick={() => setIsEditing(true)}
-                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-900/20 h-10"
+                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-foreground shadow-lg shadow-indigo-900/20 h-10"
                       >
                         <Edit3 className="w-4 h-4 mr-2" />
                         Edit Document
@@ -429,19 +429,19 @@ export function LetterEditor({
             </div>
 
             {/* Main Preview Area */}
-            <div className="flex-1 bg-slate-950 flex justify-center p-8 overflow-y-auto" id="letter-content-scroll">
+            <div className="flex-1 bg-background flex justify-center p-8 overflow-y-auto" id="letter-content-scroll">
               <div className="max-w-4xl w-full h-fit flex flex-col gap-8">
                 {isEditing ? (
-                  <div className="w-full bg-slate-900 rounded-xl border border-slate-800 overflow-hidden shadow-2xl">
-                    <div className="p-4 bg-slate-800/50 border-b border-slate-700 flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Master Editor</span>
-                      <span className="text-[10px] text-slate-500 font-mono italic">Changes reflect in real-time</span>
+                  <div className="w-full bg-background rounded-xl border border-border overflow-hidden shadow-2xl">
+                    <div className="p-4 bg-card border-b border-border flex items-center justify-between">
+                      <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Master Editor</span>
+                      <span className="text-[10px] text-muted-foreground font-mono italic">Changes reflect in real-time</span>
                     </div>
                     <Textarea
                       ref={textareaRef}
                       value={content}
                       onChange={(e) => setContent(e.target.value)}
-                      className="w-full min-h-[800px] border-none focus-visible:ring-0 bg-transparent text-slate-200 font-mono text-sm leading-relaxed p-10 resize-none"
+                      className="w-full min-h-[800px] border-none focus-visible:ring-0 bg-transparent text-foreground font-mono text-sm leading-relaxed p-10 resize-none"
                       placeholder="Type your letter here..."
                     />
                   </div>
@@ -459,7 +459,7 @@ export function LetterEditor({
                     {sections.map((section) => (
                       <div key={section.id} id={`section-${section.id}`} className="scroll-mt-10">
                         <div className="group relative">
-                          <div className="absolute -left-12 top-0 text-[10px] font-bold text-slate-300 opacity-0 group-hover:opacity-100 uppercase transition-opacity">
+                          <div className="absolute -left-12 top-0 text-[10px] font-bold text-muted-foreground opacity-0 group-hover:opacity-100 uppercase transition-opacity">
                             {section.title}
                           </div>
                           <pre className="whitespace-pre-wrap font-inherit leading-relaxed">
@@ -482,7 +482,7 @@ export function LetterEditor({
           </TabsContent>
 
           {/* CFPB Tab */}
-          <TabsContent value="cfpb" className="flex-1 flex flex-col min-h-0 mt-0 overflow-hidden bg-slate-950 p-6">
+          <TabsContent value="cfpb" className="flex-1 flex flex-col min-h-0 mt-0 overflow-hidden bg-background p-6">
             <div className="max-w-4xl mx-auto w-full flex flex-col gap-4 h-full">
               <div className="flex items-center justify-between bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 px-6">
                 <div className="flex items-center gap-3">
@@ -509,7 +509,7 @@ export function LetterEditor({
                       setCfpbCopied(true);
                       setTimeout(() => setCfpbCopied(false), 2000);
                     }}
-                    className="bg-amber-600 hover:bg-amber-700 text-white"
+                    className="bg-amber-600 hover:bg-amber-700 text-foreground"
                   >
                     {cfpbCopied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
                     {cfpbCopied ? "Copied!" : "Copy Narrative"}
@@ -517,9 +517,9 @@ export function LetterEditor({
                 </div>
               </div>
 
-              <div className="flex-1 bg-slate-900 rounded-xl border border-slate-800 overflow-y-auto p-10 font-mono text-amber-200/80 leading-relaxed text-sm shadow-xl">
+              <div className="flex-1 bg-background rounded-xl border border-border overflow-y-auto p-10 font-mono text-amber-200/80 leading-relaxed text-sm shadow-xl">
                 {cfpbLoading ? (
-                  <div className="h-full flex items-center justify-center text-slate-500 italic">Generating compliant narrative...</div>
+                  <div className="h-full flex items-center justify-center text-muted-foreground italic">Generating compliant narrative...</div>
                 ) : (
                   <pre className="whitespace-pre-wrap">{cfpbContent}</pre>
                 )}

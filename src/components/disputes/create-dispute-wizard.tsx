@@ -104,7 +104,7 @@ const FLOWS = [
 
 const CRAS = [
   { id: "TRANSUNION", name: "TransUnion", color: "bg-sky-500/20 text-sky-400 border-sky-500/30" },
-  { id: "EXPERIAN", name: "Experian", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
+  { id: "EXPERIAN", name: "Experian", color: "bg-primary/20 text-primary border-primary/30" },
   { id: "EQUIFAX", name: "Equifax", color: "bg-red-500/20 text-red-400 border-red-500/30" },
 ];
 
@@ -291,7 +291,7 @@ export function CreateDisputeWizard({
           </ResponsiveDialogDescription>
 
           {/* Step Indicator */}
-          <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-800">
+          <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
             {STEPS.map((s, i) => (
               <div key={s.key} className="flex items-center">
                 <button
@@ -301,8 +301,8 @@ export function CreateDisputeWizard({
                     step === s.key
                       ? "bg-violet-500/20 text-violet-400"
                       : i < currentStepIndex
-                      ? "text-green-400 hover:bg-slate-800"
-                      : "text-slate-500"
+                      ? "text-green-400 hover:bg-card"
+                      : "text-muted-foreground"
                   }`}
                 >
                   {i < currentStepIndex ? (
@@ -313,7 +313,7 @@ export function CreateDisputeWizard({
                   <span className="hidden sm:inline text-sm font-medium">{s.label}</span>
                 </button>
                 {i < STEPS.length - 1 && (
-                  <ChevronRight className="w-4 h-4 text-slate-600 mx-1" />
+                  <ChevronRight className="w-4 h-4 text-muted-foreground mx-1" />
                 )}
               </div>
             ))}
@@ -331,7 +331,7 @@ export function CreateDisputeWizard({
                 exit={{ opacity: 0, x: -20 }}
                 className="space-y-4"
               >
-                <p className="text-sm text-slate-300">Select a client to create a dispute for:</p>
+                <p className="text-sm text-muted-foreground">Select a client to create a dispute for:</p>
                 <div className="grid gap-2 max-h-[300px] overflow-y-auto">
                   {clients.map((client) => (
                     <button
@@ -340,14 +340,14 @@ export function CreateDisputeWizard({
                       className={`flex items-center gap-3 p-4 rounded-xl border transition-all text-left ${
                         selectedClient === client.id
                           ? "bg-violet-500/20 border-violet-500/50"
-                          : "bg-slate-800/50 border-slate-700 hover:border-slate-600"
+                          : "bg-card border-border hover:border-input"
                       }`}
                     >
-                      <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center">
-                        <User className="w-5 h-5 text-slate-400" />
+                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                        <User className="w-5 h-5 text-muted-foreground" />
                       </div>
                       <div>
-                        <p className="font-medium text-white">
+                        <p className="font-medium text-foreground">
                           {client.firstName} {client.lastName}
                         </p>
                       </div>
@@ -362,7 +362,7 @@ export function CreateDisputeWizard({
                 {selectedClient && (
                   <div className="mt-4">
                     {dnaLoading ? (
-                      <div className="flex items-center gap-2 text-slate-400 p-4 bg-slate-800/50 rounded-xl">
+                      <div className="flex items-center gap-2 text-muted-foreground p-4 bg-card rounded-xl">
                         <Loader2 className="w-4 h-4 animate-spin" />
                         <span className="text-sm">Loading credit DNA...</span>
                       </div>
@@ -374,12 +374,12 @@ export function CreateDisputeWizard({
                             {getDNAClassificationLabel(clientDNA.classification)}
                           </span>
                         </div>
-                        <p className="text-xs text-slate-400">
+                        <p className="text-xs text-muted-foreground">
                           {getDNAClassificationDescription(clientDNA.classification)}
                         </p>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2 text-slate-500 p-4 bg-slate-800/50 rounded-xl">
+                      <div className="flex items-center gap-2 text-muted-foreground p-4 bg-card rounded-xl">
                         <Info className="w-4 h-4" />
                         <span className="text-sm">No DNA profile available. Upload a credit report first.</span>
                       </div>
@@ -398,7 +398,7 @@ export function CreateDisputeWizard({
                 exit={{ opacity: 0, x: -20 }}
                 className="space-y-4"
               >
-                <p className="text-sm text-slate-300">Which credit bureau are you disputing with?</p>
+                <p className="text-sm text-muted-foreground">Which credit bureau are you disputing with?</p>
                 <div className="grid gap-3">
                   {CRAS.map((cra) => (
                     <button
@@ -407,7 +407,7 @@ export function CreateDisputeWizard({
                       className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${
                         selectedCRA === cra.id
                           ? `${cra.color}`
-                          : "bg-slate-800/50 border-slate-700 hover:border-slate-600"
+                          : "bg-card border-border hover:border-input"
                       }`}
                     >
                       <Building2 className="w-6 h-6" />
@@ -439,7 +439,7 @@ export function CreateDisputeWizard({
                 exit={{ opacity: 0, x: -20 }}
                 className="space-y-4"
               >
-                <p className="text-sm text-slate-300">What type of dispute are you filing?</p>
+                <p className="text-sm text-muted-foreground">What type of dispute are you filing?</p>
                 <div className="grid gap-3">
                   {FLOWS.map((flow) => (
                     <button
@@ -448,7 +448,7 @@ export function CreateDisputeWizard({
                       className={`flex items-start gap-4 p-4 rounded-xl border transition-all text-left ${
                         selectedFlow === flow.id
                           ? flow.color
-                          : "bg-slate-800/50 border-slate-700 hover:border-slate-600"
+                          : "bg-card border-border hover:border-input"
                       }`}
                     >
                       <FileText className="w-6 h-6 mt-0.5" />
@@ -461,7 +461,7 @@ export function CreateDisputeWizard({
                             </Badge>
                           )}
                         </div>
-                        <p className="text-sm text-slate-400 mt-1">{flow.description}</p>
+                        <p className="text-sm text-muted-foreground mt-1">{flow.description}</p>
                       </div>
                       {selectedFlow === flow.id && (
                         <CheckCircle className="w-5 h-5" />
@@ -482,7 +482,7 @@ export function CreateDisputeWizard({
                 className="space-y-4"
               >
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-slate-300">
+                  <p className="text-sm text-muted-foreground">
                     Select accounts to include ({selectedAccounts.length} selected)
                   </p>
                   <Button
@@ -504,10 +504,10 @@ export function CreateDisputeWizard({
 
                 {loading ? (
                   <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+                    <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
                   </div>
                 ) : negativeAccounts.length === 0 ? (
-                  <div className="text-center py-12 text-slate-400">
+                  <div className="text-center py-12 text-muted-foreground">
                     <AlertTriangle className="w-12 h-12 mx-auto mb-4" />
                     <p>No disputable accounts found for this bureau</p>
                   </div>
@@ -519,7 +519,7 @@ export function CreateDisputeWizard({
                         className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
                           selectedAccounts.includes(account.id)
                             ? "bg-violet-500/10 border-violet-500/50"
-                            : "bg-slate-800/50 border-slate-700 hover:border-slate-600"
+                            : "bg-card border-border hover:border-input"
                         }`}
                       >
                         <Checkbox
@@ -533,8 +533,8 @@ export function CreateDisputeWizard({
                           }}
                         />
                         <div className="flex-1">
-                          <p className="font-medium text-white">{account.creditorName}</p>
-                          <div className="flex items-center gap-2 text-xs text-slate-400">
+                          <p className="font-medium text-foreground">{account.creditorName}</p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <span>{account.maskedAccountId}</span>
                             <span>•</span>
                             <span>{account.issueCount} issues</span>
@@ -567,30 +567,30 @@ export function CreateDisputeWizard({
                 exit={{ opacity: 0, x: -20 }}
                 className="space-y-4"
               >
-                <p className="text-sm text-slate-300">Review your dispute details:</p>
+                <p className="text-sm text-muted-foreground">Review your dispute details:</p>
 
                 <div className="space-y-3">
-                  <div className="p-4 bg-slate-800/50 rounded-xl">
-                    <p className="text-xs text-slate-400 mb-1">Client</p>
-                    <p className="font-medium text-white">
+                  <div className="p-4 bg-card rounded-xl">
+                    <p className="text-xs text-muted-foreground mb-1">Client</p>
+                    <p className="font-medium text-foreground">
                       {selectedClientObj?.firstName} {selectedClientObj?.lastName}
                     </p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="p-4 bg-slate-800/50 rounded-xl">
-                      <p className="text-xs text-slate-400 mb-1">Bureau</p>
-                      <p className="font-medium text-white">{selectedCRA}</p>
+                    <div className="p-4 bg-card rounded-xl">
+                      <p className="text-xs text-muted-foreground mb-1">Bureau</p>
+                      <p className="font-medium text-foreground">{selectedCRA}</p>
                     </div>
-                    <div className="p-4 bg-slate-800/50 rounded-xl">
-                      <p className="text-xs text-slate-400 mb-1">Dispute Type</p>
-                      <p className="font-medium text-white">{selectedFlow}</p>
+                    <div className="p-4 bg-card rounded-xl">
+                      <p className="text-xs text-muted-foreground mb-1">Dispute Type</p>
+                      <p className="font-medium text-foreground">{selectedFlow}</p>
                     </div>
                   </div>
 
                   {/* Letter Structure Toggle */}
-                  <div className="p-4 bg-slate-800/50 rounded-xl">
-                    <p className="text-xs text-slate-400 mb-3">Letter Structure</p>
+                  <div className="p-4 bg-card rounded-xl">
+                    <p className="text-xs text-muted-foreground mb-3">Letter Structure</p>
                     <div className="grid grid-cols-2 gap-2">
                       {(["DAMAGES_FIRST", "FACTS_FIRST"] as LetterStructure[]).map((structure) => (
                         <button
@@ -599,34 +599,34 @@ export function CreateDisputeWizard({
                           className={`p-3 rounded-lg border text-left transition-all ${
                             letterStructure === structure
                               ? "bg-violet-500/20 border-violet-500/50"
-                              : "bg-slate-700/50 border-slate-600 hover:border-slate-500"
+                              : "bg-muted border-input hover:border-input"
                           }`}
                         >
                           <p className={`text-sm font-medium ${
-                            letterStructure === structure ? "text-violet-300" : "text-white"
+                            letterStructure === structure ? "text-violet-300" : "text-foreground"
                           }`}>
                             {LETTER_STRUCTURE_DESCRIPTIONS[structure].name}
                           </p>
-                          <p className="text-xs text-slate-400 mt-1">
+                          <p className="text-xs text-muted-foreground mt-1">
                             {LETTER_STRUCTURE_DESCRIPTIONS[structure].description}
                           </p>
                         </button>
                       ))}
                     </div>
-                    <p className="text-xs text-slate-500 mt-2">
+                    <p className="text-xs text-muted-foreground mt-2">
                       Both structures use unique, randomly-generated content that can never be compared.
                     </p>
                   </div>
 
-                  <div className="p-4 bg-slate-800/50 rounded-xl">
-                    <p className="text-xs text-slate-400 mb-2">
+                  <div className="p-4 bg-card rounded-xl">
+                    <p className="text-xs text-muted-foreground mb-2">
                       Accounts ({selectedAccounts.length})
                     </p>
                     <div className="space-y-1 max-h-[120px] overflow-y-auto">
                       {negativeAccounts
                         .filter((a) => selectedAccounts.includes(a.id))
                         .map((account) => (
-                          <p key={account.id} className="text-sm text-white">
+                          <p key={account.id} className="text-sm text-foreground">
                             • {account.creditorName}
                           </p>
                         ))}
@@ -649,7 +649,7 @@ export function CreateDisputeWizard({
                       <Brain className="w-5 h-5" />
                       <span className="font-medium">AI Analysis Complete</span>
                     </div>
-                    <p className="text-sm text-slate-400 mt-1">
+                    <p className="text-sm text-muted-foreground mt-1">
                       {ameliaInsights.estimatedSuccessRate}% estimated success rate with {ameliaInsights.confidence}% confidence
                     </p>
                   </div>
@@ -661,7 +661,7 @@ export function CreateDisputeWizard({
                       <Sparkles className="w-5 h-5" />
                       <span className="font-medium">Ready to Generate</span>
                     </div>
-                    <p className="text-sm text-slate-400 mt-1">
+                    <p className="text-sm text-muted-foreground mt-1">
                       Generate AI insights above, or proceed to create your dispute letter.
                     </p>
                   </div>
@@ -681,8 +681,8 @@ export function CreateDisputeWizard({
                   <CheckCircle className="w-8 h-8 text-green-400" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold text-white">Dispute Letter Generated</h3>
-                  <p className="text-slate-400 mt-1">
+                  <h3 className="text-xl font-semibold text-foreground">Dispute Letter Generated</h3>
+                  <p className="text-muted-foreground mt-1">
                     {selectedCRA} {selectedFlow} dispute for {selectedClientObj?.firstName} {selectedClientObj?.lastName}
                   </p>
                 </div>
@@ -691,7 +691,7 @@ export function CreateDisputeWizard({
                   <Button
                     variant="outline"
                     onClick={() => onOpenChange(false)}
-                    className="border-slate-600 hover:bg-slate-800"
+                    className="border-input hover:bg-card"
                   >
                     Close
                   </Button>

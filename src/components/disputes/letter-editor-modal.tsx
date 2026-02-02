@@ -139,9 +139,9 @@ const CRA_COLORS: Record<string, { bg: string; text: string; tailwind: string }>
 
 function StatuteBadge({ code, name }: { code: string; name: string }) {
   return (
-    <div className="flex items-center gap-2.5 p-2.5 bg-blue-500/10 rounded-lg">
-      <span className="text-xs font-bold text-blue-400 font-mono">{code}</span>
-      <span className="text-xs text-slate-400">{name}</span>
+    <div className="flex items-center gap-2.5 p-2.5 bg-primary/10 rounded-lg">
+      <span className="text-xs font-bold text-primary font-mono">{code}</span>
+      <span className="text-xs text-muted-foreground">{name}</span>
     </div>
   );
 }
@@ -179,12 +179,12 @@ function SectionCard({
       dragListener={false}
       dragControls={dragControls}
       className={cn(
-        "p-4 rounded-xl border transition-all bg-slate-800/30",
+        "p-4 rounded-xl border transition-all bg-card",
         isEditing
           ? "bg-purple-500/10 border-purple-500/30"
           : section.locked
-          ? "border-slate-700/30 opacity-80"
-          : "border-slate-700/50 hover:border-blue-500/30 hover:bg-slate-700/30"
+          ? "border-border opacity-80"
+          : "border-border hover:border-primary/30 hover:bg-muted"
       )}
       whileDrag={{
         scale: 1.02,
@@ -197,19 +197,19 @@ function SectionCard({
         <div className="flex items-center gap-2">
           {/* Drag Handle */}
           {section.locked ? (
-            <div className="p-1.5 text-slate-600 cursor-not-allowed" title="Fixed position">
+            <div className="p-1.5 text-muted-foreground cursor-not-allowed" title="Fixed position">
               <Lock className="w-4 h-4" />
             </div>
           ) : (
             <div
               onPointerDown={(e) => dragControls.start(e)}
-              className="p-1.5 text-slate-500 hover:text-slate-300 cursor-grab active:cursor-grabbing rounded hover:bg-slate-600/50 transition-colors"
+              className="p-1.5 text-muted-foreground hover:text-muted-foreground cursor-grab active:cursor-grabbing rounded hover:bg-muted transition-colors"
               title="Drag to reorder"
             >
               <GripVertical className="w-4 h-4" />
             </div>
           )}
-          <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
             {section.label}
           </span>
         </div>
@@ -231,7 +231,7 @@ function SectionCard({
           {section.editable && !isEditing && (
             <button
               onClick={onStartEdit}
-              className="flex items-center gap-1 px-2.5 py-1 bg-slate-500/15 hover:bg-slate-500/25 rounded text-slate-400 text-[11px] font-medium transition-colors"
+              className="flex items-center gap-1 px-2.5 py-1 bg-muted hover:bg-muted rounded text-muted-foreground text-[11px] font-medium transition-colors"
             >
               <Edit3 className="w-3 h-3" />
               Edit
@@ -246,11 +246,11 @@ function SectionCard({
           <textarea
             value={editValue}
             onChange={(e) => onEditChange(e.target.value)}
-            className="w-full p-3 bg-slate-900/80 border border-purple-500/30 rounded-lg text-white text-sm leading-relaxed resize-y min-h-[100px] focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+            className="w-full p-3 bg-background border border-purple-500/30 rounded-lg text-foreground text-sm leading-relaxed resize-y min-h-[100px] focus:outline-none focus:ring-2 focus:ring-purple-500/50"
             rows={section.content.split("\n").length + 2}
           />
           <div className="flex justify-end gap-2 mt-3">
-            <Button size="sm" variant="ghost" onClick={onCancelEdit} className="text-slate-400">
+            <Button size="sm" variant="ghost" onClick={onCancelEdit} className="text-muted-foreground">
               Cancel
             </Button>
             <Button size="sm" onClick={onSaveEdit} className="bg-purple-600 hover:bg-purple-500">
@@ -259,7 +259,7 @@ function SectionCard({
           </div>
         </div>
       ) : (
-        <div className="text-white text-sm leading-relaxed pl-8">
+        <div className="text-foreground text-sm leading-relaxed pl-8">
           {section.content.split("\n").map((line, i) => (
             <p key={i} className={cn("mb-1", !line && "h-4")}>{line}</p>
           ))}
@@ -290,26 +290,26 @@ function LockedSectionCard({
   return (
     <div
       className={cn(
-        "p-4 rounded-xl border transition-all bg-slate-800/20",
+        "p-4 rounded-xl border transition-all bg-card",
         isEditing
           ? "bg-purple-500/10 border-purple-500/30"
-          : "border-slate-700/30"
+          : "border-border"
       )}
     >
       {/* Section Header */}
       <div className="flex justify-between items-center mb-3">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 text-slate-600" title="Fixed position">
+          <div className="p-1.5 text-muted-foreground" title="Fixed position">
             <Lock className="w-4 h-4" />
           </div>
-          <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
             {section.label}
           </span>
         </div>
         {section.editable && !isEditing && (
           <button
             onClick={onStartEdit}
-            className="flex items-center gap-1 px-2.5 py-1 bg-slate-500/15 hover:bg-slate-500/25 rounded text-slate-400 text-[11px] font-medium transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 bg-muted hover:bg-muted rounded text-muted-foreground text-[11px] font-medium transition-colors"
           >
             <Edit3 className="w-3 h-3" />
             Edit
@@ -323,11 +323,11 @@ function LockedSectionCard({
           <textarea
             value={editValue}
             onChange={(e) => onEditChange(e.target.value)}
-            className="w-full p-3 bg-slate-900/80 border border-purple-500/30 rounded-lg text-white text-sm leading-relaxed resize-y min-h-[100px] focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+            className="w-full p-3 bg-background border border-purple-500/30 rounded-lg text-foreground text-sm leading-relaxed resize-y min-h-[100px] focus:outline-none focus:ring-2 focus:ring-purple-500/50"
             rows={section.content.split("\n").length + 2}
           />
           <div className="flex justify-end gap-2 mt-3">
-            <Button size="sm" variant="ghost" onClick={onCancelEdit} className="text-slate-400">
+            <Button size="sm" variant="ghost" onClick={onCancelEdit} className="text-muted-foreground">
               Cancel
             </Button>
             <Button size="sm" onClick={onSaveEdit} className="bg-purple-600 hover:bg-purple-500">
@@ -336,7 +336,7 @@ function LockedSectionCard({
           </div>
         </div>
       ) : (
-        <div className="text-white text-sm leading-relaxed pl-8">
+        <div className="text-foreground text-sm leading-relaxed pl-8">
           {section.content.split("\n").map((line, i) => (
             <p key={i} className={cn("mb-1", !line && "h-4")}>{line}</p>
           ))}
@@ -806,9 +806,9 @@ export function LetterEditorModal({
   if (!generatedLetter || (lockedTop.length === 0 && draggableSections.length === 0)) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="bg-slate-800 border-slate-700 max-w-6xl max-h-[95vh]">
+        <DialogContent className="bg-card border-border max-w-6xl max-h-[95vh]">
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
           </div>
         </DialogContent>
       </Dialog>
@@ -817,23 +817,23 @@ export function LetterEditorModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-slate-900 border-slate-700 max-w-[95vw] max-h-[95vh] p-0 overflow-hidden">
+      <DialogContent className="bg-background border-border max-w-[95vw] max-h-[95vh] p-0 overflow-hidden">
         {/* Header */}
-        <header className="flex justify-between items-start p-5 border-b border-slate-700/50">
+        <header className="flex justify-between items-start p-5 border-b border-border">
           <div>
             <button
               onClick={() => onOpenChange(false)}
-              className="text-slate-500 hover:text-slate-400 text-sm mb-2 flex items-center gap-1"
+              className="text-muted-foreground hover:text-muted-foreground text-sm mb-2 flex items-center gap-1"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to Disputes
             </button>
-            <h1 className="text-2xl font-bold text-white mb-2">Letter Editor</h1>
+            <h1 className="text-2xl font-bold text-foreground mb-2">Letter Editor</h1>
             <div className="flex gap-2">
-              <Badge className={CRA_COLORS[generatedLetter.cra]?.tailwind || "bg-slate-500/20 text-slate-400"}>
+              <Badge className={CRA_COLORS[generatedLetter.cra]?.tailwind || "bg-muted text-muted-foreground"}>
                 {generatedLetter.cra}
               </Badge>
-              <Badge className="bg-slate-500/20 text-slate-400">R{generatedLetter.round}</Badge>
+              <Badge className="bg-muted text-muted-foreground">R{generatedLetter.round}</Badge>
               <Badge className="bg-red-500/20 text-red-400">{generatedLetter.flow}</Badge>
               <Badge className="bg-amber-500/20 text-amber-400">DRAFT</Badge>
             </div>
@@ -843,7 +843,7 @@ export function LetterEditorModal({
               variant="outline"
               size="sm"
               onClick={() => setShowPreview(true)}
-              className="gap-2 border-slate-600 bg-slate-800/50"
+              className="gap-2 border-input bg-card"
             >
               <Eye className="w-4 h-4" />
               Preview
@@ -851,7 +851,7 @@ export function LetterEditorModal({
             <Button
               variant="outline"
               size="sm"
-              className="gap-2 border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20"
+              className="gap-2 border-primary/30 bg-primary/10 text-primary hover:bg-primary/20"
             >
               <Save className="w-4 h-4" />
               Save Draft
@@ -875,10 +875,10 @@ export function LetterEditorModal({
         {/* Main Layout */}
         <div className="grid grid-cols-[1fr_360px] h-[calc(95vh-140px)]">
           {/* Editor Panel */}
-          <div className="bg-slate-800/40 overflow-y-auto p-6" ref={editorRef}>
+          <div className="bg-card overflow-y-auto p-6" ref={editorRef}>
             <div className="space-y-4 max-w-3xl mx-auto">
               {/* Drag instruction banner */}
-              <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg text-blue-400 text-xs">
+              <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-lg text-primary text-xs">
                 <GripVertical className="w-4 h-4" />
                 <span>Drag sections by their handle to reorder the letter structure</span>
               </div>
@@ -938,14 +938,14 @@ export function LetterEditorModal({
           </div>
 
           {/* AI Panel */}
-          <div className="border-l border-slate-700/50 overflow-y-auto p-4 space-y-4">
+          <div className="border-l border-border overflow-y-auto p-4 space-y-4">
             {/* AMELIA Header */}
-            <div className="bg-gradient-to-br from-emerald-500/10 to-slate-800/60 rounded-xl border border-emerald-500/20 p-5">
+            <div className="bg-gradient-to-br from-emerald-500/10 to-card/60 rounded-xl border border-emerald-500/20 p-5">
               <div className="flex items-center gap-3 mb-4">
                 <div className="text-3xl">🤖</div>
                 <div>
-                  <h3 className="text-base font-semibold text-white">Amelia AI</h3>
-                  <span className="text-xs text-slate-500">Letter Assistant</span>
+                  <h3 className="text-base font-semibold text-foreground">Amelia AI</h3>
+                  <span className="text-xs text-muted-foreground">Letter Assistant</span>
                 </div>
               </div>
               <Button
@@ -968,12 +968,12 @@ export function LetterEditorModal({
             </div>
 
             {/* Tone Control */}
-            <div className="bg-slate-800/60 rounded-xl border border-slate-700/50 p-5">
+            <div className="bg-card rounded-xl border border-border p-5">
               <div className="flex justify-between items-center mb-3">
-                <h4 className="text-sm font-semibold text-white">Letter Tone</h4>
+                <h4 className="text-sm font-semibold text-foreground">Letter Tone</h4>
                 <button
                   onClick={() => setShowTonePanel(!showTonePanel)}
-                  className="px-2.5 py-1 bg-slate-700/50 rounded text-slate-400 text-xs hover:bg-slate-600/50"
+                  className="px-2.5 py-1 bg-muted rounded text-muted-foreground text-xs hover:bg-muted"
                 >
                   Change
                 </button>
@@ -986,8 +986,8 @@ export function LetterEditorModal({
                 >
                   {toneConfig.label}
                 </div>
-                <span className="text-xs text-slate-400 block">{toneConfig.description}</span>
-                <span className="text-[11px] text-slate-500 block">Recommended for {toneConfig.round}</span>
+                <span className="text-xs text-muted-foreground block">{toneConfig.description}</span>
+                <span className="text-[11px] text-muted-foreground block">Recommended for {toneConfig.round}</span>
               </div>
 
               {showTonePanel && (
@@ -997,7 +997,7 @@ export function LetterEditorModal({
                       key={key}
                       onClick={() => changeTone(key)}
                       className={cn(
-                        "w-full p-3 bg-slate-900/50 rounded-lg text-left transition-all border-2",
+                        "w-full p-3 bg-background rounded-lg text-left transition-all border-2",
                         ameliaSettings.tone === key ? "border-current" : "border-transparent"
                       )}
                       style={{ borderColor: ameliaSettings.tone === key ? config.color : "transparent" }}
@@ -1005,8 +1005,8 @@ export function LetterEditorModal({
                       <span className="block text-sm font-semibold mb-1" style={{ color: config.color }}>
                         {config.label}
                       </span>
-                      <span className="block text-[11px] text-slate-400 mb-1">{config.description}</span>
-                      <span className="block text-[10px] text-slate-500">{config.round}</span>
+                      <span className="block text-[11px] text-muted-foreground mb-1">{config.description}</span>
+                      <span className="block text-[10px] text-muted-foreground">{config.round}</span>
                     </button>
                   ))}
                 </div>
@@ -1014,11 +1014,11 @@ export function LetterEditorModal({
             </div>
 
             {/* eOSCAR Resistance */}
-            <div className="bg-slate-800/60 rounded-xl border border-slate-700/50 p-5">
-              <h4 className="text-sm font-semibold text-white mb-4">eOSCAR Resistance</h4>
+            <div className="bg-card rounded-xl border border-border p-5">
+              <h4 className="text-sm font-semibold text-foreground mb-4">eOSCAR Resistance</h4>
 
               <div className="mb-4">
-                <div className="h-2.5 bg-slate-700/50 rounded-full overflow-hidden mb-1.5">
+                <div className="h-2.5 bg-muted rounded-full overflow-hidden mb-1.5">
                   <div
                     className={cn(
                       "h-full rounded-full transition-all",
@@ -1029,7 +1029,7 @@ export function LetterEditorModal({
                     style={{ width: `${100 - eoscarScore.riskScore}%` }}
                   />
                 </div>
-                <div className="flex justify-between text-[10px] text-slate-500">
+                <div className="flex justify-between text-[10px] text-muted-foreground">
                   <span>High Risk</span>
                   <span>Low Risk</span>
                 </div>
@@ -1037,12 +1037,12 @@ export function LetterEditorModal({
 
               <div className="grid grid-cols-3 gap-3 mb-3">
                 <div className="text-center">
-                  <span className="block text-lg font-bold text-white">{eoscarScore.uniqueness}%</span>
-                  <span className="text-[10px] text-slate-500">Uniqueness</span>
+                  <span className="block text-lg font-bold text-foreground">{eoscarScore.uniqueness}%</span>
+                  <span className="text-[10px] text-muted-foreground">Uniqueness</span>
                 </div>
                 <div className="text-center">
-                  <span className="block text-lg font-bold text-white">{eoscarScore.humanPhrases}</span>
-                  <span className="text-[10px] text-slate-500">Human Phrases</span>
+                  <span className="block text-lg font-bold text-foreground">{eoscarScore.humanPhrases}</span>
+                  <span className="text-[10px] text-muted-foreground">Human Phrases</span>
                 </div>
                 <div className="text-center">
                   <span className={cn(
@@ -1053,18 +1053,18 @@ export function LetterEditorModal({
                   )}>
                     {eoscarScore.riskLevel}
                   </span>
-                  <span className="text-[10px] text-slate-500">Risk Level</span>
+                  <span className="text-[10px] text-muted-foreground">Risk Level</span>
                 </div>
               </div>
 
-              <p className="text-[11px] text-slate-500 leading-relaxed">
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
                 Letter has been optimized to avoid automated eOSCAR flagging patterns.
               </p>
             </div>
 
             {/* FCRA Statutes */}
-            <div className="bg-slate-800/60 rounded-xl border border-slate-700/50 p-5">
-              <h4 className="text-sm font-semibold text-white mb-3">Referenced Statutes</h4>
+            <div className="bg-card rounded-xl border border-border p-5">
+              <h4 className="text-sm font-semibold text-foreground mb-3">Referenced Statutes</h4>
               <div className="space-y-2">
                 <StatuteBadge code="§ 1681e(b)" name="Maximum Accuracy" />
                 <StatuteBadge code="§ 1681i" name="Investigation Procedures" />
@@ -1073,23 +1073,23 @@ export function LetterEditorModal({
             </div>
 
             {/* Quick Tips */}
-            <div className="bg-slate-800/60 rounded-xl border border-slate-700/50 p-5">
-              <h4 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+            <div className="bg-card rounded-xl border border-border p-5">
+              <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                 <Lightbulb className="w-4 h-4 text-amber-400" />
                 Amelia Tips
               </h4>
               <div className="space-y-2">
                 {generatedLetter.ameliaMetadata?.isBackdated && (
-                  <div className="flex items-start gap-2 text-xs text-slate-400">
+                  <div className="flex items-start gap-2 text-xs text-muted-foreground">
                     <CheckCircle className="w-3.5 h-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
                     <span>Letter is backdated {generatedLetter.ameliaMetadata.backdatedDays} days per R1 doctrine</span>
                   </div>
                 )}
-                <div className="flex items-start gap-2 text-xs text-slate-400">
+                <div className="flex items-start gap-2 text-xs text-muted-foreground">
                   <CheckCircle className="w-3.5 h-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
                   <span>Drag middle sections to customize letter structure</span>
                 </div>
-                <div className="flex items-start gap-2 text-xs text-slate-400">
+                <div className="flex items-start gap-2 text-xs text-muted-foreground">
                   <CheckCircle className="w-3.5 h-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
                   <span>Unique phrasing avoids template detection</span>
                 </div>
@@ -1102,7 +1102,7 @@ export function LetterEditorModal({
                 variant="outline"
                 size="sm"
                 onClick={handleCopyLetter}
-                className="flex-1 gap-1.5 border-slate-600"
+                className="flex-1 gap-1.5 border-input"
               >
                 {letterCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                 {letterCopied ? "Copied!" : "Copy"}
@@ -1112,7 +1112,7 @@ export function LetterEditorModal({
                 size="sm"
                 onClick={onDownload}
                 disabled={downloading}
-                className="flex-1 gap-1.5 border-slate-600"
+                className="flex-1 gap-1.5 border-input"
               >
                 {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                 DOCX
@@ -1121,7 +1121,7 @@ export function LetterEditorModal({
                 variant="outline"
                 size="sm"
                 onClick={handlePrintLetter}
-                className="flex-1 gap-1.5 border-slate-600"
+                className="flex-1 gap-1.5 border-input"
               >
                 <Printer className="w-4 h-4" />
                 Print
@@ -1144,7 +1144,7 @@ export function LetterEditorModal({
                 <h2 className="text-lg font-semibold text-slate-800">Letter Preview</h2>
                 <button
                   onClick={() => setShowPreview(false)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-muted hover:bg-muted text-muted-foreground"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -1162,7 +1162,7 @@ export function LetterEditorModal({
                     ))}
                 </div>
               </div>
-              <div className="flex justify-end gap-3 px-6 py-4 border-t bg-slate-50">
+              <div className="flex justify-end gap-3 px-6 py-4 border-t bg-muted">
                 <Button onClick={onDownload} disabled={downloading} className="bg-purple-600 hover:bg-purple-500">
                   <Download className="w-4 h-4 mr-2" />
                   Download DOCX

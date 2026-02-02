@@ -282,7 +282,7 @@ export function VendorRuleBuilder({
         <ResponsiveDialogBody className="space-y-6">
           {/* ---- Basic Info ---- */}
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
               Basic Info
             </h3>
 
@@ -293,7 +293,7 @@ export function VendorRuleBuilder({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g., Low Score Collections"
-                className="bg-slate-800 border-slate-700"
+                className="bg-card border-border"
               />
             </div>
 
@@ -304,7 +304,7 @@ export function VendorRuleBuilder({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Describe when this rule should trigger..."
-                className="bg-slate-800 border-slate-700"
+                className="bg-card border-border"
                 rows={2}
               />
             </div>
@@ -318,7 +318,7 @@ export function VendorRuleBuilder({
                   value={priority}
                   onChange={(e) => setPriority(Number(e.target.value))}
                   placeholder="0"
-                  className="bg-slate-800 border-slate-700"
+                  className="bg-card border-border"
                   min={0}
                 />
               </div>
@@ -331,7 +331,7 @@ export function VendorRuleBuilder({
                     aria-checked={isActive}
                     onClick={() => setIsActive(!isActive)}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      isActive ? "bg-emerald-600" : "bg-slate-600"
+                      isActive ? "bg-emerald-600" : "bg-muted"
                     }`}
                   >
                     <span
@@ -340,7 +340,7 @@ export function VendorRuleBuilder({
                       }`}
                     />
                   </button>
-                  <span className="text-sm text-slate-300">
+                  <span className="text-sm text-muted-foreground">
                     {isActive ? "Active" : "Inactive"}
                   </span>
                 </div>
@@ -351,22 +351,22 @@ export function VendorRuleBuilder({
           {/* ---- Conditions Builder ---- */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                 Conditions (ALL must match)
               </h3>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={addCondition}
-                className="text-blue-400 hover:text-blue-300"
+                className="text-primary hover:text-blue-300"
               >
                 <Plus className="w-4 h-4 mr-1" />
                 Add Condition
               </Button>
             </div>
 
-            <div className="flex items-start gap-2 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-              <Info className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
+            <div className="flex items-start gap-2 p-3 bg-primary/10 border border-primary/20 rounded-lg">
+              <Info className="w-4 h-4 text-primary mt-0.5 shrink-0" />
               <p className="text-xs text-blue-300">
                 All conditions use AND logic. A client must match every condition for this rule to
                 trigger.
@@ -374,7 +374,7 @@ export function VendorRuleBuilder({
             </div>
 
             {conditions.length === 0 && (
-              <div className="text-center py-6 text-slate-500 text-sm border border-dashed border-slate-700 rounded-lg">
+              <div className="text-center py-6 text-muted-foreground text-sm border border-dashed border-border rounded-lg">
                 No conditions added. Click &quot;Add Condition&quot; to start building.
               </div>
             )}
@@ -389,13 +389,13 @@ export function VendorRuleBuilder({
                 return (
                   <div
                     key={index}
-                    className="bg-slate-700/20 rounded-lg p-3 flex items-center gap-3 flex-wrap"
+                    className="bg-muted rounded-lg p-3 flex items-center gap-3 flex-wrap"
                   >
                     {/* Field */}
                     <select
                       value={condition.field}
                       onChange={(e) => handleFieldChange(index, e.target.value)}
-                      className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 min-w-[180px]"
+                      className="bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground min-w-[180px]"
                     >
                       {ALL_FIELDS.map((f) => (
                         <option key={f} value={f}>
@@ -413,7 +413,7 @@ export function VendorRuleBuilder({
                           ...(e.target.value !== "between" ? { valueEnd: undefined } : {}),
                         })
                       }
-                      className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 min-w-[130px]"
+                      className="bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground min-w-[130px]"
                     >
                       {operators.map((op) => (
                         <option key={op.value} value={op.value}>
@@ -431,7 +431,7 @@ export function VendorRuleBuilder({
                             value: e.target.value === "true",
                           })
                         }
-                        className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 min-w-[100px]"
+                        className="bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground min-w-[100px]"
                       >
                         <option value="true">True</option>
                         <option value="false">False</option>
@@ -443,7 +443,7 @@ export function VendorRuleBuilder({
                           updateCondition(index, { value: e.target.value })
                         }
                         placeholder="Value..."
-                        className="bg-slate-800 border-slate-700 w-[150px]"
+                        className="bg-card border-border w-[150px]"
                       />
                     ) : (
                       <>
@@ -454,11 +454,11 @@ export function VendorRuleBuilder({
                             updateCondition(index, { value: e.target.value })
                           }
                           placeholder="Value"
-                          className="bg-slate-800 border-slate-700 w-[110px]"
+                          className="bg-card border-border w-[110px]"
                         />
                         {isBetween && (
                           <>
-                            <span className="text-slate-500 text-sm">and</span>
+                            <span className="text-muted-foreground text-sm">and</span>
                             <Input
                               type="number"
                               value={condition.valueEnd ?? ""}
@@ -466,7 +466,7 @@ export function VendorRuleBuilder({
                                 updateCondition(index, { valueEnd: e.target.value })
                               }
                               placeholder="End"
-                              className="bg-slate-800 border-slate-700 w-[110px]"
+                              className="bg-card border-border w-[110px]"
                             />
                           </>
                         )}
@@ -477,7 +477,7 @@ export function VendorRuleBuilder({
                     <button
                       type="button"
                       onClick={() => removeCondition(index)}
-                      className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors ml-auto"
+                      className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors ml-auto"
                       aria-label="Remove condition"
                     >
                       <X className="w-4 h-4" />
@@ -490,7 +490,7 @@ export function VendorRuleBuilder({
 
           {/* ---- Recommendation ---- */}
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
               Recommendation
             </h3>
 
@@ -501,7 +501,7 @@ export function VendorRuleBuilder({
                 value={recommendationTitle}
                 onChange={(e) => setRecommendationTitle(e.target.value)}
                 placeholder="e.g., Credit Monitoring Recommended"
-                className="bg-slate-800 border-slate-700"
+                className="bg-card border-border"
               />
             </div>
 
@@ -512,7 +512,7 @@ export function VendorRuleBuilder({
                 value={recommendationBody}
                 onChange={(e) => setRecommendationBody(e.target.value)}
                 placeholder="Based on your profile, we recommend..."
-                className="bg-slate-800 border-slate-700"
+                className="bg-card border-border"
                 rows={4}
               />
             </div>
@@ -525,7 +525,7 @@ export function VendorRuleBuilder({
                   value={recommendationCTA}
                   onChange={(e) => setRecommendationCTA(e.target.value)}
                   placeholder="e.g., Sign Up Now"
-                  className="bg-slate-800 border-slate-700"
+                  className="bg-card border-border"
                 />
               </div>
               <div className="space-y-2">
@@ -535,7 +535,7 @@ export function VendorRuleBuilder({
                   value={customAffiliateUrl}
                   onChange={(e) => setCustomAffiliateUrl(e.target.value)}
                   placeholder="https://... (optional override)"
-                  className="bg-slate-800 border-slate-700"
+                  className="bg-card border-border"
                 />
               </div>
             </div>

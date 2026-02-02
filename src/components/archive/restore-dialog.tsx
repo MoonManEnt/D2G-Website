@@ -74,14 +74,14 @@ export function RestoreDialog({
                     {ameliaRecommendation.replace(/_/g, " ")}
                   </Badge>
                 </div>
-                <p className="text-sm text-slate-300">{getRecommendationMessage()}</p>
+                <p className="text-sm text-muted-foreground">{getRecommendationMessage()}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-white mb-2">What happens when you restore:</h4>
-            <ul className="text-sm text-slate-300 space-y-2">
+          <div className="bg-card border border-border rounded-lg p-4">
+            <h4 className="text-sm font-medium text-foreground mb-2">What happens when you restore:</h4>
+            <ul className="text-sm text-muted-foreground space-y-2">
               <li className="flex items-center gap-2">
                 <ArrowRight className="w-3 h-3 text-emerald-400" />
                 Client becomes active and visible in client list
@@ -106,7 +106,7 @@ export function RestoreDialog({
             variant="outline"
             onClick={onClose}
             disabled={loading}
-            className="border-slate-600"
+            className="border-input"
           >
             Cancel
           </Button>

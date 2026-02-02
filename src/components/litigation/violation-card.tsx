@@ -65,9 +65,9 @@ const severityConfig: Record<
     icon: AlertCircle,
   },
   LOW: {
-    color: "text-blue-400",
-    bg: "bg-blue-500/20",
-    border: "border-blue-500/30",
+    color: "text-primary",
+    bg: "bg-primary/20",
+    border: "border-primary/30",
     icon: Info,
   },
 };
@@ -96,7 +96,7 @@ export function ViolationCard({ violation }: ViolationCardProps) {
 
   return (
     <Card
-      className={`bg-slate-800/50 border ${severity.border} hover:border-opacity-60 transition-all duration-200`}
+      className={`bg-card border ${severity.border} hover:border-opacity-60 transition-all duration-200`}
     >
       {/* Header - always visible */}
       <button
@@ -121,27 +121,27 @@ export function ViolationCard({ violation }: ViolationCardProps) {
               <Badge className={`${category.bg} ${category.color} text-[10px] px-2 py-0 border-0`}>
                 {violation.category}
               </Badge>
-              <span className="text-xs text-slate-500 font-mono">
+              <span className="text-xs text-muted-foreground font-mono">
                 {violation.ruleId}
               </span>
             </div>
 
-            <h3 className="text-sm font-semibold text-slate-100 mb-1">
+            <h3 className="text-sm font-semibold text-foreground mb-1">
               {violation.title}
             </h3>
 
-            <p className="text-xs text-slate-400 line-clamp-2">
+            <p className="text-xs text-muted-foreground line-clamp-2">
               {violation.description}
             </p>
 
             {/* Statute citation */}
             <div className="flex items-center gap-1.5 mt-2">
-              <Scale className="w-3 h-3 text-slate-500" />
-              <span className="text-[11px] text-slate-500 font-mono">
+              <Scale className="w-3 h-3 text-muted-foreground" />
+              <span className="text-[11px] text-muted-foreground font-mono">
                 {violation.statute}
               </span>
               {violation.statuteShortName && (
-                <span className="text-[11px] text-slate-400">
+                <span className="text-[11px] text-muted-foreground">
                   ({violation.statuteShortName})
                 </span>
               )}
@@ -151,13 +151,13 @@ export function ViolationCard({ violation }: ViolationCardProps) {
           {/* Damages + expand toggle */}
           <div className="flex flex-col items-end gap-2 flex-shrink-0">
             <div className="text-right">
-              <p className="text-xs text-slate-500">Est. Damages</p>
+              <p className="text-xs text-muted-foreground">Est. Damages</p>
               <p className="text-sm font-bold text-emerald-400">
                 {formatCentsAsDollars(violation.estimatedDamagesMin)} -{" "}
                 {formatCentsAsDollars(violation.estimatedDamagesMax)}
               </p>
             </div>
-            <div className="text-slate-400">
+            <div className="text-muted-foreground">
               {isExpanded ? (
                 <ChevronUp className="w-4 h-4" />
               ) : (
@@ -179,11 +179,11 @@ export function ViolationCard({ violation }: ViolationCardProps) {
             className="overflow-hidden"
           >
             <CardContent className="pt-0 px-4 pb-4">
-              <div className="border-t border-slate-700/50 pt-4 space-y-4">
+              <div className="border-t border-border pt-4 space-y-4">
                 {/* Evidence section */}
                 {violation.evidence.length > 0 && (
                   <div>
-                    <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
                       <BookOpen className="w-3.5 h-3.5" />
                       Evidence ({violation.evidence.length})
                     </h4>
@@ -191,14 +191,14 @@ export function ViolationCard({ violation }: ViolationCardProps) {
                       {violation.evidence.map((ev, idx) => (
                         <div
                           key={idx}
-                          className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/30"
+                          className="bg-background rounded-lg p-3 border border-border"
                         >
                           <div className="flex items-center gap-2 mb-1">
-                            <Badge className="bg-slate-600/50 text-slate-300 text-[10px] px-1.5 py-0 border-0">
+                            <Badge className="bg-muted text-muted-foreground text-[10px] px-1.5 py-0 border-0">
                               {ev.type}
                             </Badge>
                           </div>
-                          <p className="text-xs text-slate-400">
+                          <p className="text-xs text-muted-foreground">
                             {ev.description}
                           </p>
                           {ev.bureauData &&
@@ -208,12 +208,12 @@ export function ViolationCard({ violation }: ViolationCardProps) {
                                   ([bureau, data]) => (
                                     <div
                                       key={bureau}
-                                      className="bg-slate-800/80 px-2 py-1 rounded text-[10px]"
+                                      className="bg-card px-2 py-1 rounded text-[10px]"
                                     >
-                                      <span className="text-slate-500 font-semibold">
+                                      <span className="text-muted-foreground font-semibold">
                                         {bureau}:
                                       </span>{" "}
-                                      <span className="text-slate-300">
+                                      <span className="text-muted-foreground">
                                         {typeof data === "object"
                                           ? JSON.stringify(data)
                                           : String(data)}
@@ -232,23 +232,23 @@ export function ViolationCard({ violation }: ViolationCardProps) {
                 {/* Affected accounts section */}
                 {violation.affectedAccounts.length > 0 && (
                   <div>
-                    <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                       Affected Accounts ({violation.affectedAccounts.length})
                     </h4>
-                    <div className="bg-slate-900/50 rounded-lg border border-slate-700/30 overflow-hidden">
+                    <div className="bg-background rounded-lg border border-border overflow-hidden">
                       <table className="w-full text-xs">
                         <thead>
-                          <tr className="border-b border-slate-700/30">
-                            <th className="text-left py-2 px-3 text-slate-500 font-medium">
+                          <tr className="border-b border-border">
+                            <th className="text-left py-2 px-3 text-muted-foreground font-medium">
                               Creditor
                             </th>
-                            <th className="text-left py-2 px-3 text-slate-500 font-medium">
+                            <th className="text-left py-2 px-3 text-muted-foreground font-medium">
                               Bureau
                             </th>
-                            <th className="text-left py-2 px-3 text-slate-500 font-medium">
+                            <th className="text-left py-2 px-3 text-muted-foreground font-medium">
                               Status
                             </th>
-                            <th className="text-right py-2 px-3 text-slate-500 font-medium">
+                            <th className="text-right py-2 px-3 text-muted-foreground font-medium">
                               Balance
                             </th>
                           </tr>
@@ -257,20 +257,20 @@ export function ViolationCard({ violation }: ViolationCardProps) {
                           {violation.affectedAccounts.map((acct, idx) => (
                             <tr
                               key={idx}
-                              className="border-b border-slate-700/20 last:border-0"
+                              className="border-b border-border last:border-0"
                             >
-                              <td className="py-2 px-3 text-slate-300 font-medium">
+                              <td className="py-2 px-3 text-muted-foreground font-medium">
                                 {acct.creditorName}
                               </td>
                               <td className="py-2 px-3">
-                                <Badge className="bg-slate-600/50 text-slate-300 text-[10px] px-1.5 py-0 border-0">
+                                <Badge className="bg-muted text-muted-foreground text-[10px] px-1.5 py-0 border-0">
                                   {acct.cra}
                                 </Badge>
                               </td>
-                              <td className="py-2 px-3 text-slate-400">
+                              <td className="py-2 px-3 text-muted-foreground">
                                 {acct.accountStatus}
                               </td>
-                              <td className="py-2 px-3 text-right text-slate-300 font-mono">
+                              <td className="py-2 px-3 text-right text-muted-foreground font-mono">
                                 {acct.balance !== null
                                   ? formatCentsAsDollars(acct.balance)
                                   : "--"}
@@ -286,14 +286,14 @@ export function ViolationCard({ violation }: ViolationCardProps) {
                 {/* Defendants section */}
                 {violation.defendants.length > 0 && (
                   <div>
-                    <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                       Defendants
                     </h4>
                     <div className="flex flex-wrap gap-2">
                       {violation.defendants.map((def, idx) => (
                         <Badge
                           key={idx}
-                          className="bg-slate-700/50 text-slate-300 text-xs px-2.5 py-1 border border-slate-600/30"
+                          className="bg-muted text-muted-foreground text-xs px-2.5 py-1 border border-input"
                         >
                           {def}
                         </Badge>
@@ -305,7 +305,7 @@ export function ViolationCard({ violation }: ViolationCardProps) {
                 {/* Case law section */}
                 {violation.caselaw.length > 0 && (
                   <div>
-                    <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
                       <Scale className="w-3.5 h-3.5" />
                       Case Law References ({violation.caselaw.length})
                     </h4>
@@ -313,9 +313,9 @@ export function ViolationCard({ violation }: ViolationCardProps) {
                       {violation.caselaw.map((cite, idx) => (
                         <div
                           key={idx}
-                          className="bg-slate-900/50 rounded px-3 py-2 border border-slate-700/30"
+                          className="bg-background rounded px-3 py-2 border border-border"
                         >
-                          <p className="text-xs text-slate-400 font-mono italic">
+                          <p className="text-xs text-muted-foreground font-mono italic">
                             {cite}
                           </p>
                         </div>

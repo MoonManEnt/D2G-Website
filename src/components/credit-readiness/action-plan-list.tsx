@@ -17,7 +17,7 @@ const PRIORITY_COLORS: Record<string, { text: string; bg: string; border: string
   CRITICAL: { text: "text-red-400", bg: "bg-red-500/20", border: "border-red-500/30" },
   HIGH: { text: "text-orange-400", bg: "bg-orange-500/20", border: "border-orange-500/30" },
   MEDIUM: { text: "text-amber-400", bg: "bg-amber-500/20", border: "border-amber-500/30" },
-  LOW: { text: "text-slate-400", bg: "bg-slate-500/20", border: "border-slate-500/30" },
+  LOW: { text: "text-muted-foreground", bg: "bg-muted", border: "border-border" },
 };
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
@@ -72,12 +72,12 @@ export function ActionPlanList({ steps }: ActionPlanListProps) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.04 }}
-            className={`bg-slate-700/30 rounded-xl border ${priority.border} overflow-hidden`}
+            className={`bg-muted rounded-xl border ${priority.border} overflow-hidden`}
           >
             {/* Collapsed header */}
             <button
               onClick={() => toggleExpand(i)}
-              className="w-full flex items-center gap-3 p-4 text-left hover:bg-slate-700/20 transition-colors"
+              className="w-full flex items-center gap-3 p-4 text-left hover:bg-muted transition-colors"
             >
               {/* Step number circle */}
               <div
@@ -88,7 +88,7 @@ export function ActionPlanList({ steps }: ActionPlanListProps) {
               {/* Category icon */}
               <CategoryIcon className={`w-4 h-4 flex-shrink-0 ${priority.text}`} />
               {/* Title */}
-              <span className="flex-1 text-sm font-medium text-slate-200 truncate">
+              <span className="flex-1 text-sm font-medium text-foreground truncate">
                 {step.title}
               </span>
               {/* Priority badge */}
@@ -105,7 +105,7 @@ export function ActionPlanList({ steps }: ActionPlanListProps) {
               )}
               {/* Expand chevron */}
               <ChevronDown
-                className={`w-4 h-4 text-slate-500 flex-shrink-0 transition-transform duration-200 ${
+                className={`w-4 h-4 text-muted-foreground flex-shrink-0 transition-transform duration-200 ${
                   isExpanded ? "rotate-180" : ""
                 }`}
               />
@@ -121,50 +121,50 @@ export function ActionPlanList({ steps }: ActionPlanListProps) {
                   transition={{ duration: 0.2 }}
                   className="overflow-hidden"
                 >
-                  <div className="px-4 pb-4 space-y-3 border-t border-slate-700/50 pt-3">
+                  <div className="px-4 pb-4 space-y-3 border-t border-border pt-3">
                     {/* What to do */}
                     <div>
-                      <p className="text-xs font-medium text-slate-400 mb-1">What to Do</p>
-                      <p className="text-sm text-slate-200">{step.whatToDo}</p>
+                      <p className="text-xs font-medium text-muted-foreground mb-1">What to Do</p>
+                      <p className="text-sm text-foreground">{step.whatToDo}</p>
                     </div>
 
                     {/* How to do it */}
                     <div>
-                      <p className="text-xs font-medium text-slate-400 mb-1">How to Do It</p>
-                      <p className="text-sm text-slate-300">{step.howToDoIt}</p>
+                      <p className="text-xs font-medium text-muted-foreground mb-1">How to Do It</p>
+                      <p className="text-sm text-muted-foreground">{step.howToDoIt}</p>
                     </div>
 
                     {/* Where to go */}
                     {step.whereToGo && (
                       <div>
-                        <p className="text-xs font-medium text-slate-400 mb-1">Where to Go</p>
+                        <p className="text-xs font-medium text-muted-foreground mb-1">Where to Go</p>
                         {isLink ? (
                           <a
                             href={step.whereToGo}
                             target={isExternal ? "_blank" : undefined}
                             rel={isExternal ? "noopener noreferrer" : undefined}
-                            className="inline-flex items-center gap-1.5 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                            className="inline-flex items-center gap-1.5 text-sm text-primary hover:text-blue-300 transition-colors"
                           >
                             {step.whereToGo}
                             {isExternal && <ExternalLink className="w-3 h-3" />}
                           </a>
                         ) : (
-                          <p className="text-sm text-slate-300">{step.whereToGo}</p>
+                          <p className="text-sm text-muted-foreground">{step.whereToGo}</p>
                         )}
                       </div>
                     )}
 
                     {/* Impact + Timeline row */}
                     <div className="flex items-center gap-3 flex-wrap">
-                      <div className="bg-slate-800/50 rounded-lg px-3 py-1.5">
-                        <p className="text-xs text-slate-400">Impact</p>
+                      <div className="bg-card rounded-lg px-3 py-1.5">
+                        <p className="text-xs text-muted-foreground">Impact</p>
                         <p className="text-sm font-medium text-emerald-400">
                           {step.estimatedImpact}
                         </p>
                       </div>
-                      <div className="bg-slate-800/50 rounded-lg px-3 py-1.5">
-                        <p className="text-xs text-slate-400">Timeline</p>
-                        <p className="text-sm font-medium text-slate-200">
+                      <div className="bg-card rounded-lg px-3 py-1.5">
+                        <p className="text-xs text-muted-foreground">Timeline</p>
+                        <p className="text-sm font-medium text-foreground">
                           {step.estimatedTimeline}
                         </p>
                       </div>

@@ -162,7 +162,7 @@ export function MailSendDialog({
       <ResponsiveDialogContent size="md">
         <ResponsiveDialogHeader>
           <ResponsiveDialogTitle className="flex items-center gap-2">
-            <Mail className="w-5 h-5 text-blue-400" />
+            <Mail className="w-5 h-5 text-primary" />
             Send Dispute Letter
           </ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
@@ -181,23 +181,23 @@ export function MailSendDialog({
               <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center">
                 <CheckCircle className="w-8 h-8 text-emerald-400" />
               </div>
-              <h3 className="text-xl font-semibold text-slate-100">
+              <h3 className="text-xl font-semibold text-foreground">
                 Letter Sent!
               </h3>
-              <p className="text-sm text-slate-400 text-center">
+              <p className="text-sm text-muted-foreground text-center">
                 Your dispute letter has been queued for mailing.
               </p>
               {mailingResult && (
-                <div className="bg-slate-700/30 rounded-lg p-4 w-full max-w-sm">
+                <div className="bg-muted rounded-lg p-4 w-full max-w-sm">
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Mailing ID</span>
-                    <span className="text-slate-200 font-mono text-xs">
+                    <span className="text-muted-foreground">Mailing ID</span>
+                    <span className="text-foreground font-mono text-xs">
                       {mailingResult.letterId}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm mt-2">
-                    <span className="text-slate-400">Queued At</span>
-                    <span className="text-slate-200 text-xs">
+                    <span className="text-muted-foreground">Queued At</span>
+                    <span className="text-foreground text-xs">
                       {new Date(mailingResult.mailedAt).toLocaleString()}
                     </span>
                   </div>
@@ -219,20 +219,20 @@ export function MailSendDialog({
             >
               {/* Recipient Card */}
               {craAddress && (
-                <div className="bg-slate-700/30 rounded-lg p-4">
+                <div className="bg-muted rounded-lg p-4">
                   <div className="flex items-start gap-3">
-                    <MapPin className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
+                    <MapPin className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                     <div>
-                      <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
                         Recipient
                       </p>
-                      <p className="text-sm font-semibold text-slate-100">
+                      <p className="text-sm font-semibold text-foreground">
                         {craAddress.name}
                       </p>
-                      <p className="text-sm text-slate-300">
+                      <p className="text-sm text-muted-foreground">
                         {craAddress.address}
                       </p>
-                      <p className="text-sm text-slate-300">
+                      <p className="text-sm text-muted-foreground">
                         {craAddress.city}, {craAddress.state} {craAddress.zip}
                       </p>
                     </div>
@@ -241,24 +241,24 @@ export function MailSendDialog({
               )}
 
               {/* Sender Card */}
-              <div className="bg-slate-700/30 rounded-lg p-4">
+              <div className="bg-muted rounded-lg p-4">
                 <div className="flex items-start gap-3">
                   <Building className="w-4 h-4 text-purple-400 mt-0.5 shrink-0" />
                   <div>
-                    <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
                       Sender
                     </p>
-                    <p className="text-sm font-semibold text-slate-100">
+                    <p className="text-sm font-semibold text-foreground">
                       {clientName}
                     </p>
-                    <p className="text-xs text-slate-400">Address on file</p>
+                    <p className="text-xs text-muted-foreground">Address on file</p>
                   </div>
                 </div>
               </div>
 
               {/* Options */}
               <div className="space-y-2">
-                <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Mailing Options
                 </p>
 
@@ -271,22 +271,22 @@ export function MailSendDialog({
                       setReturnReceipt(false);
                     }
                   }}
-                  className="bg-slate-700/30 rounded-lg p-3 flex items-center justify-between cursor-pointer hover:bg-slate-700/50 transition-colors"
+                  className="bg-muted rounded-lg p-3 flex items-center justify-between cursor-pointer hover:bg-muted transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <ShieldCheck className="w-4 h-4 text-emerald-400" />
                     <div>
-                      <p className="text-sm font-medium text-slate-100">
+                      <p className="text-sm font-medium text-foreground">
                         Certified Mail
                       </p>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-muted-foreground">
                         USPS Certified with tracking number
                       </p>
                     </div>
                   </div>
                   <div
                     className={`w-10 h-5 rounded-full relative transition-colors ${
-                      certified ? "bg-emerald-500" : "bg-slate-600"
+                      certified ? "bg-emerald-500" : "bg-muted"
                     }`}
                   >
                     <div
@@ -304,26 +304,26 @@ export function MailSendDialog({
                       setReturnReceipt(!returnReceipt);
                     }
                   }}
-                  className={`bg-slate-700/30 rounded-lg p-3 flex items-center justify-between transition-colors ${
+                  className={`bg-muted rounded-lg p-3 flex items-center justify-between transition-colors ${
                     certified
-                      ? "cursor-pointer hover:bg-slate-700/50"
+                      ? "cursor-pointer hover:bg-muted"
                       : "opacity-50 cursor-not-allowed"
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <FileCheck className="w-4 h-4 text-blue-400" />
+                    <FileCheck className="w-4 h-4 text-primary" />
                     <div>
-                      <p className="text-sm font-medium text-slate-100">
+                      <p className="text-sm font-medium text-foreground">
                         Return Receipt
                       </p>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-muted-foreground">
                         Request signed delivery confirmation
                       </p>
                     </div>
                   </div>
                   <div
                     className={`w-10 h-5 rounded-full relative transition-colors ${
-                      returnReceipt ? "bg-emerald-500" : "bg-slate-600"
+                      returnReceipt ? "bg-emerald-500" : "bg-muted"
                     }`}
                   >
                     <div
@@ -337,22 +337,22 @@ export function MailSendDialog({
                 {/* Color Printing Toggle */}
                 <div
                   onClick={() => setColor(!color)}
-                  className="bg-slate-700/30 rounded-lg p-3 flex items-center justify-between cursor-pointer hover:bg-slate-700/50 transition-colors"
+                  className="bg-muted rounded-lg p-3 flex items-center justify-between cursor-pointer hover:bg-muted transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <Printer className="w-4 h-4 text-amber-400" />
                     <div>
-                      <p className="text-sm font-medium text-slate-100">
+                      <p className="text-sm font-medium text-foreground">
                         Color Printing
                       </p>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-muted-foreground">
                         Print in full color
                       </p>
                     </div>
                   </div>
                   <div
                     className={`w-10 h-5 rounded-full relative transition-colors ${
-                      color ? "bg-emerald-500" : "bg-slate-600"
+                      color ? "bg-emerald-500" : "bg-muted"
                     }`}
                   >
                     <div
@@ -366,7 +366,7 @@ export function MailSendDialog({
 
               {/* Provider Badge */}
               <div className="flex items-center justify-center pt-2">
-                <Badge className="bg-slate-700/50 text-slate-300 border-slate-600">
+                <Badge className="bg-muted text-muted-foreground border-input">
                   <Mail className="w-3 h-3 mr-1" />
                   DocuPost
                 </Badge>

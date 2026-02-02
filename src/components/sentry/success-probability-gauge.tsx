@@ -31,14 +31,14 @@ export function SuccessProbabilityGauge({
   const colorScheme = getProbabilityColor(probability);
 
   return (
-    <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-4">
+    <div className="bg-card rounded-lg border border-border p-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-medium text-slate-300">Success Probability</h3>
+        <h3 className="text-sm font-medium text-muted-foreground">Success Probability</h3>
         <span className={`text-xs px-2 py-0.5 rounded ${
           confidence === "HIGH" ? "bg-emerald-500/20 text-emerald-400" :
           confidence === "MEDIUM" ? "bg-amber-500/20 text-amber-400" :
-          "bg-slate-500/20 text-slate-400"
+          "bg-muted text-muted-foreground"
         }`}>
           {confidence} confidence
         </span>
@@ -47,7 +47,7 @@ export function SuccessProbabilityGauge({
       {/* Gauge */}
       <div className="relative mb-4">
         {/* Background track */}
-        <div className="h-4 bg-slate-700 rounded-full overflow-hidden">
+        <div className="h-4 bg-muted rounded-full overflow-hidden">
           {/* Filled portion */}
           <div
             className={`h-full ${colorScheme.bg} transition-all duration-500 rounded-full`}
@@ -75,7 +75,7 @@ export function SuccessProbabilityGauge({
       {(breakdown || recommendations) && (
         <button
           onClick={() => setShowDetails(!showDetails)}
-          className="text-xs text-slate-400 hover:text-slate-300 flex items-center gap-1"
+          className="text-xs text-muted-foreground hover:text-muted-foreground flex items-center gap-1"
         >
           {showDetails ? "Hide" : "Show"} details
           <svg
@@ -95,7 +95,7 @@ export function SuccessProbabilityGauge({
           {/* Factor breakdown */}
           {breakdown && breakdown.length > 0 && (
             <div>
-              <h4 className="text-xs font-medium text-slate-400 mb-2">Factor Breakdown</h4>
+              <h4 className="text-xs font-medium text-muted-foreground mb-2">Factor Breakdown</h4>
               <div className="space-y-2">
                 {breakdown.map((factor) => (
                   <FactorBar key={factor.name} factor={factor} />
@@ -119,10 +119,10 @@ export function SuccessProbabilityGauge({
           {(!actionableRecommendations || actionableRecommendations.length === 0 || !onApplyRecommendation) &&
             recommendations && recommendations.length > 0 && (
             <div>
-              <h4 className="text-xs font-medium text-slate-400 mb-2">Recommendations</h4>
+              <h4 className="text-xs font-medium text-muted-foreground mb-2">Recommendations</h4>
               <ul className="space-y-1">
                 {recommendations.map((rec, i) => (
-                  <li key={i} className="text-xs text-slate-300 flex items-start gap-2">
+                  <li key={i} className="text-xs text-muted-foreground flex items-start gap-2">
                     <span className="text-amber-400 mt-0.5">•</span>
                     {rec}
                   </li>
@@ -143,10 +143,10 @@ function FactorBar({ factor }: { factor: SuccessFactorUI }) {
   return (
     <div className="group">
       <div className="flex items-center justify-between text-xs mb-1">
-        <span className="text-slate-400">{factor.name}</span>
-        <span className="text-slate-500">{weightPercent}% weight</span>
+        <span className="text-muted-foreground">{factor.name}</span>
+        <span className="text-muted-foreground">{weightPercent}% weight</span>
       </div>
-      <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+      <div className="h-2 bg-muted rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all ${
             factor.score >= 0.7 ? "bg-emerald-500" :
@@ -158,7 +158,7 @@ function FactorBar({ factor }: { factor: SuccessFactorUI }) {
       </div>
       {/* Tooltip on hover */}
       <div className="hidden group-hover:block mt-1">
-        <p className="text-xs text-slate-500">{factor.explanation}</p>
+        <p className="text-xs text-muted-foreground">{factor.explanation}</p>
       </div>
     </div>
   );
