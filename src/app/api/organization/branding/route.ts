@@ -56,7 +56,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Only admins can update branding
-    if (session.user.role !== "ADMIN") {
+    if (session.user.role !== "ADMIN" && session.user.role !== "OWNER") {
       return NextResponse.json(
         { error: "Only administrators can update branding settings" },
         { status: 403 }
@@ -149,7 +149,7 @@ export async function DELETE() {
     }
 
     // Only admins can reset branding
-    if (session.user.role !== "ADMIN") {
+    if (session.user.role !== "ADMIN" && session.user.role !== "OWNER") {
       return NextResponse.json(
         { error: "Only administrators can reset branding settings" },
         { status: 403 }

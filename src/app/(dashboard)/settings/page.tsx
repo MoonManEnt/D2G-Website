@@ -324,7 +324,7 @@ export default function SettingsPage() {
             <Archive className="w-4 h-4 mr-2" />
             Archived
           </TabsTrigger>
-          {session?.user?.role === "ADMIN" && (
+          {(session?.user?.role === "ADMIN" || session?.user?.role === "OWNER") && (
             <TabsTrigger value="danger" className="data-[state=active]:bg-red-600 data-[state=active]:text-white text-red-400">
               <AlertTriangle className="w-4 h-4 mr-2" />
               Danger Zone
@@ -424,8 +424,8 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
 
-            {/* Admin Only Branding */}
-            {session?.user?.role === "ADMIN" && <BrandingSettings />}
+            {/* Admin/Owner Only Branding */}
+            {(session?.user?.role === "ADMIN" || session?.user?.role === "OWNER") && <BrandingSettings />}
           </motion.div>
         </TabsContent>
 
@@ -504,7 +504,7 @@ export default function SettingsPage() {
           </motion.div>
         </TabsContent>
 
-        {session?.user?.role === "ADMIN" && (
+        {(session?.user?.role === "ADMIN" || session?.user?.role === "OWNER") && (
           <TabsContent value="danger" asChild>
             <motion.div variants={tabContentVariants} initial="hidden" animate="visible">
               <Card className="bg-slate-800/50 border-red-900/50 backdrop-blur-sm">
