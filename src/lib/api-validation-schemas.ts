@@ -682,3 +682,16 @@ export type UpdateVendorInput = z.infer<typeof updateVendorSchema>;
 export type CreateVendorRuleInput = z.infer<typeof createVendorRuleSchema>;
 export type UpdateVendorRuleInput = z.infer<typeof updateVendorRuleSchema>;
 export type TrackReferralInput = z.infer<typeof trackReferralSchema>;
+
+// =============================================================================
+// LITIGATION SCANNER SCHEMAS
+// =============================================================================
+
+/**
+ * POST /api/clients/[id]/litigation-scan - Run a new litigation scan
+ */
+export const litigationScanSchema = z.object({
+  clientState: z.string().length(2, "State must be a 2-letter code").optional(),
+});
+
+export type LitigationScanInput = z.infer<typeof litigationScanSchema>;

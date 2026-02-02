@@ -117,6 +117,7 @@ model Client {
   personalInfoDisputes    PersonalInfoDispute[]
   sentryDisputes          SentryDispute[]
   readinessAnalyses       CreditReadinessAnalysis[]
+  litigationScans         LitigationScan[]
 
   @@index([organizationId])
   @@index([lastName, firstName])
@@ -1268,6 +1269,41 @@ model VendorRule {
   @@index([vendorId])
   @@index([isActive])
   @@index([priority])
+}
+
+// =============================================================================
+// LITIGATION SCANNER - Automated FCRA/FDCPA violation detection
+// =============================================================================
+
+model LitigationScan {
+  id                    String   @id @default(uuid())
+  clientId              String
+  organizationId        String
+  reportId              String
+  scanStatus            String   @default("COMPLETED")
+  totalViolations       Int      @default(0)
+  fcraViolations        Int      @default(0)
+  fdcpaViolations       Int      @default(0)
+  metro2Errors          Int      @default(0)
+  criticalCount         Int      @default(0)
+  highCount             Int      @default(0)
+  mediumCount           Int      @default(0)
+  lowCount              Int      @default(0)
+  estimatedTotalMin     Int      @default(0)
+  estimatedTotalMax     Int      @default(0)
+  violations            String   @db.Text
+  damageEstimate        String   @db.Text
+  caseSummary           String   @db.Text
+  escalationPlan        String   @db.Text
+  computeTimeMs         Int      @default(0)
+  version               String   @default("1.0.0")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  client                Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([organizationId])
+  @@index([reportId])
 }
 
 model VendorReferral {

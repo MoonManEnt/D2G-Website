@@ -21,6 +21,7 @@ import {
   Search,
   GripVertical,
   Handshake,
+  Gavel,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ const navigation: { name: string; href: string; icon: typeof LayoutDashboard; to
   { name: "Sentry", href: "/sentry", icon: Shield, tourId: "sentry" },
   { name: "Evidence", href: "/evidence", icon: Image, tourId: "evidence" },
   { name: "Analytics", href: "/analytics", icon: BarChart3, tourId: "analytics" },
+  { name: "Litigation", href: "/litigation", icon: Gavel, tourId: "litigation" },
   { name: "Vendors", href: "/vendors", icon: Handshake },
   { name: "Settings", href: "/settings", icon: Settings },
   { name: "Billing", href: "/billing", icon: CreditCard },
@@ -77,6 +79,11 @@ const iconAnimations: Record<string, any> = {
   Analytics: {
     scaleY: [1, 1.2, 1],
     transition: { duration: 0.4, ease: "easeInOut" },
+  },
+  Litigation: {
+    rotate: [0, -15, 15, 0],
+    scale: [1, 1.15, 1],
+    transition: { duration: 0.5, ease: "easeInOut" },
   },
   Vendors: {
     scale: [1, 1.1, 1],

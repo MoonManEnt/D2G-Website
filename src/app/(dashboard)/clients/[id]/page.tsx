@@ -999,6 +999,10 @@ export default function ClientDetailPage() {
             <Target className="w-4 h-4" />
             Readiness
           </TabsTrigger>
+          <TabsTrigger value="litigation" className="gap-2 data-[state=active]:bg-slate-700">
+            <Scale className="w-4 h-4" />
+            Litigation
+          </TabsTrigger>
         </TabsList>
 
         {/* Negative Items Tab */}
@@ -1683,6 +1687,59 @@ export default function ClientDetailPage() {
 
           {/* Vendor Recommendations */}
           <VendorRecommendationsCard clientId={clientId} />
+        </TabsContent>
+
+        {/* Litigation Tab */}
+        <TabsContent value="litigation" className="mt-4 flex-1 overflow-auto space-y-4">
+          <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Scale className="w-5 h-5 text-red-400" />
+                Litigation Scanner
+              </h3>
+              <Link
+                href={`/clients/${clientId}/litigation`}
+                className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1"
+              >
+                Full Scanner
+                <ChevronRight className="w-4 h-4" />
+              </Link>
+            </div>
+            <p className="text-slate-400 text-sm mb-4">
+              Automatically scan credit reports for actionable FCRA/FDCPA violations by collection
+              agencies and furnishers. Estimates potential damages and provides escalation paths to litigation.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="bg-slate-700/30 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <Shield className="w-4 h-4 text-purple-400" />
+                  <span className="text-sm font-medium text-slate-200">FCRA Violations</span>
+                </div>
+                <p className="text-xs text-slate-400">Accuracy, furnisher duties, obsolete info, investigation failures</p>
+              </div>
+              <div className="bg-slate-700/30 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <AlertTriangle className="w-4 h-4 text-blue-400" />
+                  <span className="text-sm font-medium text-slate-200">FDCPA Violations</span>
+                </div>
+                <p className="text-xs text-slate-400">False representations, wrong amounts, time-barred collections</p>
+              </div>
+              <div className="bg-slate-700/30 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <Activity className="w-4 h-4 text-amber-400" />
+                  <span className="text-sm font-medium text-slate-200">Metro 2 Errors</span>
+                </div>
+                <p className="text-xs text-slate-400">Field inconsistencies, code errors, format compliance</p>
+              </div>
+            </div>
+            <Link
+              href={`/clients/${clientId}/litigation`}
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              <Scale className="w-4 h-4" />
+              Run Litigation Scan
+            </Link>
+          </div>
         </TabsContent>
       </Tabs>
 
