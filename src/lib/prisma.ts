@@ -39,6 +39,18 @@ if (isDev) {
 
 // In production, if dbUrl is missing, we let Prisma throw its own error to help the user identify missing Vercel env vars.
 
+// Production: Append connection pool params for PostgreSQL if not already set
+if (!isDev && dbUrl && dbUrl.startsWith("postgres")) {
+  const url = new URL(dbUrl);
+  if (!url.searchParams.has("connection_limit")) {
+    url.searchParams.set("connection_limit", "25");
+  }
+  if (!url.searchParams.has("pool_timeout")) {
+    url.searchParams.set("pool_timeout", "10");
+  }
+  dbUrl = url.toString();
+}
+
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({

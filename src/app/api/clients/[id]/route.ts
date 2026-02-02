@@ -21,66 +21,81 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const client = await prisma.client.findFirst({
-      where: {
-        id: clientId,
-        organizationId: session.user.organizationId,
-      },
-      include: {
-        reports: {
-          orderBy: { createdAt: "desc" },
-          include: {
-            originalFile: {
-              select: {
-                id: true,
-                filename: true,
-                mimeType: true,
-                sizeBytes: true,
+    // Single consolidated query: fetch client with all related data + summary counts in parallel
+    const [client, accountSummary] = await Promise.all([
+      prisma.client.findFirst({
+        where: {
+          id: clientId,
+          organizationId: session.user.organizationId,
+        },
+        include: {
+          reports: {
+            orderBy: { createdAt: "desc" },
+            include: {
+              originalFile: {
+                select: {
+                  id: true,
+                  filename: true,
+                  mimeType: true,
+                  sizeBytes: true,
+                },
+              },
+              _count: {
+                select: { accounts: true },
               },
             },
-            _count: {
-              select: { accounts: true },
-            },
           },
-        },
-        accounts: {
-          where: {
-            OR: [
-              { confidenceLevel: "LOW" },
-              { accountStatus: { in: ["COLLECTION", "CHARGED_OFF", "LATE", "DELINQUENT"] } },
-              { issueCount: { gt: 0 } },
-              { isDisputable: true },
-              { pastDue: { gt: 0 } },
+          accounts: {
+            where: {
+              OR: [
+                { confidenceLevel: "LOW" },
+                { accountStatus: { in: ["COLLECTION", "CHARGED_OFF", "LATE", "DELINQUENT"] } },
+                { issueCount: { gt: 0 } },
+                { isDisputable: true },
+                { pastDue: { gt: 0 } },
+              ],
+            },
+            orderBy: [
+              { issueCount: "desc" },
+              { confidenceScore: "asc" },
             ],
-          },
-          orderBy: [
-            { issueCount: "desc" },
-            { confidenceScore: "asc" },
-          ],
-          include: {
-            evidences: {
-              select: {
-                id: true,
-                evidenceType: true,
-                title: true,
-                createdAt: true,
+            include: {
+              evidences: {
+                select: {
+                  id: true,
+                  evidenceType: true,
+                  title: true,
+                  createdAt: true,
+                },
               },
             },
           },
-        },
-        disputes: {
-          orderBy: { createdAt: "desc" },
-          take: 10,
-        },
-        _count: {
-          select: {
-            reports: true,
-            accounts: true,
-            disputes: true,
+          disputes: {
+            orderBy: { createdAt: "desc" },
+            take: 10,
+          },
+          _count: {
+            select: {
+              reports: true,
+              accounts: true,
+              disputes: true,
+            },
           },
         },
-      },
-    });
+      }),
+      // Fetch lightweight account summary for stats (creditor names + status only)
+      prisma.accountItem.findMany({
+        where: {
+          clientId,
+          organizationId: session.user.organizationId,
+        },
+        select: {
+          creditorName: true,
+          accountStatus: true,
+          detectedIssues: true,
+        },
+      }),
+    ]);
 
     if (!client) {
       return NextResponse.json({ error: "Client not found" }, { status: 404 });
@@ -100,41 +115,25 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Helper to check if account is truly negative (not just disputable)
     const isTrulyNegative = (account: { accountStatus: string | null; detectedIssues: string | null }) => {
       const status = account.accountStatus?.toUpperCase() || "";
-      // Only count as negative if it has actual derogatory status
       const isDerogatory = ["DEROGATORY", "CHARGED_OFF", "COLLECTION", "CHARGEOFF"].includes(status);
-      // Or if it has actual late payment marks in detected issues
       const hasLateMarks = account.detectedIssues?.includes("PAYMENT_HISTORY_LATE_MARKS") ||
                           account.detectedIssues?.includes("LATE_PAYMENT_STATUS");
       return isDerogatory || hasLateMarks;
     };
 
-    // Get all accounts to calculate unique creditors
-    const allAccounts = await prisma.accountItem.findMany({
-      where: {
-        clientId,
-        organizationId: session.user.organizationId,
-      },
-      select: {
-        creditorName: true,
-        accountStatus: true,
-        detectedIssues: true,
-      },
-    });
-
-    // Calculate unique creditors
+    // Calculate unique creditors from parallel query result
     const uniqueCreditors = new Set(
-      allAccounts.map((a) => a.creditorName?.toUpperCase().trim()).filter(Boolean)
+      accountSummary.map((a) => a.creditorName?.toUpperCase().trim()).filter(Boolean)
     ).size;
 
-    // Calculate truly negative items
-    const trulyNegativeCount = allAccounts.filter(isTrulyNegative).length;
+    const trulyNegativeCount = accountSummary.filter(isTrulyNegative).length;
 
     // Calculate summary stats
     const summary = {
       totalReports: client._count.reports,
-      totalAccounts: uniqueCreditors, // Unique creditors instead of total entries
+      totalAccounts: uniqueCreditors,
       totalDisputes: client._count.disputes,
-      negativeItems: trulyNegativeCount, // Truly negative items only
+      negativeItems: trulyNegativeCount,
       highSeverityIssues: client.accounts.filter((a) => {
         try {
           const issues = a.detectedIssues ? JSON.parse(a.detectedIssues) : [];
