@@ -19,6 +19,7 @@ import type { SentryCRA, SentryFlowType } from "@/types/sentry";
 import { sentryCreateSchema } from "@/lib/api-validation-schemas";
 import { generateDisputeCode } from "@/lib/dispute-id-generator";
 import { checkAccountAvailability } from "@/lib/account-lock-service";
+import { parsePaginationParams, buildPaginatedResponse } from "@/lib/pagination";
 
 export const dynamic = "force-dynamic";
 
@@ -31,18 +32,23 @@ export const GET = withAuth(async (req, ctx) => {
     const { searchParams } = new URL(req.url);
     const clientId = searchParams.get("clientId");
     const status = searchParams.get("status");
+    const pagination = parsePaginationParams(searchParams);
+
+    const where = {
+      organizationId: ctx.organizationId,
+      ...(clientId && { clientId }),
+      ...(status && { status }),
+      // Only show disputes for active, non-archived clients
+      client: {
+        isActive: true,
+        archivedAt: null,
+      },
+    };
+
+    const total = await prisma.sentryDispute.count({ where });
 
     const disputes = await prisma.sentryDispute.findMany({
-      where: {
-        organizationId: ctx.organizationId,
-        ...(clientId && { clientId }),
-        ...(status && { status }),
-        // Only show disputes for active, non-archived clients
-        client: {
-          isActive: true,
-          archivedAt: null,
-        },
-      },
+      where,
       include: {
         client: {
           select: {
@@ -77,6 +83,8 @@ export const GET = withAuth(async (req, ctx) => {
         },
       },
       orderBy: { createdAt: "desc" },
+      skip: pagination.skip,
+      take: pagination.limit,
     });
 
     // Transform decimal fields
@@ -98,7 +106,7 @@ export const GET = withAuth(async (req, ctx) => {
 
     return NextResponse.json({
       success: true,
-      disputes: transformedDisputes,
+      ...buildPaginatedResponse(transformedDisputes, total, pagination),
       system: "SENTRY",
     });
   } catch (error) {

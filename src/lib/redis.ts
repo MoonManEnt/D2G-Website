@@ -13,6 +13,12 @@ let isConnected = false;
 
 function createRedisClient(): Redis | null {
   if (!REDIS_URL && !REDIS_HOST) {
+    if (process.env.NODE_ENV === "production") {
+      console.error(
+        "⚠️  REDIS NOT CONFIGURED IN PRODUCTION — cache is per-instance only. " +
+        "Set REDIS_URL for shared caching across serverless instances."
+      );
+    }
     console.warn("Redis not configured, using in-memory fallback");
     return null;
   }
@@ -312,6 +318,47 @@ export async function listPop(key: string): Promise<string | null> {
   const value = list.shift() || null;
   memoryStore.set(key, { value: JSON.stringify(list) });
   return value;
+}
+
+// Singleflight map: prevents thundering herd on cache miss
+// When multiple requests miss the same cache key simultaneously,
+// only one actually runs the fetch; the rest await the same promise.
+const inflightRequests = new Map<string, Promise<string | null>>();
+
+/**
+ * Cache-aside with thundering herd protection.
+ * On cache miss, only one caller runs `fetchFn`; others wait for the same result.
+ */
+export async function cacheGetOrSet(
+  key: string,
+  fetchFn: () => Promise<string>,
+  expirySeconds: number
+): Promise<string> {
+  // Check cache first
+  const cached = await cacheGet(key);
+  if (cached !== null) return cached;
+
+  // Check if another request is already fetching this key
+  const inflight = inflightRequests.get(key);
+  if (inflight) {
+    const result = await inflight;
+    return result ?? "";
+  }
+
+  // This request wins — fetch and populate cache
+  const fetchPromise = (async () => {
+    try {
+      const value = await fetchFn();
+      await cacheSet(key, value, expirySeconds);
+      return value;
+    } finally {
+      inflightRequests.delete(key);
+    }
+  })();
+
+  inflightRequests.set(key, fetchPromise);
+  const result = await fetchPromise;
+  return result ?? "";
 }
 
 /**

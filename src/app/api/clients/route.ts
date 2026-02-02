@@ -4,7 +4,7 @@ import { z } from "zod";
 import { withAuth } from "@/lib/api-middleware";
 import { encryptPIIFields, decryptPIIFields } from "@/lib/encryption";
 import { parsePaginationParams, buildPaginatedResponse } from "@/lib/pagination";
-import { cacheGet, cacheSet, cacheDelPrefix } from "@/lib/redis";
+import { cacheGet, cacheSet, cacheGetOrSet, cacheDelPrefix } from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
 
@@ -203,94 +203,89 @@ export const GET = withAuth(async (req, { organizationId }) => {
 
 // Get aggregate stats for Command Center header
 export const HEAD = withAuth(async (req, { organizationId }) => {
-  // Check cache
+  // Use cacheGetOrSet with thundering herd protection — only one instance
+  // fetches from DB on cache miss, others wait for the same result
   const statsCacheKey = `clients:stats:${organizationId}`;
-  const cachedStats = await cacheGet(statsCacheKey);
-  if (cachedStats) {
-    const stats = JSON.parse(cachedStats);
-    const response = new NextResponse(null, { status: 200 });
-    response.headers.set("X-Total-Clients", stats.totalClients);
-    response.headers.set("X-Urgent-Clients", stats.urgentClients);
-    response.headers.set("X-Active-Disputes", stats.activeDisputes);
-    response.headers.set("X-Needs-Action", stats.needsActionCount);
-    response.headers.set("X-New-This-Week", stats.newThisWeek);
-    response.headers.set("X-Avg-Success-Rate", stats.avgSuccessRate);
-    return response;
-  }
+  const statsJson = await cacheGetOrSet(statsCacheKey, async () => {
+    const [
+      totalClients,
+      urgentClients,
+      activeDisputes,
+      needsActionCount,
+      newThisWeek,
+      successCount,
+      resolvedCount,
+    ] = await Promise.all([
+      prisma.client.count({
+        where: { organizationId, isActive: true, archivedAt: null },
+      }),
+      prisma.client.count({
+        where: { organizationId, isActive: true, archivedAt: null, priority: "URGENT" },
+      }),
+      prisma.dispute.count({
+        where: {
+          organizationId,
+          status: { in: ["DRAFT", "PENDING_REVIEW", "APPROVED", "SENT"] },
+        },
+      }),
+      prisma.dispute.count({
+        where: {
+          organizationId,
+          status: { in: ["PENDING_REVIEW", "RESPONDED"] },
+        },
+      }),
+      prisma.client.count({
+        where: {
+          organizationId,
+          isActive: true,
+          createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+        },
+      }),
+      // Success rate: count successful outcomes (DELETED/UPDATED)
+      prisma.disputeItem.count({
+        where: {
+          dispute: {
+            organizationId,
+            client: { isActive: true, archivedAt: null },
+          },
+          outcome: { in: ["DELETED", "UPDATED"] },
+        },
+      }),
+      // Success rate: count all resolved outcomes (not null, not PENDING)
+      prisma.disputeItem.count({
+        where: {
+          dispute: {
+            organizationId,
+            client: { isActive: true, archivedAt: null },
+          },
+          outcome: { notIn: ["PENDING"] },
+          NOT: { outcome: null },
+        },
+      }),
+    ]);
 
-  const [
-    totalClients,
-    urgentClients,
-    activeDisputes,
-    needsActionCount,
-    newThisWeek,
-  ] = await Promise.all([
-    prisma.client.count({
-      where: { organizationId, isActive: true, archivedAt: null },
-    }),
-    prisma.client.count({
-      where: { organizationId, isActive: true, archivedAt: null, priority: "URGENT" },
-    }),
-    prisma.dispute.count({
-      where: {
-        organizationId,
-        status: { in: ["DRAFT", "PENDING_REVIEW", "APPROVED", "SENT"] },
-      },
-    }),
-    prisma.dispute.count({
-      where: {
-        organizationId,
-        status: { in: ["PENDING_REVIEW", "RESPONDED"] },
-      },
-    }),
-    prisma.client.count({
-      where: {
-        organizationId,
-        isActive: true,
-        createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
-      },
-    }),
-  ]);
+    const avgSuccessRate = resolvedCount > 0
+      ? Math.round((successCount / resolvedCount) * 100)
+      : 0;
 
-  // Calculate average success rate (only for active clients)
-  const disputes = await prisma.dispute.findMany({
-    where: {
-      organizationId,
-      client: { isActive: true, archivedAt: null },
-    },
-    include: {
-      items: {
-        select: { outcome: true },
-      },
-    },
-  });
+    return JSON.stringify({
+      totalClients: totalClients.toString(),
+      urgentClients: urgentClients.toString(),
+      activeDisputes: activeDisputes.toString(),
+      needsActionCount: needsActionCount.toString(),
+      newThisWeek: newThisWeek.toString(),
+      avgSuccessRate: avgSuccessRate.toString(),
+    });
+  }, 60);
 
-  const allOutcomes = disputes.flatMap((d) => d.items.map((i) => i.outcome));
-  const successfulOutcomes = allOutcomes.filter((o) => o === "DELETED" || o === "UPDATED");
-  const resolvedOutcomes = allOutcomes.filter((o) => o !== null && o !== "PENDING");
-  const avgSuccessRate = resolvedOutcomes.length > 0
-    ? Math.round((successfulOutcomes.length / resolvedOutcomes.length) * 100)
-    : 0;
-
-  // Cache stats for 60s
-  const statsData = {
-    totalClients: totalClients.toString(),
-    urgentClients: urgentClients.toString(),
-    activeDisputes: activeDisputes.toString(),
-    needsActionCount: needsActionCount.toString(),
-    newThisWeek: newThisWeek.toString(),
-    avgSuccessRate: avgSuccessRate.toString(),
-  };
-  await cacheSet(statsCacheKey, JSON.stringify(statsData), 60);
-
-  // Return stats as headers
+  const stats = JSON.parse(statsJson);
   const response = new NextResponse(null, { status: 200 });
-  response.headers.set("X-Total-Clients", statsData.totalClients);
-  response.headers.set("X-Urgent-Clients", statsData.urgentClients);
-  response.headers.set("X-Active-Disputes", statsData.activeDisputes);
-  response.headers.set("X-Needs-Action", statsData.needsActionCount);
-  response.headers.set("X-New-This-Week", statsData.newThisWeek);
-  response.headers.set("X-Avg-Success-Rate", statsData.avgSuccessRate);
+  response.headers.set("X-Total-Clients", stats.totalClients);
+  response.headers.set("X-Urgent-Clients", stats.urgentClients);
+  response.headers.set("X-Active-Disputes", stats.activeDisputes);
+  response.headers.set("X-Needs-Action", stats.needsActionCount);
+  response.headers.set("X-New-This-Week", stats.newThisWeek);
+  response.headers.set("X-Avg-Success-Rate", stats.avgSuccessRate);
 
   return response;
 });

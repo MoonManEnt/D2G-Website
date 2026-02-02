@@ -204,6 +204,7 @@ export async function GET(req: Request) {
             },
           },
         },
+        take: 1000,
       }),
 
       // Clients by stage for pipeline funnel
@@ -262,6 +263,7 @@ export async function GET(req: Request) {
             select: { accountType: true },
           },
         },
+        take: 1000,
       }),
 
       // Clients with score history for improvement tracking
@@ -274,6 +276,7 @@ export async function GET(req: Request) {
             take: 10,
           },
         },
+        take: 1000,
       }),
 
       // Resolved disputes with timing for avg completion
@@ -289,6 +292,7 @@ export async function GET(req: Request) {
           createdAt: true,
           resolvedAt: true,
         },
+        take: 1000,
       }),
     ]);
 
@@ -681,6 +685,7 @@ async function getLLMStats(organizationId: string) {
       latencyMs: true,
       userAccepted: true,
     },
+    take: 500,
   });
 
   if (requests.length === 0) {

@@ -8,18 +8,18 @@ datasource db {
 }
 
 model Organization {
-  id                   String           @id @default(uuid())
+  id                   String                  @id @default(uuid())
   name                 String
-  slug                 String           @unique
-  createdAt            DateTime         @default(now())
-  updatedAt            DateTime         @updatedAt
-  subscriptionTier     String           @default("FREE")
-  subscriptionStatus   String           @default("ACTIVE")
+  slug                 String                  @unique
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+  subscriptionTier     String                  @default("FREE")
+  subscriptionStatus   String                  @default("ACTIVE")
   stripeCustomerId     String?
   stripeSubscriptionId String?
-  settings             String           @default("{}")
+  settings             String                  @default("{}")
   logoUrl              String?
-  primaryColor         String?          @default("#7c3aed")
+  primaryColor         String?                 @default("#7c3aed")
   secondaryColor       String?
   supportEmail         String?
   websiteUrl           String?
@@ -47,7 +47,7 @@ model User {
   name             String
   role             String         @default("SPECIALIST")
   isActive         Boolean        @default(true)
-  profilePicture   String?        // Base64 encoded profile picture or URL
+  profilePicture   String? // Base64 encoded profile picture or URL
   lastLoginAt      DateTime?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
@@ -62,64 +62,65 @@ model User {
 }
 
 model Client {
-  id                      String              @id @default(uuid())
-  firstName               String
-  lastName                String
-  email                   String?
-  phone                   String?
-  addressLine1            String?
-  addressLine2            String?
-  city                    String?
-  state                   String?
-  zipCode                 String?
-  ssnLast4                String?
-  dateOfBirth             DateTime?
-  isActive                Boolean             @default(true)
-  notes                   String?
-  creditMonitoringId      String?             // External enrollment ID
-  creditMonitoringStatus  String?             // PENDING, ACTIVE, SUSPENDED
-  creditMonitoringProvider String?            // identityiq, array
+  id                       String    @id @default(uuid())
+  firstName                String
+  lastName                 String
+  email                    String?
+  phone                    String?
+  addressLine1             String?
+  addressLine2             String?
+  city                     String?
+  state                    String?
+  zipCode                  String?
+  ssnLast4                 String?
+  dateOfBirth              DateTime?
+  isActive                 Boolean   @default(true)
+  notes                    String?
+  creditMonitoringId       String? // External enrollment ID
+  creditMonitoringStatus   String? // PENDING, ACTIVE, SUSPENDED
+  creditMonitoringProvider String? // identityiq, array
 
   // Command Center fields for tracking and prioritization
-  priority                String              @default("STANDARD")  // URGENT, HIGH, STANDARD, LOW
-  segment                 String              @default("NEW")       // NEW, RETURNING, VIP, STANDARD
-  stage                   String              @default("INTAKE")    // INTAKE, ANALYSIS, ROUND_1, ROUND_2, ROUND_3, ROUND_4, AWAITING_RESPONSE, MAINTENANCE, COMPLETED, ESCALATED
-  stageChangedAt          DateTime?                                 // When stage last changed
-  currentRound            Int                 @default(0)           // Current dispute round (0 = not started)
-  successRate             Float?                                    // Calculated success rate (0-100)
-  lastActivityAt          DateTime?                                 // Last dispute/report activity
-  activeBureaus           String              @default("[]")        // JSON array of active bureau disputes ["TU", "EQ", "EX"]
-  totalDisputesSent       Int                 @default(0)           // Running count of disputes sent
-  totalItemsDeleted       Int                 @default(0)           // Running count of items deleted
+  priority          String    @default("STANDARD") // URGENT, HIGH, STANDARD, LOW
+  segment           String    @default("NEW") // NEW, RETURNING, VIP, STANDARD
+  stage             String    @default("INTAKE") // INTAKE, ANALYSIS, ROUND_1, ROUND_2, ROUND_3, ROUND_4, AWAITING_RESPONSE, MAINTENANCE, COMPLETED, ESCALATED
+  stageChangedAt    DateTime? // When stage last changed
+  currentRound      Int       @default(0) // Current dispute round (0 = not started)
+  successRate       Float? // Calculated success rate (0-100)
+  lastActivityAt    DateTime? // Last dispute/report activity
+  activeBureaus     String    @default("[]") // JSON array of active bureau disputes ["TU", "EQ", "EX"]
+  totalDisputesSent Int       @default(0) // Running count of disputes sent
+  totalItemsDeleted Int       @default(0) // Running count of items deleted
 
   // Income fields for credit readiness analysis
-  statedIncome            Float?              // Annual stated income
-  statedIncomeType        String?             // SALARY, HOURLY, SELF_EMPLOYED, RETIREMENT, OTHER
-  incomeUpdatedAt         DateTime?           // When income was last stated/updated
+  statedIncome     Float? // Annual stated income
+  statedIncomeType String? // SALARY, HOURLY, SELF_EMPLOYED, RETIREMENT, OTHER
+  incomeUpdatedAt  DateTime? // When income was last stated/updated
 
   // Archive fields for 90-day retention
-  archivedAt              DateTime?           // When client was archived (null = active)
-  archiveReason           String?             // Why archived (manual, inactive, etc.)
-  lastDisputeSnapshot     String?             // JSON snapshot of last dispute state for AMELIA
-  createdAt               DateTime            @default(now())
-  updatedAt               DateTime            @updatedAt
-  organizationId          String
-  accounts                AccountItem[]
-  organization            Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  reports                 CreditReport[]
-  disputes                Dispute[]
-  creditScores            CreditScore[]
-  portalAccess            ClientPortalAccess?
-  reminders               Reminder[]
-  communications          Communication[]
-  clientDocuments         ClientDocument[]
-  archiveSnapshot         ClientArchiveSnapshot?
-  personalInfoDisputes    PersonalInfoDispute[]
-  sentryDisputes          SentryDispute[]
-  readinessAnalyses       CreditReadinessAnalysis[]
-  litigationScans         LitigationScan[]
+  archivedAt           DateTime? // When client was archived (null = active)
+  archiveReason        String? // Why archived (manual, inactive, etc.)
+  lastDisputeSnapshot  String? // JSON snapshot of last dispute state for AMELIA
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+  organizationId       String
+  accounts             AccountItem[]
+  organization         Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  reports              CreditReport[]
+  disputes             Dispute[]
+  creditScores         CreditScore[]
+  portalAccess         ClientPortalAccess?
+  reminders            Reminder[]
+  communications       Communication[]
+  clientDocuments      ClientDocument[]
+  archiveSnapshot      ClientArchiveSnapshot?
+  personalInfoDisputes PersonalInfoDispute[]
+  sentryDisputes       SentryDispute[]
+  readinessAnalyses    CreditReadinessAnalysis[]
+  litigationScans      LitigationScan[]
 
   @@index([organizationId])
+  @@index([organizationId, archivedAt])
   @@index([lastName, firstName])
   @@index([creditMonitoringId])
   @@index([organizationId, priority])
@@ -128,96 +129,98 @@ model Client {
 }
 
 model CreditReport {
-  id              String        @id @default(uuid())
+  id              String   @id @default(uuid())
   reportDate      DateTime
-  uploadedAt      DateTime      @default(now())
-  sourceType      String        @default("IDENTITYIQ")
+  uploadedAt      DateTime @default(now())
+  sourceType      String   @default("IDENTITYIQ")
   originalFileId  String
-  parseStatus     String        @default("PENDING")
+  parseStatus     String   @default("PENDING")
   parseError      String?
-  pageCount       Int           @default(0)
-  renderedPageIds String        @default("[]")
+  pageCount       Int      @default(0)
+  renderedPageIds String   @default("[]")
 
   // Personal Information parsed from report (for Round 1 disputes)
-  previousNames     String        @default("[]") // JSON array of name variations found
-  previousAddresses String        @default("[]") // JSON array of non-current addresses
-  hardInquiries     String        @default("[]") // JSON array of {creditorName, inquiryDate, cra}
+  previousNames     String @default("[]") // JSON array of name variations found
+  previousAddresses String @default("[]") // JSON array of non-current addresses
+  hardInquiries     String @default("[]") // JSON array of {creditorName, inquiryDate, cra}
 
-  organizationId  String
-  clientId        String
-  uploadedById    String
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  accounts        AccountItem[]
-  uploadedBy      User          @relation(fields: [uploadedById], references: [id])
-  client          Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  originalFile    StoredFile    @relation("OriginalReport", fields: [originalFileId], references: [id])
-  diffResults     DiffResult[]  @relation("NewReport")
-  priorDiffs      DiffResult[]  @relation("PriorReport")
+  organizationId   String
+  clientId         String
+  uploadedById     String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  accounts         AccountItem[]
+  uploadedBy       User              @relation(fields: [uploadedById], references: [id])
+  client           Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  originalFile     StoredFile        @relation("OriginalReport", fields: [originalFileId], references: [id])
+  diffResults      DiffResult[]      @relation("NewReport")
+  priorDiffs       DiffResult[]      @relation("PriorReport")
   pendingEvidences PendingEvidence[]
 
   @@index([organizationId])
   @@index([clientId])
+  @@index([clientId, parseStatus])
   @@index([reportDate])
 }
 
 model AccountItem {
-  id               String        @id @default(uuid())
-  creditorName     String
-  maskedAccountId  String
-  fingerprint      String
-  cra              String
-  accountType      String?
-  accountStatus    String        @default("UNKNOWN")
-  balance          Float?
-  pastDue          Float?
-  creditLimit      Float?
-  highBalance      Float?
-  monthlyPayment   Float?
-  dateOpened       DateTime?
-  dateReported     DateTime?
-  lastActivityDate DateTime?
-  disputeComment   String?
-  paymentStatus    String?
-  confidenceScore  Int           @default(0)
-  confidenceLevel  String        @default("LOW")
-  isConfirmed      Boolean       @default(false)
-  confirmedAt      DateTime?
-  assignedFlow     String?
-  suggestedFlow    String?
-  currentRound     Int           @default(0)
-  flowLockedAt     DateTime?
+  id                 String              @id @default(uuid())
+  creditorName       String
+  maskedAccountId    String
+  fingerprint        String
+  cra                String
+  accountType        String?
+  accountStatus      String              @default("UNKNOWN")
+  balance            Float?
+  pastDue            Float?
+  creditLimit        Float?
+  highBalance        Float?
+  monthlyPayment     Float?
+  dateOpened         DateTime?
+  dateReported       DateTime?
+  lastActivityDate   DateTime?
+  disputeComment     String?
+  paymentStatus      String?
+  confidenceScore    Int                 @default(0)
+  confidenceLevel    String              @default("LOW")
+  isConfirmed        Boolean             @default(false)
+  confirmedAt        DateTime?
+  assignedFlow       String?
+  suggestedFlow      String?
+  currentRound       Int                 @default(0)
+  flowLockedAt       DateTime?
   // Dispute locking fields - prevents concurrent disputes
-  isLockedInDispute   Boolean    @default(false)
-  lockedByDisputeId   String?    // ID of the locking dispute
-  lockedBySystem      String?    // "DISPUTE" or "SENTRY"
-  lockedAt            DateTime?  // When locked
-  rawExtractedData String?
+  isLockedInDispute  Boolean             @default(false)
+  lockedByDisputeId  String? // ID of the locking dispute
+  lockedBySystem     String? // "DISPUTE" or "SENTRY"
+  lockedAt           DateTime? // When locked
+  rawExtractedData   String?
   // Issues detected during parsing (JSON array)
-  detectedIssues   String?
-  isDisputable     Boolean       @default(false)
-  issueCount       Int           @default(0)
+  detectedIssues     String?
+  isDisputable       Boolean             @default(false)
+  issueCount         Int                 @default(0)
   // Page tracking for evidence capture
-  sourcePageNum    Int?          // PDF page where account was found (1-indexed)
-  sourcePageEnd    Int?          // End page if spans multiple pages
-  reportId         String
-  organizationId   String
-  clientId         String
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  client           Client        @relation(fields: [clientId], references: [id])
-  report           CreditReport  @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  diffChangesNew   DiffChange[]  @relation("NewAccount")
-  diffChangesOld   DiffChange[]  @relation("OldAccount")
-  disputes         DisputeItem[]
-  evidences        Evidence[]
+  sourcePageNum      Int? // PDF page where account was found (1-indexed)
+  sourcePageEnd      Int? // End page if spans multiple pages
+  reportId           String
+  organizationId     String
+  clientId           String
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  client             Client              @relation(fields: [clientId], references: [id])
+  report             CreditReport        @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  diffChangesNew     DiffChange[]        @relation("NewAccount")
+  diffChangesOld     DiffChange[]        @relation("OldAccount")
+  disputes           DisputeItem[]
+  evidences          Evidence[]
   sentryDisputeItems SentryDisputeItem[]
-  pendingEvidences PendingEvidence[]
+  pendingEvidences   PendingEvidence[]
 
   @@unique([reportId, fingerprint, cra])
   @@index([organizationId])
   @@index([clientId])
+  @@index([organizationId, clientId])
   @@index([fingerprint])
   @@index([confidenceLevel])
   @@index([isConfirmed])
@@ -258,35 +261,36 @@ model DiffChange {
 }
 
 model Dispute {
-  id               String        @id @default(uuid())
-  clientId         String
-  organizationId   String
-  flow             String
-  round            Int
-  cra              String
-  status           String        @default("DRAFT")
-  disputeCode      String?       @unique // Human-readable code: D2GO-YYYYMMDD-XXX
-  letterContent    String?       // AI-generated letter content
-  referenceNumber  String?       // Reference number for tracking
-  aiStrategy       String?       // JSON: AI-generated strategy and recommendations
-  createdAt        DateTime      @default(now())
-  approvedAt       DateTime?
-  sentDate         DateTime?     // When the letter was officially sent
-  mailedLetterId   String?       // Lob or DocuPost letter ID
-  mailedAt         DateTime?     // When mailed via physical mail
-  mailProvider     String?       // DOCUPOST or LOB
-  respondedAt      DateTime?
-  resolvedAt       DateTime?
-  responseNotes    String?
-  responseOutcome  String?
-  deadlineDate     DateTime?     // 30-day FCRA deadline
-  updatedAt        DateTime      @updatedAt
-  client           Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  items            DisputeItem[]
-  documents        Document[]
-  reminders        Reminder[]
+  id              String        @id @default(uuid())
+  clientId        String
+  organizationId  String
+  flow            String
+  round           Int
+  cra             String
+  status          String        @default("DRAFT")
+  disputeCode     String?       @unique // Human-readable code: D2GO-YYYYMMDD-XXX
+  letterContent   String? // AI-generated letter content
+  referenceNumber String? // Reference number for tracking
+  aiStrategy      String? // JSON: AI-generated strategy and recommendations
+  createdAt       DateTime      @default(now())
+  approvedAt      DateTime?
+  sentDate        DateTime? // When the letter was officially sent
+  mailedLetterId  String? // Lob or DocuPost letter ID
+  mailedAt        DateTime? // When mailed via physical mail
+  mailProvider    String? // DOCUPOST or LOB
+  respondedAt     DateTime?
+  resolvedAt      DateTime?
+  responseNotes   String?
+  responseOutcome String?
+  deadlineDate    DateTime? // 30-day FCRA deadline
+  updatedAt       DateTime      @updatedAt
+  client          Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  items           DisputeItem[]
+  documents       Document[]
+  reminders       Reminder[]
 
   @@index([organizationId])
+  @@index([organizationId, resolvedAt])
   @@index([clientId])
   @@index([status])
   @@index([cra, round])
@@ -295,21 +299,22 @@ model Dispute {
 }
 
 model DisputeItem {
-  id            String      @id @default(uuid())
+  id            String            @id @default(uuid())
   disputeId     String
   accountItemId String
   disputeReason String?
-  suggestedFlow String?     // AI-recommended flow for this item
-  priorityScore Int?        // AI priority score (1-100)
-  outcome       String?     // DELETED, VERIFIED, UPDATED, NO_RESPONSE, STALL_LETTER, PENDING
+  suggestedFlow String? // AI-recommended flow for this item
+  priorityScore Int? // AI priority score (1-100)
+  outcome       String? // DELETED, VERIFIED, UPDATED, NO_RESPONSE, STALL_LETTER, PENDING
   outcomeNotes  String?
-  createdAt     DateTime    @default(now())
-  accountItem   AccountItem @relation(fields: [accountItemId], references: [id])
-  dispute       Dispute     @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  createdAt     DateTime          @default(now())
+  accountItem   AccountItem       @relation(fields: [accountItemId], references: [id])
+  dispute       Dispute           @relation(fields: [disputeId], references: [id], onDelete: Cascade)
   responses     DisputeResponse[]
 
   @@unique([disputeId, accountItemId])
   @@index([disputeId])
+  @@index([outcome])
 }
 
 // =============================================================================
@@ -317,43 +322,43 @@ model DisputeItem {
 // =============================================================================
 
 model DisputeResponse {
-  id              String   @id @default(uuid())
-  disputeItemId   String
-  disputeId       String   // Denormalized for easier querying
+  id            String @id @default(uuid())
+  disputeItemId String
+  disputeId     String // Denormalized for easier querying
 
   // Response details
-  outcome         String   // DELETED, VERIFIED, UPDATED, NO_RESPONSE, STALL_LETTER
-  responseDate    DateTime
-  responseMethod  String   @default("MAIL") // MAIL, ONLINE, PHONE, EMAIL
+  outcome        String // DELETED, VERIFIED, UPDATED, NO_RESPONSE, STALL_LETTER
+  responseDate   DateTime
+  responseMethod String   @default("MAIL") // MAIL, ONLINE, PHONE, EMAIL
 
   // For STALL_LETTER outcomes
-  stallTactic     String?  // FRIVOLOUS_CLAIM, ID_VERIFICATION, MORE_INFO_NEEDED, etc.
-  stallDetails    String?
+  stallTactic  String? // FRIVOLOUS_CLAIM, ID_VERIFICATION, MORE_INFO_NEEDED, etc.
+  stallDetails String?
 
   // For UPDATED outcomes
-  updateType      String?  // BALANCE_UPDATED, STATUS_UPDATED, DATE_CORRECTED, etc.
-  previousValue   String?
-  newValue        String?
+  updateType    String? // BALANCE_UPDATED, STATUS_UPDATED, DATE_CORRECTED, etc.
+  previousValue String?
+  newValue      String?
 
   // For VERIFIED outcomes
-  verificationMethod String?  // How they claim to have verified
-  furnisherResponse  String?  // What the furnisher reported
+  verificationMethod String? // How they claim to have verified
+  furnisherResponse  String? // What the furnisher reported
 
   // Documentation
-  responseLetterFileId String?  // Uploaded response letter
-  notes           String?
+  responseLetterFileId String? // Uploaded response letter
+  notes                String?
 
   // Timing analysis
-  daysToRespond   Int      @default(0)  // Days from dispute sent to response
-  fcraDeadlineDate DateTime?            // 30-day deadline
-  wasLate         Boolean  @default(false)  // Did they miss the deadline?
+  daysToRespond    Int       @default(0) // Days from dispute sent to response
+  fcraDeadlineDate DateTime? // 30-day deadline
+  wasLate          Boolean   @default(false) // Did they miss the deadline?
 
   // Audit trail
-  recordedById    String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  recordedById String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  disputeItem     DisputeItem @relation(fields: [disputeItemId], references: [id], onDelete: Cascade)
+  disputeItem DisputeItem @relation(fields: [disputeItemId], references: [id], onDelete: Cascade)
 
   @@index([disputeItemId])
   @@index([disputeId])
@@ -366,42 +371,42 @@ model DisputeResponse {
 // =============================================================================
 
 model DisputeRoundHistory {
-  id              String   @id @default(uuid())
-  disputeId       String
-  clientId        String
-  organizationId  String
+  id             String @id @default(uuid())
+  disputeId      String
+  clientId       String
+  organizationId String
 
   // Round details
-  round           Int
-  flow            String   // ACCURACY, COLLECTION, CONSENT, COMBO
-  cra             String   // TRANSUNION, EXPERIAN, EQUIFAX
+  round Int
+  flow  String // ACCURACY, COLLECTION, CONSENT, COMBO
+  cra   String // TRANSUNION, EXPERIAN, EQUIFAX
 
   // Letter info
-  letterSentDate  DateTime?
-  letterContent   String?   // Snapshot of the letter sent
-  letterHash      String?   // For tracking uniqueness
+  letterSentDate DateTime?
+  letterContent  String? // Snapshot of the letter sent
+  letterHash     String? // For tracking uniqueness
 
   // Response tracking
   responseReceivedDate DateTime?
-  overallOutcome  String?   // Aggregate outcome for this round
+  overallOutcome       String? // Aggregate outcome for this round
 
   // Item-level summary (JSON for flexibility)
-  itemOutcomes    String    @default("{}") // JSON: {itemId: outcome}
+  itemOutcomes String @default("{}") // JSON: {itemId: outcome}
 
   // Context for next round (used by AMELIA)
-  nextRoundContext String   @default("{}") // JSON: NextRoundContext
+  nextRoundContext String @default("{}") // JSON: NextRoundContext
 
   // Metrics
-  itemsDisputed   Int       @default(0)
-  itemsDeleted    Int       @default(0)
-  itemsVerified   Int       @default(0)
-  itemsUpdated    Int       @default(0)
-  itemsNoResponse Int       @default(0)
-  itemsStalled    Int       @default(0)
+  itemsDisputed   Int @default(0)
+  itemsDeleted    Int @default(0)
+  itemsVerified   Int @default(0)
+  itemsUpdated    Int @default(0)
+  itemsNoResponse Int @default(0)
+  itemsStalled    Int @default(0)
 
   // Timestamps
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([disputeId])
   @@index([clientId])
@@ -426,7 +431,7 @@ model Document {
   organizationId      String
   createdById         String
   aiGenerated         Boolean            @default(false)
-  aiMetadata          String?            // JSON: AI generation metadata (tone, requestId, etc.)
+  aiMetadata          String? // JSON: AI generation metadata (tone, requestId, etc.)
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
   createdBy           User               @relation(fields: [createdById], references: [id])
@@ -477,18 +482,18 @@ model Evidence {
 
 // Pending evidence suggestions created during report parsing
 model PendingEvidence {
-  id              String       @id @default(uuid())
-  accountItemId   String
-  reportId        String
-  suggestedPages  String?      // JSON array of page numbers where account appears
-  status          String       @default("PENDING") // PENDING, CAPTURED, DISMISSED
-  organizationId  String
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  id             String   @id @default(uuid())
+  accountItemId  String
+  reportId       String
+  suggestedPages String? // JSON array of page numbers where account appears
+  status         String   @default("PENDING") // PENDING, CAPTURED, DISMISSED
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  accountItem     AccountItem  @relation(fields: [accountItemId], references: [id], onDelete: Cascade)
-  report          CreditReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  accountItem  AccountItem  @relation(fields: [accountItemId], references: [id], onDelete: Cascade)
+  report       CreditReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([accountItemId])
   @@index([reportId])
@@ -497,18 +502,18 @@ model PendingEvidence {
 }
 
 model StoredFile {
-  id                 String         @id @default(uuid())
+  id                 String           @id @default(uuid())
   filename           String
   mimeType           String
   sizeBytes          Int
   storagePath        String
-  storageType        String         @default("LOCAL")
+  storageType        String           @default("LOCAL")
   checksum           String?
   organizationId     String
-  createdAt          DateTime       @default(now())
-  originalReports    CreditReport[] @relation("OriginalReport")
-  generatedDocuments Document[]     @relation("GeneratedDocument")
-  evidenceRendered   Evidence[]     @relation("EvidenceRendered")
+  createdAt          DateTime         @default(now())
+  originalReports    CreditReport[]   @relation("OriginalReport")
+  generatedDocuments Document[]       @relation("GeneratedDocument")
+  evidenceRendered   Evidence[]       @relation("EvidenceRendered")
   evidenceSources    Evidence[]       @relation("EvidenceSource")
   organization       Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   clientDocuments    ClientDocument[]
@@ -581,10 +586,10 @@ model EventLog {
 // Beta Feedback - Capture user feedback during beta testing
 model BetaFeedback {
   id             String   @id @default(uuid())
-  type           String   // bug, idea, love, frustration, general
-  rating         Int?     // 1-5 star rating
+  type           String // bug, idea, love, frustration, general
+  rating         Int? // 1-5 star rating
   comment        String
-  page           String?  // URL path where feedback was submitted
+  page           String? // URL path where feedback was submitted
   userAgent      String?
   screenSize     String?
   userId         String?
@@ -622,47 +627,47 @@ model Notification {
 // =============================================================================
 
 model LLMRequest {
-  id              String   @id @default(uuid())
-  taskType        String   // DISPUTE_STRATEGY, LETTER_GENERATION, CFPB_COMPLAINT, ISSUE_ANALYSIS
-  provider        String   // CLAUDE, OPENAI
-  model           String   // claude-sonnet-4-20250514, gpt-4-turbo, etc.
+  id       String @id @default(uuid())
+  taskType String // DISPUTE_STRATEGY, LETTER_GENERATION, CFPB_COMPLAINT, ISSUE_ANALYSIS
+  provider String // CLAUDE, OPENAI
+  model    String // claude-sonnet-4-20250514, gpt-4-turbo, etc.
 
   // Request details
-  promptTokens    Int      @default(0)
-  completionTokens Int     @default(0)
-  totalTokens     Int      @default(0)
+  promptTokens     Int @default(0)
+  completionTokens Int @default(0)
+  totalTokens      Int @default(0)
 
   // Performance metrics
-  latencyMs       Int
-  costCents       Int      @default(0) // Store in cents for precision
+  latencyMs Int
+  costCents Int @default(0) // Store in cents for precision
 
   // Quality metrics (filled in later via feedback)
-  userAccepted    Boolean?
-  userEdited      Boolean?
-  editDistance    Int?     // Levenshtein distance if edited
+  userAccepted Boolean?
+  userEdited   Boolean?
+  editDistance Int? // Levenshtein distance if edited
 
   // A/B Testing
-  isABTest        Boolean  @default(false)
-  abTestGroup     String?  // A or B
-  alternateOutput String?  // Store the other model's output for comparison
+  isABTest        Boolean @default(false)
+  abTestGroup     String? // A or B
+  alternateOutput String? // Store the other model's output for comparison
 
   // Outcome tracking (for learning)
-  disputeId       String?
-  disputeOutcome  String?  // RESOLVED, REJECTED, PENDING
+  disputeId      String?
+  disputeOutcome String? // RESOLVED, REJECTED, PENDING
 
   // Context for analysis
-  flow            String?  // ACCURACY, COLLECTION, CONSENT, COMBO
-  round           Int?
-  cra             String?
+  flow  String? // ACCURACY, COLLECTION, CONSENT, COMBO
+  round Int?
+  cra   String?
 
   // Error tracking
-  wasError        Boolean  @default(false)
-  errorMessage    String?
-  wasRetry        Boolean  @default(false)
-  retryOf         String?  // ID of original request if this is a retry
+  wasError     Boolean @default(false)
+  errorMessage String?
+  wasRetry     Boolean @default(false)
+  retryOf      String? // ID of original request if this is a retry
 
-  organizationId  String
-  createdAt       DateTime @default(now())
+  organizationId String
+  createdAt      DateTime @default(now())
 
   @@index([organizationId])
   @@index([taskType])
@@ -672,23 +677,23 @@ model LLMRequest {
 }
 
 model LLMProviderStats {
-  id              String   @id @default(uuid())
-  provider        String   // CLAUDE, OPENAI
-  taskType        String   // Task type this stat is for
+  id       String @id @default(uuid())
+  provider String // CLAUDE, OPENAI
+  taskType String // Task type this stat is for
 
   // Aggregated stats (computed daily)
-  avgLatencyMs    Float    @default(0)
-  avgCostCents    Float    @default(0)
-  acceptanceRate  Float    @default(0)    // % accepted without edit
-  successRate     Float    @default(0)    // % of disputes resolved favorably
-  errorRate       Float    @default(0)
-  totalRequests   Int      @default(0)
+  avgLatencyMs   Float @default(0)
+  avgCostCents   Float @default(0)
+  acceptanceRate Float @default(0) // % accepted without edit
+  successRate    Float @default(0) // % of disputes resolved favorably
+  errorRate      Float @default(0)
+  totalRequests  Int   @default(0)
 
   // Period this stat covers
-  periodStart     DateTime
-  periodEnd       DateTime
+  periodStart DateTime
+  periodEnd   DateTime
 
-  computedAt      DateTime @default(now())
+  computedAt DateTime @default(now())
 
   @@unique([provider, taskType, periodStart])
   @@index([provider, taskType])
@@ -696,12 +701,12 @@ model LLMProviderStats {
 
 // Password reset tokens for email flow
 model PasswordResetToken {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   userId    String
-  token     String   @unique
+  token     String    @unique
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   @@index([token])
   @@index([userId])
@@ -712,18 +717,18 @@ model PasswordResetToken {
 // =============================================================================
 
 model CreditScore {
-  id             String   @id @default(uuid())
-  clientId       String
-  cra            String   // TRANSUNION, EXPERIAN, EQUIFAX
-  scoreType      String   @default("VANTAGE3") // FICO8, FICO9, VANTAGE3, VANTAGE4
-  score          Int
-  scoreDate      DateTime
-  reportId       String?  // Link to report if extracted from it
-  source         String   @default("MANUAL") // MANUAL, REPORT_PARSE, API_SYNC
-  factorsPositive String?  // JSON array of positive factors
-  factorsNegative String?  // JSON array of negative factors
-  createdAt      DateTime @default(now())
-  client         Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  id              String   @id @default(uuid())
+  clientId        String
+  cra             String // TRANSUNION, EXPERIAN, EQUIFAX
+  scoreType       String   @default("VANTAGE3") // FICO8, FICO9, VANTAGE3, VANTAGE4
+  score           Int
+  scoreDate       DateTime
+  reportId        String? // Link to report if extracted from it
+  source          String   @default("MANUAL") // MANUAL, REPORT_PARSE, API_SYNC
+  factorsPositive String? // JSON array of positive factors
+  factorsNegative String? // JSON array of negative factors
+  createdAt       DateTime @default(now())
+  client          Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId, scoreDate])
   @@index([clientId, cra])
@@ -735,19 +740,19 @@ model CreditScore {
 // =============================================================================
 
 model ClientPortalAccess {
-  id             String    @id @default(uuid())
-  clientId       String    @unique
-  email          String    @unique
-  passwordHash   String
-  isActive       Boolean   @default(true)
-  lastLoginAt    DateTime?
-  loginAttempts  Int       @default(0)
-  lockedUntil    DateTime?
-  invitedAt      DateTime  @default(now())
-  acceptedAt     DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  client         Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  id            String    @id @default(uuid())
+  clientId      String    @unique
+  email         String    @unique
+  passwordHash  String
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
+  loginAttempts Int       @default(0)
+  lockedUntil   DateTime?
+  invitedAt     DateTime  @default(now())
+  acceptedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  client        Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([email])
   @@index([clientId])
@@ -758,22 +763,22 @@ model ClientPortalAccess {
 // =============================================================================
 
 model Reminder {
-  id             String    @id @default(uuid())
+  id             String   @id @default(uuid())
   clientId       String
   disputeId      String?
-  reminderType   String    // FOLLOW_UP, DEADLINE, DOCUMENT_REQUEST, RESPONSE_DUE, SCORE_CHECK, CUSTOM
+  reminderType   String // FOLLOW_UP, DEADLINE, DOCUMENT_REQUEST, RESPONSE_DUE, SCORE_CHECK, CUSTOM
   title          String
   description    String?
   scheduledFor   DateTime
-  status         String    @default("PENDING") // PENDING, COMPLETED, SNOOZED, CANCELLED
-  repeatInterval String    @default("NONE") // NONE, DAILY, WEEKLY, MONTHLY
+  status         String   @default("PENDING") // PENDING, COMPLETED, SNOOZED, CANCELLED
+  repeatInterval String   @default("NONE") // NONE, DAILY, WEEKLY, MONTHLY
 
-  completedAt    DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  client         Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  dispute        Dispute?  @relation(fields: [disputeId], references: [id])
+  client  Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  dispute Dispute? @relation(fields: [disputeId], references: [id])
 
   @@index([clientId, scheduledFor])
   @@index([status, scheduledFor])
@@ -785,25 +790,25 @@ model Reminder {
 // =============================================================================
 
 model ClientDocument {
-  id             String     @id @default(uuid())
+  id             String  @id @default(uuid())
   clientId       String
   organizationId String
   fileId         String
   title          String
   description    String?
-  category       String     @default("OTHER") // ID, PROOF_OF_ADDRESS, BANK_STATEMENT, UTILITY_BILL, OTHER
+  category       String  @default("OTHER") // ID, PROOF_OF_ADDRESS, BANK_STATEMENT, UTILITY_BILL, OTHER
 
   // Access control
-  isClientVisible Boolean   @default(false) // Whether client can see in portal
-  isSecure        Boolean   @default(true)  // Extra security for sensitive docs
+  isClientVisible Boolean @default(false) // Whether client can see in portal
+  isSecure        Boolean @default(true) // Extra security for sensitive docs
 
   // Audit
-  uploadedById   String?
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  uploadedById String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  client         Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  file           StoredFile @relation(fields: [fileId], references: [id])
+  client Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  file   StoredFile @relation(fields: [fileId], references: [id])
 
   @@index([clientId, category])
   @@index([organizationId])
@@ -819,12 +824,12 @@ model ClientDocument {
 // =============================================================================
 
 model AmeliaContentHash {
-  id             String   @id @default(uuid())
-  clientId       String
-  contentHash    String   // SHA-256 hash of the content
-  contentType    String   // SENTENCE, PARAGRAPH, PHRASE, STORY
-  sourceDocId    String?  // Document this came from
-  createdAt      DateTime @default(now())
+  id          String   @id @default(uuid())
+  clientId    String
+  contentHash String // SHA-256 hash of the content
+  contentType String // SENTENCE, PARAGRAPH, PHRASE, STORY
+  sourceDocId String? // Document this came from
+  createdAt   DateTime @default(now())
 
   @@unique([clientId, contentHash])
   @@index([clientId])
@@ -835,35 +840,35 @@ model AmeliaContentHash {
 // =============================================================================
 
 model PersonalInfoDispute {
-  id                String    @id @default(uuid())
-  clientId          String
-  organizationId    String
+  id             String @id @default(uuid())
+  clientId       String
+  organizationId String
 
   // What is being disputed
-  type              String    // PREVIOUS_NAME, PREVIOUS_ADDRESS, HARD_INQUIRY
-  value             String    // The actual name/address/inquiry creditor name
-  cra               String    // TRANSUNION, EXPERIAN, EQUIFAX
+  type  String // PREVIOUS_NAME, PREVIOUS_ADDRESS, HARD_INQUIRY
+  value String // The actual name/address/inquiry creditor name
+  cra   String // TRANSUNION, EXPERIAN, EQUIFAX
 
   // For hard inquiries, additional context
-  inquiryDate       String?   // Original inquiry date (MM/DD/YYYY)
+  inquiryDate String? // Original inquiry date (MM/DD/YYYY)
 
   // Dispute tracking
-  firstDisputedAt   DateTime  @default(now())  // When first included in a letter
-  lastDisputedAt    DateTime  @default(now())  // Most recent dispute letter
-  disputeCount      Int       @default(1)      // How many rounds disputed
+  firstDisputedAt DateTime @default(now()) // When first included in a letter
+  lastDisputedAt  DateTime @default(now()) // Most recent dispute letter
+  disputeCount    Int      @default(1) // How many rounds disputed
 
   // Status tracking - drives AMELIA's inclusion logic
   status            String    @default("ACTIVE") // ACTIVE, REMOVED, VERIFIED
-  removedAt         DateTime?                   // When confirmed removed from report
-  removedInReportId String?                     // CreditReport.id that confirmed removal
-  verifiedAt        DateTime?                   // If CRA verified (keeps disputing)
+  removedAt         DateTime? // When confirmed removed from report
+  removedInReportId String? // CreditReport.id that confirmed removal
+  verifiedAt        DateTime? // If CRA verified (keeps disputing)
 
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  client            Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
-  @@unique([clientId, type, value, cra])  // One record per item per bureau
+  @@unique([clientId, type, value, cra]) // One record per item per bureau
   @@index([clientId])
   @@index([clientId, status])
   @@index([organizationId])
@@ -871,40 +876,40 @@ model PersonalInfoDispute {
 }
 
 model Communication {
-  id             String    @id @default(uuid())
+  id             String  @id @default(uuid())
   clientId       String
   organizationId String
-  userId         String?   // User who created the communication
+  userId         String? // User who created the communication
 
   // Communication details
-  type           String    // EMAIL, SMS, CALL, NOTE, PORTAL_MESSAGE, LETTER
-  direction      String    @default("OUTBOUND") // INBOUND, OUTBOUND, INTERNAL
-  subject        String?
-  content        String    // Message content or call notes
-  contentHtml    String?   // HTML version for emails
+  type        String // EMAIL, SMS, CALL, NOTE, PORTAL_MESSAGE, LETTER
+  direction   String  @default("OUTBOUND") // INBOUND, OUTBOUND, INTERNAL
+  subject     String?
+  content     String // Message content or call notes
+  contentHtml String? // HTML version for emails
 
   // Status tracking
-  status         String    @default("SENT") // DRAFT, SENT, DELIVERED, FAILED, READ
-  sentAt         DateTime?
-  deliveredAt    DateTime?
-  readAt         DateTime?
-  failureReason  String?
+  status        String    @default("SENT") // DRAFT, SENT, DELIVERED, FAILED, READ
+  sentAt        DateTime?
+  deliveredAt   DateTime?
+  readAt        DateTime?
+  failureReason String?
 
   // External references
-  externalId     String?   // Email ID from Resend, SMS ID from Twilio, etc.
-  provider       String?   // resend, twilio, lob
+  externalId String? // Email ID from Resend, SMS ID from Twilio, etc.
+  provider   String? // resend, twilio, lob
 
   // Related entities
-  disputeId      String?
-  documentId     String?
+  disputeId  String?
+  documentId String?
 
   // Metadata
-  metadata       String    @default("{}") // JSON for additional data
+  metadata String @default("{}") // JSON for additional data
 
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  client         Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId, createdAt])
   @@index([organizationId, createdAt])
@@ -917,42 +922,42 @@ model Communication {
 // =============================================================================
 
 model CreditDNA {
-  id               String   @id @default(uuid())
-  clientId         String
-  reportId         String
-  organizationId   String
+  id             String @id @default(uuid())
+  clientId       String
+  reportId       String
+  organizationId String
 
   // Primary classification
-  classification   String   // THIN_FILE_REBUILDER, THICK_FILE_DEROG, etc.
+  classification     String // THIN_FILE_REBUILDER, THICK_FILE_DEROG, etc.
   subClassifications String @default("[]") // JSON array of sub-classifications
-  confidence       Int      @default(0)    // 0-100
-  confidenceLevel  String   @default("MEDIUM") // LOW, MEDIUM, HIGH
+  confidence         Int    @default(0) // 0-100
+  confidenceLevel    String @default("MEDIUM") // LOW, MEDIUM, HIGH
 
   // Overall scores
-  healthScore      Int      @default(0)    // 0-100
-  improvementPotential Int  @default(0)    // 0-100
-  urgencyScore     Int      @default(0)    // 0-100
+  healthScore          Int @default(0) // 0-100
+  improvementPotential Int @default(0) // 0-100
+  urgencyScore         Int @default(0) // 0-100
 
   // Component analysis (JSON blobs for flexibility)
-  fileThickness    String   @default("{}") // JSON: FileThicknessMetrics
-  derogatoryProfile String  @default("{}") // JSON: DerogatoryProfile
-  utilization      String   @default("{}") // JSON: UtilizationAnalysis
-  bureauDivergence String   @default("{}") // JSON: BureauDivergence
-  inquiryAnalysis  String   @default("{}") // JSON: InquiryAnalysis
-  positiveFactors  String   @default("{}") // JSON: PositiveFactors
-  disputeReadiness String   @default("{}") // JSON: DisputeReadiness
+  fileThickness     String @default("{}") // JSON: FileThicknessMetrics
+  derogatoryProfile String @default("{}") // JSON: DerogatoryProfile
+  utilization       String @default("{}") // JSON: UtilizationAnalysis
+  bureauDivergence  String @default("{}") // JSON: BureauDivergence
+  inquiryAnalysis   String @default("{}") // JSON: InquiryAnalysis
+  positiveFactors   String @default("{}") // JSON: PositiveFactors
+  disputeReadiness  String @default("{}") // JSON: DisputeReadiness
 
   // Narratives
-  summary          String   @default("")   // Human-readable summary
-  keyInsights      String   @default("[]") // JSON array of insights
-  immediateActions String   @default("[]") // JSON array of recommended actions
+  summary          String @default("") // Human-readable summary
+  keyInsights      String @default("[]") // JSON array of insights
+  immediateActions String @default("[]") // JSON array of recommended actions
 
   // Metadata
-  version          String   @default("1.0.0")
-  computeTimeMs    Int      @default(0)
-  analyzedAt       DateTime @default(now())
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  version       String   @default("1.0.0")
+  computeTimeMs Int      @default(0)
+  analyzedAt    DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@index([clientId])
   @@index([organizationId])
@@ -965,28 +970,28 @@ model CreditDNA {
 // =============================================================================
 
 model ClientArchiveSnapshot {
-  id                String   @id @default(uuid())
-  clientId          String   @unique
-  organizationId    String
+  id             String @id @default(uuid())
+  clientId       String @unique
+  organizationId String
 
   // Metadata
-  snapshotVersion   String   @default("1.0.0")
-  snapshotDate      DateTime @default(now())
-  archiveReason     String   // manual, inactive, compliance_hold
+  snapshotVersion String   @default("1.0.0")
+  snapshotDate    DateTime @default(now())
+  archiveReason   String // manual, inactive, compliance_hold
 
   // Comprehensive JSON snapshots (using @db.Text for large payloads)
-  clientProfile     String   @db.Text  // Client basic info at time of archive
-  creditDNA         String   @db.Text  // Full Credit DNA profile
-  creditScores      String   @db.Text  // All credit score history
-  disputes          String   @db.Text  // All disputes with items, letters, outcomes
-  disputeResponses  String   @db.Text  // All CRA responses with FCRA tracking
-  roundHistory      String   @db.Text  // DisputeRoundHistory records
-  communications    String   @db.Text  // All communications
-  accounts          String   @db.Text  // AccountItems with detected issues
-  evidenceRefs      String   @db.Text  // Evidence metadata (not binary)
-  documents         String   @db.Text  // Document metadata
-  eventLogs         String   @db.Text  // Client-specific event logs
-  ameliaContext     String   @db.Text  // Optimized AMELIA re-engagement context
+  clientProfile    String @db.Text // Client basic info at time of archive
+  creditDNA        String @db.Text // Full Credit DNA profile
+  creditScores     String @db.Text // All credit score history
+  disputes         String @db.Text // All disputes with items, letters, outcomes
+  disputeResponses String @db.Text // All CRA responses with FCRA tracking
+  roundHistory     String @db.Text // DisputeRoundHistory records
+  communications   String @db.Text // All communications
+  accounts         String @db.Text // AccountItems with detected issues
+  evidenceRefs     String @db.Text // Evidence metadata (not binary)
+  documents        String @db.Text // Document metadata
+  eventLogs        String @db.Text // Client-specific event logs
+  ameliaContext    String @db.Text // Optimized AMELIA re-engagement context
 
   // Tracking
   snapshotSizeBytes Int      @default(0)
@@ -994,8 +999,8 @@ model ClientArchiveSnapshot {
   createdAt         DateTime @default(now())
 
   // Relationships
-  client            Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  client       Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId])
   @@index([expiresAt])
@@ -1010,140 +1015,141 @@ model ClientArchiveSnapshot {
 // =============================================================================
 
 model SentryDispute {
-  id                  String   @id @default(cuid())
-  clientId            String
-  client              Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  organizationId      String
+  id             String @id @default(cuid())
+  clientId       String
+  client         Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  organizationId String
 
   // Core fields
-  cra                 String   // TRANSUNION, EXPERIAN, EQUIFAX
-  flow                String   // ACCURACY, COLLECTION, CONSENT, COMBO
-  round               Int      @default(1)
-  status              String   @default("DRAFT") // DRAFT, SENT, RESPONDED, RESOLVED
-  disputeCode         String?  @unique // Human-readable code: STY-YYYYMMDD-XXX
+  cra         String // TRANSUNION, EXPERIAN, EQUIFAX
+  flow        String // ACCURACY, COLLECTION, CONSENT, COMBO
+  round       Int     @default(1)
+  status      String  @default("DRAFT") // DRAFT, SENT, RESPONDED, RESOLVED
+  disputeCode String? @unique // Human-readable code: STY-YYYYMMDD-XXX
 
   // Letter content
-  letterContent       String?  @db.Text
-  letterContentHash   String?  // For uniqueness tracking
+  letterContent     String? @db.Text
+  letterContentHash String? // For uniqueness tracking
 
   // Sentry Intelligence Data
-  eoscarCodes         String?  // JSON: Array of selected e-OSCAR codes
-  metro2Fields        String?  // JSON: Array of targeted Metro 2 fields
-  citationValidation  String?  // JSON: Citation validation results
-  ocrRiskScore        Int?     // 0-100
-  successProbability  Float?   // 0-1
+  eoscarCodes        String? // JSON: Array of selected e-OSCAR codes
+  metro2Fields       String? // JSON: Array of targeted Metro 2 fields
+  citationValidation String? // JSON: Citation validation results
+  ocrRiskScore       Int? // 0-100
+  successProbability Float? // 0-1
 
   // Physical mail tracking
-  mailedLetterId      String?  // DocuPost or Lob letter ID
-  mailedAt            DateTime?
-  mailProvider        String?  // DOCUPOST or LOB
-  mailServiceLevel    String?  // standard, certified, certified_return_receipt
+  mailedLetterId   String? // DocuPost or Lob letter ID
+  mailedAt         DateTime?
+  mailProvider     String? // DOCUPOST or LOB
+  mailServiceLevel String? // standard, certified, certified_return_receipt
 
   // Dates
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  sentDate            DateTime?
-  deadlineDate        DateTime?
-  respondedAt         DateTime?
-  resolvedAt          DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  sentDate     DateTime?
+  deadlineDate DateTime?
+  respondedAt  DateTime?
+  resolvedAt   DateTime?
 
   // Relations
-  items               SentryDisputeItem[]
-  analysis            SentryAnalysis?
+  items    SentryDisputeItem[]
+  analysis SentryAnalysis?
 
   @@index([clientId])
   @@index([organizationId])
+  @@index([organizationId, status])
   @@index([status])
   @@index([cra, round])
   @@index([disputeCode])
 }
 
 model SentryDisputeItem {
-  id                  String   @id @default(cuid())
-  sentryDisputeId     String
-  sentryDispute       SentryDispute @relation(fields: [sentryDisputeId], references: [id], onDelete: Cascade)
-  accountItemId       String
-  accountItem         AccountItem @relation(fields: [accountItemId], references: [id])
+  id              String        @id @default(cuid())
+  sentryDisputeId String
+  sentryDispute   SentryDispute @relation(fields: [sentryDisputeId], references: [id], onDelete: Cascade)
+  accountItemId   String
+  accountItem     AccountItem   @relation(fields: [accountItemId], references: [id])
 
   // Sentry-specific targeting
-  eoscarCode          String?  // Primary e-OSCAR code for this item
-  metro2Fields        String?  // JSON: Targeted fields for this specific item
-  disputeReason       String?
-  customLanguage      String?  @db.Text // Custom dispute text
+  eoscarCode     String? // Primary e-OSCAR code for this item
+  metro2Fields   String? // JSON: Targeted fields for this specific item
+  disputeReason  String?
+  customLanguage String? @db.Text // Custom dispute text
 
   // Outcome tracking
-  outcome             String?  // DELETED, VERIFIED, UPDATED, NO_RESPONSE, STALL_LETTER, PENDING
-  responseDate        DateTime?
-  responseNotes       String?
+  outcome       String? // DELETED, VERIFIED, UPDATED, NO_RESPONSE, STALL_LETTER, PENDING
+  responseDate  DateTime?
+  responseNotes String?
 
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([sentryDisputeId])
   @@index([accountItemId])
 }
 
 model SentryAnalysis {
-  id                  String   @id @default(cuid())
-  sentryDisputeId     String   @unique
-  sentryDispute       SentryDispute @relation(fields: [sentryDisputeId], references: [id], onDelete: Cascade)
+  id              String        @id @default(cuid())
+  sentryDisputeId String        @unique
+  sentryDispute   SentryDispute @relation(fields: [sentryDisputeId], references: [id], onDelete: Cascade)
 
   // e-OSCAR Analysis
-  recommendedCodes    String   @db.Text // JSON: Array of recommended codes with reasoning
+  recommendedCodes       String  @db.Text // JSON: Array of recommended codes with reasoning
   codeSelectionRationale String?
 
   // Legal Validation
-  validCitations      String?  @db.Text // JSON: Array of valid citations found
-  invalidCitations    String?  @db.Text // JSON: Array of problematic citations
-  citationWarnings    String?  @db.Text // JSON: Warnings (e.g., FDCPA to CRA)
+  validCitations   String? @db.Text // JSON: Array of valid citations found
+  invalidCitations String? @db.Text // JSON: Array of problematic citations
+  citationWarnings String? @db.Text // JSON: Warnings (e.g., FDCPA to CRA)
 
   // OCR Analysis
-  ocrScore            Int      // 0-100 (higher = safer)
-  ocrFindings         String?  @db.Text // JSON: Array of flagged phrases
-  ocrFixSuggestions   String?  @db.Text // JSON: Auto-fix recommendations
+  ocrScore          Int // 0-100 (higher = safer)
+  ocrFindings       String? @db.Text // JSON: Array of flagged phrases
+  ocrFixSuggestions String? @db.Text // JSON: Auto-fix recommendations
 
   // Metro 2 Analysis
-  identifiedFields    String?  @db.Text // JSON: Fields that could be disputed
-  fieldDiscrepancies  String?  @db.Text // JSON: Cross-bureau discrepancies
+  identifiedFields   String? @db.Text // JSON: Fields that could be disputed
+  fieldDiscrepancies String? @db.Text // JSON: Cross-bureau discrepancies
 
   // Success Prediction
-  successProbability  Float    // 0-1
-  successBreakdown    String   @db.Text // JSON: Factor-by-factor breakdown
-  improvementTips     String?  @db.Text // JSON: How to increase success rate
+  successProbability Float // 0-1
+  successBreakdown   String  @db.Text // JSON: Factor-by-factor breakdown
+  improvementTips    String? @db.Text // JSON: How to increase success rate
 
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // Track furnisher response patterns (benefits both systems)
 model FurnisherProfile {
-  id                  String   @id @default(cuid())
-  name                String   @unique
-  normalizedName      String   // For matching variations
+  id             String @id @default(cuid())
+  name           String @unique
+  normalizedName String // For matching variations
 
   // Historical metrics
-  totalDisputes       Int      @default(0)
-  verificationRate    Float?   // How often they verify
-  deletionRate        Float?   // How often deleted
-  avgResponseDays     Float?   // Average response time
+  totalDisputes    Int    @default(0)
+  verificationRate Float? // How often they verify
+  deletionRate     Float? // How often deleted
+  avgResponseDays  Float? // Average response time
 
   // Code effectiveness
-  effectiveCodes      String?  // JSON: Which e-OSCAR codes work best
+  effectiveCodes String? // JSON: Which e-OSCAR codes work best
 
-  lastUpdated         DateTime @updatedAt
+  lastUpdated DateTime @updatedAt
 
   @@index([normalizedName])
 }
 
 // Track e-OSCAR code outcomes for ML improvement
 model SentryCodeOutcome {
-  id                  String   @id @default(cuid())
-  code                String
-  accountType         String   // Collection, credit card, etc.
-  furnisherName       String?
-  outcome             String   // DELETED, VERIFIED, etc.
-  sentryDisputeId     String
-  createdAt           DateTime @default(now())
+  id              String   @id @default(cuid())
+  code            String
+  accountType     String // Collection, credit card, etc.
+  furnisherName   String?
+  outcome         String // DELETED, VERIFIED, etc.
+  sentryDisputeId String
+  createdAt       DateTime @default(now())
 
   @@index([code])
   @@index([furnisherName])
@@ -1157,11 +1163,11 @@ model SentryCodeOutcome {
 // Uses database-level atomicity to prevent race conditions
 
 model DisputeSequence {
-  id            String   @id @default(uuid())
-  dateKey       String   // Format: YYYYMMDD
-  system        String   // "DISPUTE" or "SENTRY"
-  lastSequence  Int      @default(0)
-  updatedAt     DateTime @updatedAt
+  id           String   @id @default(uuid())
+  dateKey      String // Format: YYYYMMDD
+  system       String // "DISPUTE" or "SENTRY"
+  lastSequence Int      @default(0)
+  updatedAt    DateTime @updatedAt
 
   @@unique([dateKey, system])
   @@index([dateKey])
@@ -1172,45 +1178,45 @@ model DisputeSequence {
 // =============================================================================
 
 model CreditReadinessAnalysis {
-  id                    String   @id @default(uuid())
-  clientId              String
-  organizationId        String
+  id             String @id @default(uuid())
+  clientId       String
+  organizationId String
 
   // Input context
-  productType           String   // MORTGAGE, AUTO, CREDIT_CARD, PERSONAL_LOAN, BUSINESS_LOC, GENERAL
-  statedIncome          Float?
-  reasonForApplying     String?
+  productType       String // MORTGAGE, AUTO, CREDIT_CARD, PERSONAL_LOAN, BUSINESS_LOC, GENERAL
+  statedIncome      Float?
+  reasonForApplying String?
 
   // Score analysis
-  relevantScoreModel    String   // Which FICO model is used for this product
-  relevantScore         Int?     // The score from that model
-  triMergeMiddle        Int?     // For mortgage: middle of FICO 2, 4, 5
+  relevantScoreModel String // Which FICO model is used for this product
+  relevantScore      Int? // The score from that model
+  triMergeMiddle     Int? // For mortgage: middle of FICO 2, 4, 5
 
   // Approval analysis
-  approvalLikelihood    Int      // 0-100
-  approvalTier          String   // LIKELY, POSSIBLE, UNLIKELY, NOT_READY
-  approvalExplanation   String   @db.Text
+  approvalLikelihood  Int // 0-100
+  approvalTier        String // LIKELY, POSSIBLE, UNLIKELY, NOT_READY
+  approvalExplanation String @db.Text
 
   // DTI analysis
-  estimatedDTI          Float?
-  maxRecommendedDTI     Float?
+  estimatedDTI      Float?
+  maxRecommendedDTI Float?
 
   // Action plan and findings (JSON)
-  actionPlan            String   @db.Text  // JSON: ActionPlanStep[]
-  findings              String   @db.Text  // JSON: detailed findings
-  recommendations       String   @db.Text  // JSON: improvement recommendations
-  scoreGapAnalysis      String   @db.Text  // JSON: score gap breakdown
+  actionPlan       String @db.Text // JSON: ActionPlanStep[]
+  findings         String @db.Text // JSON: detailed findings
+  recommendations  String @db.Text // JSON: improvement recommendations
+  scoreGapAnalysis String @db.Text // JSON: score gap breakdown
 
   // Vendor recommendations (links to Vendor Rules Engine)
-  vendorRecommendations String   @default("[]") // JSON: matched vendor recommendations
+  vendorRecommendations String @default("[]") // JSON: matched vendor recommendations
 
   // Metadata
-  computeTimeMs         Int      @default(0)
-  version               String   @default("1.0.0")
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  computeTimeMs Int      @default(0)
+  version       String   @default("1.0.0")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  client                Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
   @@index([organizationId])
@@ -1227,22 +1233,22 @@ model Vendor {
   organizationId  String
   name            String
   description     String?  @db.Text
-  category        String   // CREDIT_REPAIR, DEBT_MANAGEMENT, FINANCIAL_COACHING, CREDIT_MONITORING, CREDIT_BUILDER, OTHER
+  category        String // CREDIT_REPAIR, DEBT_MANAGEMENT, FINANCIAL_COACHING, CREDIT_MONITORING, CREDIT_BUILDER, OTHER
   logoUrl         String?
   websiteUrl      String?
-  affiliateUrl    String?  // Base affiliate URL
-  affiliateCode   String?  // Tracking code
+  affiliateUrl    String? // Base affiliate URL
+  affiliateCode   String? // Tracking code
   contactName     String?
   contactEmail    String?
   isActive        Boolean  @default(true)
-  commissionType  String?  // FLAT, PERCENTAGE, TIERED
+  commissionType  String? // FLAT, PERCENTAGE, TIERED
   commissionValue Float?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  rules           VendorRule[]
-  referrals       VendorReferral[]
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  rules        VendorRule[]
+  referrals    VendorReferral[]
 
   @@index([organizationId])
   @@index([category])
@@ -1250,21 +1256,21 @@ model Vendor {
 }
 
 model VendorRule {
-  id                    String   @id @default(uuid())
-  vendorId              String
-  name                  String
-  description           String?
-  priority              Int      @default(0)  // Higher = checked first
-  isActive              Boolean  @default(true)
-  conditions            String   @db.Text     // JSON: Array of RuleCondition
-  recommendationTitle   String
-  recommendationBody    String   @db.Text
-  recommendationCTA     String?
-  customAffiliateUrl    String?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                  String   @id @default(uuid())
+  vendorId            String
+  name                String
+  description         String?
+  priority            Int      @default(0) // Higher = checked first
+  isActive            Boolean  @default(true)
+  conditions          String   @db.Text // JSON: Array of RuleCondition
+  recommendationTitle String
+  recommendationBody  String   @db.Text
+  recommendationCTA   String?
+  customAffiliateUrl  String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
-  vendor                Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendor Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
   @@index([vendorId])
   @@index([isActive])
@@ -1276,30 +1282,30 @@ model VendorRule {
 // =============================================================================
 
 model LitigationScan {
-  id                    String   @id @default(uuid())
-  clientId              String
-  organizationId        String
-  reportId              String
-  scanStatus            String   @default("COMPLETED")
-  totalViolations       Int      @default(0)
-  fcraViolations        Int      @default(0)
-  fdcpaViolations       Int      @default(0)
-  metro2Errors          Int      @default(0)
-  criticalCount         Int      @default(0)
-  highCount             Int      @default(0)
-  mediumCount           Int      @default(0)
-  lowCount              Int      @default(0)
-  estimatedTotalMin     Int      @default(0)
-  estimatedTotalMax     Int      @default(0)
-  violations            String   @db.Text
-  damageEstimate        String   @db.Text
-  caseSummary           String   @db.Text
-  escalationPlan        String   @db.Text
-  computeTimeMs         Int      @default(0)
-  version               String   @default("1.0.0")
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  client                Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  id                String   @id @default(uuid())
+  clientId          String
+  organizationId    String
+  reportId          String
+  scanStatus        String   @default("COMPLETED")
+  totalViolations   Int      @default(0)
+  fcraViolations    Int      @default(0)
+  fdcpaViolations   Int      @default(0)
+  metro2Errors      Int      @default(0)
+  criticalCount     Int      @default(0)
+  highCount         Int      @default(0)
+  mediumCount       Int      @default(0)
+  lowCount          Int      @default(0)
+  estimatedTotalMin Int      @default(0)
+  estimatedTotalMax Int      @default(0)
+  violations        String   @db.Text
+  damageEstimate    String   @db.Text
+  caseSummary       String   @db.Text
+  escalationPlan    String   @db.Text
+  computeTimeMs     Int      @default(0)
+  version           String   @default("1.0.0")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  client            Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
   @@index([organizationId])
@@ -1307,22 +1313,22 @@ model LitigationScan {
 }
 
 model VendorReferral {
-  id              String    @id @default(uuid())
-  vendorId        String
-  clientId        String
-  organizationId  String
-  triggerType     String    // READINESS_ANALYSIS, ACTION_PLAN, MANUAL, PORTAL_VIEW
-  triggerEntityId String?
-  ruleId          String?
-  status          String    @default("RECOMMENDED") // RECOMMENDED, CLICKED, CONVERTED, EXPIRED
-  clickedAt       DateTime?
-  convertedAt     DateTime?
+  id               String    @id @default(uuid())
+  vendorId         String
+  clientId         String
+  organizationId   String
+  triggerType      String // READINESS_ANALYSIS, ACTION_PLAN, MANUAL, PORTAL_VIEW
+  triggerEntityId  String?
+  ruleId           String?
+  status           String    @default("RECOMMENDED") // RECOMMENDED, CLICKED, CONVERTED, EXPIRED
+  clickedAt        DateTime?
+  convertedAt      DateTime?
   commissionEarned Float?
-  affiliateUrl    String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  affiliateUrl     String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
-  vendor          Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendor Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
   @@index([vendorId])
   @@index([clientId])

@@ -9,7 +9,7 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['pdfjs-dist', 'unpdf', 'require-in-the-middle'],
     serverActions: {
-      bodySizeLimit: '100mb',
+      bodySizeLimit: '50mb',
     },
   },
   env: {

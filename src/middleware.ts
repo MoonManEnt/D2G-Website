@@ -203,6 +203,15 @@ export async function middleware(request: NextRequest) {
     if (request.method === "OPTIONS") {
       return new NextResponse(null, { status: 200, headers: response.headers });
     }
+
+    // Add stale-while-revalidate for GET API responses (Vercel edge cache)
+    // Serves stale data for 60s while revalidating in the background
+    if (request.method === "GET" && !pathname.includes("/auth/")) {
+      response.headers.set(
+        "Cache-Control",
+        "public, s-maxage=10, stale-while-revalidate=30"
+      );
+    }
   }
 
   return response;

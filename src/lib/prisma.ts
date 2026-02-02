@@ -39,14 +39,27 @@ if (isDev) {
 
 // In production, if dbUrl is missing, we let Prisma throw its own error to help the user identify missing Vercel env vars.
 
-// Production: Append connection pool params for PostgreSQL if not already set
+/**
+ * SERVERLESS CONNECTION POOLING
+ * On Vercel, each function instance gets its own Prisma client.
+ * With 50-100 instances at scale, we must keep per-instance connections LOW
+ * to avoid overwhelming Neon's connection limit (100-300 with pgBouncer).
+ *
+ * Strategy: 5 connections per instance × 50 instances = 250 total (within Neon limits)
+ * Use DIRECT_URL for migrations only; DATABASE_URL should point to Neon's pooler.
+ */
 if (!isDev && dbUrl && dbUrl.startsWith("postgres")) {
   const url = new URL(dbUrl);
   if (!url.searchParams.has("connection_limit")) {
-    url.searchParams.set("connection_limit", "25");
+    // Low per-instance limit: 5 connections × N instances stays under Neon pool ceiling
+    url.searchParams.set("connection_limit", "5");
   }
   if (!url.searchParams.has("pool_timeout")) {
-    url.searchParams.set("pool_timeout", "10");
+    // 15s timeout to handle Vercel cold starts gracefully
+    url.searchParams.set("pool_timeout", "15");
+  }
+  if (!url.searchParams.has("connect_timeout")) {
+    url.searchParams.set("connect_timeout", "15");
   }
   dbUrl = url.toString();
 }
@@ -62,8 +75,8 @@ export const prisma =
     },
   });
 
-if (isDev) {
-  globalForPrisma.prisma = prisma;
-}
+// Cache globally in all environments — Vercel reuses the global object within
+// the same function instance, preventing duplicate PrismaClient allocations.
+globalForPrisma.prisma = prisma;
 
 export default prisma;

@@ -272,14 +272,39 @@ export const POST = withAuth(async (req, ctx) => {
     // AMELIA LETTER GENERATION - Automatic on creation
     // =========================================================================
 
-    // Fetch the most recent credit report for personal info
-    const latestReport = await prisma.creditReport.findFirst({
-      where: {
-        clientId: client.id,
-        parseStatus: "COMPLETED",
-      },
-      orderBy: { reportDate: "desc" },
-    });
+    // Fetch all pre-generation data in parallel (independent reads)
+    const [latestReport, usedHashes, lastDisputeDateResult, activePersonalInfoDisputesResult] = await Promise.all([
+      // Most recent credit report for personal info
+      prisma.creditReport.findFirst({
+        where: {
+          clientId: client.id,
+          parseStatus: "COMPLETED",
+        },
+        orderBy: { reportDate: "desc" },
+      }),
+      // Used content hashes to ensure uniqueness
+      prisma.ameliaContentHash.findMany({
+        where: { clientId: client.id },
+        select: { contentHash: true },
+      }),
+      // For R2+, fetch last dispute date
+      round >= 2 ? getLastDisputeDate(client.id, cra as CRA) : Promise.resolve(null),
+      // For R2+, fetch active personal info disputes
+      round >= 2 ? getActiveDisputes(client.id, cra as CRA) : Promise.resolve(undefined),
+    ]);
+
+    const usedHashSet = new Set(usedHashes.map((h) => h.contentHash));
+
+    // For R2+, format last dispute date
+    let lastDisputeDateStr: string | undefined;
+    let activePersonalInfoDisputes: ActivePersonalInfoDispute[] | undefined;
+
+    if (round >= 2) {
+      if (lastDisputeDateResult) {
+        lastDisputeDateStr = format(lastDisputeDateResult, "MMMM d, yyyy");
+      }
+      activePersonalInfoDisputes = activePersonalInfoDisputesResult;
+    }
 
     // Parse personal info from report
     let previousNames: string[] = [];
@@ -343,25 +368,6 @@ export const POST = withAuth(async (req, ctx) => {
         inaccurateCategories: [],
       };
     });
-
-    // Get used content hashes to ensure uniqueness
-    const usedHashes = await prisma.ameliaContentHash.findMany({
-      where: { clientId: client.id },
-      select: { contentHash: true },
-    });
-    const usedHashSet = new Set(usedHashes.map((h) => h.contentHash));
-
-    // For R2+, fetch last dispute date and active personal info disputes
-    let lastDisputeDateStr: string | undefined;
-    let activePersonalInfoDisputes: ActivePersonalInfoDispute[] | undefined;
-
-    if (round >= 2) {
-      const lastDisputeDate = await getLastDisputeDate(client.id, cra as CRA);
-      if (lastDisputeDate) {
-        lastDisputeDateStr = format(lastDisputeDate, "MMMM d, yyyy");
-      }
-      activePersonalInfoDisputes = await getActiveDisputes(client.id, cra as CRA);
-    }
 
     // Generate the letter using AMELIA doctrine
     const generatedLetter = generateLetter({
@@ -433,49 +439,49 @@ export const POST = withAuth(async (req, ctx) => {
       },
     });
 
-    // Record disputed items for persistent tracking
-    await recordDisputedItems(
-      client.id,
-      ctx.organizationId,
-      cra as CRA,
-      generatedLetter.personalInfoDisputed
-    );
-
-    // Invalidate caches - disputes list + client detail + client stats
-    await cacheDelPrefix(`disputes:list:${ctx.organizationId}`);
-    await cacheDel(`clients:detail:${ctx.organizationId}:${clientId}`);
-    await cacheDelPrefix(`clients:stats:${ctx.organizationId}`);
-    await cacheDelPrefix(`clients:list:${ctx.organizationId}`);
-
-    // Log the event
-    await prisma.eventLog.create({
-      data: {
-        eventType: "DISPUTE_CREATED",
-        actorId: ctx.userId,
-        actorEmail: ctx.session.user.email,
-        targetType: "Dispute",
-        targetId: dispute.id,
-        eventData: JSON.stringify({
-          disputeCode,
-          cra,
-          flow,
-          round,
-          accountCount: accounts.length,
-          ameliaGenerated: true,
-          tone: generatedLetter.tone,
-          isBackdated: generatedLetter.isBackdated,
-        }),
-        organizationId: ctx.organizationId,
-      },
-    });
-
-    // Track usage
-    await trackUsage(ctx.organizationId, ctx.userId, "dispute_created", {
-      disputeId: dispute.id,
-      cra,
-      flow,
-      round,
-    });
+    // Run post-update side effects in parallel (all independent operations)
+    await Promise.all([
+      // Record disputed items for persistent tracking
+      recordDisputedItems(
+        client.id,
+        ctx.organizationId,
+        cra as CRA,
+        generatedLetter.personalInfoDisputed
+      ),
+      // Log the event
+      prisma.eventLog.create({
+        data: {
+          eventType: "DISPUTE_CREATED",
+          actorId: ctx.userId,
+          actorEmail: ctx.session.user.email,
+          targetType: "Dispute",
+          targetId: dispute.id,
+          eventData: JSON.stringify({
+            disputeCode,
+            cra,
+            flow,
+            round,
+            accountCount: accounts.length,
+            ameliaGenerated: true,
+            tone: generatedLetter.tone,
+            isBackdated: generatedLetter.isBackdated,
+          }),
+          organizationId: ctx.organizationId,
+        },
+      }),
+      // Track usage
+      trackUsage(ctx.organizationId, ctx.userId, "dispute_created", {
+        disputeId: dispute.id,
+        cra,
+        flow,
+        round,
+      }),
+      // Invalidate caches - disputes list + client detail + client stats
+      cacheDelPrefix(`disputes:list:${ctx.organizationId}`),
+      cacheDel(`clients:detail:${ctx.organizationId}:${clientId}`),
+      cacheDelPrefix(`clients:stats:${ctx.organizationId}`),
+      cacheDelPrefix(`clients:list:${ctx.organizationId}`),
+    ]);
 
     return NextResponse.json({
       success: true,
