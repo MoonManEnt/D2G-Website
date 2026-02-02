@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { ArchiveService } from "@/lib/archive";
 import { encryptPIIFields, decryptPIIFields } from "@/lib/encryption";
+import { cacheGet, cacheSet, cacheDel, cacheDelPrefix } from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const orgId = session.user.organizationId;
+
+    // Check cache
+    const cacheKey = `clients:detail:${orgId}:${clientId}`;
+    const cached = await cacheGet(cacheKey);
+    if (cached) {
+      return NextResponse.json(JSON.parse(cached));
     }
 
     // Single consolidated query: fetch client with all related data + summary counts in parallel
@@ -148,10 +158,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Decrypt PII fields before returning
     const decryptedClient = decryptPIIFields(transformedClient as Record<string, unknown>);
 
-    return NextResponse.json({
-      client: decryptedClient,
-      summary,
-    });
+    const responseData = { client: decryptedClient, summary };
+
+    // Cache for 60s
+    await cacheSet(cacheKey, JSON.stringify(responseData), 60);
+
+    return NextResponse.json(responseData);
   } catch (error) {
     console.error("Error fetching client:", error);
     return NextResponse.json(
@@ -211,6 +223,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         notes: body.notes || null,
       },
     });
+
+    // Invalidate caches
+    await cacheDel(`clients:detail:${session.user.organizationId}:${clientId}`);
+    await cacheDelPrefix(`clients:list:${session.user.organizationId}`);
 
     // Decrypt before returning
     return NextResponse.json(decryptPIIFields(updatedClient as Record<string, unknown>));
@@ -286,6 +302,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     if (!existingClient) {
       return NextResponse.json({ error: "Client not found" }, { status: 404 });
     }
+
+    // Invalidate caches for both delete paths
+    await cacheDel(`clients:detail:${session.user.organizationId}:${clientId}`);
+    await cacheDelPrefix(`clients:list:${session.user.organizationId}`);
+    await cacheDelPrefix(`clients:stats:${session.user.organizationId}`);
 
     // PERMANENT DELETE - removes all client data
     if (permanent) {

@@ -314,5 +314,41 @@ export async function listPop(key: string): Promise<string | null> {
   return value;
 }
 
+/**
+ * Delete all keys matching a prefix (for cache invalidation)
+ */
+export async function cacheDelPrefix(prefix: string): Promise<void> {
+  const client = getRedis();
+
+  if (client && isConnected) {
+    try {
+      let cursor = "0";
+      do {
+        const [nextCursor, keys] = await client.scan(
+          cursor,
+          "MATCH",
+          `${prefix}*`,
+          "COUNT",
+          100
+        );
+        cursor = nextCursor;
+        if (keys.length > 0) {
+          await client.del(...keys);
+        }
+      } while (cursor !== "0");
+      return;
+    } catch (error) {
+      console.error("Redis delPrefix error:", error);
+    }
+  }
+
+  // Fallback to memory
+  for (const key of memoryStore.keys()) {
+    if (key.startsWith(prefix)) {
+      memoryStore.delete(key);
+    }
+  }
+}
+
 // Export types
 export type { Redis };

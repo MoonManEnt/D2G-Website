@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { updateDisputeSchema } from "@/lib/api-validation-schemas";
 import { unlockAccountsForDispute } from "@/lib/account-lock-service";
+import { cacheDel, cacheDelPrefix } from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
 
@@ -151,6 +152,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       data: updateData,
     });
 
+    // Invalidate caches
+    await cacheDelPrefix(`disputes:list:${session.user.organizationId}`);
+    await cacheDel(`clients:detail:${session.user.organizationId}:${existingDispute.clientId}`);
+    await cacheDelPrefix(`clients:stats:${session.user.organizationId}`);
+
     // Log the event
     await prisma.eventLog.create({
       data: {
@@ -227,6 +233,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     await prisma.dispute.delete({
       where: { id: disputeId },
     });
+
+    // Invalidate caches
+    await cacheDelPrefix(`disputes:list:${session.user.organizationId}`);
+    await cacheDel(`clients:detail:${session.user.organizationId}:${existingDispute.clientId}`);
+    await cacheDelPrefix(`clients:stats:${session.user.organizationId}`);
 
     // Log the deletion
     await prisma.eventLog.create({

@@ -4,6 +4,7 @@ import { withAuth, trackUsage } from "@/lib/api-middleware";
 import { getDisputeReasonFromIssueCode } from "@/lib/dispute-templates";
 import { format } from "date-fns";
 import { parsePaginationParams, buildPaginatedResponse } from "@/lib/pagination";
+import { cacheGet, cacheSet, cacheDel, cacheDelPrefix } from "@/lib/redis";
 import {
   generateLetter,
   type ClientPersonalInfo,
@@ -30,6 +31,15 @@ export const GET = withAuth(async (req, ctx) => {
     const { searchParams } = new URL(req.url);
     const clientId = searchParams.get("clientId");
     const pagination = parsePaginationParams(searchParams);
+    const page = searchParams.get("page") || "1";
+    const limit = searchParams.get("limit") || "20";
+
+    // Check cache
+    const cacheKey = `disputes:list:${ctx.organizationId}:${clientId || "all"}:${page}:${limit}`;
+    const cached = await cacheGet(cacheKey);
+    if (cached) {
+      return NextResponse.json(JSON.parse(cached));
+    }
 
     const where = {
       organizationId: ctx.organizationId,
@@ -96,7 +106,12 @@ export const GET = withAuth(async (req, ctx) => {
       })),
     }));
 
-    return NextResponse.json(buildPaginatedResponse(transformedDisputes, total, pagination));
+    const response = buildPaginatedResponse(transformedDisputes, total, pagination);
+
+    // Cache for 30s
+    await cacheSet(cacheKey, JSON.stringify(response), 30);
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error("Error fetching disputes:", error);
     return NextResponse.json(
@@ -425,6 +440,12 @@ export const POST = withAuth(async (req, ctx) => {
       cra as CRA,
       generatedLetter.personalInfoDisputed
     );
+
+    // Invalidate caches - disputes list + client detail + client stats
+    await cacheDelPrefix(`disputes:list:${ctx.organizationId}`);
+    await cacheDel(`clients:detail:${ctx.organizationId}:${clientId}`);
+    await cacheDelPrefix(`clients:stats:${ctx.organizationId}`);
+    await cacheDelPrefix(`clients:list:${ctx.organizationId}`);
 
     // Log the event
     await prisma.eventLog.create({

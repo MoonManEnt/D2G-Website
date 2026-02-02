@@ -4,6 +4,7 @@ import { z } from "zod";
 import { withAuth } from "@/lib/api-middleware";
 import { encryptPIIFields, decryptPIIFields } from "@/lib/encryption";
 import { parsePaginationParams, buildPaginatedResponse } from "@/lib/pagination";
+import { cacheGet, cacheSet, cacheDelPrefix } from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,17 @@ export const GET = withAuth(async (req, { organizationId }) => {
   const priority = searchParams.get("priority");
   const stage = searchParams.get("stage");
   const segment = searchParams.get("segment");
+  const page = searchParams.get("page") || "1";
+  const limit = searchParams.get("limit") || "20";
+
+  // Check cache (skip for search queries - too many permutations)
+  if (!search) {
+    const cacheKey = `clients:list:${organizationId}:${priority || ""}:${stage || ""}:${segment || ""}:${page}:${limit}`;
+    const cached = await cacheGet(cacheKey);
+    if (cached) {
+      return NextResponse.json(JSON.parse(cached));
+    }
+  }
 
   // Build where clause
   const where: Record<string, unknown> = {
@@ -178,11 +190,34 @@ export const GET = withAuth(async (req, { organizationId }) => {
   );
 
   // Return paginated response (backwards-compatible: data array + pagination metadata)
-  return NextResponse.json(buildPaginatedResponse(decryptedClients, total, pagination));
+  const response = buildPaginatedResponse(decryptedClients, total, pagination);
+
+  // Cache for 30s (skip for search queries)
+  if (!search) {
+    const cacheKey = `clients:list:${organizationId}:${priority || ""}:${stage || ""}:${segment || ""}:${page}:${limit}`;
+    await cacheSet(cacheKey, JSON.stringify(response), 30);
+  }
+
+  return NextResponse.json(response);
 });
 
 // Get aggregate stats for Command Center header
 export const HEAD = withAuth(async (req, { organizationId }) => {
+  // Check cache
+  const statsCacheKey = `clients:stats:${organizationId}`;
+  const cachedStats = await cacheGet(statsCacheKey);
+  if (cachedStats) {
+    const stats = JSON.parse(cachedStats);
+    const response = new NextResponse(null, { status: 200 });
+    response.headers.set("X-Total-Clients", stats.totalClients);
+    response.headers.set("X-Urgent-Clients", stats.urgentClients);
+    response.headers.set("X-Active-Disputes", stats.activeDisputes);
+    response.headers.set("X-Needs-Action", stats.needsActionCount);
+    response.headers.set("X-New-This-Week", stats.newThisWeek);
+    response.headers.set("X-Avg-Success-Rate", stats.avgSuccessRate);
+    return response;
+  }
+
   const [
     totalClients,
     urgentClients,
@@ -237,14 +272,25 @@ export const HEAD = withAuth(async (req, { organizationId }) => {
     ? Math.round((successfulOutcomes.length / resolvedOutcomes.length) * 100)
     : 0;
 
+  // Cache stats for 60s
+  const statsData = {
+    totalClients: totalClients.toString(),
+    urgentClients: urgentClients.toString(),
+    activeDisputes: activeDisputes.toString(),
+    needsActionCount: needsActionCount.toString(),
+    newThisWeek: newThisWeek.toString(),
+    avgSuccessRate: avgSuccessRate.toString(),
+  };
+  await cacheSet(statsCacheKey, JSON.stringify(statsData), 60);
+
   // Return stats as headers
   const response = new NextResponse(null, { status: 200 });
-  response.headers.set("X-Total-Clients", totalClients.toString());
-  response.headers.set("X-Urgent-Clients", urgentClients.toString());
-  response.headers.set("X-Active-Disputes", activeDisputes.toString());
-  response.headers.set("X-Needs-Action", needsActionCount.toString());
-  response.headers.set("X-New-This-Week", newThisWeek.toString());
-  response.headers.set("X-Avg-Success-Rate", avgSuccessRate.toString());
+  response.headers.set("X-Total-Clients", statsData.totalClients);
+  response.headers.set("X-Urgent-Clients", statsData.urgentClients);
+  response.headers.set("X-Active-Disputes", statsData.activeDisputes);
+  response.headers.set("X-Needs-Action", statsData.needsActionCount);
+  response.headers.set("X-New-This-Week", statsData.newThisWeek);
+  response.headers.set("X-Avg-Success-Rate", statsData.avgSuccessRate);
 
   return response;
 });
@@ -294,6 +340,10 @@ export const POST = withAuth<CreateClientBody>(async (req, { session, body, orga
       lastActivityAt: new Date(),
     },
   });
+
+  // Invalidate caches
+  await cacheDelPrefix(`clients:list:${organizationId}`);
+  await cacheDelPrefix(`clients:stats:${organizationId}`);
 
   // Log event
   await prisma.eventLog.create({
