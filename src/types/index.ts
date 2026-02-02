@@ -8,6 +8,7 @@
 // ============================================================================
 
 export enum UserRole {
+  OWNER = "OWNER",
   ADMIN = "ADMIN",
   SPECIALIST = "SPECIALIST",
 }
