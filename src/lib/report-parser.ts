@@ -8,8 +8,9 @@
 
 import prisma from "@/lib/prisma";
 import { extractTextFromPDF, extractTextFromBuffer } from "@/lib/pdf-extract";
-import { parseIdentityIQReport, analyzeAccountsForIssues, getIssuesSummary, ParsedAccountWithIssues, extractCreditScores, ExtractedCreditScores } from "@/lib/parser";
+import { parseIdentityIQReport, analyzeAccountsForIssues, getIssuesSummary, ParsedAccountWithIssues, extractCreditScores, ExtractedCreditScores, extractHardInquiries } from "@/lib/parser";
 import { computeConfidenceLevel } from "@/types";
+import { cacheDelPrefix } from "@/lib/redis";
 
 export interface ParseReportOptions {
   reportId: string;
@@ -229,6 +230,18 @@ export async function parseAndAnalyzeReport(options: ParseReportOptions): Promis
 
     console.log(`[PARSER] Credit scores extracted: TU=${extractedScores.transunion}, EQ=${extractedScores.equifax}, EX=${extractedScores.experian}`);
 
+    // Step 5c: Extract and save hard inquiries
+    const hardInquiries = extractHardInquiries(extractionResult.text);
+    if (hardInquiries.length > 0) {
+      await prisma.creditReport.update({
+        where: { id: reportId },
+        data: {
+          hardInquiries: JSON.stringify(hardInquiries),
+        },
+      });
+      console.log(`[PARSER] Hard inquiries extracted: ${hardInquiries.length}`);
+    }
+
     // Step 5b: Create pending evidence suggestions for accounts with issues
     const accountsWithIssues = await prisma.accountItem.findMany({
       where: {
@@ -260,6 +273,11 @@ export async function parseAndAnalyzeReport(options: ParseReportOptions): Promis
         parseError: null,
       },
     });
+
+    // Step 6b: Invalidate caches so client pages show fresh data
+    await cacheDelPrefix(`clients:detail:${organizationId}:${clientId}`);
+    await cacheDelPrefix(`clients:list:${organizationId}`);
+    await cacheDelPrefix(`clients:stats:${organizationId}`);
 
     // Step 7: Log the parsing event
     await prisma.eventLog.create({

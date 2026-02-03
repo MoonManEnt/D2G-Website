@@ -1566,4 +1566,18 @@ function extractHardInquiriesFromReport(fullText: string): ParsedInquiry[] {
   });
 }
 
+/**
+ * Extract hard inquiries from IdentityIQ report text.
+ * Returns a simplified array suitable for JSON storage on CreditReport.
+ * Delegates to the comprehensive extractHardInquiriesFromReport internally.
+ */
+export function extractHardInquiries(text: string): { creditorName: string; inquiryDate: string; cra: string }[] {
+  const parsed = extractHardInquiriesFromReport(text);
+  return parsed.map((inq) => ({
+    creditorName: inq.creditorName,
+    inquiryDate: inq.inquiryDate,
+    cra: inq.cra as string,
+  }));
+}
+
 export { FIELD_PATTERNS, extractPreviousNamesFromReport, extractPreviousAddressesFromReport, extractHardInquiriesFromReport };

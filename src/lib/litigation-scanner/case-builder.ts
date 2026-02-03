@@ -523,10 +523,8 @@ function determineRecommendedNextStage(
     return "LITIGATION";
   }
 
-  // If estimated damages > $10,000 (100000 cents) and CRITICAL/HIGH violations: ATTORNEY_CONSULTATION
-  // Note: The spec says 100000 cents for $10,000 which is actually $1,000 in cents.
-  // However, $10,000 = 1000000 cents. The spec explicitly says "100000 cents" so we use that.
-  if (avgDamage >= 100000 && hasHighOrCritical) {
+  // If estimated damages > $10,000 (1000000 cents) and CRITICAL/HIGH violations: ATTORNEY_CONSULTATION
+  if (avgDamage >= 1000000 && hasHighOrCritical) {
     const attyIndex = STAGE_ORDER.indexOf("ATTORNEY_CONSULTATION");
     if (attyIndex > currentIndex) {
       return "ATTORNEY_CONSULTATION";

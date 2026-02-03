@@ -654,9 +654,21 @@ export default function ClientDetailPage() {
       if (res.ok) {
         toast({
           title: "Report Uploaded",
-          description: "Credit report uploaded and parsing started",
+          description: "Credit report uploaded and parsed successfully",
         });
+        // Refresh all client data after report upload + parse
         fetchClient();
+        fetchCreditScores();
+        // Auto-generate/refresh DNA from newly parsed accounts
+        try {
+          const dnaRes = await fetch(`/api/clients/${clientId}/dna`, { method: "POST" });
+          if (dnaRes.ok) {
+            const dnaData = await dnaRes.json();
+            setDnaProfile(dnaData.dna);
+          }
+        } catch {
+          // Non-critical, DNA can be regenerated manually
+        }
       } else {
         let errorMessage = "Failed to process report";
         try {
