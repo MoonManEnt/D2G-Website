@@ -598,10 +598,25 @@ export async function parseIdentityIQReport(fullText: string, pages?: string[]):
     };
   }
 
+  // Diagnostic: check for key markers in the text
+  const hasTransUnion = /TransUnion/i.test(fullText);
+  const hasExperian = /Experian/i.test(fullText);
+  const hasEquifax = /Equifax/i.test(fullText);
+  const hasAccountHash = /Account\s*#/i.test(fullText);
+  const hasBalance = /Balance:/i.test(fullText);
+  console.log(`[PARSER] PDF markers: TU=${hasTransUnion} EX=${hasExperian} EQ=${hasEquifax} Account#=${hasAccountHash} Balance=${hasBalance} TextLen=${fullText.length}`);
+
   // Find account blocks by looking for creditor names followed by bureau headers
   const accountBlocks = extractAccountBlocks(fullText, pages);
 
-  console.log(`Found ${accountBlocks.length} account blocks`);
+  console.log(`[PARSER] Found ${accountBlocks.length} account blocks`);
+  if (accountBlocks.length === 0 && hasAccountHash) {
+    // Show a sample of the text around "Account #" for debugging
+    const idx = fullText.search(/Account\s*#/i);
+    if (idx >= 0) {
+      console.log(`[PARSER] Sample near "Account #" (idx ${idx}):`, JSON.stringify(fullText.substring(Math.max(0, idx - 100), idx + 200)));
+    }
+  }
 
   for (let i = 0; i < accountBlocks.length; i++) {
     const block = accountBlocks[i];
@@ -692,36 +707,51 @@ function extractAccountBlocks(text: string, pages?: string[]): AccountBlock[] {
     return 1;
   };
 
-  // Pattern: CREDITOR_NAME followed by TransUnion Experian Equifax Account #:
-  // Must start with a letter (not OK/numbers from payment history)
-  const pattern = /(?:^|[^A-Z0-9])([A-Z][A-Z0-9\/\-&'.]+(?:\s+[A-Z][A-Z0-9\/\-&'.]+)*)\s+TransUnion\s+Experian\s+Equifax\s+Account\s*#:/g;
+  // Multiple patterns to handle different IdentityIQ PDF text extraction formats
+  // Pattern 1 (primary): CREDITOR_NAME TransUnion Experian Equifax Account #:
+  // Pattern 2 (relaxed spacing): handles extra whitespace/newlines between columns
+  // Pattern 3 (Account #: line separate): handles when Account #: is on next line
+  const patterns = [
+    /(?:^|[^A-Z0-9])([A-Z][A-Z0-9\/\-&'.]+(?:\s+[A-Z][A-Z0-9\/\-&'.]+)*)\s+TransUnion\s+Experian\s+Equifax\s+Account\s*#:/g,
+    /(?:^|[^A-Z0-9])([A-Z][A-Z0-9\/\-&'.]+(?:[\s]+[A-Z][A-Z0-9\/\-&'.]+)*)\s*\n?\s*TransUnion[\s\n]+Experian[\s\n]+Equifax[\s\n]+Account\s*#\s*:/g,
+    /(?:^|\n)([A-Z][A-Z0-9\/\-&'.\s]{2,40}?)\s*(?:\n\s*)?TransUnion[\s\n]+Experian[\s\n]+Equifax/g,
+  ];
 
   let match;
   const matches: { creditorName: string; startIndex: number }[] = [];
 
-  while ((match = pattern.exec(text)) !== null) {
-    let creditorName = match[1].trim();
+  for (const pattern of patterns) {
+    if (matches.length > 0) break; // Use first pattern that finds results
+    pattern.lastIndex = 0; // Reset regex state
 
-    // Clean up creditor name - remove leading OK sequences from payment history
-    creditorName = creditorName.replace(/^(?:OK\s+)+/g, "").trim();
-    creditorName = creditorName.replace(/^\d+\s+/g, "").trim();
-    creditorName = creditorName.replace(/^K\s+/g, "").trim(); // stray K from OK
+    while ((match = pattern.exec(text)) !== null) {
+      let creditorName = match[1].trim();
 
-    // Skip false positives
-    if (creditorName.length < 3 ||
-        creditorName.includes("Total Accounts") ||
-        creditorName.includes("Open Accounts") ||
-        creditorName.includes("Summary") ||
-        /^OK+$/.test(creditorName) ||
-        /^\d+$/.test(creditorName)) {
-      continue;
+      // Clean up creditor name - remove leading OK sequences from payment history
+      creditorName = creditorName.replace(/^(?:OK\s+)+/g, "").trim();
+      creditorName = creditorName.replace(/^\d+\s+/g, "").trim();
+      creditorName = creditorName.replace(/^K\s+/g, "").trim(); // stray K from OK
+      // Remove trailing whitespace/newlines
+      creditorName = creditorName.replace(/[\n\r]+/g, " ").replace(/\s{2,}/g, " ").trim();
+
+      // Skip false positives
+      if (creditorName.length < 3 ||
+          creditorName.includes("Total Accounts") ||
+          creditorName.includes("Open Accounts") ||
+          creditorName.includes("Summary") ||
+          /^OK+$/.test(creditorName) ||
+          /^\d+$/.test(creditorName)) {
+        continue;
+      }
+
+      matches.push({
+        creditorName,
+        startIndex: match.index,
+      });
     }
-
-    matches.push({
-      creditorName,
-      startIndex: match.index,
-    });
   }
+
+  console.log(`[PARSER] extractAccountBlocks: tried ${patterns.length} patterns, found ${matches.length} matches`);
 
   // Deduplicate matches that have the same cleaned creditor name
   const seen = new Set<string>();

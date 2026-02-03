@@ -110,6 +110,7 @@ interface ClientData {
     reportType: string;
     reportDate: string | null;
     parseStatus: string;
+    parseError: string | null;
     createdAt: string;
     originalFile: {
       id: string;
@@ -652,22 +653,29 @@ export default function ClientDetailPage() {
       });
 
       if (res.ok) {
+        const reportData = await res.json();
+        const parsed = reportData.accountsParsed > 0;
         toast({
-          title: "Report Uploaded",
-          description: "Credit report uploaded and parsed successfully",
+          title: parsed ? "Report Uploaded & Parsed" : "Report Uploaded — Parsing Issue",
+          description: parsed
+            ? `${reportData.accountsParsed} accounts found across bureaus.`
+            : reportData.message || "Report uploaded but no accounts could be extracted. The PDF may be image-based or in an unsupported format.",
+          variant: parsed ? "default" : "destructive",
         });
         // Refresh all client data after report upload + parse
         fetchClient();
         fetchCreditScores();
-        // Auto-generate/refresh DNA from newly parsed accounts
-        try {
-          const dnaRes = await fetch(`/api/clients/${clientId}/dna`, { method: "POST" });
-          if (dnaRes.ok) {
-            const dnaData = await dnaRes.json();
-            setDnaProfile(dnaData.dna);
+        // Auto-generate/refresh DNA from newly parsed accounts (only if accounts were found)
+        if (parsed) {
+          try {
+            const dnaRes = await fetch(`/api/clients/${clientId}/dna`, { method: "POST" });
+            if (dnaRes.ok) {
+              const dnaData = await dnaRes.json();
+              setDnaProfile(dnaData.dna);
+            }
+          } catch {
+            // Non-critical, DNA can be regenerated manually
           }
-        } catch {
-          // Non-critical, DNA can be regenerated manually
         }
       } else {
         let errorMessage = "Failed to process report";
@@ -1152,6 +1160,32 @@ export default function ClientDetailPage() {
                                     <span className="font-medium">{report._count.accounts}</span>
                                   </span>
                                 </div>
+                                {report.parseStatus === "FAILED" && report.parseError && (
+                                  <p className="mt-1 text-xs text-red-400">{report.parseError}</p>
+                                )}
+                                {report.parseStatus === "FAILED" && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="mt-2 gap-1.5 text-xs bg-transparent border-input text-amber-400 hover:text-amber-300"
+                                    onClick={async () => {
+                                      try {
+                                        const reparseRes = await fetch(`/api/reports/${report.id}/parse`, { method: "POST" });
+                                        if (reparseRes.ok) {
+                                          toast({ title: "Re-parsing", description: "Report is being re-parsed..." });
+                                          setTimeout(() => fetchClient(), 3000);
+                                        } else {
+                                          const err = await reparseRes.json();
+                                          toast({ title: "Re-parse Failed", description: err.error || "Could not re-parse", variant: "destructive" });
+                                        }
+                                      } catch {
+                                        toast({ title: "Error", description: "Failed to re-parse report", variant: "destructive" });
+                                      }
+                                    }}
+                                  >
+                                    <RefreshCw className="w-3 h-3" /> Re-parse Report
+                                  </Button>
+                                )}
                               </div>
                             </div>
                             <div className="flex items-center gap-2 flex-shrink-0">

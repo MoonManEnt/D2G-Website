@@ -157,8 +157,18 @@ export const POST = withAuth(
       });
 
       if (!latestReport) {
+        // Check if there ARE reports but none completed parsing
+        const anyReport = await prisma.creditReport.findFirst({
+          where: { clientId, organizationId: ctx.organizationId },
+          orderBy: { createdAt: "desc" },
+          select: { id: true, parseStatus: true, parseError: true },
+        });
+        const detail = anyReport
+          ? `Latest report status: ${anyReport.parseStatus}${anyReport.parseError ? ` — ${anyReport.parseError}` : ""}. Try re-uploading or re-parsing.`
+          : "Upload and parse a credit report first.";
+
         return NextResponse.json(
-          { error: "No parsed credit report found. Upload and parse a credit report first.", code: "NO_REPORT" },
+          { error: `No successfully parsed credit report found. ${detail}`, code: "NO_REPORT" },
           { status: 400 }
         );
       }
@@ -185,6 +195,19 @@ export const POST = withAuth(
       });
 
       // 4. Build scan input
+      console.log(`[LITIGATION] Scan for client ${clientId}: ${client.accounts.length} accounts, report ${latestReport.id}, ${disputes.length} disputes`);
+
+      if (client.accounts.length === 0) {
+        return NextResponse.json(
+          {
+            error: "No account data found for this client. The credit report may not have parsed any accounts. Try re-uploading the report.",
+            code: "NO_ACCOUNTS",
+            reportId: latestReport.id,
+          },
+          { status: 400 }
+        );
+      }
+
       const accounts: ScanAccount[] = client.accounts.map((a) => ({
         id: a.id,
         creditorName: a.creditorName,
