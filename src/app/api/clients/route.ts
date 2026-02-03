@@ -18,7 +18,7 @@ const createClientSchema = z.object({
   city: z.string().optional(),
   state: z.string().optional(),
   zipCode: z.string().optional(),
-  ssnLast4: z.string().length(4).optional(),
+  ssnLast4: z.string().length(4).optional().or(z.literal("")),
   dateOfBirth: z.string().optional(),
   notes: z.string().optional(),
   priority: z.enum(["URGENT", "HIGH", "STANDARD", "LOW"]).optional(),

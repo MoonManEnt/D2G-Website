@@ -1248,7 +1248,7 @@ export default function ClientsPage() {
         const error = await res.json();
         toast({
           title: "Error",
-          description: error.message || "Failed to add client",
+          description: error.message || error.error || "Failed to add client",
           variant: "destructive",
         });
       }
