@@ -31,8 +31,10 @@ import {
   Rocket,
   GripVertical,
   Lock,
+  Send,
 } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
+import { MailSendDialog } from "./mail-send-dialog";
 
 // Types
 interface DraggableSection {
@@ -530,6 +532,8 @@ export function LetterEditorModal({
   const [showTonePanel, setShowTonePanel] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [letterCopied, setLetterCopied] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [mailDialogOpen, setMailDialogOpen] = useState(false);
   const [ameliaSettings, setAmeliaSettings] = useState<AmeliaSettings>({
     tone: "CONCERNED",
     humanizingPhrases: 12,
@@ -792,6 +796,47 @@ export function LetterEditorModal({
     }
   };
 
+  // Download letter as DOCX
+  const handleDownloadDocx = async () => {
+    setIsDownloading(true);
+    try {
+      // Try API download first if we have a disputeId
+      if (generatedLetter?.disputeId) {
+        const res = await fetch(`/api/disputes/${generatedLetter.disputeId}/docx`);
+        if (res.ok) {
+          const blob = await res.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `${generatedLetter.cra || "Dispute"}_R${generatedLetter.round || 1}_Letter.docx`;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+          toast({ title: "Downloaded", description: "Letter saved as DOCX" });
+          return;
+        }
+      }
+
+      // Fallback: download as formatted text file
+      const fullContent = reconstructLetter();
+      const blob = new Blob([fullContent], { type: "text/plain;charset=utf-8" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${generatedLetter?.cra || "Dispute"}_R${generatedLetter?.round || 1}_Letter.txt`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast({ title: "Downloaded", description: "Letter saved as text file" });
+    } catch {
+      toast({ title: "Download Failed", description: "Could not download letter", variant: "destructive" });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   // Calculate eOSCAR risk
   const eoscarScore = {
     uniqueness: ameliaSettings.uniquenessScore,
@@ -855,6 +900,17 @@ export function LetterEditorModal({
             >
               <Save className="w-4 h-4" />
               Save Draft
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setMailDialogOpen(true)}
+              disabled={!generatedLetter?.disputeId}
+              className="gap-2 border-primary/30 bg-primary/5 text-primary hover:bg-primary/10"
+              title="Send via DocuPost"
+            >
+              <Send className="w-4 h-4" />
+              DocuPost
             </Button>
             <Button
               size="sm"
@@ -1110,11 +1166,11 @@ export function LetterEditorModal({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={onDownload}
-                disabled={downloading}
+                onClick={handleDownloadDocx}
+                disabled={isDownloading}
                 className="flex-1 gap-1.5 border-input"
               >
-                {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                 DOCX
               </Button>
               <Button
@@ -1163,7 +1219,7 @@ export function LetterEditorModal({
                 </div>
               </div>
               <div className="flex justify-end gap-3 px-6 py-4 border-t bg-muted">
-                <Button onClick={onDownload} disabled={downloading} className="bg-purple-600 hover:bg-purple-500">
+                <Button onClick={handleDownloadDocx} disabled={isDownloading} className="bg-purple-600 hover:bg-purple-500">
                   <Download className="w-4 h-4 mr-2" />
                   Download DOCX
                 </Button>
@@ -1174,6 +1230,21 @@ export function LetterEditorModal({
               </div>
             </div>
           </div>
+        )}
+
+        {/* DocuPost Mail Dialog */}
+        {generatedLetter?.disputeId && (
+          <MailSendDialog
+            open={mailDialogOpen}
+            onOpenChange={setMailDialogOpen}
+            disputeId={generatedLetter.disputeId}
+            disputeType="DISPUTE"
+            clientName={lockedTop.find(s => s.id === "clientAddress")?.content?.split("\n")[0] || "Client"}
+            cra={generatedLetter.cra}
+            onSuccess={() => {
+              toast({ title: "Letter Sent", description: "Your dispute letter has been queued for mailing via DocuPost" });
+            }}
+          />
         )}
       </DialogContent>
     </Dialog>

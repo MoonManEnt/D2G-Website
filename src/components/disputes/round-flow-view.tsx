@@ -348,8 +348,8 @@ export function RoundFlowView({
                 {/* Content */}
                 <div
                   className={cn(
-                    "flex-1 rounded-xl border p-4 mb-4 transition-all",
-                    round.status === "current" && "border-opacity-30",
+                    "flex-1 rounded-xl border p-4 mb-4 transition-all group/card relative",
+                    round.status === "current" && "border-opacity-30 hover:shadow-lg hover:shadow-current/5",
                     round.status === "upcoming" && "bg-card border-border",
                     round.status === "completed" && "bg-card border-border",
                     round.crossFlow && "border-amber-500/30"
@@ -491,6 +491,101 @@ export function RoundFlowView({
                           Track Response
                         </Button>
                       )}
+                    </div>
+                  )}
+
+                  {/* Hover Quick View - Active Disputes */}
+                  {dispute && (round.status === "current") && (
+                    <div className="absolute left-full top-0 ml-3 w-72 opacity-0 invisible group-hover/card:opacity-100 group-hover/card:visible transition-all duration-200 z-50 pointer-events-none group-hover/card:pointer-events-auto">
+                      <div className="bg-card border border-border rounded-xl shadow-2xl p-4 space-y-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: flowInfo.color }} />
+                          <span className="text-xs font-semibold text-foreground">
+                            Active Dispute Details
+                          </span>
+                        </div>
+
+                        {/* Bureau */}
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] text-muted-foreground uppercase">Bureau</span>
+                          <Badge className={cn(
+                            "text-[10px]",
+                            dispute.cra === "TRANSUNION" && "bg-sky-500/20 text-sky-400",
+                            dispute.cra === "EXPERIAN" && "bg-blue-500/20 text-blue-400",
+                            dispute.cra === "EQUIFAX" && "bg-red-500/20 text-red-400"
+                          )}>
+                            {dispute.cra}
+                          </Badge>
+                        </div>
+
+                        {/* Disputed Accounts */}
+                        {dispute.items && dispute.items.length > 0 && (
+                          <div>
+                            <span className="text-[10px] text-muted-foreground uppercase block mb-1.5">
+                              Accounts in Dispute ({dispute.items.length})
+                            </span>
+                            <div className="space-y-1.5">
+                              {dispute.items.map((item, idx) => (
+                                <div key={idx} className="flex items-center justify-between text-xs p-1.5 rounded bg-muted">
+                                  <span className="text-foreground truncate max-w-[140px] font-medium">
+                                    {item.accountItem?.creditorName || "Unknown"}
+                                  </span>
+                                  {item.accountItem?.balance !== null && item.accountItem?.balance !== undefined && (
+                                    <span className="text-red-400 font-mono text-[10px]">
+                                      ${Number(item.accountItem.balance).toLocaleString()}
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Simultaneous Disputes */}
+                        {(() => {
+                          const simultaneousDisputes = disputes.filter(
+                            d => d.id !== dispute.id &&
+                            (d.status === "SENT" || d.status === "DRAFT") &&
+                            d.items?.some(di =>
+                              dispute.items?.some(ci => ci.accountItem?.id === di.accountItem?.id)
+                            )
+                          );
+                          if (simultaneousDisputes.length === 0) return null;
+                          return (
+                            <div>
+                              <span className="text-[10px] text-amber-400 uppercase block mb-1.5">
+                                Simultaneous Disputes
+                              </span>
+                              <div className="space-y-1">
+                                {simultaneousDisputes.map((sd) => (
+                                  <div key={sd.id} className="flex items-center gap-2 text-[10px] p-1.5 rounded bg-amber-500/10 border border-amber-500/20">
+                                    <Badge className={cn(
+                                      "text-[9px] px-1",
+                                      sd.cra === "TRANSUNION" && "bg-sky-500/20 text-sky-400",
+                                      sd.cra === "EXPERIAN" && "bg-blue-500/20 text-blue-400",
+                                      sd.cra === "EQUIFAX" && "bg-red-500/20 text-red-400"
+                                    )}>
+                                      {sd.cra?.slice(0, 2)}
+                                    </Badge>
+                                    <span className="text-foreground">R{sd.round} {sd.flow}</span>
+                                    <Badge className="text-[9px] px-1 bg-muted text-muted-foreground ml-auto">
+                                      {sd.status}
+                                    </Badge>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {/* Flow Info */}
+                        <div className="flex items-center justify-between pt-2 border-t border-border">
+                          <span className="text-[10px] text-muted-foreground">Flow</span>
+                          <span className="text-xs font-medium" style={{ color: flowInfo.color }}>
+                            {dispute.flow}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   )}
 

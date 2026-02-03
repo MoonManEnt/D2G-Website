@@ -47,7 +47,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const { regenerate = false } = body;
+    const { regenerate = false, tone } = body;
 
     // Fetch dispute with all related data
     const dispute = await prisma.dispute.findFirst({
@@ -163,6 +163,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     });
     const usedHashSet = new Set(usedHashes.map((h) => h.contentHash));
 
+    // When regenerating, also add a hash of the current letter content
+    // This forces AMELIA to generate completely different content
+    if (regenerate && dispute.letterContent) {
+      const crypto = await import("crypto");
+      const currentHash = crypto.createHash("sha256").update(dispute.letterContent).digest("hex");
+      usedHashSet.add(currentHash);
+    }
+
     // Determine flow type
     const flowType = dispute.flow as "ACCURACY" | "COLLECTION" | "CONSENT" | "COMBO";
 
@@ -191,6 +199,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       usedContentHashes: usedHashSet,
       lastDisputeDate: lastDisputeDateStr,
       activePersonalInfoDisputes,
+      ...(tone && { toneOverride: tone }),
     });
 
     // NOTE: Content hash is NOT stored on regeneration - only when dispute is LAUNCHED
@@ -218,6 +227,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         }),
       },
     });
+
+    // Store content hash on regeneration to prevent future duplicates
+    if (regenerate) {
+      await prisma.ameliaContentHash.create({
+        data: {
+          clientId: client.id,
+          contentHash: generatedLetter.contentHash,
+          contentType: "LETTER",
+          sourceDocId: disputeId,
+        },
+      });
+    }
 
     // AMELIA Doctrine: Record disputed items for persistent tracking
     // These will continue to be disputed until confirmed removed from report

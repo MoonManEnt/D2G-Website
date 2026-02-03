@@ -556,6 +556,7 @@ ${complaint.desiredResolution}`;
               const hasDisputes = craDisputes.length > 0;
               const latestDispute = craDisputes.sort((a, b) => b.round - a.round)[0];
               const isOverdue = latestDispute?.isOverdue;
+              const isInActiveDispute = latestDispute && (latestDispute.status === "SENT" || latestDispute.status === "DRAFT");
 
               return (
                 <label
@@ -564,7 +565,9 @@ ${complaint.desiredResolution}`;
                     "block p-3 rounded-lg cursor-pointer transition-all",
                     selectedAccounts.includes(acc.id)
                       ? "bg-purple-500/15 ring-1 ring-purple-500/30"
-                      : "bg-muted hover:bg-muted"
+                      : isInActiveDispute
+                        ? "bg-amber-500/5 border-l-2 border-l-amber-500 hover:bg-amber-500/10"
+                        : "bg-muted hover:bg-muted"
                   )}
                 >
                   <div className="flex items-start gap-2.5">
@@ -577,6 +580,11 @@ ${complaint.desiredResolution}`;
                       <span className="block text-sm font-medium text-foreground truncate">
                         {acc.creditorName}
                       </span>
+                      {isInActiveDispute && (
+                        <Badge className="ml-2 text-[10px] px-1.5 bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                          IN DISPUTE R{latestDispute.round}
+                        </Badge>
+                      )}
                       <span className="block text-xs text-muted-foreground truncate">
                         {acc.detectedIssues?.[0]?.description || "No issues detected"}
                       </span>

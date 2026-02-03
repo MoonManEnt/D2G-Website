@@ -80,6 +80,8 @@ export interface LetterGenerationInput {
   activePersonalInfoDisputes?: ActivePersonalInfoDispute[];
   // Letter structure: DAMAGES_FIRST (default) or FACTS_FIRST
   letterStructure?: LetterStructure;
+  // Override the auto-determined tone (used when regenerating with user-selected tone)
+  toneOverride?: string;
 }
 
 export interface GeneratedLetter {
@@ -538,6 +540,7 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
     previousRoundContext,
     activePersonalInfoDisputes,
     letterStructure = "DAMAGES_FIRST", // Default to emotional lead
+    toneOverride,
   } = input;
 
   const craInfo = CRA_ADDRESSES[cra];
@@ -556,7 +559,13 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
 
   // Determine tone - may be escalated based on previous responses
   let tone = determineTone(round);
-  if (previousRoundContext?.suggestedTone) {
+  if (toneOverride) {
+    // Direct tone override from user selection (e.g., regeneration with specific tone)
+    const validTones = ["CONCERNED", "WORRIED", "FED_UP", "WARNING", "PISSED"] as const;
+    if (validTones.includes(toneOverride as typeof validTones[number])) {
+      tone = toneOverride as typeof tone;
+    }
+  } else if (previousRoundContext?.suggestedTone) {
     // Map adaptive strategy tones to AMELIA doctrine tones
     const toneMapping: Record<string, typeof tone> = {
       "CONCERNED": "CONCERNED",

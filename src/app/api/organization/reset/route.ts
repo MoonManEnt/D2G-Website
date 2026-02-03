@@ -77,7 +77,22 @@ export async function POST(request: NextRequest) {
       where: { organizationId },
     });
 
-    // 4. Get all report IDs for diff results and stored files
+    // 4. Delete sentry dispute items (references accountItem FK)
+    await prisma.sentryDisputeItem.deleteMany({
+      where: { accountItem: { organizationId } },
+    });
+
+    // 5. Delete sentry disputes
+    await prisma.sentryDispute.deleteMany({
+      where: { organizationId },
+    });
+
+    // 6. Delete pending evidence (references accountItem FK)
+    await prisma.pendingEvidence.deleteMany({
+      where: { accountItem: { organizationId } },
+    });
+
+    // 7. Get all report IDs for diff results and stored files
     const reports = await prisma.creditReport.findMany({
       where: { organizationId },
       select: { id: true, originalFileId: true },
@@ -85,7 +100,7 @@ export async function POST(request: NextRequest) {
     const reportIds = reports.map((r) => r.id);
     const fileIds = reports.map((r) => r.originalFileId).filter(Boolean) as string[];
 
-    // 5. Delete diff results
+    // 8. Delete diff results
     if (reportIds.length > 0) {
       await prisma.diffResult.deleteMany({
         where: {
@@ -97,49 +112,66 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 6. Delete account items
+    // 9. Delete account items
     await prisma.accountItem.deleteMany({
       where: { organizationId },
     });
 
-    // 7. Delete credit reports
+    // 10. Delete credit reports
     await prisma.creditReport.deleteMany({
       where: { organizationId },
     });
 
-    // 8. Delete stored files (reports)
+    // 11. Delete stored files (reports)
     if (fileIds.length > 0) {
       await prisma.storedFile.deleteMany({
         where: { id: { in: fileIds } },
       });
     }
 
-    // 9. Delete client documents
+    // 12. Delete client documents
     await prisma.clientDocument.deleteMany({
       where: { client: { organizationId } },
     });
 
-    // 10. Delete credit DNA (has organizationId directly)
+    // 13. Delete AMELIA content hashes (no relation, need client IDs)
+    const orgClients = await prisma.client.findMany({
+      where: { organizationId },
+      select: { id: true },
+    });
+    const orgClientIds = orgClients.map(c => c.id);
+    if (orgClientIds.length > 0) {
+      await prisma.ameliaContentHash.deleteMany({
+        where: { clientId: { in: orgClientIds } },
+      });
+    }
+
+    // 14. Delete personal info disputes
+    await prisma.personalInfoDispute.deleteMany({
+      where: { organizationId },
+    });
+
+    // 15. Delete credit DNA (has organizationId directly)
     await prisma.creditDNA.deleteMany({
       where: { organizationId },
     });
 
-    // 11. Delete credit scores (only has clientId, use nested filter)
+    // 16. Delete credit scores (only has clientId, use nested filter)
     await prisma.creditScore.deleteMany({
       where: { client: { organizationId } },
     });
 
-    // 12. Delete communications (has organizationId directly)
+    // 17. Delete communications (has organizationId directly)
     await prisma.communication.deleteMany({
       where: { organizationId },
     });
 
-    // 13. Delete clients
+    // 18. Delete clients
     await prisma.client.deleteMany({
       where: { organizationId },
     });
 
-    // 14. Clean up any orphaned stored files
+    // 19. Clean up any orphaned stored files
     await prisma.storedFile.deleteMany({
       where: { organizationId },
     });
@@ -205,6 +237,7 @@ export async function GET(request: NextRequest) {
       accountCount,
       evidenceCount,
       documentCount,
+      sentryDisputeCount,
     ] = await Promise.all([
       prisma.client.count({ where: { organizationId } }),
       prisma.creditReport.count({ where: { organizationId } }),
@@ -212,6 +245,7 @@ export async function GET(request: NextRequest) {
       prisma.accountItem.count({ where: { organizationId } }),
       prisma.evidence.count({ where: { organizationId } }),
       prisma.clientDocument.count({ where: { client: { organizationId } } }),
+      prisma.sentryDispute.count({ where: { organizationId } }),
     ]);
 
     return NextResponse.json({
@@ -222,6 +256,7 @@ export async function GET(request: NextRequest) {
         accounts: accountCount,
         evidence: evidenceCount,
         documents: documentCount,
+        sentryDisputes: sentryDisputeCount,
       },
       confirmationPhrase: "DELETE ALL MY DATA",
     });
