@@ -58,6 +58,7 @@ import { ScoreChart, AddScoreModal } from "@/components/credit-scores";
 import { useToast } from "@/lib/use-toast";
 import { DisputeCommandCenter } from "@/components/disputes/dispute-command-center";
 import { VendorRecommendationsCard } from "@/components/vendors/vendor-recommendations-card";
+import { AmeliaChatDrawer } from "@/components/amelia/amelia-chat-drawer";
 import {
   getDNAClassificationLabel,
   getDNAClassificationDescription,
@@ -2017,6 +2018,12 @@ export default function ClientDetailPage() {
           }}
         />
       )}
+
+      {/* Amelia Chat Drawer */}
+      <AmeliaChatDrawer
+        clientId={clientId}
+        clientName={client ? `${client.firstName} ${client.lastName}` : undefined}
+      />
     </div>
   );
 }

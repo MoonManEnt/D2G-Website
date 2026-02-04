@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AmeliaChatDrawer } from "@/components/amelia/amelia-chat-drawer";
+import { AmeliaRecommendations } from "./amelia-recommendations";
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -315,6 +317,11 @@ export function DashboardClient({
           </div>
         </section>
 
+        {/* Amelia Recommendations */}
+        <section className="mb-6">
+          <AmeliaRecommendations />
+        </section>
+
         {/* Bottom Row: Responses + Deadlines */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {/* Recent Responses */}
@@ -434,6 +441,9 @@ export function DashboardClient({
           </section>
         </div>
       </div>
+
+      {/* Amelia Chat Drawer - floating button */}
+      <AmeliaChatDrawer />
 
       {/* Quick Stats Bar - sticky at bottom of content area, not fixed to viewport */}
       <div className="sticky bottom-0 z-20 flex justify-center items-center gap-10 py-4 px-8 bg-background/95 backdrop-blur-xl border-t border-border">

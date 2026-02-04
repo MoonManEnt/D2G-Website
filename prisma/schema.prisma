@@ -54,8 +54,9 @@ model User {
   organizationId   String
   uploadedReports  CreditReport[]
   createdDocuments Document[]
-  eventLogs        EventLog[]     @relation("EventActor")
-  organization     Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  eventLogs             EventLog[]             @relation("EventActor")
+  organization          Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  ameliaConversations   AmeliaConversation[]
 
   @@index([organizationId])
   @@index([email])
@@ -117,7 +118,8 @@ model Client {
   personalInfoDisputes PersonalInfoDispute[]
   sentryDisputes       SentryDispute[]
   readinessAnalyses    CreditReadinessAnalysis[]
-  litigationScans      LitigationScan[]
+  litigationScans        LitigationScan[]
+  ameliaConversations    AmeliaConversation[]
 
   @@index([organizationId])
   @@index([organizationId, archivedAt])
@@ -1335,4 +1337,93 @@ model VendorReferral {
   @@index([organizationId])
   @@index([status])
   @@index([createdAt])
+}
+
+// =============================================================================
+// AMELIA AI AGENT TABLES
+// =============================================================================
+
+model AmeliaConversation {
+  id             String   @id @default(uuid())
+  title          String?  // Auto-generated or user-set title
+  status         String   @default("ACTIVE") // ACTIVE, ARCHIVED
+  userId         String
+  clientId       String?  // Optional — general chat vs client-specific
+  disputeId      String?  // Optional — dispute-specific context
+  organizationId String
+  tokenCount     Int      @default(0) // Running total of tokens used
+  messageCount   Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client   Client?          @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  messages AmeliaMessage[]
+
+  @@index([userId])
+  @@index([clientId])
+  @@index([organizationId])
+  @@index([organizationId, updatedAt])
+}
+
+model AmeliaMessage {
+  id             String   @id @default(uuid())
+  conversationId String
+  role           String // "user", "assistant", "system"
+  content        String
+  tokenCount     Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  conversation AmeliaConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([conversationId, createdAt])
+}
+
+model AmeliaRecommendationCache {
+  id             String   @id @default(uuid())
+  organizationId String
+  cacheType      String // DASHBOARD, CLIENT_SPECIFIC
+  clientId       String?  // Null for org-wide recommendations
+  content        String // JSON: array of recommendation objects
+  priority       String   @default("MEDIUM") // HIGH, MEDIUM, LOW
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([organizationId, cacheType])
+  @@index([expiresAt])
+  @@index([clientId])
+}
+
+model AmeliaOutcomePattern {
+  id             String @id @default(uuid())
+  organizationId String
+  cra            String // TRANSUNION, EXPERIAN, EQUIFAX
+  flow           String // ACCURACY, COLLECTION, CONSENT, COMBO
+  creditorName   String?
+  accountType    String?
+
+  // Aggregated outcome metrics
+  totalDisputes Int   @default(0)
+  deletions     Int   @default(0)
+  verifiedOnly  Int   @default(0) // Verified but not deleted
+  noResponse    Int   @default(0) // No response within 30 days
+  successRate   Float @default(0) // deletions / totalDisputes * 100
+  avgDaysToResolve Float? // Average days from send to resolution
+
+  // Sample size thresholds
+  sampleSize   Int @default(0)
+  isReliable   Boolean @default(false) // true if sampleSize >= 10
+  lastComputedAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, cra, flow, creditorName, accountType])
+  @@index([organizationId])
+  @@index([organizationId, cra])
+  @@index([organizationId, cra, flow])
+  @@index([successRate])
 }

@@ -6,13 +6,22 @@
  * - Automatic failover
  * - Cost and latency tracking
  * - Quality metrics collection
+ * - Streaming support for chat interfaces
  */
 
+import { generateText, streamText, type ModelMessage } from "ai";
+import { getModel, isProviderAvailable } from "@/lib/ai/providers";
 import prisma from "@/lib/prisma";
 
 // Types
 export type LLMProvider = "CLAUDE" | "OPENAI";
-export type TaskType = "DISPUTE_STRATEGY" | "LETTER_GENERATION" | "CFPB_COMPLAINT" | "ISSUE_ANALYSIS";
+export type TaskType =
+  | "DISPUTE_STRATEGY"
+  | "LETTER_GENERATION"
+  | "CFPB_COMPLAINT"
+  | "ISSUE_ANALYSIS"
+  | "CHAT"
+  | "RECOMMENDATION";
 
 export interface LLMConfig {
   provider: LLMProvider;
@@ -32,6 +41,10 @@ export interface LLMRequest {
     cra?: string;
     disputeId?: string;
   };
+}
+
+export interface LLMStreamRequest extends LLMRequest {
+  messages: ModelMessage[];
 }
 
 export interface LLMResponse {
@@ -66,6 +79,8 @@ const DEFAULT_MODELS: Record<TaskType, LLMConfig> = {
   LETTER_GENERATION: { provider: "CLAUDE", model: "claude-sonnet-4-20250514", temperature: 0.4 },
   CFPB_COMPLAINT: { provider: "CLAUDE", model: "claude-sonnet-4-20250514", temperature: 0.3 },
   ISSUE_ANALYSIS: { provider: "OPENAI", model: "gpt-4o", temperature: 0.2 },
+  CHAT: { provider: "CLAUDE", model: "claude-sonnet-4-20250514", temperature: 0.4 },
+  RECOMMENDATION: { provider: "CLAUDE", model: "claude-3-5-haiku-20241022", temperature: 0.2 },
 };
 
 // Calculate cost in cents
@@ -84,97 +99,6 @@ function calculateCost(
   return Math.round((inputCost + outputCost) * 100); // Convert to cents
 }
 
-// Claude API call
-async function callClaude(
-  config: LLMConfig,
-  systemPrompt: string,
-  userPrompt: string
-): Promise<{
-  content: string;
-  promptTokens: number;
-  completionTokens: number;
-}> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new Error("ANTHROPIC_API_KEY not configured");
-  }
-
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: config.model,
-      max_tokens: config.maxTokens || 4096,
-      temperature: config.temperature ?? 0.3,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userPrompt }],
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Claude API error: ${response.status} - ${error}`);
-  }
-
-  const data = await response.json();
-
-  return {
-    content: data.content[0]?.text || "",
-    promptTokens: data.usage?.input_tokens || 0,
-    completionTokens: data.usage?.output_tokens || 0,
-  };
-}
-
-// OpenAI API call
-async function callOpenAI(
-  config: LLMConfig,
-  systemPrompt: string,
-  userPrompt: string
-): Promise<{
-  content: string;
-  promptTokens: number;
-  completionTokens: number;
-}> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error("OPENAI_API_KEY not configured");
-  }
-
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: config.model,
-      max_tokens: config.maxTokens || 4096,
-      temperature: config.temperature ?? 0.3,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`OpenAI API error: ${response.status} - ${error}`);
-  }
-
-  const data = await response.json();
-
-  return {
-    content: data.choices[0]?.message?.content || "",
-    promptTokens: data.usage?.prompt_tokens || 0,
-    completionTokens: data.usage?.completion_tokens || 0,
-  };
-}
-
 // Get the best provider for a task based on historical performance
 async function getBestProvider(taskType: TaskType): Promise<LLMConfig> {
   // Check if A/B testing is enabled
@@ -185,10 +109,12 @@ async function getBestProvider(taskType: TaskType): Promise<LLMConfig> {
     if (Math.random() < 0.2) {
       const defaultConfig = DEFAULT_MODELS[taskType];
       const alternateProvider: LLMProvider = defaultConfig.provider === "CLAUDE" ? "OPENAI" : "CLAUDE";
-      const alternateModel = alternateProvider === "CLAUDE"
-        ? "claude-sonnet-4-20250514"
-        : "gpt-4o";
-      return { provider: alternateProvider, model: alternateModel, temperature: defaultConfig.temperature };
+      if (isProviderAvailable(alternateProvider)) {
+        const alternateModel = alternateProvider === "CLAUDE"
+          ? "claude-sonnet-4-20250514"
+          : "gpt-4o";
+        return { provider: alternateProvider, model: alternateModel, temperature: defaultConfig.temperature };
+      }
     }
   }
 
@@ -206,17 +132,14 @@ async function getBestProvider(taskType: TaskType): Promise<LLMConfig> {
     });
 
     if (stats.length >= 2) {
-      // Compare providers and pick the one with better acceptance rate
       const claudeStats = stats.find((s) => s.provider === "CLAUDE");
       const openaiStats = stats.find((s) => s.provider === "OPENAI");
 
       if (claudeStats && openaiStats) {
-        // Weight acceptance rate heavily, but also consider cost
         const claudeScore = claudeStats.acceptanceRate * 100 - claudeStats.avgCostCents;
         const openaiScore = openaiStats.acceptanceRate * 100 - openaiStats.avgCostCents;
 
-        if (openaiScore > claudeScore + 10) {
-          // OpenAI significantly better
+        if (openaiScore > claudeScore + 10 && isProviderAvailable("OPENAI")) {
           return { provider: "OPENAI", model: "gpt-4o", temperature: DEFAULT_MODELS[taskType].temperature };
         }
       }
@@ -225,7 +148,6 @@ async function getBestProvider(taskType: TaskType): Promise<LLMConfig> {
     console.error("Error fetching provider stats:", error);
   }
 
-  // Default to configured or hardcoded default
   return DEFAULT_MODELS[taskType];
 }
 
@@ -241,61 +163,54 @@ export async function completeLLM(request: LLMRequest): Promise<LLMResponse> {
   let completionTokens: number;
   let wasError = false;
   let errorMessage: string | undefined;
+  let activeConfig = { ...config };
 
   try {
-    if (config.provider === "CLAUDE") {
-      const result = await callClaude(config, systemPrompt, request.prompt);
-      content = result.content;
-      promptTokens = result.promptTokens;
-      completionTokens = result.completionTokens;
-    } else {
-      const result = await callOpenAI(config, systemPrompt, request.prompt);
-      content = result.content;
-      promptTokens = result.promptTokens;
-      completionTokens = result.completionTokens;
-    }
+    const result = await generateText({
+      model: getModel(activeConfig.provider, activeConfig.model),
+      system: systemPrompt,
+      prompt: request.prompt,
+      maxOutputTokens: activeConfig.maxTokens || 4096,
+      temperature: activeConfig.temperature ?? 0.3,
+    });
+
+    content = result.text;
+    promptTokens = result.usage.inputTokens || 0;
+    completionTokens = result.usage.outputTokens || 0;
   } catch (error) {
     wasError = true;
     errorMessage = error instanceof Error ? error.message : "Unknown error";
 
     // Try fallback provider if enabled
-    if (process.env.AI_FALLBACK_ENABLED === "true") {
-      const fallbackProvider: LLMProvider = config.provider === "CLAUDE" ? "OPENAI" : "CLAUDE";
+    if (process.env.AI_FALLBACK_ENABLED !== "false") {
+      const fallbackProvider: LLMProvider = activeConfig.provider === "CLAUDE" ? "OPENAI" : "CLAUDE";
       const fallbackModel = fallbackProvider === "CLAUDE" ? "claude-sonnet-4-20250514" : "gpt-4o";
 
-      console.warn(`Primary provider ${config.provider} failed, trying ${fallbackProvider}`);
+      if (isProviderAvailable(fallbackProvider)) {
+        console.warn(`Primary provider ${activeConfig.provider} failed, trying ${fallbackProvider}`);
 
-      try {
-        if (fallbackProvider === "CLAUDE") {
-          const result = await callClaude(
-            { provider: "CLAUDE", model: fallbackModel },
-            systemPrompt,
-            request.prompt
-          );
-          content = result.content;
-          promptTokens = result.promptTokens;
-          completionTokens = result.completionTokens;
-          config.provider = "CLAUDE";
-          config.model = fallbackModel;
+        try {
+          const result = await generateText({
+            model: getModel(fallbackProvider, fallbackModel),
+            system: systemPrompt,
+            prompt: request.prompt,
+            maxOutputTokens: activeConfig.maxTokens || 4096,
+            temperature: activeConfig.temperature ?? 0.3,
+          });
+
+          content = result.text;
+          promptTokens = result.usage.inputTokens || 0;
+          completionTokens = result.usage.outputTokens || 0;
+          activeConfig.provider = fallbackProvider;
+          activeConfig.model = fallbackModel;
           wasError = false;
-        } else {
-          const result = await callOpenAI(
-            { provider: "OPENAI", model: fallbackModel },
-            systemPrompt,
-            request.prompt
+        } catch (fallbackError) {
+          throw new Error(
+            `Both providers failed. Primary: ${errorMessage}. Fallback: ${fallbackError instanceof Error ? fallbackError.message : "Unknown"}`
           );
-          content = result.content;
-          promptTokens = result.promptTokens;
-          completionTokens = result.completionTokens;
-          config.provider = "OPENAI";
-          config.model = fallbackModel;
-          wasError = false;
         }
-      } catch (fallbackError) {
-        // Both providers failed
-        throw new Error(
-          `Both providers failed. Primary: ${errorMessage}. Fallback: ${fallbackError instanceof Error ? fallbackError.message : "Unknown"}`
-        );
+      } else {
+        throw error;
       }
     } else {
       throw error;
@@ -303,14 +218,14 @@ export async function completeLLM(request: LLMRequest): Promise<LLMResponse> {
   }
 
   const latencyMs = Date.now() - startTime;
-  const costCents = calculateCost(config.provider, config.model, promptTokens, completionTokens);
+  const costCents = calculateCost(activeConfig.provider, activeConfig.model, promptTokens, completionTokens);
 
   // Log the request
   const logEntry = await prisma.lLMRequest.create({
     data: {
       taskType: request.taskType,
-      provider: config.provider,
-      model: config.model,
+      provider: activeConfig.provider,
+      model: activeConfig.model,
       promptTokens,
       completionTokens,
       totalTokens: promptTokens + completionTokens,
@@ -328,8 +243,8 @@ export async function completeLLM(request: LLMRequest): Promise<LLMResponse> {
 
   return {
     content,
-    provider: config.provider,
-    model: config.model,
+    provider: activeConfig.provider,
+    model: activeConfig.model,
     latencyMs,
     promptTokens,
     completionTokens,
@@ -337,6 +252,58 @@ export async function completeLLM(request: LLMRequest): Promise<LLMResponse> {
     costCents,
     requestId: logEntry.id,
   };
+}
+
+/**
+ * Streaming LLM call for chat interfaces.
+ * Returns a streamText result that can be converted to a Response via toDataStreamResponse().
+ */
+export async function streamLLM(request: LLMStreamRequest) {
+  const config = await getBestProvider(request.taskType);
+  const systemPrompt = request.systemPrompt || getDefaultSystemPrompt(request.taskType);
+
+  const result = streamText({
+    model: getModel(config.provider, config.model),
+    system: systemPrompt,
+    messages: request.messages,
+    maxOutputTokens: config.maxTokens || 2048,
+    temperature: config.temperature ?? 0.4,
+    onFinish: async ({ text, usage }) => {
+      const inputTokens = usage.inputTokens || 0;
+      const outputTokens = usage.outputTokens || 0;
+      const costCents = calculateCost(
+        config.provider,
+        config.model,
+        inputTokens,
+        outputTokens
+      );
+
+      try {
+        await prisma.lLMRequest.create({
+          data: {
+            taskType: request.taskType,
+            provider: config.provider,
+            model: config.model,
+            promptTokens: inputTokens,
+            completionTokens: outputTokens,
+            totalTokens: inputTokens + outputTokens,
+            latencyMs: 0, // Streaming — no single latency value
+            costCents,
+            flow: request.context?.flow,
+            round: request.context?.round,
+            cra: request.context?.cra,
+            disputeId: request.context?.disputeId,
+            wasError: false,
+            organizationId: request.organizationId,
+          },
+        });
+      } catch (logError) {
+        console.error("Failed to log streaming LLM request:", logError);
+      }
+    },
+  });
+
+  return result;
 }
 
 // Record user feedback on an LLM response
@@ -397,7 +364,6 @@ export async function getLLMStats(organizationId: string, days: number = 30): Pr
   const feedbackCount = requests.filter((r) => r.userAccepted !== null).length;
   const acceptanceRate = feedbackCount > 0 ? acceptedCount / feedbackCount : 0;
 
-  // Group by provider
   const byProvider: Record<string, { requests: number; cost: number; avgLatency: number }> = {};
   for (const r of requests) {
     if (!byProvider[r.provider]) {
@@ -411,7 +377,6 @@ export async function getLLMStats(organizationId: string, days: number = 30): Pr
     byProvider[provider].avgLatency /= byProvider[provider].requests;
   }
 
-  // Group by task type
   const byTaskType: Record<string, { requests: number; cost: number }> = {};
   for (const r of requests) {
     if (!byTaskType[r.taskType]) {
@@ -486,6 +451,26 @@ Generate complaint narratives that are:
 - Permissible purpose violations
 
 Analyze credit data and identify specific, actionable issues with supporting evidence.`;
+
+    case "CHAT":
+      return `You are Amelia, an AI credit repair specialist assistant in Dispute2Go.
+
+You help credit repair specialists with:
+- Analyzing client credit reports and identifying disputable items
+- Recommending dispute strategies (which flow, which round, which CRA)
+- Explaining FCRA/FDCPA legal concepts in plain language
+- Suggesting next steps based on CRA responses
+- Answering questions about dispute outcomes and patterns
+
+Guidelines:
+- Be concise and actionable
+- Always cite specific FCRA sections when discussing legal rights
+- When recommending strategies, explain WHY
+- If you don't have enough context, ask clarifying questions
+- Never provide legal advice — you provide dispute strategy recommendations`;
+
+    case "RECOMMENDATION":
+      return `You are Amelia, an AI credit repair analyst. Analyze client data and provide brief, actionable recommendations. Be concise — each recommendation should be 1-2 sentences.`;
 
     default:
       return "You are a helpful assistant specializing in credit repair and consumer rights.";
@@ -699,7 +684,6 @@ Respond in JSON format:
       requestId: response.requestId,
     };
   } catch {
-    // If parsing fails, return a default structure
     return {
       recommendations: [],
       overallStrategy: response.content,

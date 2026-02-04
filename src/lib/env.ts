@@ -74,7 +74,12 @@ const envSchema = z.object({
 
   // AI Config
   AI_ENABLE_AB_TESTING: z.string().default("false"),
-  AI_FALLBACK_ENABLED: z.string().default("false"),
+  AI_FALLBACK_ENABLED: z.string().default("true"),
+  AI_PRIMARY_PROVIDER: z.string().default("CLAUDE"),
+  AI_PRIMARY_MODEL: z.string().default("claude-sonnet-4-20250514"),
+  AI_TOKEN_BUDGET_MONTHLY: z.string().default("0"), // 0 = unlimited
+  AI_LETTER_MAX_TOKENS: z.string().default("4096"),
+  AI_CHAT_MAX_TOKENS: z.string().default("2048"),
 });
 
 // Type for validated environment

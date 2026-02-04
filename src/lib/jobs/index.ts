@@ -47,6 +47,10 @@ export const JOB_TYPES = {
   // Analytics
   GENERATE_DAILY_REPORT: "generate-daily-report",
   CALCULATE_METRICS: "calculate-metrics",
+
+  // Amelia AI
+  COMPUTE_AMELIA_RECOMMENDATIONS: "compute-amelia-recommendations",
+  COMPUTE_OUTCOME_PATTERNS: "compute-outcome-patterns",
 } as const;
 
 export type JobType = (typeof JOB_TYPES)[keyof typeof JOB_TYPES];
@@ -239,6 +243,28 @@ export async function scheduleRecurringJobs(): Promise<void> {
       queue: QUEUE_NAMES.SCHEDULED,
       repeat: { pattern: "0 3 * * 0" }, // 3 AM on Sundays
       jobId: "file-cleanup",
+    }
+  );
+
+  // Compute Amelia recommendations daily at 5 AM
+  await addJob(
+    JOB_TYPES.COMPUTE_AMELIA_RECOMMENDATIONS,
+    {},
+    {
+      queue: QUEUE_NAMES.SCHEDULED,
+      repeat: { pattern: "0 5 * * *" }, // 5 AM daily
+      jobId: "amelia-recommendations",
+    }
+  );
+
+  // Compute outcome patterns daily at 5:30 AM
+  await addJob(
+    JOB_TYPES.COMPUTE_OUTCOME_PATTERNS,
+    {},
+    {
+      queue: QUEUE_NAMES.SCHEDULED,
+      repeat: { pattern: "30 5 * * *" }, // 5:30 AM daily
+      jobId: "outcome-patterns",
     }
   );
 

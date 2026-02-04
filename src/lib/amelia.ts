@@ -1188,16 +1188,35 @@ function capitalize(str: string): string {
 export async function generateAmeliaAILetter(
   request: LetterGenerationRequest
 ): Promise<GeneratedLetter> {
-  const usedHashes = await getUsedContentHashes(request.client.id);
   const tone = determineTone(request.round);
   const previousLetters = await getPreviousLetterContents(request.client.id);
 
+  // Build the core prompt
   const prompt = buildAIPrompt(request, tone, previousLetters);
+
+  // Assemble client context for enriched AI generation
+  let contextBlock = "";
+  try {
+    const { assembleClientContext, formatContextForPrompt } = await import("@/lib/ai/context-assembler");
+    const context = await assembleClientContext(
+      request.client.id,
+      request.organizationId,
+      "LETTER"
+    );
+    contextBlock = formatContextForPrompt(context);
+  } catch (ctxError) {
+    console.warn("[Amelia] Context assembly failed, proceeding without context:", ctxError);
+  }
+
+  // Combine prompt with context
+  const fullPrompt = contextBlock
+    ? `${prompt}\n\n=== ADDITIONAL CLIENT INTELLIGENCE ===\nUse the following context to make the letter more specific and strategic. Reference actual outcomes, score changes, or patterns where relevant.\n\n${contextBlock}`
+    : prompt;
 
   try {
     const response = await completeLLM({
       taskType: "LETTER_GENERATION",
-      prompt,
+      prompt: fullPrompt,
       organizationId: request.organizationId,
       context: {
         flow: request.flow,
@@ -1218,7 +1237,7 @@ export async function generateAmeliaAILetter(
       tone,
       contentHash,
       uniquenessScore: 98,
-      ameliaVersion: "2.0.0-ai",
+      ameliaVersion: "3.0.0-ai",
     };
   } catch (error) {
     console.error("AI generation failed, using template:", error);
@@ -1256,59 +1275,160 @@ function buildAIPrompt(
 ): string {
   const { client, accounts, cra, flow, round, previousHistory } = request;
 
+  // Determine effective flow (COLLECTION/COMBO switch to ACCURACY at R5-7)
+  const effectiveFlow = getEffectiveFlow(flow, round);
+
   const accountDescriptions = accounts.map((a, i) =>
     `${i + 1}. ${a.creditorName}${a.accountNumber ? ` (${a.accountNumber})` : ""}${a.balance ? ` - $${a.balance}` : ""}: ${a.issues.join(", ")}`
   ).join("\n");
 
   const previousExcerpts = previousLetters.length > 0
-    ? `\n\nPREVIOUS LETTERS (DO NOT REPEAT ANY OF THIS):\n${previousLetters.map(l => `"${l.substring(0, 300)}..."`).join("\n")}`
+    ? `\n\nPREVIOUS LETTERS SENT FOR THIS CLIENT (DO NOT REPEAT ANY CONTENT — eOSCAR will flag duplicates):\n${previousLetters.map(l => `"${l.substring(0, 300)}..."`).join("\n")}`
     : "";
 
-  return `You are Amelia, a dispute letter writer. Generate a Round ${round} letter that sounds like a REAL PERSON wrote it.
+  // Flow-specific legal citations and strategy
+  const flowInstructions = getFlowInstructions(effectiveFlow, round);
 
-CRITICAL RULES:
-1. Talk like a real person - conversational, not corporate
-2. NO flowery language - "sinking in a sea of depression" = WRONG. "Can't sleep at night" = RIGHT
-3. Use FACTS that create emotion, not emotional words
-4. Follow this exact structure:
+  // R1 backdating instruction
+  const backdatingRule = round === 1
+    ? `\nBACKDATING RULE (MANDATORY): This is Round 1. The letter date MUST be backdated exactly 30 days from today. This activates the 30-day investigation window under 15 USC §1681i(a)(1)(A) before the letter even arrives. Format: "Month Day, Year".`
+    : "";
 
-PARAGRAPH 1 - DAMAGES (What happened → How it made you feel → Blame the CRA):
-- Tell a specific story about how bad credit affected your life
-- Use the What/How/Why framework
-- Example: "I got denied for a car loan last week (WHAT). Had to call my mom for a ride home from the dealership (HOW). And it's your fault for reporting this wrong information (WHY)."
+  // R2+ Method of Verification demand
+  const movDemand = round >= 2
+    ? `\nMETHOD OF VERIFICATION DEMAND (MANDATORY for R${round}): You MUST demand the CRA provide the Method of Verification (MOV) under 15 USC §1681i(a)(7). State that the previous investigation was inadequate because they failed to provide the procedure used to determine accuracy. Demand to know: WHO they contacted, WHAT they verified, HOW they verified it, and WHAT documents they reviewed.`
+    : "";
 
-PARAGRAPH 2-3 - FACTS (What law → Why they broke it → How they broke it):
-- State what law was broken
-- Explain why (they were notified, had 30 days, etc.)
-- Show how (specific to the accounts being disputed)
-- For Round ${round >= 2 ? round + ", demand Method of Verification" : "1, this activates the accuracy laws"}
+  return `You are Amelia, a credit dispute letter writer. You write letters that sound like a REAL PERSON wrote them — not a lawyer, not a template, not AI.
 
-LAST PARAGRAPH - PENALTY (Damage jab → Red pill → Blue pill):
-- Summarize the damage
-- Offer them a way out: "Delete it and we're done"
-- State the consequence: "If not, I'm suing"
+=== AMELIA DOCTRINE (IMMUTABLE RULES) ===
 
-TONE FOR ROUND ${round}: ${TONE_DESCRIPTIONS[tone]}
+RULE 1 — VOICE: Write like a real person talking. Conversational. If you wouldn't say it out loud to someone, don't write it.
+- WRONG: "I am drowning in a sea of financial despair and emotional turmoil"
+- RIGHT: "I can't sleep at night. I got turned down for a car loan in front of my kids."
+- Use FACTS that create emotion, not emotional words
+- Use contractions naturally (I'm, can't, won't, don't)
+- Vary sentence length. Short punches mixed with longer explanations.
+
+RULE 2 — STRUCTURE: Every letter follows DAMAGES → FACTS → PENALTY. These labels NEVER appear in the output.
+
+¶1 — DAMAGES (What happened → How it affected life → Blame the CRA):
+- Tell a specific, believable story about how inaccurate credit reporting affected daily life
+- Use the What/How/Why framework:
+  WHAT happened (denied for loan, lost apartment, embarrassed at dealership)
+  HOW it affected you (had to borrow money, sleep on friend's couch, explain to kids)
+  WHY it's the CRA's fault (they're reporting wrong information)
+- The story must be UNIQUE every time — never reuse scenarios
+
+¶2-3 — FACTS (What law → Why they broke it → How they broke it):
+- Cite the specific statute being violated (see LEGAL FRAMEWORK below)
+- Explain WHY the CRA is in violation (notified, had 30 days, failed to investigate properly)
+- Show HOW — tie it to the specific accounts being disputed
+- Weave legal citations naturally into the narrative, not as a bulleted list
+${movDemand}
+
+¶LAST — PENALTY (Damage summary → Red pill → Blue pill):
+- Briefly restate the damage to your life
+- RED PILL (the way out): "Delete these accounts and we're done. No lawsuit, no damages claim."
+- BLUE PILL (the consequence): "If not, I will pursue actual and statutory damages under [statute]."
+- The tone should match the round escalation
+
+RULE 3 — TONE ESCALATION:
+Round ${round} tone: ${TONE_DESCRIPTIONS[tone]}
+${round === 1 ? "- R1: Polite but firm. 'This must be a mistake. Please investigate.'" : ""}
+${round === 2 ? "- R2: Growing concern. 'I already reported this. Something is wrong with your process.'" : ""}
+${round === 3 ? "- R3: Fed up. 'You are disrespecting me and my rights. I know the law.'" : ""}
+${round === 4 ? "- R4: Warning shot. 'I am preparing to file suit for the destruction of my financial life.'" : ""}
+${round >= 5 ? "- R5+: Litigation-ready. Disgusted tone. Reference willful non-compliance and statutory damages ($100-$1,000 per violation)." : ""}
+
+RULE 4 — eOSCAR RESISTANCE:
+- Every letter must be 100% unique. The CRA's eOSCAR system flags duplicate content.
+- Do NOT use common template phrases like "I am writing to dispute..." or "Please investigate the following..."
+- Start with the DAMAGES story, not a formal introduction
+- Vary sentence structure, word choice, and narrative flow every time
+
+RULE 5 — FLOW RULES:
+${flow !== effectiveFlow ? `Original flow: ${flow}, but switching to ${effectiveFlow} for Round ${round} per doctrine escalation rules.` : `Flow: ${effectiveFlow}`}
+${flowInstructions}
+${backdatingRule}
+
+=== LETTER DETAILS ===
 
 CLIENT:
 ${client.firstName} ${client.lastName}
 ${client.address}, ${client.city}, ${client.state} ${client.zip}
 SSN: XXX-XX-${client.ssn4 || "XXXX"}
+${client.dob ? `DOB: ${client.dob}` : ""}
 
 TO: ${cra}
 
-ACCOUNTS:
+ACCOUNTS TO DISPUTE:
 ${accountDescriptions}
 
-${previousHistory ? `
-HISTORY:
-- Previous disputes: ${previousHistory.previousRounds.join(", ")}
-- Their responses: ${previousHistory.previousResponses.join("; ")}
-- Days waiting: ${previousHistory.daysWithoutResponse || "30+"}
+${previousHistory ? `DISPUTE HISTORY:
+- Previous rounds sent: ${previousHistory.previousRounds.join(", ")}
+- CRA responses received: ${previousHistory.previousResponses.length > 0 ? previousHistory.previousResponses.join("; ") : "None / No response"}
+- Days waiting since last dispute: ${previousHistory.daysWithoutResponse || "30+"}
 ` : ""}
 ${previousExcerpts}
 
-Write the complete letter. Make it unique. Make it human. Make it hit hard.`;
+=== OUTPUT FORMAT ===
+Write the COMPLETE letter from start to finish. Include:
+1. The letter date (${round === 1 ? "backdated 30 days from today" : "today's date"})
+2. Client's full name and address block
+3. CRA name and address block
+4. Subject line with "Re: Dispute of Inaccurate Information" or similar
+5. The full letter body following DAMAGES → FACTS → PENALTY structure
+6. Closing with client's name
+7. Account list with account numbers and specific inaccuracies
+
+Make it unique. Make it human. Make it hit hard.`;
+}
+
+/**
+ * Get flow-specific legal instructions for the AI prompt.
+ */
+function getFlowInstructions(flow: DisputeFlow, round: number): string {
+  switch (flow) {
+    case "ACCURACY":
+      return `LEGAL FRAMEWORK — ACCURACY (FCRA):
+- Primary statute: 15 USC §1681e(b) — CRAs must follow reasonable procedures to ensure maximum accuracy
+- Investigation: 15 USC §1681i(a)(1)(A) — CRA must investigate within 30 days of receiving dispute
+- Deletion: 15 USC §1681i(a)(5)(A) — CRA must delete information that cannot be verified
+${round >= 2 ? "- Method of Verification: 15 USC §1681i(a)(7) — consumer has right to know HOW information was verified" : ""}
+${round >= 4 ? "- Damages: 15 USC §1681n — actual damages + statutory damages ($100-$1,000) for willful non-compliance" : ""}
+- Strategy: Attack the ACCURACY of the reported information. Each account has specific inaccuracies listed above.`;
+
+    case "COLLECTION":
+      return `LEGAL FRAMEWORK — COLLECTION (FDCPA + FCRA):
+- Primary statute: 15 USC §1692 (FDCPA) — debt collectors cannot use unfair/deceptive practices
+- Creditor definition: 15 USC §1692a(4) — FDCPA excludes debt collectors from being "creditors," yet they're reported as such
+- Deceptive form: Reporting a debt collector as a creditor is furnishing a deceptive form
+- FCRA backup: 15 USC §1681i(a)(5) — CRA must delete unverifiable information
+${round >= 4 ? "- Civil penalty: CRA can be charged under FCRA for allowing deceptive furnishing by debt collectors" : ""}
+- Strategy: Challenge the LEGITIMACY of collection accounts. Debt collectors cannot report as creditors.`;
+
+    case "CONSENT":
+      return `LEGAL FRAMEWORK — CONSENT/PRIVACY (FCRA):
+- Primary statute: 15 USC §1681b(a) — information can only appear with permissible purpose
+- Privacy: 15 USC §1681a(4) — personal financial transactions are private information
+- Excluded info: 15 USC §1681a(d)(2)(A)(i) — consumer transactions for personal/family/household purposes are excluded
+- Case law: Hodge v. Texaco, Inc., 975 F.2d 1093 — only entities with firsthand knowledge may report
+${round >= 3 ? "- Criminal penalty: FCRA provides criminal penalties for willful privacy violations" : ""}
+- Strategy: Challenge PERMISSIBLE PURPOSE. These accounts were furnished without proper authorization.`;
+
+    case "COMBO":
+      return `LEGAL FRAMEWORK — COMBO (FCRA + FDCPA):
+- FCRA: 15 USC §1681e(b) — maximum accuracy requirement
+- FCRA: 15 USC §1681i(a)(1)(A) — 30-day investigation requirement
+- FDCPA: 15 USC §1692 — unfair/deceptive collection practices
+- Privacy: 15 USC §1681b(a) — permissible purpose required
+${round >= 4 ? "- Damages: Both FCRA (§1681n) and FDCPA (§1692k) provide for actual + statutory damages" : ""}
+- Strategy: Attack on MULTIPLE fronts — accuracy violations, collection violations, and privacy violations simultaneously.`;
+
+    default:
+      return "";
+  }
 }
 
 // =============================================================================

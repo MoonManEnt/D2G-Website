@@ -22,7 +22,19 @@ import {
   type DisputeAccount,
   type HardInquiry,
   type ActivePersonalInfoDispute,
+  type GeneratedLetter,
 } from "@/lib/amelia/index";
+import {
+  generateAmeliaAILetter,
+  type ClientInfo as AmeliaClientInfo,
+  type DisputeAccount as AmeliaDisputeAccount,
+} from "@/lib/amelia";
+import { isAIAvailable } from "@/lib/ai/providers";
+import {
+  calculateLetterDate,
+  determineTone,
+} from "@/lib/amelia-doctrine";
+import { getEffectiveFlow } from "@/lib/amelia-templates";
 import { CRA } from "@/types";
 import {
   getActiveDisputes,
@@ -189,18 +201,96 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       activePersonalInfoDisputes = await getActiveDisputes(client.id, cra);
     }
 
-    // Generate the letter using AMELIA doctrine (supports all rounds)
-    const generatedLetter = generateLetter({
-      client: clientInfo,
-      accounts,
-      cra,
-      flow: flowType,
-      round: dispute.round,
-      usedContentHashes: usedHashSet,
-      lastDisputeDate: lastDisputeDateStr,
-      activePersonalInfoDisputes,
-      ...(tone && { toneOverride: tone }),
-    });
+    // Generate the letter — AI-first with template fallback
+    let generatedLetter: GeneratedLetter | null = null;
+
+    if (isAIAvailable()) {
+      try {
+        // Adapt data to AI generation interface
+        const aiClient: AmeliaClientInfo = {
+          id: client.id,
+          firstName: client.firstName,
+          lastName: client.lastName,
+          address: clientInfo.addressLine1 + (clientInfo.addressLine2 ? ` ${clientInfo.addressLine2}` : ""),
+          city: clientInfo.city,
+          state: clientInfo.state,
+          zip: clientInfo.zipCode,
+          ssn4: clientInfo.ssnLast4,
+          dob: clientInfo.dateOfBirth,
+        };
+
+        const aiAccounts: AmeliaDisputeAccount[] = accounts.map((a) => ({
+          creditorName: a.creditorName,
+          accountNumber: a.accountNumber,
+          accountType: a.accountType,
+          balance: a.balance,
+          issues: a.issues.map((i: string | { description: string }) =>
+            typeof i === "string" ? i : i.description
+          ),
+        }));
+
+        const aiResult = await generateAmeliaAILetter({
+          client: aiClient,
+          accounts: aiAccounts,
+          cra: cra as "TRANSUNION" | "EXPERIAN" | "EQUIFAX",
+          flow: flowType as "ACCURACY" | "COLLECTION" | "CONSENT" | "COMBO",
+          round: dispute.round,
+          previousHistory: dispute.round >= 2
+            ? {
+                previousRounds: Array.from({ length: dispute.round - 1 }, (_, i) => i + 1),
+                previousResponses: [],
+                daysWithoutResponse: 30,
+              }
+            : undefined,
+          organizationId: session.user.organizationId,
+        });
+
+        // Compute doctrine metadata to match expected GeneratedLetter format
+        const dateInfo = calculateLetterDate(dispute.round);
+        const aiTone = determineTone(dispute.round);
+        const effectiveFlow = getEffectiveFlow(flowType, dispute.round);
+
+        generatedLetter = {
+          content: aiResult.content,
+          letterDate: dateInfo.letterDate,
+          isBackdated: dateInfo.isBackdated,
+          backdatedDays: dateInfo.backdatedDays,
+          tone: aiTone,
+          flow: flowType,
+          effectiveFlow,
+          round: dispute.round,
+          statute: effectiveFlow === "COLLECTION" ? "FDCPA" : "FCRA",
+          contentHash: aiResult.contentHash,
+          includesScreenshots: false,
+          personalInfoDisputed: {
+            previousNames: [],
+            previousAddresses: [],
+            hardInquiries: [],
+          },
+          letterStructure: "DAMAGES_FIRST",
+        };
+
+        console.log("[Amelia] AI letter generated successfully for dispute", disputeId);
+      } catch (aiError) {
+        console.error("[Amelia] AI generation failed, falling back to template:", aiError);
+        // generatedLetter stays null, falls through to template generation
+      }
+    }
+
+    if (!generatedLetter) {
+      // Fallback: Generate the letter using AMELIA template doctrine (supports all rounds)
+      generatedLetter = generateLetter({
+        client: clientInfo,
+        accounts,
+        cra,
+        flow: flowType,
+        round: dispute.round,
+        usedContentHashes: usedHashSet,
+        lastDisputeDate: lastDisputeDateStr,
+        activePersonalInfoDisputes,
+        ...(tone && { toneOverride: tone }),
+      });
+    }
 
     // NOTE: Content hash is NOT stored on regeneration - only when dispute is LAUNCHED
     // This allows unlimited regeneration while still preventing duplicate content across launched disputes
@@ -223,7 +313,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           statute: generatedLetter.statute,
           includesScreenshots: generatedLetter.includesScreenshots,
           personalInfoDisputed: generatedLetter.personalInfoDisputed,
-          ameliaVersion: "2.1", // Version bump for persistent personal info disputes
+          ameliaVersion: "2.1",
+          generationMethod: isAIAvailable() ? "ai" : "template",
         }),
       },
     });
