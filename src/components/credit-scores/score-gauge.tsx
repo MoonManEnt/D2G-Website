@@ -4,44 +4,59 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 interface ScoreGaugeProps {
   score: number;
-  /** Minimum score on the gauge (default 300) */
   min?: number;
-  /** Maximum score on the gauge (default 850) */
   max?: number;
-  /** Size of the gauge in pixels (default 160) */
   size?: number;
-  /** Animation duration in ms (default 1500) */
   animationDuration?: number;
   className?: string;
 }
 
 /**
- * Color stops for the gauge arc: red -> orange -> yellow -> lime -> green
- * Matches the MyFICO / Credit Karma style score dial
+ * Gradient stops mapped to actual score positions on the 300-850 range.
+ *
+ * Normalized positions (score → offset):
+ *   300 = 0.00   →  Deep red
+ *   450 = 0.27   →  Red
+ *   530 = 0.42   →  Red-orange
+ *   580 = 0.51   →  Orange
+ *   640 = 0.62   →  Orange-yellow
+ *   670 = 0.67   →  Yellow
+ *   720 = 0.76   →  Yellow-green
+ *   760 = 0.84   →  Green
+ *   810 = 0.93   →  Dark green
+ *   850 = 1.00   →  Emerald
  */
 const GAUGE_COLORS = [
-  { offset: 0, color: "#EF4444" },     // Red - Poor (300)
-  { offset: 0.25, color: "#F97316" },   // Orange - Fair low
-  { offset: 0.4, color: "#EAB308" },    // Yellow - Fair high
-  { offset: 0.6, color: "#84CC16" },    // Lime - Good
-  { offset: 0.8, color: "#22C55E" },    // Green - Very Good
-  { offset: 1, color: "#059669" },      // Emerald - Exceptional
+  { offset: 0,    color: "#DC2626" },  // 300 - Deep red
+  { offset: 0.27, color: "#EF4444" },  // ~450 - Red
+  { offset: 0.42, color: "#F97316" },  // ~530 - Red-orange
+  { offset: 0.51, color: "#FB923C" },  // ~580 - Orange
+  { offset: 0.62, color: "#FBBF24" },  // ~640 - Orange-yellow
+  { offset: 0.67, color: "#EAB308" },  // ~670 - Yellow
+  { offset: 0.76, color: "#A3E635" },  // ~720 - Yellow-green
+  { offset: 0.84, color: "#22C55E" },  // ~760 - Green
+  { offset: 0.93, color: "#16A34A" },  // ~810 - Dark green
+  { offset: 1,    color: "#059669" },  // 850 - Emerald
 ];
 
 function getScoreColor(normalizedValue: number): string {
+  // Find the two stops we're between and return the closer one
   for (let i = 0; i < GAUGE_COLORS.length - 1; i++) {
     const curr = GAUGE_COLORS[i];
     const next = GAUGE_COLORS[i + 1];
-    if (normalizedValue >= curr.offset && normalizedValue <= next.offset) {
-      return next.color;
+    if (normalizedValue <= next.offset) {
+      // Interpolate: pick whichever stop we're closer to
+      const mid = (curr.offset + next.offset) / 2;
+      return normalizedValue < mid ? curr.color : next.color;
     }
   }
   return GAUGE_COLORS[GAUGE_COLORS.length - 1].color;
 }
 
 /**
- * Animated semicircle score gauge that transitions from red to green.
+ * Animated semicircle score gauge (red → green).
  * Re-animates every time the component becomes visible (tab switch, scroll).
+ * Score number is displayed BELOW the arc, separated from the needle.
  */
 export function ScoreGauge({
   score,
@@ -62,10 +77,8 @@ export function ScoreGauge({
   const normalizedTarget = (clampedScore - min) / (max - min);
 
   const runAnimation = useCallback(() => {
-    // Cancel any running animation
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
 
-    // Reset
     setDisplayScore(min);
     setNeedleAngle(0);
     startTimeRef.current = 0;
@@ -74,7 +87,7 @@ export function ScoreGauge({
     const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
 
     const tick = (timestamp: number) => {
-      if (thisId !== idRef.current) return; // stale animation
+      if (thisId !== idRef.current) return;
       if (!startTimeRef.current) startTimeRef.current = timestamp;
       const elapsed = timestamp - startTimeRef.current;
       const rawProgress = Math.min(elapsed / animationDuration, 1);
@@ -91,7 +104,6 @@ export function ScoreGauge({
     animFrameRef.current = requestAnimationFrame(tick);
   }, [clampedScore, normalizedTarget, min, animationDuration]);
 
-  // IntersectionObserver: re-animate every time visible
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -112,13 +124,12 @@ export function ScoreGauge({
     };
   }, [runAnimation]);
 
-  // SVG dimensions
+  // SVG layout
   const cx = size / 2;
-  const cy = size / 2 + 4;
-  const radius = size / 2 - 14;
-  const strokeWidth = 12;
+  const arcCy = size / 2 - 6; // move arc up to leave room for score below
+  const radius = size / 2 - 16;
+  const strokeWidth = 14;
 
-  // Arc: 180-degree semicircle (left to right)
   const startAngleDeg = -180;
   const endAngleDeg = 0;
   const totalArcDeg = endAngleDeg - startAngleDeg;
@@ -128,32 +139,38 @@ export function ScoreGauge({
     const startRad = toRad(startDeg);
     const endRad = toRad(endDeg);
     const x1 = cx + radius * Math.cos(startRad);
-    const y1 = cy + radius * Math.sin(startRad);
+    const y1 = arcCy + radius * Math.sin(startRad);
     const x2 = cx + radius * Math.cos(endRad);
-    const y2 = cy + radius * Math.sin(endRad);
+    const y2 = arcCy + radius * Math.sin(endRad);
     const largeArc = endDeg - startDeg > 180 ? 1 : 0;
     return `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}`;
   };
 
-  // Needle
+  // Needle — shorter so it doesn't reach center where score will be
   const needleDeg = startAngleDeg + totalArcDeg * needleAngle;
   const needleRad = toRad(needleDeg);
-  const needleLength = radius - 4;
-  const needleX = cx + needleLength * Math.cos(needleRad);
-  const needleY = cy + needleLength * Math.sin(needleRad);
+  const needleInnerRadius = 18; // gap from center pivot
+  const needleOuterRadius = radius - 6;
+  const needleInnerX = cx + needleInnerRadius * Math.cos(needleRad);
+  const needleInnerY = arcCy + needleInnerRadius * Math.sin(needleRad);
+  const needleOuterX = cx + needleOuterRadius * Math.cos(needleRad);
+  const needleOuterY = arcCy + needleOuterRadius * Math.sin(needleRad);
 
   const scoreColor = getScoreColor(needleAngle);
   const gradientId = `gauge-grad-${size}-${score}`;
 
+  // Total SVG height: arc area + score number below
+  const svgHeight = size / 2 + 40;
+
   return (
     <div
       ref={containerRef}
-      className={`relative inline-flex flex-col items-center ${className || ""}`}
+      className={`inline-flex flex-col items-center ${className || ""}`}
     >
       <svg
         width={size}
-        height={size / 2 + 20}
-        viewBox={`0 0 ${size} ${size / 2 + 20}`}
+        height={svgHeight}
+        viewBox={`0 0 ${size} ${svgHeight}`}
       >
         <defs>
           <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
@@ -172,7 +189,7 @@ export function ScoreGauge({
           d={arcPath(startAngleDeg, endAngleDeg)}
           fill="none"
           stroke="currentColor"
-          className="text-muted/30"
+          className="text-muted/20"
           strokeWidth={strokeWidth}
           strokeLinecap="round"
         />
@@ -184,56 +201,61 @@ export function ScoreGauge({
           stroke={`url(#${gradientId})`}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
-          opacity={0.85}
+          opacity={0.9}
         />
 
-        {/* Needle */}
+        {/* Needle — line from inner radius to outer radius */}
         <line
-          x1={cx}
-          y1={cy}
-          x2={needleX}
-          y2={needleY}
-          stroke={scoreColor}
-          strokeWidth={3}
+          x1={needleInnerX}
+          y1={needleInnerY}
+          x2={needleOuterX}
+          y2={needleOuterY}
+          stroke="white"
+          strokeWidth={2.5}
           strokeLinecap="round"
+          opacity={0.95}
         />
 
-        {/* Center dot */}
-        <circle cx={cx} cy={cy} r={5} fill={scoreColor} />
-        <circle cx={cx} cy={cy} r={2.5} fill="currentColor" className="text-card" />
+        {/* Center pivot dot */}
+        <circle cx={cx} cy={arcCy} r={4} fill="white" opacity={0.9} />
+        <circle cx={cx} cy={arcCy} r={1.5} fill="currentColor" className="text-card" />
 
         {/* Min / Max labels */}
         <text
           x={cx - radius - 2}
-          y={cy + 16}
+          y={arcCy + 14}
           textAnchor="middle"
           className="fill-muted-foreground"
-          fontSize="10"
+          fontSize="9"
           fontFamily="system-ui, sans-serif"
         >
           {min}
         </text>
         <text
           x={cx + radius + 2}
-          y={cy + 16}
+          y={arcCy + 14}
           textAnchor="middle"
           className="fill-muted-foreground"
-          fontSize="10"
+          fontSize="9"
           fontFamily="system-ui, sans-serif"
         >
           {max}
         </text>
-      </svg>
 
-      {/* Animated score number */}
-      <div className="absolute" style={{ bottom: 2, left: "50%", transform: "translateX(-50%)" }}>
-        <span
-          className="text-3xl font-bold tabular-nums"
-          style={{ color: scoreColor }}
+        {/* Score number — below the arc baseline, cleanly separated */}
+        <text
+          x={cx}
+          y={arcCy + 34}
+          textAnchor="middle"
+          fontFamily="system-ui, sans-serif"
+          fontWeight="700"
+          fontSize="28"
+          fill={scoreColor}
+          className="tabular-nums"
         >
           {displayScore}
-        </span>
-      </div>
+        </text>
+      </svg>
     </div>
   );
 }

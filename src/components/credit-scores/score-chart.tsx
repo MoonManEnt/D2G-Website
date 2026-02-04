@@ -64,9 +64,9 @@ const CRA_COLORS = {
 const SCORE_RANGES = [
   { min: 800, max: 850, label: "Exceptional", color: "text-emerald-400" },
   { min: 740, max: 799, label: "Very Good", color: "text-green-400" },
-  { min: 670, max: 739, label: "Good", color: "text-lime-400" },
-  { min: 580, max: 669, label: "Fair", color: "text-yellow-400" },
-  { min: 300, max: 579, label: "Poor", color: "text-red-400" },
+  { min: 670, max: 739, label: "Good", color: "text-yellow-300" },
+  { min: 580, max: 669, label: "Fair", color: "text-orange-400" },
+  { min: 300, max: 579, label: "Poor", color: "text-red-500" },
 ];
 
 function getScoreLabel(score: number) {
