@@ -11,6 +11,10 @@ export const metadata: Metadata = {
   title: "Dispute2Go | Credit Dispute Operating System",
   description: "Professional credit dispute management for specialists. Transform credit reports into compliant dispute workflows.",
   keywords: ["credit repair", "dispute letters", "FCRA", "credit bureau", "CRA disputes"],
+  icons: {
+    icon: "/icon.png",
+    apple: "/apple-icon.png",
+  },
 };
 
 export default function RootLayout({

@@ -61,7 +61,7 @@ export function LoadingScreen({ onComplete, minDuration = 1500 }: LoadingScreenP
 
         {/* Logo */}
         <motion.div
-          className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-2xl"
+          className="relative w-20 h-20 flex items-center justify-center"
           animate={{
             rotateY: [0, 360],
           }}
@@ -71,7 +71,11 @@ export function LoadingScreen({ onComplete, minDuration = 1500 }: LoadingScreenP
             ease: "easeInOut",
           }}
         >
-          <span className="text-3xl font-bold text-white">D2</span>
+          <img
+            src="/logos/d2g-logo.png"
+            alt="Dispute2Go"
+            className="w-20 h-20 object-contain"
+          />
         </motion.div>
       </motion.div>
 

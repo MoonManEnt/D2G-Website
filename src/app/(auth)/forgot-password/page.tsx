@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, ArrowLeft, CheckCircle2, Loader2, Mail, Shield } from "lucide-react";
+import { AlertCircle, ArrowLeft, CheckCircle2, Loader2, Mail } from "lucide-react";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -44,9 +44,11 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-card to-background p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-            <Shield className="w-8 h-8 text-primary" />
-          </div>
+          <img
+            src="/logos/d2g-logo.png"
+            alt="Dispute2Go"
+            className="h-24 w-24 object-contain mx-auto mb-4"
+          />
           <h1 className="text-3xl font-bold text-foreground">Dispute2Go</h1>
           <p className="text-muted-foreground mt-2">Credit Dispute Operating System</p>
         </div>

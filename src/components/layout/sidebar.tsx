@@ -293,12 +293,14 @@ export function Sidebar({ user }: SidebarProps) {
       }
       return (
         <motion.div
-          className="w-10 h-10 rounded-lg bg-brand-600 flex items-center justify-center"
-          style={logoStyle}
-          whileHover={{ scale: 1.05, rotate: 5 }}
+          whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          <span className="text-white font-bold">D2</span>
+          <img
+            src="/logos/d2g-logo.png"
+            alt="Dispute2Go"
+            className="h-10 w-10 object-contain"
+          />
         </motion.div>
       );
     }
@@ -316,16 +318,14 @@ export function Sidebar({ user }: SidebarProps) {
     return (
       <>
         <motion.div
-          className="w-9 h-9 rounded-lg bg-brand-600 flex items-center justify-center"
-          style={logoStyle}
-          whileHover={{ scale: 1.05, rotate: 5 }}
+          whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          {branding?.logoText ? (
-            <Sparkles className="w-5 h-5 text-white" />
-          ) : (
-            <span className="text-white font-bold">D2</span>
-          )}
+          <img
+            src="/logos/d2g-logo.png"
+            alt="Dispute2Go"
+            className="h-9 w-9 object-contain"
+          />
         </motion.div>
         <div>
           <span className="font-semibold text-lg" style={branding ? { color: branding.sidebarTextColor } : {}}>
@@ -353,16 +353,11 @@ export function Sidebar({ user }: SidebarProps) {
             />
           ) : (
             <>
-              <motion.div
-                className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center"
-                style={logoStyle}
-                whileHover={{ scale: 1.05, rotate: 5 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <span className="text-white font-bold text-sm">
-                  {branding?.logoText ? branding.logoText.charAt(0) : "D2"}
-                </span>
-              </motion.div>
+              <img
+                src="/logos/d2g-logo.png"
+                alt="Dispute2Go"
+                className="h-8 w-8 object-contain"
+              />
               <span className="font-semibold text-lg" style={branding ? { color: branding.sidebarTextColor } : {}}>
                 {branding?.logoText || "Dispute2Go"}
               </span>
