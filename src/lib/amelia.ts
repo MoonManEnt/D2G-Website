@@ -26,6 +26,7 @@
 import crypto from "crypto";
 import { prisma } from "./prisma";
 import { completeLLM } from "./llm-orchestrator";
+import { validateUniqueness, buildRejectionFeedback, type ValidationResult } from "@/lib/ai/content-validator";
 
 // =============================================================================
 // TYPES
@@ -86,6 +87,11 @@ export interface LetterGenerationRequest {
     daysWithoutResponse?: number;
   };
   organizationId: string;
+  previousRoundContext?: string; // JSON string of nextRoundContext from previous round
+  outcomePatternContext?: string; // Outcome pattern data for strategy adjustment
+  litigationMode?: boolean;
+  violationCount?: number;
+  violationDetails?: string[];
 }
 
 export interface GeneratedLetter {
@@ -95,6 +101,8 @@ export interface GeneratedLetter {
   contentHash: string;
   uniquenessScore: number;
   ameliaVersion: string;
+  litigationMode?: boolean;
+  violationCount?: number;
 }
 
 // =============================================================================
@@ -717,7 +725,7 @@ Enclosures:
     citations,
     tone,
     contentHash,
-    uniquenessScore: 95, // High because we're using unique combinations
+    uniquenessScore: 95, // Default for template generation; real score computed in AI path
     ameliaVersion: "2.0.0",
   };
 }
@@ -1214,30 +1222,70 @@ export async function generateAmeliaAILetter(
     : prompt;
 
   try {
-    const response = await completeLLM({
-      taskType: "LETTER_GENERATION",
-      prompt: fullPrompt,
-      organizationId: request.organizationId,
-      context: {
-        flow: request.flow,
-        round: request.round,
-        cra: request.cra,
-      },
-    });
+    let content = "";
+    let finalPrompt = fullPrompt;
+    const MAX_RETRIES = 3;
 
-    const content = response.content;
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      const response = await completeLLM({
+        taskType: "LETTER_GENERATION",
+        prompt: finalPrompt,
+        organizationId: request.organizationId,
+        context: {
+          flow: request.flow,
+          round: request.round,
+          cra: request.cra,
+        },
+      });
+
+      content = response.content;
+
+      // Validate uniqueness against previous letters
+      if (previousLetters.length > 0) {
+        const validation = validateUniqueness(content, previousLetters);
+
+        if (!validation.isUnique && attempt < MAX_RETRIES) {
+          // Content too similar — inject rejection feedback and retry
+          const feedback = buildRejectionFeedback(attempt, validation.similarityScore);
+          finalPrompt = fullPrompt + `\n\n=== REJECTION FEEDBACK ===\n${feedback}`;
+          console.warn(
+            `[Amelia] Attempt ${attempt}/${MAX_RETRIES} rejected: ${validation.similarityScore}% similar to previous letter ${validation.mostSimilarIndex}`
+          );
+          continue;
+        }
+
+        if (!validation.isUnique && attempt === MAX_RETRIES) {
+          console.warn(
+            `[Amelia] All ${MAX_RETRIES} attempts exceeded similarity threshold. Using best attempt (${validation.similarityScore}% similar).`
+          );
+        }
+      }
+
+      // Content is unique enough or we've exhausted retries
+      break;
+    }
+
     const contentHash = hashContent(content);
 
     const citationMatches = content.match(/15 U\.?S\.?C\.? ?§? ?\d+[a-z]?(?:\([^)]+\))?/gi) || [];
     const citations = [...new Set(citationMatches)];
 
+    // Compute real uniqueness score using trigram similarity
+    let uniquenessScore = 98;
+    if (previousLetters.length > 0) {
+      const validation = validateUniqueness(content, previousLetters);
+      uniquenessScore = validation.uniquenessScore;
+    }
+
     return {
       content,
       citations,
-      tone,
+      tone: request.litigationMode ? (request.round >= 4 ? "PISSED" : "WARNING") : tone,
       contentHash,
-      uniquenessScore: 98,
+      uniquenessScore,
       ameliaVersion: "3.0.0-ai",
+      litigationMode: request.litigationMode,
+      violationCount: request.violationCount,
     };
   } catch (error) {
     console.error("AI generation failed, using template:", error);
@@ -1283,7 +1331,22 @@ function buildAIPrompt(
   ).join("\n");
 
   const previousExcerpts = previousLetters.length > 0
-    ? `\n\nPREVIOUS LETTERS SENT FOR THIS CLIENT (DO NOT REPEAT ANY CONTENT — eOSCAR will flag duplicates):\n${previousLetters.map(l => `"${l.substring(0, 300)}..."`).join("\n")}`
+    ? `\n\nPREVIOUS LETTERS SENT FOR THIS CLIENT — COMPLETE CONTENT (DO NOT REPEAT ANY OF THIS):\nYou MUST create a COMPLETELY different letter. Different scenario, different sentence structure, different word choices, different legal framing, different emotional narrative. The eOSCAR system flags duplicate content.\n\n${previousLetters.map((l, i) => `--- Previous Letter ${i + 1} ---\n${l.substring(0, 2000)}${l.length > 2000 ? "\n[truncated]" : ""}`).join("\n\n")}`
+    : "";
+
+  // Phase 3: Previous round intelligence from response analysis
+  const previousRoundSection = request.previousRoundContext
+    ? `\n\n=== PREVIOUS ROUND INTELLIGENCE ===\nThe following is intelligence gathered from CRA responses to the previous round. Use this to make your letter more targeted.\n${request.previousRoundContext}\n\nINSTRUCTION: Reference specific outcomes from the previous round. If an item was "VERIFIED", demand Method of Verification documentation. If "NO_RESPONSE", cite the 30-day FCRA violation. If a stall tactic was detected, call it out explicitly.`
+    : "";
+
+  // Phase 4: Outcome pattern intelligence for strategy adjustment
+  const patternSection = request.outcomePatternContext
+    ? `\n\n=== OUTCOME PATTERN INTELLIGENCE ===\nHistorical success rates for similar disputes:\n${request.outcomePatternContext}\n\nINSTRUCTION: If success rate is below 30%, use more aggressive legal language and cite additional statutes. If success rate is above 70%, use a confident, matter-of-fact tone. Reference the historical data where appropriate (e.g., "Based on your track record with [creditor]...").`
+    : "";
+
+  // Phase 5: Litigation mode for clients with documented violations
+  const litigationSection = request.litigationMode && request.violationDetails
+    ? `\n\n=== LITIGATION MODE ===\nThis client has ${request.violationCount} documented FCRA/FDCPA violations against ${request.cra}.\n\nSpecific violations:\n${request.violationDetails.join("\n")}\n\nINSTRUCTION: This letter should reflect imminent legal action. Reference specific violations by name. Include statutory damage ranges ($100-$1,000 per willful violation under 15 USC §1681n, plus actual damages). Tone should be WARNING or PISSED regardless of round number. Mention that legal counsel has been consulted.`
     : "";
 
   // Flow-specific legal citations and strategy
@@ -1370,7 +1433,7 @@ ${previousHistory ? `DISPUTE HISTORY:
 - CRA responses received: ${previousHistory.previousResponses.length > 0 ? previousHistory.previousResponses.join("; ") : "None / No response"}
 - Days waiting since last dispute: ${previousHistory.daysWithoutResponse || "30+"}
 ` : ""}
-${previousExcerpts}
+${previousExcerpts}${previousRoundSection}${patternSection}${litigationSection}
 
 === OUTPUT FORMAT ===
 Write the COMPLETE letter from start to finish. Include:

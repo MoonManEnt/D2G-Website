@@ -29,6 +29,7 @@ import {
   AlertTriangle,
   Bot,
   Lightbulb,
+  Zap,
 } from "lucide-react";
 
 // CFPB Product categories
@@ -85,6 +86,8 @@ interface CFPBGeneratorProps {
   disputedAccounts: DisputedAccount[];
   disputeFlow?: string; // The dispute flow used (ACCURACY, COLLECTION, etc.)
   disputeRound?: number; // Current round number
+  clientId?: string; // Client ID for AI generation
+  disputeId?: string; // Dispute ID for the CFPB API call
   onBack?: () => void;
   onSaveDraft?: (narrative: string) => void;
 }
@@ -96,6 +99,8 @@ export function CFPBGenerator({
   disputedAccounts,
   disputeFlow = "ACCURACY",
   disputeRound = 1,
+  clientId,
+  disputeId,
   onBack,
   onSaveDraft,
 }: CFPBGeneratorProps) {
@@ -107,6 +112,8 @@ export function CFPBGenerator({
   const [activeTab, setActiveTab] = useState<"preview" | "edit" | "tips">("preview");
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [aiEnabled, setAiEnabled] = useState(true);
+  const [uniquenessScore, setUniquenessScore] = useState<number | null>(null);
 
   // Calculate days elapsed
   const daysElapsed = Math.floor((Date.now() - disputeDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -235,10 +242,57 @@ Supporting documents available upon request.`,
 
   const handleRegenerate = async () => {
     setIsRegenerating(true);
-    // Simulate AI regeneration with slight variation
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    setUniquenessScore(null);
+
+    if (aiEnabled && disputeId) {
+      try {
+        const bureauMap: Record<string, string> = {
+          TransUnion: "TRANSUNION",
+          Experian: "EXPERIAN",
+          Equifax: "EQUIFAX",
+        };
+
+        const response = await fetch(`/api/disputes/${disputeId}/cfpb`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            clientName,
+            clientId,
+            cra: bureauMap[bureau] || "TRANSUNION",
+            accounts: disputedAccounts.map((acc) => ({
+              creditorName: acc.creditorName,
+              accountNumber: acc.accountNumber,
+              balance: acc.balance ? `$${acc.balance.toLocaleString()}` : undefined,
+              issue: acc.status || "Inaccurate information",
+            })),
+            round: disputeRound,
+            flow: disputeFlow,
+            previousDisputeDate: disputeDate.toLocaleDateString("en-US", {
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+            }),
+            daysSinceDispute: daysElapsed,
+          }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          setNarrative(result.narrative);
+          if (result.uniquenessScore !== undefined) {
+            setUniquenessScore(result.uniquenessScore);
+          }
+          setIsRegenerating(false);
+          return;
+        }
+      } catch (error) {
+        console.error("AI generation failed, falling back to template:", error);
+      }
+    }
+
+    // Fallback: client-side template generation
+    await new Promise(resolve => setTimeout(resolve, 500));
     const newNarrative = generateNarrative(selectedTone);
-    // Add slight variation to show it's "regenerated"
     setNarrative(newNarrative);
     setIsRegenerating(false);
   };
@@ -292,6 +346,21 @@ ${narrative}`;
               <h1 className="font-semibold text-foreground">CFPB Complaint Generator</h1>
               <p className="text-sm text-muted-foreground">{clientName} • {bureau} • Round {disputeRound}</p>
             </div>
+            <button
+              onClick={() => {
+                setAiEnabled(!aiEnabled);
+                setUniquenessScore(null);
+              }}
+              className={`ml-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+                aiEnabled
+                  ? "bg-purple-500/20 border-purple-500/50 text-purple-400 hover:bg-purple-500/30"
+                  : "bg-muted border-border text-muted-foreground hover:bg-card"
+              }`}
+              title={aiEnabled ? "AI generation enabled" : "AI generation disabled"}
+            >
+              <Zap className="w-3.5 h-3.5" />
+              AI {aiEnabled ? "ON" : "OFF"}
+            </button>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -489,7 +558,22 @@ ${narrative}`;
 
           {/* Footer */}
           <div className="flex items-center justify-between mt-4">
-            <span className="text-sm text-muted-foreground">{narrative.length} characters</span>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">{narrative.length} characters</span>
+              {uniquenessScore !== null && (
+                <Badge
+                  className={`text-xs ${
+                    uniquenessScore >= 70
+                      ? "bg-emerald-500/20 text-emerald-400"
+                      : uniquenessScore >= 40
+                      ? "bg-amber-500/20 text-amber-400"
+                      : "bg-red-500/20 text-red-400"
+                  }`}
+                >
+                  Uniqueness: {uniquenessScore}%
+                </Badge>
+              )}
+            </div>
             <Button
               variant="outline"
               size="sm"

@@ -94,6 +94,7 @@ export interface RoundTemplate {
   statute: string;
   openingParagraph: string; // DAMAGES
   bodyParagraphs: string[]; // STORY/FACTS
+  bodyParagraphVariants?: string[][]; // NEW: Array of variant arrays per paragraph slot
   accountListIntro?: string;
   demandSection: string;
   consumerStatement: string;
@@ -152,6 +153,24 @@ export const ACCURACY_TEMPLATES: Record<number, Omit<RoundTemplate, "round" | "f
       `The information in this complaint is inaccurate because it reports different information across each consumer reporting agency (or CRA). However, the Fair Credit Reporting Act (or FCRA) requires {bureauName} to report my credit with maximum accuracy. What is maximum accuracy? Well, under the FCRA, this standard forces CRAs to report my credit 100% consistent across each agency, only after I inform you of the errors.`,
       `And for this reason, if you do not modify or delete the accounts I am about to list in this complaint, you may have to pay a hefty fine (over a couple thousand) for the damages your misleading reporting has caused me. Here is a list of the items furnishing incorrect, plus the exact categories that are inaccurate:`,
     ],
+    bodyParagraphVariants: [
+      [
+        // Variant A (original)
+        `The information in this complaint is inaccurate because it reports different information across each consumer reporting agency (or CRA). However, the Fair Credit Reporting Act (or FCRA) requires {bureauName} to report my credit with maximum accuracy. What is maximum accuracy? Well, under the FCRA, this standard forces CRAs to report my credit 100% consistent across each agency, only after I inform you of the errors.`,
+        // Variant B
+        `After reviewing my credit files from all three bureaus, I found serious discrepancies in how these accounts are being reported. Under the Fair Credit Reporting Act, {bureauName} is legally required to maintain maximum accuracy—which means the information on your report must be 100% consistent with what the other agencies show. Right now, it's not even close.`,
+        // Variant C
+        `I pulled my reports from all three credit bureaus and compared them side by side. What I found is alarming: the accounts listed below show completely different information depending on which bureau I check. The FCRA's maximum accuracy standard under 15 USC 1681e(b) makes it crystal clear—{bureauName} must ensure every data point matches across all agencies once a consumer reports discrepancies. You have failed to meet that standard.`,
+      ],
+      [
+        // Variant A (original)
+        `And for this reason, if you do not modify or delete the accounts I am about to list in this complaint, you may have to pay a hefty fine (over a couple thousand) for the damages your misleading reporting has caused me. Here is a list of the items furnishing incorrect, plus the exact categories that are inaccurate:`,
+        // Variant B
+        `Because of your failure to maintain accuracy, I have suffered real financial harm. If these items are not corrected or removed within 30 days, I will have no choice but to pursue damages under 15 USC 1681o—which could cost your agency thousands of dollars. Below are the specific accounts reporting inaccurate data, along with the categories that are wrong:`,
+        // Variant C
+        `This isn't just a minor inconvenience—your inaccurate reporting has cost me real money and real opportunities. Under the FCRA, I am entitled to actual damages for every day these errors remain on my report. I strongly suggest you review and delete the following items before this escalates further. Here are the accounts with their specific inaccuracies:`,
+      ],
+    ],
     accountListIntro: `You have 30 days from receiving this dispute to either correct these items… or… delete them from my credit report. I know I may sound a little blunt and direct, but you should know, my credit score controls almost all of my financial decisions… and without it I am going to struggle for a very long time. So all I ask of you is this: Please follow your legal duties and remove the inaccurate information from my credit report. I can assure you, it would work out best for the both of us.`,
     demandSection: DEMAND_LANGUAGE.R1,
     consumerStatement: `All items listed in this complaint are reporting incorrect information on my credit report. I have not been able to use my credit in a very long time and I am suffering each and every day because of it. Please remove this information ASAP so I can go back to living my normal (less stressful) life.`,
@@ -165,6 +184,24 @@ export const ACCURACY_TEMPLATES: Record<number, Omit<RoundTemplate, "round" | "f
     bodyParagraphs: [
       `If you do not want me to seek a legal claim against your agency, I suggest you delete the inaccurate information (in this complaint) right away. You see, according to 15 USC 1681e(b), {bureauName} must conduct reasonable procedures—to make certain without a doubt—that every item on my credit report is furnished without error. And after reviewing my updated credit report, NO CHANGES WERE MADE TO THE DISPUTED ITEMS. For this reason, you have, without a doubt, not followed reasonable procedures to report my credit with maximum accuracy.`,
       `Here is a list of the exact information furnishing inaccurate on my credit report:`,
+    ],
+    bodyParagraphVariants: [
+      [
+        // Variant A (original)
+        `If you do not want me to seek a legal claim against your agency, I suggest you delete the inaccurate information (in this complaint) right away. You see, according to 15 USC 1681e(b), {bureauName} must conduct reasonable procedures—to make certain without a doubt—that every item on my credit report is furnished without error. And after reviewing my updated credit report, NO CHANGES WERE MADE TO THE DISPUTED ITEMS. For this reason, you have, without a doubt, not followed reasonable procedures to report my credit with maximum accuracy.`,
+        // Variant B
+        `I am giving you one chance to avoid legal action. Under 15 USC 1681e(b), {bureauName} has a duty to follow reasonable procedures that ensure accuracy. I just checked my updated report and not a single disputed item has been changed. That is not what reasonable procedures look like. That is what negligence looks like—and it is actionable under federal law.`,
+        // Variant C
+        `Let me be direct: 15 USC 1681e(b) requires your agency to use reasonable procedures to ensure maximum accuracy. I received my updated credit report and every single disputed item remains unchanged. No corrections. No deletions. No modifications of any kind. That tells me you either ignored my dispute entirely or conducted a sham investigation. Either way, you have violated the law.`,
+      ],
+      [
+        // Variant A (original)
+        `Here is a list of the exact information furnishing inaccurate on my credit report:`,
+        // Variant B
+        `The following accounts continue to report misleading data on my credit file:`,
+        // Variant C
+        `Below are the items that remain inaccurate despite my previous dispute:`,
+      ],
     ],
     accountListIntro: `To further prove the items are inaccurate, I have attached screenshots showing how the items listed above, are reporting different information on your agency compared to the other CRAs. Confirming these items are inaccurate—according to the maximum accuracy standard of the FCRA. This brings me to my next point…\n\nIf you would like me to drop my complaint (which you will clearly lose if I decide to take it to court)… I will only do so, if you delete the inaccurate information from my credit report. Please review the categories I listed as incorrect, plus the screenshots that prove the items are incorrect. Then I suggest you delete the following items from my credit report to avoid having to pay me actual damages under 15 USC 1681o.`,
     demandSection: DEMAND_LANGUAGE.R2,
@@ -181,6 +218,40 @@ export const ACCURACY_TEMPLATES: Record<number, Omit<RoundTemplate, "round" | "f
       `Therefore, I have gathered a significant amount of damages I am owed by your agency. And I will only drop my complaint under the following condition: You delete the inaccurate information from my credit report within 30 days of getting this complaint.`,
       `This is the only way we can settle this dispute without me chasing you down, under federal jurisdiction, to remove these accounts the hard (and expensive) way. So I encourage you to review this letter thoroughly, and do the right thing… DELETE THE INACCURATE ITEMS.`,
       `In fact, here, once again, is a list of the exact information furnishing incorrect on my credit report:`,
+    ],
+    bodyParagraphVariants: [
+      [
+        // Variant A (original)
+        `With that being said, you have clearly broken the law numerous times under 15 USC 1681i(a)(5) because these inaccurate items are still on my credit report. Since you failed to take my disputes seriously, I haven't even tried to use my credit because I know I will get denied—like I have so many times in the past. I get humiliated consistently time and time again simply because you refuse to correct the misleading information on my credit report.`,
+        // Variant B
+        `Your repeated violations of 15 USC 1681i(a)(5) are well documented at this point. I have given you more than enough time and evidence to remove these inaccurate items. Instead of doing your job, you've forced me to live in fear of applying for anything—because the humiliation of yet another denial based on YOUR errors is something I can't take anymore.`,
+        // Variant C
+        `Three disputes. Over 90 days. And you've done absolutely nothing to fix the errors I've clearly identified. Under 15 USC 1681i(a)(5), you were required to investigate and either verify or delete each disputed item. You did neither. The inaccurate information sits on my report like a permanent scar, preventing me from accessing the credit I rightfully deserve.`,
+      ],
+      [
+        // Variant A (original)
+        `Therefore, I have gathered a significant amount of damages I am owed by your agency. And I will only drop my complaint under the following condition: You delete the inaccurate information from my credit report within 30 days of getting this complaint.`,
+        // Variant B
+        `At this point, my documented damages are substantial. Lost credit opportunities, higher interest rates, denied applications—all because of your reporting failures. I will settle this matter without legal action under one condition: delete every inaccurate item listed below within 30 days.`,
+        // Variant C
+        `I have been tracking every denial, every missed opportunity, and every sleepless night caused by your negligent reporting. The damages are real, they are documented, and they are growing. The only way I will not pursue these damages is if you remove the disputed items within 30 days of receiving this letter.`,
+      ],
+      [
+        // Variant A (original)
+        `This is the only way we can settle this dispute without me chasing you down, under federal jurisdiction, to remove these accounts the hard (and expensive) way. So I encourage you to review this letter thoroughly, and do the right thing… DELETE THE INACCURATE ITEMS.`,
+        // Variant B
+        `I don't want to spend months in federal court over accounts that should have been corrected months ago. But I will if that's what it takes. You have a simple choice: correct these errors now, or explain to a judge why you refused to after three separate complaints.`,
+        // Variant C
+        `Consider this your final opportunity to resolve this without court involvement. My documentation is thorough, my damages are real, and I am fully prepared to pursue every remedy available under the FCRA. The easiest path for both of us is simple: delete the inaccurate items immediately.`,
+      ],
+      [
+        // Variant A (original)
+        `In fact, here, once again, is a list of the exact information furnishing incorrect on my credit report:`,
+        // Variant B
+        `For the third time, here are the accounts that remain incorrectly reported:`,
+        // Variant C
+        `Once again, the following items continue to report inaccurate information despite my repeated disputes:`,
+      ],
     ],
     accountListIntro: `You have 30 days to remove these items according to the conditions I have left inside this dispute. I am suffering as we speak because of your unreliable reporting habits. Hopefully, for me and you… this ends after this dispute.`,
     demandSection: DEMAND_LANGUAGE.R3,
@@ -329,6 +400,28 @@ export const COLLECTION_TEMPLATES: Record<number, Omit<RoundTemplate, "round" | 
       `The only reason I am aware of these accounts are because they were in my credit report. If I got a dunning letter beforehand I would've, without a doubt, disputed the debt and never let these criminal debt collectors get away with this disgusting act. This is the reason, I intend to litigate immediately if these items are not removed from my report. I cannot stand it when people try to take advantage of others… which is obviously what is being done to me.`,
       `So if you want to free yourself from the heinous acts of the debt collectors in this complaint, simply delete the accounts below and I will drop my claim:`,
     ],
+    bodyParagraphVariants: [
+      [
+        `You see, {debtCollectorNames}, has furnished a collection account on my credit report without validating this debt with me beforehand. In fact, the following debt collectors never sent me a dunning letter (which is mandatory to validate a debt) within 5 days of the accounts getting reported (which is also the initial communication). Therefore, the accounts listed below must all get deleted from my credit report under 15 USC 1692g.`,
+        `Here's the problem: {debtCollectorNames} placed a collection on my credit report without ever validating the debt. Federal law under 15 USC 1692g is clear—a debt collector must send a dunning letter within 5 days of initial communication. Reporting to a credit bureau IS communication. No dunning letter was sent. The accounts listed below are therefore illegally furnished and must be deleted.`,
+        `{debtCollectorNames} reported a collection account to {bureauName} without following basic federal requirements. Under 15 USC 1692g, any debt collector is required to send a validation notice within 5 days of first communicating with a consumer. Furnishing a collection account IS a form of communication. I never received any validation notice. Every account listed below was reported in violation of this law.`,
+      ],
+      [
+        `However, there is one way you can leave the items on my credit report unscathed. And in order to do this, you must produce proof a dunning letter was sent to my address (within 5 days of the account getting furnished). If you cannot produce the requested information, then, by law, you must delete the collection items off my credit report by my next report update.`,
+        `If you believe these accounts are legitimate, prove it. Show me documentation that a dunning letter was mailed to my verified address within 5 days of the account first appearing on my report. If you can't produce that evidence—and I'm confident you can't—these items must be removed from my credit file immediately.`,
+        `There's a simple way to keep these accounts on my report: produce proof that a validation notice was sent to me within 5 days of the initial reporting date. Without that proof, these collection items have no legal basis to remain on my credit report and must be deleted before your next reporting cycle.`,
+      ],
+      [
+        `The only reason I am aware of these accounts are because they were in my credit report. If I got a dunning letter beforehand I would've, without a doubt, disputed the debt and never let these criminal debt collectors get away with this disgusting act. This is the reason, I intend to litigate immediately if these items are not removed from my report. I cannot stand it when people try to take advantage of others… which is obviously what is being done to me.`,
+        `I only discovered these accounts by pulling my own credit report. No letters, no calls, no validation—nothing. These debt collectors bypassed every legal requirement and went straight to damaging my credit. That's not just negligent—it's predatory. If these items aren't removed, I will pursue legal action to protect my rights and recover my damages.`,
+        `The first I ever heard of these accounts was when they showed up on my credit report uninvited. If the debt collectors had followed the law and sent proper validation, I would have disputed these debts immediately. Instead, they chose to skip the legal process and go straight to ruining my credit. This is exactly the kind of abuse the FDCPA was written to prevent, and I will enforce my rights if these items are not deleted.`,
+      ],
+      [
+        `So if you want to free yourself from the heinous acts of the debt collectors in this complaint, simply delete the accounts below and I will drop my claim:`,
+        `The simplest way to avoid being dragged into the debt collectors' violations is to delete the accounts listed below. Do that, and I'll consider this matter resolved:`,
+        `Delete the following illegally furnished collection accounts and I will not pursue further action against your agency for the debt collectors' violations:`,
+      ],
+    ],
     demandSection: DEMAND_LANGUAGE.R1,
     consumerStatement: `The debt collectors cannot be trusted. They have placed these accounts on my credit report without validating the debt beforehand. I have sent a direct dispute informing the debt collectors of their criminal acts (along with this dispute.) They have committed debt parking, and I will not let them get away with it. So to save yourself the legal trouble, I suggest you delete the items right away.`,
     includesScreenshots: false,
@@ -342,6 +435,23 @@ export const COLLECTION_TEMPLATES: Record<number, Omit<RoundTemplate, "round" | 
       `This was also proven in many federal courts. Better yet, here is a court case that explains why a debt collector who does not verify an item after it gets disputed, must cease all collection action (including credit reporting), Semper v. JBC Legal Group, 2005 U.S. Dist. Please have your legal team review this court case to see why every account in this complaint must be removed from my credit report.`,
       `Trust me, this will save you a lot of legal problems you don't want to deal with. Especially when you'll be taking the blame for the debt collector's actions. Listen: I know you're a credit reporting agency, so you may feel you cannot be punished under the FDCPA. However, you are eligible for punishment under the FCRA. And according to 15 USC 1681i(a)(5)… a CRA must delete inaccurate or UNVERIFIABLE information.`,
       `I have just proved the items in this dispute are unverified because the debt collectors never sent me any verifying documents after getting my original dispute. And black law dictionary defines verification as an affidavit or sworn declaration. So unless you can produce a sworn document from the debt collectors in this complaint—proving the debts are due and owing—you must delete the accounts listed below immediately.`,
+    ],
+    bodyParagraphVariants: [
+      [
+        `This was also proven in many federal courts. Better yet, here is a court case that explains why a debt collector who does not verify an item after it gets disputed, must cease all collection action (including credit reporting), Semper v. JBC Legal Group, 2005 U.S. Dist. Please have your legal team review this court case to see why every account in this complaint must be removed from my credit report.`,
+        `Federal courts have been clear about this. In Semper v. JBC Legal Group, 2005 U.S. Dist., the court ruled that a debt collector who fails to verify a disputed debt must cease ALL collection activity—and that includes credit reporting. I suggest your legal team reviews that case carefully before deciding how to respond to this dispute.`,
+        `The courts have already addressed this exact situation. In Semper v. JBC Legal Group (2005 U.S. Dist.), it was established that unverified debts must be removed from credit reporting entirely. The debt collectors in this complaint ignored my dispute and continued reporting. That's a violation. Have your lawyers look it up—they'll tell you to delete these accounts.`,
+      ],
+      [
+        `Trust me, this will save you a lot of legal problems you don't want to deal with. Especially when you'll be taking the blame for the debt collector's actions. Listen: I know you're a credit reporting agency, so you may feel you cannot be punished under the FDCPA. However, you are eligible for punishment under the FCRA. And according to 15 USC 1681i(a)(5)… a CRA must delete inaccurate or UNVERIFIABLE information.`,
+        `Here's what you need to understand: even though you're the CRA and not the debt collector, you're not shielded from liability. Under 15 USC 1681i(a)(5), you are required to delete any information that cannot be verified. These debts were never verified. Your obligation is clear—and ignoring it will only compound the legal exposure you're already facing.`,
+        `Don't think being the CRA instead of the debt collector protects you. The FCRA has its own requirements, and 15 USC 1681i(a)(5) makes it your duty to remove unverifiable information. The debt collectors never verified these accounts. You're now reporting unverifiable data. That's your violation, separate from theirs.`,
+      ],
+      [
+        `I have just proved the items in this dispute are unverified because the debt collectors never sent me any verifying documents after getting my original dispute. And black law dictionary defines verification as an affidavit or sworn declaration. So unless you can produce a sworn document from the debt collectors in this complaint—proving the debts are due and owing—you must delete the accounts listed below immediately.`,
+        `The evidence is straightforward: I disputed these debts, the debt collectors provided zero verification, and the accounts remain on my report. Under Black's Law Dictionary, verification requires an affidavit or sworn statement. Produce a sworn declaration from each debt collector proving the debts are valid—or delete every account listed below.`,
+        `Let me make this simple. I sent a dispute. The debt collectors sent nothing back. No sworn statements, no affidavits, no verification of any kind. Black's Law Dictionary defines verification as a formal declaration under oath. Without that, these debts are legally unverified and must be removed from my credit report immediately.`,
+      ],
     ],
     demandSection: DEMAND_LANGUAGE.R2,
     consumerStatement: `I have not received any verification for the debts listed in this complaint. These accounts have ruined my credit score. I am embarrassed, disgusted, and enraged these accounts are still on my credit report. Consider this my final warning.`,
@@ -536,6 +646,54 @@ export const LATE_PAYMENT_TEMPLATES: Record<number, Omit<RoundTemplate, "round" 
 // =============================================================================
 // HELPER FUNCTIONS
 // =============================================================================
+
+/**
+ * Select a random body paragraph variant for each slot.
+ * If bodyParagraphVariants exists, picks one variant per slot.
+ * Otherwise falls back to bodyParagraphs.
+ *
+ * @param template - The round template
+ * @param usedVariantCombos - Set of previously used variant combo strings (e.g., "0:2:1")
+ * @returns Selected body paragraphs and the variant combo key
+ */
+export function selectBodyParagraphVariants(
+  template: Omit<RoundTemplate, "round" | "flow">,
+  usedVariantCombos: Set<string> = new Set()
+): { paragraphs: string[]; variantComboKey: string } {
+  if (!template.bodyParagraphVariants || template.bodyParagraphVariants.length === 0) {
+    return {
+      paragraphs: template.bodyParagraphs,
+      variantComboKey: "default",
+    };
+  }
+
+  // Try to find an unused combination (up to 50 attempts)
+  for (let attempt = 0; attempt < 50; attempt++) {
+    const indices: number[] = [];
+    const selected: string[] = [];
+
+    for (let i = 0; i < template.bodyParagraphVariants.length; i++) {
+      const variants = template.bodyParagraphVariants[i];
+      const idx = Math.floor(Math.random() * variants.length);
+      indices.push(idx);
+      selected.push(variants[idx]);
+    }
+
+    const comboKey = indices.join(":");
+    if (!usedVariantCombos.has(comboKey)) {
+      return { paragraphs: selected, variantComboKey: comboKey };
+    }
+  }
+
+  // Fallback: random selection regardless of previous usage
+  const selected = template.bodyParagraphVariants.map(
+    variants => variants[Math.floor(Math.random() * variants.length)]
+  );
+  return {
+    paragraphs: selected,
+    variantComboKey: "fallback",
+  };
+}
 
 /**
  * Get the appropriate template for a flow and round

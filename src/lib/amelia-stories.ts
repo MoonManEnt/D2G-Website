@@ -24,6 +24,34 @@
 import crypto from "crypto";
 
 // =============================================================================
+// COMPONENT-LEVEL HASH TRACKING
+// Tracks individual components (scenario key, variable set, structure pattern)
+// to prevent ANY repetition, not just full-letter hash matches
+// =============================================================================
+
+export interface ComponentKeys {
+  scenarioIndex: number;
+  scenarioType: ScenarioType;
+  technique: AssemblyTechnique;
+  variableFingerprint: string; // hash of the variable values used
+}
+
+/**
+ * Generate a fingerprint for the variable values used in a scenario
+ */
+function fingerprintVariables(filledScenario: StoryScenario): string {
+  const combined = `${filledScenario.what}|${filledScenario.how}|${filledScenario.blame}`;
+  return crypto.createHash("sha256").update(combined).digest("hex").substring(0, 12);
+}
+
+/**
+ * Build a component key string for exclusion tracking
+ */
+export function buildComponentKey(keys: ComponentKeys): string {
+  return `${keys.scenarioType}:${keys.scenarioIndex}:${keys.technique}:${keys.variableFingerprint}`;
+}
+
+// =============================================================================
 // STORY COMPONENTS - Building blocks that get assembled
 // =============================================================================
 
@@ -839,6 +867,92 @@ const OPPORTUNITY_SCENARIOS = [
   },
 ];
 
+/**
+ * Escalation scenarios for Round 2+ — reference prior disputes and worsening situations
+ * These scenarios acknowledge the ongoing battle and escalate the emotional intensity
+ */
+const ESCALATION_SCENARIOS: StoryScenario[] = [
+  {
+    what: "sent you a dispute {timeframe} and you completely ignored it",
+    how: "meanwhile I got denied for another {loanType} while waiting for you to do your job",
+    blame: "your negligence is actively making my life worse every single day",
+  },
+  {
+    what: "already told you about these errors and you did nothing",
+    how: "since my last dispute, I've had to turn down a job opportunity because of my credit",
+    blame: "every day you ignore me is another day of damage you'll have to pay for",
+  },
+  {
+    what: "been fighting this for months now and nothing has changed",
+    how: "my {familyMember} asked me yesterday why things aren't getting better",
+    blame: "I had to explain that the credit bureau doesn't care about people like us",
+  },
+  {
+    what: "disputed these same accounts before and you just rubber-stamped them",
+    how: "lost another apartment because your report still shows these errors",
+    blame: "at this point your inaction is deliberate and I have the paper trail to prove it",
+  },
+  {
+    what: "waited over 30 days for your so-called investigation",
+    how: "during that time I got rejected for {loanType} and had to borrow from my {olderRelative}",
+    blame: "you broke the law by not fixing this in time and I'm documenting every violation",
+  },
+  {
+    what: "received your response saying everything was 'verified'",
+    how: "but you never told me HOW you verified it or WHO you contacted",
+    blame: "that's not verification, that's a rubber stamp and we both know it",
+  },
+  {
+    what: "been sending disputes for months and getting the same form letter back",
+    how: "my credit score hasn't budged and I just got denied for {loanType} again",
+    blame: "I'm starting to think you never actually investigate anything",
+  },
+  {
+    what: "filed a CFPB complaint about your handling of my disputes",
+    how: "still dealing with the fallout from errors you refuse to correct",
+    blame: "every government agency involved is going to see how you've treated me",
+  },
+  {
+    what: "asked for the method of verification and never got a real answer",
+    how: "my {familyMember} lost faith that this will ever get resolved",
+    blame: "your silence speaks volumes about the quality of your investigations",
+  },
+  {
+    what: "spent more time writing dispute letters than spending time with my family",
+    how: "missed my {familyMember}'s {lifeEvent} because I was dealing with this mess",
+    blame: "you've stolen time from my life that I will never get back",
+  },
+  {
+    what: "hired a credit specialist because I couldn't get through to you on my own",
+    how: "that's money I didn't have to spend if you'd just done your job the first time",
+    blame: "now I'm paying someone else to force you to follow the law",
+  },
+  {
+    what: "watched my credit score drop even further since my last dispute",
+    how: "couldn't even qualify for {alternativeTransport} financing this month",
+    blame: "your failure to investigate is causing more damage with each passing day",
+  },
+];
+
+/**
+ * Continuation connectors — link current story to previous round narratives
+ * Used for R2+ to create a sense of ongoing struggle
+ */
+const CONTINUATION_CONNECTORS = [
+  "As I mentioned in my previous dispute, ",
+  "Building on what I told you last time, ",
+  "Since my last letter to you, things have only gotten worse. ",
+  "I already explained this situation to you, but here's what happened next. ",
+  "You know my story from my previous disputes. Here's the latest chapter. ",
+  "After everything I've already shared with you, ",
+  "Things have escalated since I last wrote. ",
+  "Remember what I told you before? It's worse now. ",
+  "I'm picking up where my last dispute left off. ",
+  "Since you ignored my last complaint, let me tell you what's happened since. ",
+  "My situation has deteriorated since my last letter. ",
+  "Following up on the nightmare I described before - it's gotten worse. ",
+];
+
 // =============================================================================
 // VARIABLE POOLS - Randomized fill-ins
 // =============================================================================
@@ -1462,6 +1576,7 @@ export interface GeneratedStory {
   scenarioType: ScenarioType;
   technique: AssemblyTechnique;
   hash: string;
+  componentKey: string; // NEW: component-level tracking key
 }
 
 /**
@@ -1480,7 +1595,8 @@ export interface GeneratedStory {
 export function generateUniqueStory(
   usedHashes: Set<string>,
   round: number = 1,
-  maxAttempts: number = 100
+  maxAttempts: number = 100,
+  usedComponentKeys: Set<string> = new Set()
 ): GeneratedStory {
   // Randomly select scenario type with weighted distribution
   // Later rounds favor more intense scenarios
@@ -1514,8 +1630,29 @@ export function generateUniqueStory(
       }
     }
 
-    // Select unique scenario with fresh variable fills
-    const scenario = selectUniqueScenario(selectedType, usedHashes);
+    // For R2+, 40% chance to use escalation scenarios instead
+    let scenario: StoryScenario | null = null;
+    if (round >= 2 && Math.random() < 0.4) {
+      const shuffledEscalation = [...ESCALATION_SCENARIOS].sort(() => Math.random() - 0.5);
+      for (const esc of shuffledEscalation) {
+        const filled = {
+          what: replaceVariables(esc.what),
+          how: replaceVariables(esc.how),
+          blame: replaceVariables(esc.blame),
+        };
+        const combined = `${filled.what} ${filled.how} ${filled.blame}`;
+        const escHash = hashStory(combined);
+        if (!usedHashes.has(escHash)) {
+          scenario = filled;
+          break;
+        }
+      }
+    }
+
+    // Fall back to standard scenario selection
+    if (!scenario) {
+      scenario = selectUniqueScenario(selectedType, usedHashes);
+    }
     if (!scenario) continue;
 
     // Randomly select assembly technique
@@ -1525,13 +1662,32 @@ export function generateUniqueStory(
     const paragraph = assembleStory(scenario, technique);
     const hash = hashStory(paragraph);
 
-    // Check if truly unique
-    if (!usedHashes.has(hash)) {
+    // Determine the pool for scenario index lookup
+    const pool = SCENARIO_POOLS[selectedType];
+
+    // Build component key for fine-grained tracking
+    const componentKey = buildComponentKey({
+      scenarioIndex: pool.indexOf(pool.find(s => s.what === scenario!.what) || pool[0]),
+      scenarioType: selectedType,
+      technique,
+      variableFingerprint: fingerprintVariables(scenario!),
+    });
+
+    // Check both full hash AND component key uniqueness
+    if (!usedHashes.has(hash) && !usedComponentKeys.has(componentKey)) {
+      // For R2+, prepend a continuation connector
+      let finalParagraph = paragraph;
+      if (round >= 2) {
+        const connector = CONTINUATION_CONNECTORS[Math.floor(Math.random() * CONTINUATION_CONNECTORS.length)];
+        finalParagraph = connector + paragraph.charAt(0).toLowerCase() + paragraph.slice(1);
+      }
+
       return {
-        paragraph,
+        paragraph: finalParagraph,
         scenarioType: selectedType,
         technique,
         hash,
+        componentKey,
       };
     }
   }
@@ -1551,11 +1707,21 @@ export function generateUniqueStory(
   const uniqueParagraph = paragraph + uniqueSuffix;
   const hash = hashStory(uniqueParagraph);
 
+  // Build fallback component key
+  const pool = SCENARIO_POOLS[fallbackType];
+  const componentKey = buildComponentKey({
+    scenarioIndex: pool.indexOf(pool.find(s => s.what === fallbackScenario.what) || pool[0]),
+    scenarioType: fallbackType,
+    technique,
+    variableFingerprint: fingerprintVariables(fallbackScenario),
+  });
+
   return {
     paragraph: uniqueParagraph,
     scenarioType: fallbackType,
     technique,
     hash,
+    componentKey,
   };
 }
 
@@ -1614,4 +1780,4 @@ export function addEscalationLanguage(text: string, round: number): string {
   return `${text} ${selected}`;
 }
 
-export { hashStory, replaceVariables };
+export { hashStory, replaceVariables, ESCALATION_SCENARIOS, CONTINUATION_CONNECTORS };

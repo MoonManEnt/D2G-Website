@@ -190,6 +190,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       },
       include: {
         items: true,
+        client: { select: { firstName: true, lastName: true } },
       },
     });
 
@@ -340,6 +341,31 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           itemsStalled: responseSummary.responseBreakdown.stallLetter,
         },
       });
+
+      // Create Amelia recommendation for next round readiness
+      try {
+        await prisma.ameliaRecommendationCache.create({
+          data: {
+            organizationId: dispute.organizationId,
+            clientId: dispute.clientId,
+            cacheType: "NEXT_ROUND_READY",
+            content: JSON.stringify({
+              type: "ACTION_NEEDED" as const,
+              priority: "HIGH" as const,
+              title: `Next round ready for ${dispute.client?.firstName || "client"}`,
+              description: `All items have responses for R${dispute.round} ${dispute.flow} dispute to ${dispute.cra}. ${responseSummary.responseBreakdown.deleted} deleted, ${responseSummary.responseBreakdown.verified} verified. Ready to generate R${dispute.round + 1}.`,
+              clientId: dispute.clientId,
+              clientName: dispute.client ? `${dispute.client.firstName} ${dispute.client.lastName}` : "Client",
+              disputeId,
+              actionUrl: `/clients/${dispute.clientId}`,
+            }),
+            priority: "HIGH",
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+          },
+        });
+      } catch (recError) {
+        console.error("Failed to create next-round recommendation:", recError);
+      }
 
       // Update dispute status
       await prisma.dispute.update({

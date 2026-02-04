@@ -24,6 +24,7 @@ import {
   getDemandLanguage,
   getEffectiveFlow,
   shouldIncludeScreenshots,
+  selectBodyParagraphVariants,
   ACCURACY_TEMPLATES,
   COLLECTION_TEMPLATES,
   CONSENT_TEMPLATES,
@@ -46,6 +47,7 @@ import {
 import {
   generateUniqueStory,
   humanizeText,
+  buildComponentKey,
 } from "./amelia-stories";
 import type { CRA } from "@/types";
 import type { NextRoundContext } from "./dispute-intelligence/types";
@@ -606,23 +608,30 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
   // Opening paragraph (DAMAGES) - adapt based on previous round context
   let openingParagraph = interpolateVariables(template.openingParagraph, vars);
 
-  // For Round 1, inject a unique story into the DAMAGES section
+  // AMELIA Doctrine: ALL rounds get unique stories for eOSCAR resistance
+  // R1: Standard story generation from scenario pools
+  // R2+: Escalation stories + continuation connectors, mixed with adaptive context
+  const story = generateUniqueStory(usedContentHashes, round);
+  usedContentHashes.add(story.hash);
+
   if (round === 1) {
-    const story = generateUniqueStory(usedContentHashes, round);
-    usedContentHashes.add(story.hash);
-    // AMELIA Doctrine: Insert the unique story into the DAMAGES section
-    // The story adds a personal, human element that makes each letter unique (eOSCAR resistant)
+    // R1: Story appended to humanized opening
     openingParagraph = humanizeText(openingParagraph) + "\n\n" + story.paragraph;
   } else if (previousRoundContext) {
-    // For rounds 2+, use adaptive opening based on previous responses
-    openingParagraph = generateAdaptiveOpening(previousRoundContext, client.firstName, vars);
+    // R2+ with context: Adaptive opening + story paragraph
+    const adaptiveOpening = generateAdaptiveOpening(previousRoundContext, client.firstName, vars);
+    openingParagraph = adaptiveOpening + "\n\n" + story.paragraph;
   } else {
-    // For rounds 2+ without context, just humanize
-    openingParagraph = humanizeText(openingParagraph);
+    // R2+ without context: Humanized template opening + story
+    openingParagraph = humanizeText(openingParagraph) + "\n\n" + story.paragraph;
   }
 
-  // Body paragraphs (STORY/FACTS)
-  let bodyParagraphs = template.bodyParagraphs.map(p =>
+  // Body paragraphs (STORY/FACTS) — select from variants when available
+  const { paragraphs: selectedParagraphs, variantComboKey } = selectBodyParagraphVariants(
+    template,
+    usedContentHashes // reuse hash set to track variant combos
+  );
+  let bodyParagraphs = selectedParagraphs.map(p =>
     humanizeText(interpolateVariables(p, vars))
   );
 

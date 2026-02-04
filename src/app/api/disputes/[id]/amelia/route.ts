@@ -41,6 +41,7 @@ import {
   getLastDisputeDate,
   recordDisputedItems,
 } from "@/lib/personal-info-dispute-service";
+import { validateUniqueness } from "@/lib/ai/content-validator";
 
 export const dynamic = "force-dynamic";
 
@@ -175,12 +176,35 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     });
     const usedHashSet = new Set(usedHashes.map((h) => h.contentHash));
 
-    // When regenerating, also add a hash of the current letter content
-    // This forces AMELIA to generate completely different content
-    if (regenerate && dispute.letterContent) {
-      const crypto = await import("crypto");
-      const currentHash = crypto.createHash("sha256").update(dispute.letterContent).digest("hex");
-      usedHashSet.add(currentHash);
+    // When regenerating, load ALL previous letter documents for this dispute's client
+    // This provides full context to ensure true uniqueness
+    let previousLetterContents: string[] = [];
+    if (regenerate) {
+      // Fetch all previous letter documents for this client
+      const previousDocs = await prisma.dispute.findMany({
+        where: {
+          clientId: client.id,
+          letterContent: { not: null },
+        },
+        select: {
+          letterContent: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "desc" },
+        take: 10, // Last 10 letters for comparison
+      });
+
+      previousLetterContents = previousDocs
+        .map(d => d.letterContent)
+        .filter((c): c is string => !!c);
+
+      // Also add current letter content to the exclusion set
+      if (dispute.letterContent) {
+        previousLetterContents.unshift(dispute.letterContent);
+        const crypto = await import("crypto");
+        const currentHash = crypto.createHash("sha256").update(dispute.letterContent).digest("hex");
+        usedHashSet.add(currentHash);
+      }
     }
 
     // Determine flow type
@@ -199,6 +223,96 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
       // Get active personal info disputes that need to continue being disputed
       activePersonalInfoDisputes = await getActiveDisputes(client.id, cra);
+    }
+
+    // Phase 3: Load previous round intelligence for R2+
+    let previousRoundIntelligence: string | null = null;
+    if (dispute.round >= 2) {
+      const lastRoundHistory = await prisma.disputeRoundHistory.findFirst({
+        where: {
+          disputeId,
+          round: dispute.round - 1,
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      if (lastRoundHistory?.nextRoundContext) {
+        try {
+          previousRoundIntelligence = lastRoundHistory.nextRoundContext;
+        } catch {
+          // If parsing fails, skip
+        }
+      }
+    }
+
+    // Phase 4: Load outcome patterns for this CRA + flow combo
+    let outcomePatternContext: string | null = null;
+    try {
+      const patterns = await prisma.ameliaOutcomePattern.findMany({
+        where: {
+          organizationId: session.user.organizationId,
+          cra: cra,
+          flow: flowType,
+          isReliable: true,
+        },
+        orderBy: { successRate: "desc" },
+        take: 3,
+      });
+
+      if (patterns.length > 0) {
+        outcomePatternContext = patterns.map(p =>
+          `${p.creditorName || "General"} on ${p.cra}: ${p.successRate.toFixed(0)}% success rate (n=${p.sampleSize})${p.avgDaysToResolve ? `, avg ${p.avgDaysToResolve.toFixed(0)} days` : ""}`
+        ).join("\n");
+      }
+    } catch (patternError) {
+      console.error("Failed to load outcome patterns:", patternError);
+    }
+
+    // Phase 5: Count violations for litigation threshold
+    let violationCount = 0;
+    let litigationMode = false;
+    let violationDetails: string[] = [];
+    try {
+      const litigationScans = await prisma.litigationScan.findMany({
+        where: {
+          clientId: client.id,
+        },
+        select: {
+          totalViolations: true,
+          violations: true,
+        },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+      });
+
+      if (litigationScans.length > 0) {
+        violationCount = litigationScans.reduce((sum, scan) => sum + scan.totalViolations, 0);
+        litigationMode = violationCount >= 3;
+
+        if (litigationMode) {
+          for (const scan of litigationScans) {
+            try {
+              const parsedViolations = JSON.parse(scan.violations);
+              if (Array.isArray(parsedViolations)) {
+                for (const v of parsedViolations) {
+                  if (v.violationType && v.severity) {
+                    violationDetails.push(
+                      `${v.violationType} (${v.severity}): ${v.description || "No details"}`
+                    );
+                  }
+                }
+              }
+            } catch {
+              // If parsing fails, skip this scan's violations
+            }
+          }
+          // Limit to top 10 violation details
+          violationDetails = violationDetails.slice(0, 10);
+        }
+      }
+    } catch (violationError) {
+      console.error("Failed to count violations:", violationError);
+      // Litigation features degrade gracefully
     }
 
     // Generate the letter — AI-first with template fallback
@@ -243,6 +357,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
               }
             : undefined,
           organizationId: session.user.organizationId,
+          // Phase 3: Previous round intelligence
+          previousRoundContext: previousRoundIntelligence || undefined,
+          // Phase 4: Outcome patterns
+          outcomePatternContext: outcomePatternContext || undefined,
+          // Phase 5: Litigation mode
+          litigationMode,
+          violationCount,
+          violationDetails: litigationMode ? violationDetails : undefined,
         });
 
         // Compute doctrine metadata to match expected GeneratedLetter format
@@ -290,6 +412,47 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         activePersonalInfoDisputes,
         ...(tone && { toneOverride: tone }),
       });
+    }
+
+    // Post-generation uniqueness validation
+    // Ensures the generated letter is sufficiently different from all previous letters
+    if (regenerate && previousLetterContents.length > 0 && generatedLetter) {
+      const validation = validateUniqueness(generatedLetter.content, previousLetterContents);
+
+      if (!validation.isUnique) {
+        console.warn(
+          `[Amelia] Generated letter has ${validation.similarityScore}% overlap with previous letter ${validation.mostSimilarIndex}. ` +
+          `Uniqueness score: ${validation.uniquenessScore}%`
+        );
+
+        // If template path generated a too-similar letter, try forcing different variant selection
+        if (!isAIAvailable() || generatedLetter.content === dispute.letterContent) {
+          // Add more hashes to force different content on retry
+          for (const prevContent of previousLetterContents) {
+            const sentences = prevContent.split(/[.!?]+/);
+            for (const sentence of sentences) {
+              if (sentence.trim().length > 30) {
+                const crypto = await import("crypto");
+                const hash = crypto.createHash("sha256").update(sentence.trim().toLowerCase()).digest("hex").substring(0, 16);
+                usedHashSet.add(hash);
+              }
+            }
+          }
+
+          // Regenerate with expanded exclusion set
+          generatedLetter = generateLetter({
+            client: clientInfo,
+            accounts,
+            cra,
+            flow: flowType,
+            round: dispute.round,
+            usedContentHashes: usedHashSet,
+            lastDisputeDate: lastDisputeDateStr,
+            activePersonalInfoDisputes,
+            ...(tone && { toneOverride: tone }),
+          });
+        }
+      }
     }
 
     // NOTE: Content hash is NOT stored on regeneration - only when dispute is LAUNCHED
@@ -383,6 +546,22 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           hardInquiries: generatedLetter.personalInfoDisputed.hardInquiries.length,
         },
         ameliaVersion: "2.0",
+        ...(litigationMode ? {
+          litigation: {
+            mode: true,
+            violationCount,
+          },
+        } : {}),
+        ...(regenerate && previousLetterContents.length > 0 ? {
+          uniqueness: (() => {
+            const v = validateUniqueness(generatedLetter!.content, previousLetterContents);
+            return {
+              score: v.uniquenessScore,
+              maxOverlap: v.maxOverlap,
+              isUnique: v.isUnique,
+            };
+          })(),
+        } : {}),
       },
     });
   } catch (error) {

@@ -47,6 +47,7 @@ interface AmeliaInsightsPanelProps {
   flow?: string;
   accountIds?: string[];
   onInsightsGenerated?: (insights: AmeliaInsight) => void;
+  onUsePattern?: (patternData: { successRate: number; recommendations: string[] }) => void;
   compact?: boolean;
 }
 
@@ -56,6 +57,7 @@ export function AmeliaInsightsPanel({
   flow,
   accountIds = [],
   onInsightsGenerated,
+  onUsePattern,
   compact = false,
 }: AmeliaInsightsPanelProps) {
   const [insights, setInsights] = useState<AmeliaInsight | null>(null);
@@ -387,6 +389,22 @@ export function AmeliaInsightsPanel({
                     )}
                     Regenerate Analysis
                   </Button>
+
+                  {/* Use Pattern Button */}
+                  {insights && onUsePattern && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onUsePattern({
+                        successRate: insights.estimatedSuccessRate,
+                        recommendations: insights.recommendations,
+                      })}
+                      className="w-full border-green-500/30 text-green-400 hover:bg-green-500/10 mt-2"
+                    >
+                      <Zap className="w-4 h-4 mr-2" />
+                      Use This Pattern for Next Letter
+                    </Button>
+                  )}
                 </>
               )}
             </div>

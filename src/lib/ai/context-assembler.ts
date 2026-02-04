@@ -352,10 +352,49 @@ No outcome patterns computed yet. Patterns will be available after 10+ disputes 
     (r) => `- ${r.cra}: ${r.rate.toFixed(0)}% overall deletion rate`
   );
 
+  // Phase 7: Credit DNA Summary
+  let creditDNASection = "";
+  try {
+    const recentAssessments = await prisma.creditReadinessAnalysis.findMany({
+      where: { organizationId: orgId },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: {
+        relevantScore: true,
+        approvalLikelihood: true,
+        approvalTier: true,
+      },
+    });
+
+    if (recentAssessments.length > 0) {
+      const scoresWithValues = recentAssessments.filter(a => a.relevantScore != null);
+      if (scoresWithValues.length > 0) {
+        const avgScore = Math.round(
+          scoresWithValues.reduce((s, a) => s + (a.relevantScore || 0), 0) / scoresWithValues.length
+        );
+        const avgApproval = Math.round(
+          recentAssessments.reduce((s, a) => s + a.approvalLikelihood, 0) / recentAssessments.length
+        );
+        const tiers = recentAssessments.map(a => a.approvalTier);
+        const mostCommonTier = tiers.sort((a, b) =>
+          tiers.filter(t => t === a).length - tiers.filter(t => t === b).length
+        ).pop() || "UNKNOWN";
+
+        creditDNASection = `\n\nCREDIT DNA INSIGHTS:
+- Avg relevant score across recent assessments: ${avgScore}
+- Avg approval likelihood: ${avgApproval}%
+- Most common readiness tier: ${mostCommonTier}
+- Assessments analyzed: ${recentAssessments.length}`;
+      }
+    }
+  } catch {
+    // CreditReadinessAnalysis may not be populated yet
+  }
+
   return `=== ORG INTELLIGENCE ===
 TOP PERFORMING STRATEGIES:
 ${patternLines.join("\n")}
 
 CRA DELETION RANKING:
-${rankingLines.join("\n")}`;
+${rankingLines.join("\n")}${creditDNASection}`;
 }

@@ -22,6 +22,7 @@ interface Recommendation {
   clientName: string;
   disputeId?: string;
   actionUrl: string;
+  scoreImpact?: number;
 }
 
 const typeConfig: Record<
@@ -180,6 +181,11 @@ export function AmeliaRecommendations() {
                         {rec.description}
                       </p>
                     </div>
+                    {rec.scoreImpact && (
+                      <span className="px-1.5 py-0.5 text-[10px] font-medium bg-green-500/20 text-green-400 rounded shrink-0">
+                        +{rec.scoreImpact} pts
+                      </span>
+                    )}
                     <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity mt-1 shrink-0" />
                   </Link>
                 </motion.div>
