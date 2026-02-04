@@ -14,6 +14,9 @@ export const STRIPE_PRICES = {
   PRO_YEARLY: process.env.STRIPE_PRO_YEARLY_PRICE_ID || "",
 };
 
+// Trial period duration
+export const TRIAL_DAYS = 14;
+
 // Plan features for display
 export const PLAN_FEATURES = {
   FREE: {
@@ -138,6 +141,7 @@ export async function createCheckoutSession(
         organizationId,
       },
       subscription_data: {
+        trial_period_days: TRIAL_DAYS,
         metadata: {
           organizationId,
         },

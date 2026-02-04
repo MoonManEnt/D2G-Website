@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import prisma from "@/lib/prisma";
 import { constructWebhookEvent, mapSubscriptionStatus } from "@/lib/stripe";
+import { sendEmail } from "@/lib/email";
+import { paymentFailedTemplate } from "@/lib/email-templates";
 import Stripe from "stripe";
 
 // Disable body parsing, we need the raw body for webhook verification
@@ -225,10 +227,47 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
       eventData: JSON.stringify({
         invoiceId: invoice.id,
         amountDue: invoice.amount_due,
+        attemptCount: invoice.attempt_count,
       }),
       organizationId: org.id,
     },
   });
 
-  // TODO: Send email notification about failed payment
+  // Send failed payment notification to org owner
+  try {
+    const owner = await prisma.user.findFirst({
+      where: { organizationId: org.id, role: "OWNER" },
+      select: { email: true, name: true },
+    });
+
+    if (owner?.email) {
+      const amountDue = (invoice.amount_due / 100).toFixed(2);
+      const attemptCount = invoice.attempt_count || 1;
+      const nextAttempt = invoice.next_payment_attempt
+        ? new Date(invoice.next_payment_attempt * 1000).toLocaleDateString()
+        : null;
+
+      const billingUrl = `${process.env.NEXTAUTH_URL || "https://app.dispute2go.com"}/billing`;
+
+      const html = paymentFailedTemplate({
+        userName: owner.name || "there",
+        amountDue,
+        attemptCount,
+        nextAttemptDate: nextAttempt,
+        billingUrl,
+      });
+
+      await sendEmail({
+        to: owner.email,
+        template: {
+          subject: `Action required: Payment of $${amountDue} failed`,
+          html,
+          text: `Hi ${owner.name || "there"},\n\nYour payment of $${amountDue} failed (attempt ${attemptCount}).${nextAttempt ? ` We'll retry on ${nextAttempt}.` : ""}\n\nPlease update your payment method: ${billingUrl}\n\nIf not resolved, your account will be downgraded to the Free plan.`,
+        },
+        tags: [{ name: "category", value: "payment-failed" }],
+      });
+    }
+  } catch (emailError) {
+    console.error("Failed to send payment failure email:", emailError);
+  }
 }

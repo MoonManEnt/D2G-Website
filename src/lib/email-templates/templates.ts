@@ -313,3 +313,47 @@ export function documentReadyTemplate(
     ...options,
   });
 }
+
+// =============================================================================
+// PAYMENT FAILED (Dunning)
+// =============================================================================
+
+export function paymentFailedTemplate(
+  data: {
+    userName: string;
+    amountDue: string;
+    attemptCount: number;
+    nextAttemptDate: string | null;
+    billingUrl: string;
+  },
+): string {
+  const isFirstAttempt = data.attemptCount <= 1;
+  const isUrgent = data.attemptCount >= 3;
+
+  const content = `
+    ${text.heading(isUrgent ? "Urgent: Payment Still Failing" : "Payment Failed")}
+    ${text.paragraph(`Hi ${data.userName},`)}
+    ${text.paragraph(
+      isFirstAttempt
+        ? `We were unable to process your payment of <strong>$${data.amountDue}</strong>. This is usually caused by an expired card or insufficient funds.`
+        : `We've now attempted to charge your payment of <strong>$${data.amountDue}</strong> ${data.attemptCount} time${data.attemptCount > 1 ? "s" : ""} without success.`
+    )}
+    ${createTable([
+      { label: "Amount Due", value: `$${data.amountDue}` },
+      { label: "Attempt", value: `${data.attemptCount} of 4` },
+      ...(data.nextAttemptDate ? [{ label: "Next Retry", value: data.nextAttemptDate }] : []),
+    ])}
+    ${text.paragraph("Please update your payment method to avoid any interruption to your service:")}
+    ${createButton("Update Payment Method", data.billingUrl)}
+    ${createDivider()}
+    ${text.small(
+      isUrgent
+        ? "If payment is not resolved, your account will be downgraded to the Free plan and you may lose access to premium features."
+        : "If you believe this is an error, please contact your bank or reach out to our support team."
+    )}
+  `;
+
+  return wrapInTemplate(content, {
+    preheader: `Action required: Payment of $${data.amountDue} failed`,
+  });
+}

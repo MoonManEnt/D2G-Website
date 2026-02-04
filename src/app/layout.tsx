@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 import { Toaster } from "@/components/ui/toaster";
 import { SkipLink } from "@/components/ui/skip-link";
+import { CookieConsent } from "@/components/cookie-consent";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-geist-sans" });
 
@@ -33,6 +34,7 @@ export default function RootLayout({
           {children}
           <Toaster />
         </Providers>
+        <CookieConsent />
       </body>
     </html>
   );
