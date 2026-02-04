@@ -157,11 +157,13 @@ export default function CreditReadinessPage() {
     fetchAnalyses();
   }, [clientId]);
 
-  const fetchAnalyses = async () => {
-    setLoading(true);
+  const fetchAnalyses = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/clients/${clientId}/readiness`);
+      const res = await fetch(`/api/clients/${clientId}/readiness`, {
+        cache: "no-store",
+      });
       if (!res.ok) throw new Error("Failed to fetch readiness data");
       const data = await res.json();
       const parsed = (data.analyses || []).map(parseAnalysis);
@@ -176,8 +178,35 @@ export default function CreditReadinessPage() {
   };
 
   const handleAnalysisComplete = (data: any) => {
-    // Re-fetch all analyses to get the updated list
-    fetchAnalyses();
+    // Immediately insert the new analysis from POST response so UI updates instantly
+    if (data?.analysis) {
+      const newAnalysis = parseAnalysis({
+        id: data.analysis.id,
+        productType: data.analysis.productType,
+        statedIncome: data.analysis.statedIncome ?? null,
+        reasonForApplying: data.analysis.reasonForApplying ?? null,
+        relevantScoreModel: data.analysis.relevantScoreModel,
+        relevantScore: data.analysis.relevantScore,
+        triMergeMiddle: data.analysis.triMergeMiddle,
+        approvalLikelihood: data.analysis.approvalLikelihood,
+        approvalTier: data.analysis.approvalTier,
+        approvalExplanation: data.analysis.explanation,
+        estimatedDTI: data.analysis.dti?.estimatedDTI ?? null,
+        maxRecommendedDTI: data.analysis.dti?.maxRecommendedDTI ?? null,
+        actionPlan: data.analysis.actionPlan,
+        findings: data.analysis.findings,
+        recommendations: data.analysis.recommendations ?? [],
+        scoreGapAnalysis: data.analysis.scoreGap,
+        vendorRecommendations: data.analysis.vendorRecommendations ?? [],
+        computeTimeMs: data.analysis.computeTimeMs,
+        version: "2.0.0",
+        createdAt: new Date().toISOString(),
+      });
+      setAnalyses((prev) => [newAnalysis, ...prev]);
+      setSelectedAnalysisIndex(0);
+    }
+    // Also re-fetch in background to get canonical DB data
+    fetchAnalyses(false);
   };
 
   // ---------------------------------------------------------------------------
