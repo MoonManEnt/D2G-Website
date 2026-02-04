@@ -820,19 +820,21 @@ export default function ClientLitigationPage() {
   // Data Fetching
   // ---------------------------------------------------------------------------
 
-  const fetchScans = useCallback(async () => {
-    setLoading(true);
+  const fetchScans = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/clients/${clientId}/litigation-scan`);
+      const res = await fetch(`/api/clients/${clientId}/litigation-scan`, {
+        cache: "no-store",
+      });
       if (!res.ok) throw new Error("Failed to fetch litigation scans");
       const data = await res.json();
       setScans(data.scans || []);
-      setSelectedScanIndex(0);
+      if (showLoading) setSelectedScanIndex(0);
     } catch (err: any) {
       setError(err.message || "Failed to load litigation scan data");
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   }, [clientId]);
 
@@ -864,13 +866,46 @@ export default function ClientLitigationPage() {
         throw new Error(errData.error || "Failed to run scan");
       }
 
+      const data = await res.json();
+
       toast({
         title: "Scan Complete",
         description: "Litigation scan has finished successfully.",
       });
 
       setStateCode("");
-      await fetchScans();
+
+      // Use POST response data directly for instant UI update
+      if (data?.scan) {
+        const newScan: LitigationScan = {
+          id: data.scan.id,
+          clientId: clientId as string,
+          reportId: "",
+          scanStatus: "COMPLETED",
+          totalViolations: data.scan.metadata?.totalViolations ?? 0,
+          fcraViolations: data.scan.metadata?.fcraViolations ?? 0,
+          fdcpaViolations: data.scan.metadata?.fdcpaViolations ?? 0,
+          metro2Errors: data.scan.metadata?.metro2Errors ?? 0,
+          criticalCount: data.scan.metadata?.criticalCount ?? 0,
+          highCount: data.scan.metadata?.highCount ?? 0,
+          mediumCount: data.scan.metadata?.mediumCount ?? 0,
+          lowCount: data.scan.metadata?.lowCount ?? 0,
+          estimatedTotalMin: data.scan.metadata?.estimatedTotalMin ?? 0,
+          estimatedTotalMax: data.scan.metadata?.estimatedTotalMax ?? 0,
+          violations: data.scan.violations ?? [],
+          damageEstimate: data.scan.damageEstimate ?? { totalMin: 0, totalMax: 0, breakdown: [], perDefendant: [] },
+          caseSummary: data.scan.caseSummary ?? { strengthScore: 0, strengthLabel: "WEAK", defendants: [], causesOfAction: [], keyFindings: [], riskFactors: [] },
+          escalationPlan: data.scan.escalationPlan ?? { currentStage: "", recommendedNextStage: "", steps: [] },
+          computeTimeMs: data.scan.computeTimeMs ?? null,
+          version: data.scan.metadata?.version ?? null,
+          createdAt: new Date().toISOString(),
+        };
+        setScans((prev) => [newScan, ...prev]);
+        setSelectedScanIndex(0);
+      }
+
+      // Background re-fetch to sync with server (no spinner)
+      fetchScans(false);
     } catch (err: any) {
       toast({
         title: "Scan Failed",
@@ -900,8 +935,15 @@ export default function ClientLitigationPage() {
         description: "The litigation scan has been removed.",
       });
 
+      // Optimistic removal from state
+      setScans((prev) => prev.filter((s) => s.id !== scanId));
       setDeleteConfirmScanId(null);
-      await fetchScans();
+      if (selectedScanIndex > 0) {
+        setSelectedScanIndex((prev) => prev - 1);
+      }
+
+      // Background re-fetch to sync with server (no spinner)
+      fetchScans(false);
     } catch (err: any) {
       toast({
         title: "Delete Failed",
