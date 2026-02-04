@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 48">
+  <defs>
+    <linearGradient id="tu-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00B8F0"/>
+      <stop offset="100%" style="stop-color:#0091D5"/>
+    </linearGradient>
+  </defs>
+  <!-- Swoosh arc above text -->
+  <path d="M8 12 C40 2, 80 4, 120 8 C160 12, 200 6, 232 2" fill="none" stroke="url(#tu-grad)" stroke-width="3" stroke-linecap="round"/>
+  <!-- TransUnion wordmark -->
+  <text x="6" y="37" font-family="'Segoe UI', Arial, Helvetica, sans-serif" font-weight="700" font-size="28" letter-spacing="-0.5">
+    <tspan fill="#00B8F0">Trans</tspan><tspan fill="#0091D5">Union</tspan>
+  </text>
+</svg>

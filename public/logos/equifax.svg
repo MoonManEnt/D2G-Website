@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 48">
+  <!-- Equifax globe/flame icon -->
+  <g transform="translate(16, 24)">
+    <circle cx="0" cy="0" r="13" fill="none" stroke="#EF4444" stroke-width="2.5"/>
+    <path d="M-4 6 C-2 -2, 2 -8, 6 -10 C4 -4, 0 2, -4 6Z" fill="#EF4444"/>
+    <path d="M0 4 C2 -1, 4 -6, 7 -8 C5 -3, 2 1, 0 4Z" fill="#F87171"/>
+  </g>
+  <!-- Equifax wordmark -->
+  <text x="38" y="33" font-family="'Segoe UI', Arial, Helvetica, sans-serif" font-weight="700" font-size="28" fill="#EF4444" letter-spacing="-0.3">
+    Equifax
+  </text>
+</svg>

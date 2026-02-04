@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { CRALogo } from "@/components/credit-scores/cra-logos";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -129,9 +130,9 @@ export function ScoreChart({ scores, stats, chartData, onAddScore }: ScoreChartP
             >
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <Badge className={`${colors.bg} text-foreground`}>{cra}</Badge>
+                  <CRALogo cra={cra} width={110} height={26} />
                   {score && (
-                    <span className={`text-xs ${scoreLabel?.color}`}>
+                    <span className={`text-base font-semibold ${scoreLabel?.color}`}>
                       {scoreLabel?.label}
                     </span>
                   )}
