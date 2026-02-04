@@ -1,14 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 48">
-  <defs>
-    <linearGradient id="tu-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#00B8F0"/>
-      <stop offset="100%" style="stop-color:#0091D5"/>
-    </linearGradient>
-  </defs>
-  <!-- Swoosh arc above text -->
-  <path d="M8 12 C40 2, 80 4, 120 8 C160 12, 200 6, 232 2" fill="none" stroke="url(#tu-grad)" stroke-width="3" stroke-linecap="round"/>
-  <!-- TransUnion wordmark -->
-  <text x="6" y="37" font-family="'Segoe UI', Arial, Helvetica, sans-serif" font-weight="700" font-size="28" letter-spacing="-0.5">
-    <tspan fill="#00B8F0">Trans</tspan><tspan fill="#0091D5">Union</tspan>
-  </text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80">
+  <!-- TransUnion official logo - teal wordmark with circled "tu" icon -->
+
+  <!-- "tu" circle icon (top right) -->
+  <g transform="translate(268, 6)">
+    <circle cx="22" cy="22" r="20" fill="none" stroke="#00AEEF" stroke-width="4"/>
+    <text x="22" y="30" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-style="italic" font-weight="600" font-size="26" fill="#00AEEF">tu</text>
+  </g>
+
+  <!-- "TransUnion" wordmark -->
+  <text x="2" y="68" font-family="'Segoe UI', Arial, Helvetica, sans-serif" font-weight="600" font-size="52" fill="#00AEEF" letter-spacing="-1">TransUnion</text>
+
+  <!-- Registered trademark -->
+  <text x="256" y="72" font-family="Arial, sans-serif" font-size="12" fill="#00AEEF">&#174;</text>
 </svg>

@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CRALogo } from "@/components/credit-scores/cra-logos";
+import { ScoreGauge } from "@/components/credit-scores/score-gauge";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -128,24 +129,32 @@ export function ScoreChart({ scores, stats, chartData, onAddScore }: ScoreChartP
               }`}
               onClick={() => setSelectedCRA(selectedCRA === cra ? "all" : cra)}
             >
-              <CardHeader className="pb-2">
+              <CardHeader className="pb-0">
                 <div className="flex items-center justify-between">
                   <CRALogo cra={cra} width={110} height={26} />
                   {score && (
-                    <span className={`text-base font-semibold ${scoreLabel?.color}`}>
+                    <span className={`text-lg font-bold ${scoreLabel?.color}`}>
                       {scoreLabel?.label}
                     </span>
                   )}
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-2">
                 {score ? (
                   <>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-4xl font-bold text-foreground">{score}</span>
+                    {/* Animated score gauge */}
+                    <div className="flex justify-center">
+                      <ScoreGauge score={score} size={150} animationDuration={1800} />
+                    </div>
+                    {/* Change stats */}
+                    <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
+                      <div className="flex items-center gap-3">
+                        <span>30d: <span className={change30 > 0 ? "text-green-400" : change30 < 0 ? "text-red-400" : ""}>{change30 >= 0 ? "+" : ""}{change30}</span></span>
+                        <span>90d: <span className={change90 > 0 ? "text-green-400" : change90 < 0 ? "text-red-400" : ""}>{change90 >= 0 ? "+" : ""}{change90}</span></span>
+                      </div>
                       {change30 !== 0 && (
                         <span
-                          className={`flex items-center text-sm ${
+                          className={`flex items-center text-sm font-medium ${
                             change30 > 0 ? "text-green-400" : "text-red-400"
                           }`}
                         >
@@ -158,17 +167,13 @@ export function ScoreChart({ scores, stats, chartData, onAddScore }: ScoreChartP
                         </span>
                       )}
                     </div>
-                    <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
-                      <span>30d: {change30 >= 0 ? "+" : ""}{change30}</span>
-                      <span>90d: {change90 >= 0 ? "+" : ""}{change90}</span>
-                    </div>
-                    <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
+                    <div className="mt-1 flex items-center gap-4 text-xs text-muted-foreground">
                       <span>High: {stats.highest[cra]}</span>
                       <span>Low: {stats.lowest[cra]}</span>
                     </div>
                   </>
                 ) : (
-                  <div className="text-muted-foreground text-sm">No score recorded</div>
+                  <div className="text-muted-foreground text-sm py-8 text-center">No score recorded</div>
                 )}
               </CardContent>
             </Card>
