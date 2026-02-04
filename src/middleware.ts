@@ -69,7 +69,7 @@ async function rateLimit(ip: string, limit: number, windowMs: number): Promise<b
 }
 
 // Security headers to add to all responses
-const securityHeaders = {
+const securityHeaders: Record<string, string> = {
   // Prevent clickjacking
   "X-Frame-Options": "DENY",
   // Prevent MIME type sniffing
@@ -80,7 +80,30 @@ const securityHeaders = {
   "Referrer-Policy": "strict-origin-when-cross-origin",
   // Permissions policy
   "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+  // HSTS — enforce HTTPS for 2 years, include subdomains, allow preload list
+  ...(process.env.NODE_ENV === "production"
+    ? { "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload" }
+    : {}),
 };
+
+// Build CORS origin allowlist from NEXTAUTH_URL and optional CORS_ALLOWED_ORIGINS env var
+function getAllowedOrigins(): string[] {
+  const origins: string[] = [];
+  const nextAuthUrl = process.env.NEXTAUTH_URL;
+  if (nextAuthUrl) {
+    try {
+      const url = new URL(nextAuthUrl);
+      origins.push(url.origin);
+    } catch {
+      // Invalid URL, skip
+    }
+  }
+  const extra = process.env.CORS_ALLOWED_ORIGINS;
+  if (extra) {
+    origins.push(...extra.split(",").map((o) => o.trim()).filter(Boolean));
+  }
+  return origins;
+}
 
 // Content Security Policy
 // Note: unsafe-inline is required for Next.js inline scripts/styles (hydration).
@@ -192,10 +215,18 @@ export async function middleware(request: NextRequest) {
   // Add CSP header
   response.headers.set("Content-Security-Policy", cspDirectives);
 
-  // Add CORS headers for API routes
+  // Add CORS headers for API routes — only allow known origins
   if (pathname.startsWith("/api/")) {
-    response.headers.set("Access-Control-Allow-Credentials", "true");
-    response.headers.set("Access-Control-Allow-Origin", request.headers.get("origin") || "*");
+    const requestOrigin = request.headers.get("origin");
+    const allowedOrigins = getAllowedOrigins();
+
+    if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
+      response.headers.set("Access-Control-Allow-Origin", requestOrigin);
+      response.headers.set("Access-Control-Allow-Credentials", "true");
+    } else if (allowedOrigins.length > 0) {
+      // If origin doesn't match allowlist, set the primary origin (no credentials will work cross-origin)
+      response.headers.set("Access-Control-Allow-Origin", allowedOrigins[0]);
+    }
     response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
     response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
 
