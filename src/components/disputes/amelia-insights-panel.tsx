@@ -62,12 +62,14 @@ export function AmeliaInsightsPanel({
 }: AmeliaInsightsPanelProps) {
   const [insights, setInsights] = useState<AmeliaInsight | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(true);
 
   const generateInsights = async () => {
     if (!clientId || accountIds.length === 0) return;
 
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch("/api/amelia/insights", {
         method: "POST",
@@ -80,45 +82,15 @@ export function AmeliaInsightsPanel({
         setInsights(data);
         onInsightsGenerated?.(data);
       } else {
-        // Fallback to simulated insights for demo
-        const simulated = generateSimulatedInsights();
-        setInsights(simulated);
-        onInsightsGenerated?.(simulated);
+        const errData = await res.json().catch(() => null);
+        setError(errData?.error || "Failed to generate insights. Please try again.");
       }
     } catch {
-      // Fallback to simulated insights
-      const simulated = generateSimulatedInsights();
-      setInsights(simulated);
-      onInsightsGenerated?.(simulated);
+      setError("Could not connect to the analysis service. Please try again.");
     } finally {
       setLoading(false);
     }
   };
-
-  const generateSimulatedInsights = (): AmeliaInsight => ({
-    confidence: 85 + Math.floor(Math.random() * 10),
-    estimatedSuccessRate: 70 + Math.floor(Math.random() * 20),
-    tone: "CONCERNED",
-    recommendations: [
-      "Include specific dates of previous communications",
-      "Reference original dispute date for stronger timeline argument",
-      "Cite balance discrepancy between bureaus if present",
-      "Mention lack of debt validation letter (15 USC 1692g)",
-    ],
-    riskFactors: [
-      { factor: "Multiple HIGH severity issues detected", impact: "positive" },
-      { factor: "Bureau divergence found on balances", impact: "positive" },
-      { factor: "Recent account activity may complicate dispute", impact: "negative" },
-    ],
-    suggestedStatutes: ["15 U.S.C. § 1681e(b)", "15 U.S.C. § 1692g", "15 U.S.C. § 1681i(a)(5)"],
-    eoscarDetection: {
-      risk: 15 + Math.floor(Math.random() * 15),
-      level: "low",
-      uniquenessScore: 85 + Math.floor(Math.random() * 10),
-      humanizingPhrases: 6 + Math.floor(Math.random() * 4),
-      flaggedPhrases: Math.floor(Math.random() * 3),
-    },
-  });
 
   const getToneColor = (tone: AmeliaInsight["tone"]) => {
     const colors = {
@@ -237,11 +209,21 @@ export function AmeliaInsightsPanel({
             <div className="px-4 pb-4 space-y-4">
               {!insights ? (
                 <div className="text-center py-6">
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {accountIds.length === 0
-                      ? "Select accounts to analyze for AI-powered recommendations"
-                      : "Generate AI insights for your dispute strategy"}
-                  </p>
+                  {error ? (
+                    <>
+                      <div className="flex items-center justify-center gap-2 mb-3">
+                        <AlertTriangle className="w-5 h-5 text-amber-400" />
+                        <p className="text-sm text-amber-400 font-medium">Analysis Unavailable</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground mb-4">{error}</p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {accountIds.length === 0
+                        ? "Select accounts to analyze for AI-powered recommendations"
+                        : "Generate AI insights for your dispute strategy"}
+                    </p>
+                  )}
                   <Button
                     onClick={generateInsights}
                     disabled={loading || accountIds.length === 0}
@@ -255,7 +237,7 @@ export function AmeliaInsightsPanel({
                     ) : (
                       <>
                         <Sparkles className="w-4 h-4 mr-2" />
-                        Generate Insights
+                        {error ? "Retry Analysis" : "Generate Insights"}
                       </>
                     )}
                   </Button>
