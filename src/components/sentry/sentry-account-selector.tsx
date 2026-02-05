@@ -11,6 +11,7 @@ import {
   type SentryAccountSelectorProps,
   type SentryAccountForUI,
   SENTRY_CRA_COLORS,
+  ACCOUNT_DISPUTE_STATUS_COLORS,
 } from "./types";
 
 export function SentryAccountSelector({
@@ -18,14 +19,33 @@ export function SentryAccountSelector({
   selectedIds,
   onSelectionChange,
   cra,
+  showUnavailable = true,
 }: SentryAccountSelectorProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<"all" | "collections" | "tradelines">("all");
 
   const craColors = SENTRY_CRA_COLORS[cra];
 
+  // Separate available and unavailable accounts
+  const { availableAccounts, unavailableAccounts } = useMemo(() => {
+    const available: SentryAccountForUI[] = [];
+    const unavailable: SentryAccountForUI[] = [];
+
+    accounts.forEach((account) => {
+      // Check if account is unavailable based on dispute status
+      const isUnavailable = account.disputeStatus && account.disputeStatus !== "available";
+      if (isUnavailable) {
+        unavailable.push(account);
+      } else {
+        available.push(account);
+      }
+    });
+
+    return { availableAccounts: available, unavailableAccounts: unavailable };
+  }, [accounts]);
+
   const filteredAccounts = useMemo(() => {
-    return accounts.filter((account) => {
+    return availableAccounts.filter((account) => {
       // Search filter
       const matchesSearch =
         !searchTerm ||
@@ -40,7 +60,24 @@ export function SentryAccountSelector({
 
       return matchesSearch && matchesType;
     });
-  }, [accounts, searchTerm, filterType]);
+  }, [availableAccounts, searchTerm, filterType]);
+
+  const filteredUnavailableAccounts = useMemo(() => {
+    if (!showUnavailable) return [];
+    return unavailableAccounts.filter((account) => {
+      const matchesSearch =
+        !searchTerm ||
+        account.creditorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (account.maskedAccountId?.toLowerCase().includes(searchTerm.toLowerCase()));
+
+      const matchesType =
+        filterType === "all" ||
+        (filterType === "collections" && account.isCollection) ||
+        (filterType === "tradelines" && !account.isCollection);
+
+      return matchesSearch && matchesType;
+    });
+  }, [unavailableAccounts, searchTerm, filterType, showUnavailable]);
 
   const toggleAccount = (id: string) => {
     if (selectedIds.includes(id)) {
@@ -51,8 +88,12 @@ export function SentryAccountSelector({
   };
 
   const selectAll = () => {
+    // Only select available accounts
     onSelectionChange(filteredAccounts.map((a) => a.id));
   };
+
+  const totalAvailable = availableAccounts.length;
+  const totalUnavailable = unavailableAccounts.length;
 
   const clearAll = () => {
     onSelectionChange([]);
@@ -66,7 +107,12 @@ export function SentryAccountSelector({
           <div>
             <h3 className={`text-sm font-medium ${craColors.text}`}>{cra} Accounts</h3>
             <p className="text-xs text-muted-foreground mt-1">
-              {selectedIds.length} of {accounts.length} selected
+              {selectedIds.length} of {totalAvailable} available selected
+              {totalUnavailable > 0 && (
+                <span className="text-amber-400 ml-1">
+                  ({totalUnavailable} unavailable)
+                </span>
+              )}
             </p>
           </div>
           <div className="flex gap-2">
@@ -131,16 +177,38 @@ export function SentryAccountSelector({
 
       {/* Account list */}
       <div className="max-h-96 overflow-y-auto">
-        {filteredAccounts.length > 0 ? (
+        {filteredAccounts.length > 0 || filteredUnavailableAccounts.length > 0 ? (
           <div className="divide-y divide-border">
+            {/* Available accounts */}
             {filteredAccounts.map((account) => (
               <AccountCard
                 key={account.id}
                 account={account}
                 isSelected={selectedIds.includes(account.id)}
                 onToggle={() => toggleAccount(account.id)}
+                isUnavailable={false}
               />
             ))}
+
+            {/* Unavailable accounts section */}
+            {filteredUnavailableAccounts.length > 0 && (
+              <>
+                <div className="px-4 py-2 bg-muted/50 border-y border-border">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Unavailable ({filteredUnavailableAccounts.length})
+                  </p>
+                </div>
+                {filteredUnavailableAccounts.map((account) => (
+                  <AccountCard
+                    key={account.id}
+                    account={account}
+                    isSelected={false}
+                    onToggle={() => {}}
+                    isUnavailable={true}
+                  />
+                ))}
+              </>
+            )}
           </div>
         ) : (
           <div className="p-8 text-center">
@@ -156,28 +224,45 @@ function AccountCard({
   account,
   isSelected,
   onToggle,
+  isUnavailable,
 }: {
   account: SentryAccountForUI;
   isSelected: boolean;
   onToggle: () => void;
+  isUnavailable: boolean;
 }) {
+  const statusColors = isUnavailable && account.disputeStatus
+    ? ACCOUNT_DISPUTE_STATUS_COLORS[account.disputeStatus]
+    : null;
+
   return (
     <div
-      className={`p-4 cursor-pointer transition-colors ${
-        isSelected
-          ? "bg-primary/10"
-          : "hover:bg-muted"
+      className={`p-4 transition-colors ${
+        isUnavailable
+          ? "opacity-50 cursor-not-allowed bg-muted/30"
+          : isSelected
+          ? "bg-primary/10 cursor-pointer"
+          : "hover:bg-muted cursor-pointer"
       }`}
-      onClick={onToggle}
+      onClick={isUnavailable ? undefined : onToggle}
     >
       <div className="flex items-start gap-3">
         {/* Checkbox */}
         <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 mt-0.5 ${
-          isSelected ? "bg-blue-500" : "border border-input"
+          isUnavailable
+            ? "border border-input bg-muted"
+            : isSelected
+            ? "bg-blue-500"
+            : "border border-input"
         }`}>
-          {isSelected && (
+          {isSelected && !isUnavailable && (
             <svg className="w-3 h-3 text-foreground" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+            </svg>
+          )}
+          {isUnavailable && (
+            <svg className="w-3 h-3 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
             </svg>
           )}
         </div>
@@ -207,8 +292,22 @@ function AccountCard({
             )}
           </div>
 
+          {/* Unavailable status */}
+          {isUnavailable && statusColors && (
+            <div className="mt-2 flex items-center gap-2">
+              <span className={`px-2 py-0.5 text-xs rounded ${statusColors.bg} ${statusColors.text}`}>
+                {statusColors.label}
+              </span>
+              {account.disputeStatusReason && (
+                <span className="text-xs text-muted-foreground">
+                  {account.disputeStatusReason}
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Issues */}
-          {account.detectedIssues.length > 0 && (
+          {account.detectedIssues.length > 0 && !isUnavailable && (
             <div className="flex flex-wrap gap-1 mt-2">
               {account.detectedIssues.slice(0, 3).map((issue, i) => (
                 <span

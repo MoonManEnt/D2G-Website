@@ -24,6 +24,8 @@ import type {
 // ACCOUNT TYPES
 // =============================================================================
 
+export type AccountDisputeStatus = "available" | "in_active_dispute" | "waiting_response" | "locked";
+
 export interface SentryAccountForUI {
   id: string;
   creditorName: string;
@@ -38,6 +40,12 @@ export interface SentryAccountForUI {
   isSelected?: boolean;
   eoscarCode?: string;
   metro2Fields?: string[];
+  // Dispute availability status (when includeDisputeStatus=true)
+  disputeStatus?: AccountDisputeStatus;
+  disputeStatusReason?: string;
+  disputeId?: string;
+  currentRound?: number;
+  daysRemaining?: number;
 }
 
 export interface DetectedIssueUI {
@@ -194,6 +202,7 @@ export interface SentryAccountSelectorProps {
   selectedIds: string[];
   onSelectionChange: (ids: string[]) => void;
   cra: SentryCRA;
+  showUnavailable?: boolean; // Whether to show unavailable accounts (greyed out)
 }
 
 export interface SentryAnalysisPanelProps {
@@ -326,3 +335,10 @@ export function getProbabilityColor(probability: number) {
   if (probability >= 0.5) return SUCCESS_PROBABILITY_COLORS.medium;
   return SUCCESS_PROBABILITY_COLORS.low;
 }
+
+export const ACCOUNT_DISPUTE_STATUS_COLORS = {
+  available: { bg: "bg-emerald-500/20", text: "text-emerald-400", label: "Available" },
+  in_active_dispute: { bg: "bg-amber-500/20", text: "text-amber-400", label: "In Progress" },
+  waiting_response: { bg: "bg-purple-500/20", text: "text-purple-400", label: "Awaiting Response" },
+  locked: { bg: "bg-red-500/20", text: "text-red-400", label: "Locked" },
+} as const;

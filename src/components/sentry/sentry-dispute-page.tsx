@@ -165,8 +165,8 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
       setLoading(true);
       setError(null);
 
-      // Fetch accounts for the specific report
-      const res = await fetch(`/api/clients/${clientId}/accounts?reportId=${reportId}`);
+      // Fetch accounts for the specific report with dispute status
+      const res = await fetch(`/api/clients/${clientId}/accounts?reportId=${reportId}&includeDisputeStatus=true`);
       if (!res.ok) throw new Error("Failed to load accounts");
       const data = await res.json();
 
@@ -189,6 +189,12 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
               ? JSON.parse(acc.detectedIssues)
               : acc.detectedIssues
             : [],
+          // Dispute availability fields
+          disputeStatus: acc.disputeStatus as SentryAccountForUI["disputeStatus"],
+          disputeStatusReason: acc.disputeStatusReason as string | undefined,
+          disputeId: acc.disputeId as string | undefined,
+          currentRound: acc.currentRound as number | undefined,
+          daysRemaining: acc.daysRemaining as number | undefined,
         })
       );
 
