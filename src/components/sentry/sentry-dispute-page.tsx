@@ -109,7 +109,7 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
   useEffect(() => {
     async function loadClient() {
       try {
-        const res = await fetch(`/api/clients/${clientId}`);
+        const res = await fetch(`/api/clients/${clientId}`, { cache: "no-store" });
         if (!res.ok) throw new Error("Failed to load client");
         const data = await res.json();
         setClient(data.client);
@@ -124,7 +124,7 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
   const loadReports = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/clients/${clientId}/reports`);
+      const res = await fetch(`/api/clients/${clientId}/reports`, { cache: "no-store" });
       if (!res.ok) throw new Error("Failed to load reports");
       const data = await res.json();
 
@@ -166,7 +166,7 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
       setError(null);
 
       // Fetch accounts for the specific report with dispute status
-      const res = await fetch(`/api/clients/${clientId}/accounts?reportId=${reportId}&includeDisputeStatus=true`);
+      const res = await fetch(`/api/clients/${clientId}/accounts?reportId=${reportId}&includeDisputeStatus=true`, { cache: "no-store" });
       if (!res.ok) throw new Error("Failed to load accounts");
       const data = await res.json();
 

@@ -1188,7 +1188,9 @@ export default function ClientsPage() {
       if (stageFilter !== "all") params.set("stage", stageFilter);
       if (segmentFilter !== "all") params.set("segment", segmentFilter);
 
-      const res = await fetch(`/api/clients?${params.toString()}`);
+      const res = await fetch(`/api/clients?${params.toString()}`, {
+        cache: "no-store", // Always fetch fresh data
+      });
       if (res.ok) {
         const data = await res.json();
         // Handle both paginated { data, pagination } and legacy array responses
@@ -1203,7 +1205,9 @@ export default function ClientsPage() {
 
   const fetchStats = async () => {
     try {
-      const res = await fetch("/api/clients/stats");
+      const res = await fetch("/api/clients/stats", {
+        cache: "no-store", // Always fetch fresh data
+      });
       if (res.ok) {
         const data = await res.json();
         setStats(data);

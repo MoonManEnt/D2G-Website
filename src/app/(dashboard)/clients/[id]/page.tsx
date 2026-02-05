@@ -495,7 +495,7 @@ export default function ClientDetailPage() {
 
   const fetchClient = useCallback(async () => {
     try {
-      const res = await fetch(`/api/clients/${clientId}`);
+      const res = await fetch(`/api/clients/${clientId}`, { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
         setClient(data.client);
@@ -529,7 +529,7 @@ export default function ClientDetailPage() {
 
   const fetchCreditScores = useCallback(async () => {
     try {
-      const res = await fetch(`/api/clients/${clientId}/scores`);
+      const res = await fetch(`/api/clients/${clientId}/scores`, { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
         setCreditScores(data.scores);
@@ -543,7 +543,7 @@ export default function ClientDetailPage() {
 
   const fetchDNA = useCallback(async () => {
     try {
-      const res = await fetch(`/api/clients/${clientId}/dna`);
+      const res = await fetch(`/api/clients/${clientId}/dna`, { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
         if (data.hasDNA) {
