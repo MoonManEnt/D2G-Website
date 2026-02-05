@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { uploadFile, generateFileKey } from "@/lib/storage";
+import { validateUpload, UPLOAD_PRESETS } from "@/lib/upload-validation";
 import { v4 as uuid } from "uuid";
 import { createLogger } from "@/lib/logger";
 const log = createLogger("local-upload-api");
@@ -22,6 +23,18 @@ export async function POST(request: NextRequest) {
 
         if (!file) {
             return NextResponse.json({ error: "No file provided" }, { status: 400 });
+        }
+
+        // Validate file type, size, and extension
+        const preset = type === "reports" ? UPLOAD_PRESETS.creditReport
+            : type === "evidence" ? UPLOAD_PRESETS.evidenceScreenshot
+            : UPLOAD_PRESETS.clientDocument;
+        const validation = validateUpload(
+            { name: file.name, size: file.size, type: file.type },
+            preset
+        );
+        if (!validation.valid) {
+            return NextResponse.json({ error: validation.error }, { status: 400 });
         }
 
         const buffer = Buffer.from(await file.arrayBuffer());

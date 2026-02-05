@@ -70,6 +70,13 @@ const envSchema = z.object({
   LOB_TEST_MODE: z.string().optional(), // "true" or "false"
   FEATURE_PHYSICAL_MAIL_ENABLED: z.string().default("false"),
 
+  // Security (required in production for PII encryption)
+  ENCRYPTION_KEY: z.string().optional(),
+  JWT_SECRET: z.string().optional(),
+
+  // Session configuration
+  SESSION_MAX_AGE: z.string().default("86400"), // 24 hours in seconds
+
   // App config
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   UPLOAD_DIR: z.string().optional(),
@@ -114,6 +121,11 @@ let _env: Env | null = null;
 export function getEnv(): Env {
   if (!_env) {
     _env = validateEnv();
+
+    // Warn if ENCRYPTION_KEY is missing — PII will be stored unencrypted
+    if (!_env.ENCRYPTION_KEY) {
+      log.warn("ENCRYPTION_KEY is not set — PII fields will be stored as plaintext. Set this in production.");
+    }
   }
   return _env;
 }

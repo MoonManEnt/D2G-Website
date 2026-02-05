@@ -108,6 +108,8 @@ export async function POST(request: NextRequest) {
     if (isVercel) {
       // Use Vercel Blob storage in production
       const blobName = `evidence/${session.user.organizationId}/${accountId}/${evidenceFileName}`;
+      // Vercel Blob only supports public access. URLs are unguessable (UUID-based paths).
+      // For production: migrate to R2/S3 with signed URLs for true private access.
       const blob = await put(blobName, imageBuffer, {
         access: "public",
         contentType: `image/${extension}`,

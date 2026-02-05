@@ -278,6 +278,14 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    // Reject refresh if user has logged out (lastLoginAt cleared)
+    if (!portalAccess.lastLoginAt) {
+      return NextResponse.json(
+        { error: "Session has been invalidated. Please log in again." },
+        { status: 401 }
+      );
+    }
+
     // Generate new access token
     const accessToken = await signPortalToken({
       clientId: portalAccess.client.id,
@@ -302,14 +310,33 @@ export async function PATCH(request: NextRequest) {
 
 // DELETE /api/portal/auth - Logout (invalidate refresh token)
 export async function DELETE(request: NextRequest) {
-  // In a full implementation, you would:
-  // 1. Store refresh tokens in Redis/DB
-  // 2. Delete/invalidate the refresh token on logout
-  // For now, we just acknowledge the logout
-  // The client should clear tokens from localStorage
+  try {
+    const authHeader = request.headers.get("authorization");
+    const token = extractBearerToken(authHeader);
 
-  return NextResponse.json({
-    success: true,
-    message: "Logged out successfully",
-  });
+    if (token) {
+      // Try to verify as access token to identify the session
+      const { verifyPortalToken } = await import("@/lib/jwt");
+      const payload = await verifyPortalToken(token);
+
+      if (payload?.portalAccessId) {
+        // Clear lastLoginAt to invalidate all refresh tokens for this session
+        await prisma.clientPortalAccess.update({
+          where: { id: payload.portalAccessId },
+          data: { lastLoginAt: null },
+        });
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Logged out successfully",
+    });
+  } catch (error) {
+    log.error({ err: error }, "Portal logout error");
+    return NextResponse.json({
+      success: true,
+      message: "Logged out successfully",
+    });
+  }
 }

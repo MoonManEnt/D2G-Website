@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import prisma from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { createLogger } from "@/lib/logger";
 
@@ -25,23 +24,8 @@ export async function POST(request: NextRequest) {
     }
     const { name, email, company, estimatedVolume, teamSize, message } = parsed.data;
 
-    // Log the inquiry in EventLog (use a system org placeholder)
-    try {
-      const org = await prisma.organization.findFirst({ select: { id: true } });
-      if (org) {
-        await prisma.eventLog.create({
-          data: {
-            eventType: "ENTERPRISE_INQUIRY",
-            targetType: "ENTERPRISE_LEAD",
-            actorEmail: email,
-            eventData: JSON.stringify({ name, email, company, estimatedVolume, teamSize, message }),
-            organizationId: org.id,
-          },
-        });
-      }
-    } catch (dbErr) {
-      log.error({ err: dbErr }, "Failed to log enterprise inquiry");
-    }
+    // Log the inquiry via structured logger (no org association needed for anonymous leads)
+    log.info({ name, email, company, estimatedVolume, teamSize }, "Enterprise inquiry received");
     // Send notification email to sales
     const salesEmail = process.env.SALES_EMAIL || process.env.EMAIL_FROM || "sales@dispute2go.com";
     try {
@@ -70,7 +54,6 @@ export async function POST(request: NextRequest) {
       log.error({ err: emailErr }, "Failed to send confirmation email");
     }
 
-    log.info({ name, email, company }, "Enterprise inquiry received");
     return NextResponse.json({ success: true });
   } catch (error) {
     log.error({ err: error }, "Enterprise inquiry failed");
