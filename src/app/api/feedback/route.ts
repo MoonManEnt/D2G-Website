@@ -10,6 +10,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { feedbackSchema } from "@/lib/api-validation-schemas";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("feedback-api");
 
 export const dynamic = "force-dynamic";
 
@@ -75,7 +77,7 @@ export async function POST(request: NextRequest) {
       feedbackId: feedback.id,
     });
   } catch (error) {
-    console.error("Error submitting feedback:", error);
+    log.error({ err: error }, "Error submitting feedback");
     return NextResponse.json(
       { error: "Failed to submit feedback" },
       { status: 500 }
@@ -125,7 +127,7 @@ export async function GET(request: NextRequest) {
       total: feedback.length,
     });
   } catch (error) {
-    console.error("Error fetching feedback:", error);
+    log.error({ err: error }, "Error fetching feedback");
     return NextResponse.json(
       { error: "Failed to fetch feedback" },
       { status: 500 }

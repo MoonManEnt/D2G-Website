@@ -9,6 +9,8 @@ import {
   type CFPBComplaintData,
   type DisputeFlow,
 } from "@/lib/cfpb-complaints";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("dispute-cfpb-api");
 
 export const dynamic = "force-dynamic";
 
@@ -145,7 +147,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       copyText: await formatCFPBComplaintForCopy(complaintData),
     });
   } catch (error) {
-    console.error("Error generating CFPB complaint:", error);
+    log.error({ err: error }, "Error generating CFPB complaint");
     return NextResponse.json(
       { error: "Failed to generate CFPB complaint" },
       { status: 500 }
@@ -277,7 +279,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       },
     });
   } catch (error) {
-    console.error("Error generating AI CFPB complaint:", error);
+    log.error({ err: error }, "Error generating AI CFPB complaint");
 
     // Attempt template fallback at the route level
     try {
@@ -333,7 +335,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         generationMethod: "template" as const,
       });
     } catch (fallbackError) {
-      console.error("Template fallback also failed:", fallbackError);
+      log.error({ err: fallbackError }, "Template fallback also failed");
       return NextResponse.json(
         { error: "Failed to generate CFPB complaint" },
         { status: 500 }

@@ -13,6 +13,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { calculateEOSCARRisk } from "@/lib/eoscar-detection";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("dispute-amelia-suggestions-api");
 
 export const dynamic = "force-dynamic";
 
@@ -254,7 +256,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       letterPreview: dispute.letterContent.substring(0, 500) + "...",
     });
   } catch (error) {
-    console.error("Error generating suggestions:", error);
+    log.error({ err: error }, "Error generating suggestions");
     return NextResponse.json(
       { error: "Failed to generate suggestions" },
       { status: 500 }
@@ -387,7 +389,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       },
     });
   } catch (error) {
-    console.error("Error applying suggestion:", error);
+    log.error({ err: error }, "Error applying suggestion");
     return NextResponse.json(
       { error: "Failed to apply suggestion" },
       { status: 500 }
@@ -460,7 +462,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       },
     });
   } catch (error) {
-    console.error("Error updating letter:", error);
+    log.error({ err: error }, "Error updating letter");
     return NextResponse.json(
       { error: "Failed to update letter" },
       { status: 500 }

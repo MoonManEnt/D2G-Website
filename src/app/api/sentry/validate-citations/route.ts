@@ -17,6 +17,8 @@ import {
 } from "@/lib/sentry/legal-validator";
 import type { CitationApplicability } from "@/types/sentry";
 import { sentryValidateCitationsSchema } from "@/lib/api-validation-schemas";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("sentry-validate-citations-api");
 
 export const dynamic = "force-dynamic";
 
@@ -121,7 +123,7 @@ export const POST = withAuth(async (req, ctx) => {
       system: "SENTRY",
     });
   } catch (error) {
-    console.error("Error validating citations:", error);
+    log.error({ err: error }, "Error validating citations");
     return NextResponse.json(
       {
         error:
@@ -204,7 +206,7 @@ export const GET = withAuth(async (req, ctx) => {
       system: "SENTRY",
     });
   } catch (error) {
-    console.error("Error fetching citation database:", error);
+    log.error({ err: error }, "Error fetching citation database");
     return NextResponse.json(
       { error: "Failed to fetch citation database", code: "FETCH_ERROR" },
       { status: 500 }

@@ -5,6 +5,8 @@ import { authOptions } from "@/lib/auth";
 import bcrypt from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
 import { sendPortalInviteEmail } from "@/lib/email";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("client-portal-api");
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +53,7 @@ export async function GET(
       portalAccess: client.portalAccess,
     });
   } catch (error) {
-    console.error("Failed to get portal access:", error);
+    log.error({ err: error }, "Failed to get portal access");
     return NextResponse.json(
       { error: "Failed to get portal access" },
       { status: 500 }
@@ -150,7 +152,7 @@ export async function POST(
         session.user.organizationId
       );
     } catch (emailError) {
-      console.error("Failed to send invite email:", emailError);
+      log.error({ err: emailError }, "Failed to send invite email");
       // Don't fail the request, portal access is still created
     }
 
@@ -180,7 +182,7 @@ export async function POST(
       ...(process.env.NODE_ENV === 'development' && { inviteUrl }),
     });
   } catch (error) {
-    console.error("Failed to create portal access:", error);
+    log.error({ err: error }, "Failed to create portal access");
     return NextResponse.json(
       { error: "Failed to invite client to portal" },
       { status: 500 }
@@ -243,7 +245,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Failed to revoke portal access:", error);
+    log.error({ err: error }, "Failed to revoke portal access");
     return NextResponse.json(
       { error: "Failed to revoke portal access" },
       { status: 500 }
@@ -301,7 +303,7 @@ export async function PATCH(
       },
     });
   } catch (error) {
-    console.error("Failed to update portal access:", error);
+    log.error({ err: error }, "Failed to update portal access");
     return NextResponse.json(
       { error: "Failed to update portal access" },
       { status: 500 }

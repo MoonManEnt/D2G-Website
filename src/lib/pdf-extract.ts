@@ -6,6 +6,8 @@
 
 import { readFile } from "fs/promises";
 import { extractText } from "unpdf";
+import { createLogger } from "./logger";
+const log = createLogger("pdf-extract");
 
 export interface PDFExtractionResult {
   success: boolean;
@@ -24,7 +26,7 @@ export async function extractTextFromPDF(filePath: string): Promise<PDFExtractio
     const dataBuffer = await readFile(filePath);
     return extractTextFromBuffer(dataBuffer);
   } catch (error) {
-    console.error("PDF extraction error:", error);
+    log.error({ err: error }, "PDF extraction error");
     return {
       success: false,
       text: "",
@@ -38,7 +40,7 @@ export async function extractTextFromPDF(filePath: string): Promise<PDFExtractio
  * Extract text from a PDF buffer
  */
 export async function extractTextFromBuffer(buffer: Buffer): Promise<PDFExtractionResult> {
-  console.log("Starting PDF extraction with unpdf, buffer size:", buffer.length);
+  log.info({ data: buffer.length }, "Starting PDF extraction with unpdf, buffer size");
 
   try {
     // Convert to Uint8Array for unpdf
@@ -61,10 +63,10 @@ export async function extractTextFromBuffer(buffer: Buffer): Promise<PDFExtracti
       };
     }
 
-    console.log(`PDF Extraction complete. Pages: ${pageCount}, Length: ${fullText.length}`);
+    log.info({ pageCount, length: fullText.length }, "PDF Extraction complete. Pages, Length");
 
     if (fullText.length < 100) {
-      console.warn("Extracted text is suspiciously short.");
+      log.warn("Extracted text is suspiciously short.");
       return {
         success: false,
         text: fullText,
@@ -82,7 +84,7 @@ export async function extractTextFromBuffer(buffer: Buffer): Promise<PDFExtracti
     };
 
   } catch (error) {
-    console.error("unpdf error:", error);
+    log.error({ err: error }, "unpdf error");
     return {
       success: false,
       text: "",

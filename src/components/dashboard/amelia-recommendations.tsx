@@ -12,6 +12,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("amelia-recommendations");
 
 interface Recommendation {
   type: "ACTION_NEEDED" | "MILESTONE" | "WARNING" | "OPPORTUNITY";
@@ -73,7 +75,7 @@ export function AmeliaRecommendations() {
         setRecommendations(data.recommendations || []);
       }
     } catch (error) {
-      console.error("Failed to fetch recommendations:", error);
+      log.error({ err: error }, "Failed to fetch recommendations");
     } finally {
       setLoading(false);
     }
@@ -92,7 +94,7 @@ export function AmeliaRecommendations() {
         setRecommendations(data.recommendations || []);
       }
     } catch (error) {
-      console.error("Failed to refresh recommendations:", error);
+      log.error({ err: error }, "Failed to refresh recommendations");
     } finally {
       setRefreshing(false);
     }

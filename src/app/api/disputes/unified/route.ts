@@ -59,6 +59,8 @@ import {
   UnifiedDisputeRequest,
   DisputeCreationError,
 } from "@/lib/dispute-creation";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("disputes-unified-api");
 
 export const dynamic = "force-dynamic";
 
@@ -105,7 +107,7 @@ export async function POST(request: NextRequest) {
       action: "unified_dispute_creation",
     });
 
-    console.error("Error creating unified dispute:", error);
+    log.error({ err: error }, "Error creating unified dispute");
     return NextResponse.json(
       {
         error:

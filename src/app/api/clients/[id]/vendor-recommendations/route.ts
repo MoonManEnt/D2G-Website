@@ -12,6 +12,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { buildClientContext, evaluateVendorsForClient } from "@/lib/vendor-rules";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("client-vendor-recommendations-api");
 
 export const dynamic = "force-dynamic";
 
@@ -221,7 +223,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       totalRecommendations: recommendations.length,
     });
   } catch (error) {
-    console.error("Error evaluating vendor recommendations:", error);
+    log.error({ err: error }, "Error evaluating vendor recommendations");
     return NextResponse.json(
       { error: "Failed to evaluate vendor recommendations", code: "EVALUATION_ERROR" },
       { status: 500 }

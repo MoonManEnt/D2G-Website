@@ -9,6 +9,8 @@ import {
   CRAName,
 } from "@/lib/pdf-generate";
 import { format } from "date-fns";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("dispute-pdf-api");
 
 export const dynamic = "force-dynamic";
 
@@ -102,7 +104,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       },
     });
   } catch (error) {
-    console.error("Error generating PDF:", error);
+    log.error({ err: error }, "Error generating PDF");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to generate PDF" },
       { status: 500 }
@@ -199,7 +201,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       },
     });
   } catch (error) {
-    console.error("Error generating PDF:", error);
+    log.error({ err: error }, "Error generating PDF");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to generate PDF" },
       { status: 500 }

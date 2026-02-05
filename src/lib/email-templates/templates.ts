@@ -314,6 +314,36 @@ export function documentReadyTemplate(
   });
 }
 
+
+// =============================================================================
+// EMAIL VERIFICATION
+// =============================================================================
+
+export function emailVerificationTemplate(
+  data: {
+    userName: string;
+    verificationUrl: string;
+    expiresIn: string;
+  },
+  options: TemplateOptions = {}
+): string {
+  const content = `
+    ${text.heading("Verify Your Email Address")}
+    ${text.paragraph(`Hi ${data.userName},`)}
+    ${text.paragraph("Please verify your email address to complete your account setup. Click the button below to confirm your email:")}
+    ${createButton("Verify Email", data.verificationUrl)}
+    ${text.small(`This link will expire in ${data.expiresIn}.`)}
+    ${createDivider()}
+    ${text.paragraph("If you did not create an account, you can safely ignore this email.")}
+    ${text.small("For security, this link can only be used once.")}
+  `;
+
+  return wrapInTemplate(content, {
+    preheader: "Verify your email address",
+    ...options,
+  });
+}
+
 // =============================================================================
 // PAYMENT FAILED (Dunning)
 // =============================================================================
@@ -355,5 +385,45 @@ export function paymentFailedTemplate(
 
   return wrapInTemplate(content, {
     preheader: `Action required: Payment of $${data.amountDue} failed`,
+  });
+}
+
+
+// =============================================================================
+// DAILY SUMMARY
+// =============================================================================
+
+export function dailySummaryTemplate(
+  data: {
+    userName: string;
+    organizationName: string;
+    date: string;
+    newClients: number;
+    newDisputes: number;
+    resolvedDisputes: number;
+    reportsUploaded: number;
+    dashboardUrl: string;
+  },
+  options: TemplateOptions = {}
+): string {
+  const totalActivity = data.newClients + data.newDisputes + data.resolvedDisputes + data.reportsUploaded;
+
+  const content = `
+    ${text.heading(`Daily Summary - ${data.date}`)}
+    ${text.paragraph(`Hi ${data.userName},`)}
+    ${text.paragraph(`Here is your daily activity summary for ${data.organizationName}.`)}
+    ${createTable([
+      { label: "New Clients", value: data.newClients.toString() },
+      { label: "New Disputes", value: data.newDisputes.toString() },
+      { label: "Resolved Disputes", value: data.resolvedDisputes.toString() },
+      { label: "Reports Uploaded", value: data.reportsUploaded.toString() },
+      { label: "Total Activity", value: totalActivity.toString() },
+    ])}
+    ${createButton("View Dashboard", data.dashboardUrl)}
+  `;
+
+  return wrapInTemplate(content, {
+    preheader: `Daily summary: ${totalActivity} activities for ${data.organizationName}`,
+    ...options,
   });
 }

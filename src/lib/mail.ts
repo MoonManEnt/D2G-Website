@@ -1,3 +1,6 @@
+import { createLogger } from "./logger";
+const log = createLogger("mail");
+
 /**
  * Physical Mail Service
  *
@@ -182,7 +185,7 @@ export async function verifyAddress(address: {
         : undefined,
     };
   } catch (error) {
-    console.error("Address verification error:", error);
+    log.error({ err: error }, "Address verification error");
     return {
       valid: false,
       deliverability: "undeliverable",
@@ -303,7 +306,7 @@ export async function sendDisputeLetter(params: SendLetterParams): Promise<SendL
       testMode: LOB_TEST_MODE,
     };
   } catch (error) {
-    console.error("Send letter error:", error);
+    log.error({ err: error }, "Send letter error");
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to send letter",
@@ -351,7 +354,7 @@ export async function getLetterTracking(letterId: string): Promise<{
       expectedDelivery: letter.expected_delivery_date,
     };
   } catch (error) {
-    console.error("Get tracking error:", error);
+    log.error({ err: error }, "Get tracking error");
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to get tracking",
@@ -384,7 +387,7 @@ export async function cancelLetter(letterId: string): Promise<{
       cancelled: result.deleted || false,
     };
   } catch (error) {
-    console.error("Cancel letter error:", error);
+    log.error({ err: error }, "Cancel letter error");
     return {
       success: false,
       cancelled: false,

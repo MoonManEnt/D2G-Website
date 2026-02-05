@@ -43,6 +43,8 @@ import { ProfilePictureUpload } from "@/components/profile";
 import { ArchivedClientsList } from "@/components/archive";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { motion } from "framer-motion";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("settings-page");
 
 export default function SettingsPage() {
   const { data: session, update: updateSession } = useSession();
@@ -94,7 +96,7 @@ export default function SettingsPage() {
           setProfilePicture(data.profilePicture);
         }
       } catch (error) {
-        console.error("Failed to fetch profile picture:", error);
+        log.error({ err: error }, "Failed to fetch profile picture");
       }
     }
     if (session?.user) {
@@ -225,7 +227,7 @@ export default function SettingsPage() {
         setDataCounts(data.counts);
       }
     } catch (error) {
-      console.error("Failed to fetch data counts:", error);
+      log.error({ err: error }, "Failed to fetch data counts");
     } finally {
       setIsLoadingCounts(false);
     }
@@ -507,7 +509,7 @@ export default function SettingsPage() {
                   {session?.user?.subscriptionTier !== "PROFESSIONAL" && (
                     <Button className="bg-amber-600 hover:bg-amber-700 text-white" onClick={() => window.location.href = "/billing"}>
                       <Sparkles className="w-4 h-4 mr-2" />
-                      Upgrade to PRO
+                      Upgrade to Professional
                     </Button>
                   )}
                 </div>

@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sparkles, ExternalLink } from "lucide-react";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("vendor-recommendations-card");
 
 interface VendorRecommendationsCardProps {
   clientId: string;
@@ -53,7 +55,7 @@ export function VendorRecommendationsCard({ clientId }: VendorRecommendationsCar
           setRecommendations(data.recommendations || []);
         }
       } catch (error) {
-        console.error("Error fetching vendor recommendations:", error);
+        log.error({ err: error }, "Error fetching vendor recommendations");
       } finally {
         setLoading(false);
       }
@@ -77,7 +79,7 @@ export function VendorRecommendationsCard({ clientId }: VendorRecommendationsCar
         }),
       });
     } catch (error) {
-      console.error("Error tracking referral:", error);
+      log.error({ err: error }, "Error tracking referral");
     }
 
     // Open affiliate URL in new tab

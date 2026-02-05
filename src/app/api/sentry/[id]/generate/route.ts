@@ -15,6 +15,8 @@ import {
 } from "@/lib/sentry/sentry-generator";
 import type { SentryCRA, SentryFlowType } from "@/types/sentry";
 import { sentryGenerateSchema } from "@/lib/api-validation-schemas";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("sentry-generate-api");
 
 export const dynamic = "force-dynamic";
 
@@ -324,7 +326,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       system: "SENTRY",
     });
   } catch (error) {
-    console.error("Error generating Sentry letter:", error);
+    log.error({ err: error }, "Error generating Sentry letter");
     return NextResponse.json(
       {
         error:

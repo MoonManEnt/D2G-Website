@@ -1,0 +1,32 @@
+import { describe, it, expect, beforeEach, afterEach } from "@jest/globals";
+jest.mock("ioredis", () => jest.fn().mockImplementation(() => { throw new Error("no"); }));
+const originalEnv = process.env;
+describe("Redis", () => {
+  beforeEach(() => { jest.resetModules(); jest.clearAllMocks(); process.env={...originalEnv}; delete process.env.REDIS_URL; delete process.env.REDIS_HOST; jest.useFakeTimers(); });
+  afterEach(() => { process.env=originalEnv; jest.useRealTimers(); });
+  function loadModule() { return require("@/lib/redis") as typeof import("@/lib/redis"); }
+  it("getRedis null", () => { expect(loadModule().getRedis()).toBeNull(); });
+  it("unavailable", () => { expect(loadModule().isRedisAvailable()).toBe(false); });
+  it("set/get", async () => { const m=loadModule(); await m.cacheSet("k","v"); expect(await m.cacheGet("k")).toBe("v"); });
+  it("get null", async () => { expect(await loadModule().cacheGet("x")).toBeNull(); });
+  it("ttl", async () => { const m=loadModule(); await m.cacheSet("ek","v",1); expect(await m.cacheGet("ek")).toBe("v"); jest.advanceTimersByTime(2000); expect(await m.cacheGet("ek")).toBeNull(); });
+  it("no ttl persists", async () => { const m=loadModule(); await m.cacheSet("pk","f"); jest.advanceTimersByTime(100000); expect(await m.cacheGet("pk")).toBe("f"); });
+  it("overwrite", async () => { const m=loadModule(); await m.cacheSet("o","old"); await m.cacheSet("o","new"); expect(await m.cacheGet("o")).toBe("new"); });
+  it("del", async () => { const m=loadModule(); await m.cacheSet("d","v"); await m.cacheDel("d"); expect(await m.cacheGet("d")).toBeNull(); });
+  it("del no throw", async () => { await expect(loadModule().cacheDel("x")).resolves.not.toThrow(); });
+  it("getOrSet miss", async () => { const m=loadModule(); const fn=jest.fn().mockResolvedValue("f"); expect(await m.cacheGetOrSet("gk",fn,60)).toBe("f"); });
+  it("getOrSet hit", async()=>{const m=loadModule();await m.cacheSet("gc","c");const fn=jest.fn().mockResolvedValue("x");expect(await m.cacheGetOrSet("gc",fn,60)).toBe("c");expect(fn).not.toHaveBeenCalled();});
+  it("sf",async()=>{const m=loadModule();let r;const fn=jest.fn().mockReturnValue(new Promise((_r)=>{r=_r;}));const p1=m.cacheGetOrSet("ck",fn,60);const p2=m.cacheGetOrSet("ck",fn,60);r("cv");const[a,b]=await Promise.all([p1,p2]);expect(a).toBe("cv");expect(b).toBe("cv");expect(fn).toHaveBeenCalledTimes(1);});
+  it("rl under",async()=>{const r=await loadModule().rateLimit("r1",5,60);expect(r.success).toBe(true);expect(r.remaining).toBe(4);});
+  it("rl tracks",async()=>{const m=loadModule();await m.rateLimit("r2",5,60);expect((await m.rateLimit("r2",5,60)).remaining).toBe(3);});
+  it("rl blocks",async()=>{const m=loadModule();for(let i=0;i<3;i++){await m.rateLimit("r3",3,60);}const b=await m.rateLimit("r3",3,60);expect(b.success).toBe(false);});
+  it("rl resets",async()=>{const m=loadModule();for(let i=0;i<3;i++){await m.rateLimit("r4",3,1);}jest.advanceTimersByTime(2000);expect((await m.rateLimit("r4",3,1)).success).toBe(true);});
+  it("sess rt",async()=>{const m=loadModule();await m.setSession("s1",{u:"1"});expect(await m.getSession("s1")).toEqual({u:"1"});});
+  it("sess null",async()=>{expect(await loadModule().getSession("no")).toBeNull();});
+  it("delSess",async()=>{const m=loadModule();await m.setSession("sd",{t:1});await m.deleteSession("sd");expect(await m.getSession("sd")).toBeNull();});
+  it("sess exp",async()=>{const m=loadModule();await m.setSession("se",{t:1},1);jest.advanceTimersByTime(2000);expect(await m.getSession("se")).toBeNull();});
+  it("FIFO",async()=>{const m=loadModule();await m.listPush("q","a","b","c");expect(await m.listPop("q")).toBe("a");expect(await m.listPop("q")).toBe("b");expect(await m.listPop("q")).toBe("c");expect(await m.listPop("q")).toBeNull();});
+  it("push len",async()=>{const m=loadModule();expect(await m.listPush("q2","x")).toBe(1);expect(await m.listPush("q2","y","z")).toBe(3);});
+  it("pop empty",async()=>{expect(await loadModule().listPop("e")).toBeNull();});
+  it("delPfx",async()=>{const m=loadModule();await m.cacheSet("pf:a","1");await m.cacheSet("pf:b","2");await m.cacheSet("ot:c","3");await m.cacheDelPrefix("pf:");expect(await m.cacheGet("pf:a")).toBeNull();expect(await m.cacheGet("pf:b")).toBeNull();expect(await m.cacheGet("ot:c")).toBe("3");});
+});

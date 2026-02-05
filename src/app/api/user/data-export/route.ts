@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { decryptPIIFields } from "@/lib/encryption";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("user-data-export-api");
 
 export const dynamic = "force-dynamic";
 
@@ -171,7 +173,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error("Error exporting data:", error);
+    log.error({ err: error }, "Error exporting data");
     return NextResponse.json(
       { error: "Failed to export data" },
       { status: 500 }

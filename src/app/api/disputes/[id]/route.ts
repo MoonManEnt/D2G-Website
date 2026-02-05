@@ -5,6 +5,8 @@ import prisma from "@/lib/prisma";
 import { updateDisputeSchema } from "@/lib/api-validation-schemas";
 import { unlockAccountsForDispute } from "@/lib/account-lock-service";
 import { cacheDel, cacheDelPrefix } from "@/lib/redis";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("dispute-detail-api");
 
 export const dynamic = "force-dynamic";
 
@@ -76,7 +78,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json(transformedDispute);
   } catch (error) {
-    console.error("Error fetching dispute:", error);
+    log.error({ err: error }, "Error fetching dispute");
     return NextResponse.json(
       { error: "Failed to fetch dispute" },
       { status: 500 }
@@ -172,7 +174,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json(updatedDispute);
   } catch (error) {
-    console.error("Error updating dispute:", error);
+    log.error({ err: error }, "Error updating dispute");
     return NextResponse.json(
       { error: "Failed to update dispute" },
       { status: 500 }
@@ -269,7 +271,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       },
     });
   } catch (error) {
-    console.error("Error deleting dispute:", error);
+    log.error({ err: error }, "Error deleting dispute");
     return NextResponse.json(
       { error: "Failed to delete dispute" },
       { status: 500 }

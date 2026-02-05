@@ -11,6 +11,8 @@ import {
   enrollClient,
   isCreditMonitoringAvailable,
 } from "@/lib/credit-monitoring";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("client-credit-api");
 
 export const dynamic = "force-dynamic";
 
@@ -111,7 +113,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error("Error fetching credit data:", error);
+    log.error({ err: error }, "Error fetching credit data");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to fetch credit data" },
       { status: 500 }
@@ -246,7 +248,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       enrollmentId: result.enrollmentId,
     });
   } catch (error) {
-    console.error("Error with credit monitoring:", error);
+    log.error({ err: error }, "Error with credit monitoring");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to process request" },
       { status: 500 }

@@ -9,6 +9,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("evidence-pending-api");
 
 export const dynamic = "force-dynamic";
 
@@ -107,7 +109,7 @@ export async function GET(req: NextRequest) {
       items: pendingItems,
     });
   } catch (error) {
-    console.error("Error fetching pending evidence:", error);
+    log.error({ err: error }, "Error fetching pending evidence");
     return NextResponse.json(
       { error: "Failed to fetch pending evidence" },
       { status: 500 }
@@ -175,7 +177,7 @@ export async function PATCH(req: NextRequest) {
       pendingEvidence: updated,
     });
   } catch (error) {
-    console.error("Error updating pending evidence:", error);
+    log.error({ err: error }, "Error updating pending evidence");
     return NextResponse.json(
       { error: "Failed to update pending evidence" },
       { status: 500 }
@@ -229,7 +231,7 @@ export async function DELETE(req: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting pending evidence:", error);
+    log.error({ err: error }, "Error deleting pending evidence");
     return NextResponse.json(
       { error: "Failed to delete pending evidence" },
       { status: 500 }

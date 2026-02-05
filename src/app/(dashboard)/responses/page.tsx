@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import { Clock, AlertTriangle, CheckCircle, XCircle, FileText, Calendar, ChevronRight, Filter, Download, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format, differenceInDays, addDays } from "date-fns";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("responses-page");
 
 interface PendingResponse {
   id: string;
@@ -75,7 +77,7 @@ export default function ResponseTrackerPage() {
         setLoggedResponses(data.logged || []);
       }
     } catch (err) {
-      console.error("Failed to fetch responses");
+      log.error("Failed to fetch responses");
     } finally {
       setLoading(false);
     }
@@ -388,7 +390,7 @@ function LogResponseModal({ dispute, onClose, onSave }: { dispute: PendingRespon
       });
       onSave();
     } catch (err) {
-      console.error("Failed to log response");
+      log.error("Failed to log response");
     } finally {
       setSaving(false);
     }

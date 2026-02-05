@@ -16,6 +16,8 @@ import {
   getLastDisputeDate,
 } from "@/lib/personal-info-dispute-service";
 import { disputePreviewSchema } from "@/lib/api-validation-schemas";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("disputes-preview-api");
 
 export const dynamic = "force-dynamic";
 
@@ -260,7 +262,7 @@ export const POST = withAuth(async (req, ctx) => {
       },
     });
   } catch (error) {
-    console.error("Error generating preview:", error);
+    log.error({ err: error }, "Error generating preview");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to generate preview", code: "PREVIEW_ERROR" },
       { status: 500 }

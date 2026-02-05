@@ -24,6 +24,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/lib/use-toast";
 import { AddReminderModal } from "./add-reminder-modal";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("reminder-list");
 
 interface Reminder {
   id: string;
@@ -90,7 +92,7 @@ export function ReminderList({ clientId, showStats = true, compact = false }: Re
         setStats(data.stats);
       }
     } catch (error) {
-      console.error("Failed to fetch reminders:", error);
+      log.error({ err: error }, "Failed to fetch reminders");
     } finally {
       setLoading(false);
     }

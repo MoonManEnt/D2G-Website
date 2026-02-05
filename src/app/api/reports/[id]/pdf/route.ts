@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { readFile } from "fs/promises";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("report-pdf-api");
 
 export const dynamic = "force-dynamic";
 
@@ -39,23 +41,23 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     let pdfBuffer: Buffer;
     const storagePath = report.originalFile.storagePath;
 
-    console.log(`fetching PDF from: ${storagePath}`);
+    log.info({ storagePath }, "fetching PDF from");
 
     if (storagePath.startsWith("http")) {
       const response = await fetch(storagePath);
       if (!response.ok) {
-        console.error(`Fetch failed: ${response.status} ${response.statusText}`);
+        log.error({ status: response.status, statusText: response.statusText }, "Fetch failed");
         throw new Error(`Failed to fetch PDF from storage: ${response.statusText}`);
       }
       const arrayBuffer = await response.arrayBuffer();
       pdfBuffer = Buffer.from(arrayBuffer);
     } else {
       // Handle legacy paths or local files (unlikely to work in serverless unless bundled)
-      console.warn(`Attempting to read local file: ${storagePath}`);
+      log.warn({ storagePath }, "Attempting to read local file");
 
       // Check for broken blob:// paths (zombie reports)
       if (storagePath.startsWith("blob:")) {
-        console.error("Attempted to access non-persisted blob path:", storagePath);
+        log.error({ data: storagePath }, "Attempted to access non-persisted blob path");
         return NextResponse.json(
           { error: "PDF file was not permanently saved. Please re-upload this report." },
           { status: 404 }
@@ -65,7 +67,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       try {
         pdfBuffer = await readFile(storagePath);
       } catch (err) {
-        console.error("Local file read failed:", err);
+        log.error({ err: err }, "Local file read failed");
         return NextResponse.json({ error: `File not found at path: ${storagePath}` }, { status: 404 });
       }
     }
@@ -81,7 +83,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     });
 
   } catch (error) {
-    console.error("Error fetching PDF:", error);
+    log.error({ err: error }, "Error fetching PDF");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to fetch PDF" },
       { status: 500 }

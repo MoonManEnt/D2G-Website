@@ -28,6 +28,8 @@ import { EOSCARCodeSelector } from "./eoscar-code-selector";
 import { SuccessProbabilityGauge } from "./success-probability-gauge";
 import { MailSendDialog } from "@/components/disputes/mail-send-dialog";
 import type { SentryCRA, SentryFlowType } from "@/types/sentry";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("sentry-dispute-page");
 
 type Step = "reports" | "select" | "configure" | "generate" | "review";
 
@@ -147,7 +149,7 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
         setSelectedReportId(formattedReports[0].id);
       }
     } catch (err) {
-      console.error("Failed to load reports:", err);
+      log.error({ err: err }, "Failed to load reports");
     } finally {
       setLoading(false);
     }
@@ -289,7 +291,7 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
           }
         }
       } catch (err) {
-        console.error("Failed to calculate success probability:", err);
+        log.error({ err: err }, "Failed to calculate success probability");
         // Keep default values on error
       }
     };

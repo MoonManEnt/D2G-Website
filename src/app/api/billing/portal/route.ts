@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { createPortalSession } from "@/lib/stripe";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("billing-portal-api");
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +45,7 @@ export async function POST() {
 
     return NextResponse.json({ url: portalUrl });
   } catch (error) {
-    console.error("Error creating portal session:", error);
+    log.error({ err: error }, "Error creating portal session");
     return NextResponse.json(
       { error: "Failed to create portal session" },
       { status: 500 }

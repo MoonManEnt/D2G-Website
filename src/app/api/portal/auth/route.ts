@@ -9,6 +9,8 @@ import {
   verifyRefreshToken,
   extractBearerToken,
 } from "@/lib/jwt";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("portal-auth-api");
 
 // Schema for client login
 const loginSchema = z.object({
@@ -162,7 +164,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Client portal login error:", error);
+    log.error({ err: error }, "Client portal login error");
     return NextResponse.json(
       { error: "Login failed" },
       { status: 500 }
@@ -217,7 +219,7 @@ export async function PUT(request: NextRequest) {
       message: "Account activated. You can now log in.",
     });
   } catch (error) {
-    console.error("Client portal registration error:", error);
+    log.error({ err: error }, "Client portal registration error");
     return NextResponse.json(
       { error: "Registration failed" },
       { status: 500 }
@@ -290,7 +292,7 @@ export async function PATCH(request: NextRequest) {
       expiresIn: 3600,
     });
   } catch (error) {
-    console.error("Token refresh error:", error);
+    log.error({ err: error }, "Token refresh error");
     return NextResponse.json(
       { error: "Token refresh failed" },
       { status: 500 }

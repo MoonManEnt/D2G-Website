@@ -4,6 +4,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { del } from "@vercel/blob";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("report-detail-api");
 
 export const dynamic = "force-dynamic";
 
@@ -39,9 +41,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         if (report.originalFile?.storagePath && report.originalFile.storagePath.startsWith("http")) {
             try {
                 await del(report.originalFile.storagePath);
-                console.log(`Deleted blob: ${report.originalFile.storagePath}`);
+                log.info({ storagePath: report.originalFile.storagePath }, "Deleted blob");
             } catch (blobError) {
-                console.error("Failed to delete blob file:", blobError);
+                log.error({ err: blobError }, "Failed to delete blob file");
                 // Continue with DB deletion even if blob deletion fails (it might be already gone)
             }
         }
@@ -93,7 +95,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
                     });
                 }
             } catch (fileError) {
-                console.warn("Could not delete stored file record (might have cascaded):", fileError);
+                log.warn({ err: fileError }, "Could not delete stored file record (might have cascaded)");
             }
         }
 
@@ -113,7 +115,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         return NextResponse.json({ success: true });
 
     } catch (error) {
-        console.error("Error deleting report:", error);
+        log.error({ err: error }, "Error deleting report");
         return NextResponse.json(
             { error: "Failed to delete report" },
             { status: 500 }

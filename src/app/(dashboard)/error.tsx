@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import * as Sentry from "@sentry/nextjs";
 import { Button } from "@/components/ui/button";
 import { AlertCircle } from "lucide-react";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("dashboard-error");
 
 export default function ErrorBoundary({
     error,
@@ -14,7 +16,7 @@ export default function ErrorBoundary({
 }) {
     useEffect(() => {
         // Log exception to remote service (e.g. Sentry)
-        console.error("Dashboard Error:", error);
+        log.error({ err: error }, "Dashboard Error");
         Sentry.captureException(error);
     }, [error]);
 

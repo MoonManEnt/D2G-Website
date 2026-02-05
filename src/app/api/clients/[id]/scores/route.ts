@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { z } from "zod";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("client-scores-api");
 
 export const dynamic = "force-dynamic";
 
@@ -138,7 +140,7 @@ export async function GET(
       ),
     });
   } catch (error) {
-    console.error("Failed to fetch credit scores:", error);
+    log.error({ err: error }, "Failed to fetch credit scores");
     return NextResponse.json(
       { error: "Failed to fetch credit scores" },
       { status: 500 }
@@ -201,7 +203,7 @@ export async function POST(
 
     return NextResponse.json({ score: creditScore }, { status: 201 });
   } catch (error) {
-    console.error("Failed to create credit score:", error);
+    log.error({ err: error }, "Failed to create credit score");
     return NextResponse.json(
       { error: "Failed to create credit score" },
       { status: 500 }
@@ -258,7 +260,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Failed to delete credit score:", error);
+    log.error({ err: error }, "Failed to delete credit score");
     return NextResponse.json(
       { error: "Failed to delete credit score" },
       { status: 500 }

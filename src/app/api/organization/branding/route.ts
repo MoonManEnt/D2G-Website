@@ -4,6 +4,9 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { defaultBranding, BrandingSettings } from "@/types/branding";
 import { orgBrandingSchema } from "@/lib/api-validation-schemas";
+import { createLogger } from "@/lib/logger";
+import { SubscriptionTier } from "@/types";
+const log = createLogger("org-branding-api");
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +17,22 @@ export async function GET() {
 
     if (!session?.user?.organizationId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Minimum tier check: branding/white-label requires PROFESSIONAL or higher
+    const getTierOrder = ["FREE", "STARTER", "PROFESSIONAL", "ENTERPRISE"];
+    const getbrandTier = (session.user.subscriptionTier as string) || "FREE";
+    if (getTierOrder.indexOf(getbrandTier) < getTierOrder.indexOf("PROFESSIONAL")) {
+      return NextResponse.json(
+        {
+          error: "Upgrade required",
+          code: "TIER_REQUIRED",
+          requiredTier: "PROFESSIONAL",
+          currentTier: getbrandTier,
+          message: "White-label branding requires PROFESSIONAL tier or higher.",
+        },
+        { status: 403 }
+      );
     }
 
     const organization = await prisma.organization.findUnique({
@@ -38,7 +57,7 @@ export async function GET() {
 
     return NextResponse.json({ branding });
   } catch (error) {
-    console.error("Error fetching branding:", error);
+    log.error({ err: error }, "Error fetching branding");
     return NextResponse.json(
       { error: "Failed to fetch branding settings" },
       { status: 500 }
@@ -53,6 +72,22 @@ export async function PATCH(request: NextRequest) {
 
     if (!session?.user?.organizationId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Minimum tier check: branding/white-label requires PROFESSIONAL or higher
+    const patchTierOrder = ["FREE", "STARTER", "PROFESSIONAL", "ENTERPRISE"];
+    const patchBrandTier = (session.user.subscriptionTier as string) || "FREE";
+    if (patchTierOrder.indexOf(patchBrandTier) < patchTierOrder.indexOf("PROFESSIONAL")) {
+      return NextResponse.json(
+        {
+          error: "Upgrade required",
+          code: "TIER_REQUIRED",
+          requiredTier: "PROFESSIONAL",
+          currentTier: patchBrandTier,
+          message: "White-label branding requires PROFESSIONAL tier or higher.",
+        },
+        { status: 403 }
+      );
     }
 
     // Only admins can update branding
@@ -131,7 +166,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ branding: newBranding });
   } catch (error) {
-    console.error("Error updating branding:", error);
+    log.error({ err: error }, "Error updating branding");
     return NextResponse.json(
       { error: "Failed to update branding settings" },
       { status: 500 }
@@ -146,6 +181,22 @@ export async function DELETE() {
 
     if (!session?.user?.organizationId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Minimum tier check: branding/white-label requires PROFESSIONAL or higher
+    const delTierOrder = ["FREE", "STARTER", "PROFESSIONAL", "ENTERPRISE"];
+    const delBrandTier = (session.user.subscriptionTier as string) || "FREE";
+    if (delTierOrder.indexOf(delBrandTier) < delTierOrder.indexOf("PROFESSIONAL")) {
+      return NextResponse.json(
+        {
+          error: "Upgrade required",
+          code: "TIER_REQUIRED",
+          requiredTier: "PROFESSIONAL",
+          currentTier: delBrandTier,
+          message: "White-label branding requires PROFESSIONAL tier or higher.",
+        },
+        { status: 403 }
+      );
     }
 
     // Only admins can reset branding
@@ -196,7 +247,7 @@ export async function DELETE() {
 
     return NextResponse.json({ branding: defaultBranding });
   } catch (error) {
-    console.error("Error resetting branding:", error);
+    log.error({ err: error }, "Error resetting branding");
     return NextResponse.json(
       { error: "Failed to reset branding settings" },
       { status: 500 }

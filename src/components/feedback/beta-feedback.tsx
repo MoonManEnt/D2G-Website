@@ -24,6 +24,8 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("beta-feedback");
 
 type FeedbackType = "bug" | "idea" | "love" | "frustration" | "general";
 type Rating = 1 | 2 | 3 | 4 | 5;
@@ -129,7 +131,7 @@ export function BetaFeedback() {
         handleClose();
       }, 2000);
     } catch (error) {
-      console.error("Failed to submit feedback:", error);
+      log.error({ err: error }, "Failed to submit feedback");
     } finally {
       setSubmitting(false);
     }

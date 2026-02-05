@@ -1,4 +1,6 @@
 import Stripe from "stripe";
+import { createLogger } from "./logger";
+const log = createLogger("stripe");
 
 // Initialize Stripe client
 export const stripe = process.env.STRIPE_SECRET_KEY
@@ -10,106 +12,106 @@ export const stripe = process.env.STRIPE_SECRET_KEY
 
 // Price IDs from environment
 export const STRIPE_PRICES = {
-  PRO_MONTHLY: process.env.STRIPE_PRO_MONTHLY_PRICE_ID || "",
-  PRO_YEARLY: process.env.STRIPE_PRO_YEARLY_PRICE_ID || "",
+  STARTER_MONTHLY: process.env.STRIPE_STARTER_MONTHLY_PRICE_ID || "",
+  STARTER_YEARLY: process.env.STRIPE_STARTER_YEARLY_PRICE_ID || "",
+  PROFESSIONAL_MONTHLY: process.env.STRIPE_PROFESSIONAL_MONTHLY_PRICE_ID || "",
+  PROFESSIONAL_YEARLY: process.env.STRIPE_PROFESSIONAL_YEARLY_PRICE_ID || "",
+  // Legacy aliases for backward compatibility during migration
+  PRO_MONTHLY: process.env.STRIPE_PRO_MONTHLY_PRICE_ID || process.env.STRIPE_PROFESSIONAL_MONTHLY_PRICE_ID || "",
+  PRO_YEARLY: process.env.STRIPE_PRO_YEARLY_PRICE_ID || process.env.STRIPE_PROFESSIONAL_YEARLY_PRICE_ID || "",
 };
-
-// Trial period duration
-export const TRIAL_DAYS = 14;
 
 // Plan features for display
 export const PLAN_FEATURES = {
   FREE: {
     name: "Free",
     price: 0,
-    interval: "forever",
+    priceYearly: 0,
+    interval: "forever" as const,
     features: [
-      "3 clients",
-      "View credit reports",
-      "Basic dispute tracking",
-      "5 disputes/month",
+      "5 clients",
+      "15 disputes/month",
+      "15 letters/month",
+      "10 reports/month",
+      "500MB storage",
+      "Basic Amelia AI",
+      "Evidence Center (Basic)",
     ],
-    limits: {
-      clients: 3,
-      reportsPerMonth: 5,
-      aiRequests: 0,
-    },
+    limits: { clients: 5, reportsPerMonth: 10, disputesPerMonth: 15, aiRequests: 0 },
   },
   STARTER: {
     name: "Starter",
-    price: 49,
-    interval: "month",
+    price: 149,
+    priceYearly: 124, // \,490/year
+    interval: "month" as const,
     features: [
-      "15 clients",
-      "25 reports/month",
-      "AI insights",
-      "25 disputes/month",
+      "50 clients",
+      "100 disputes/month",
+      "100 letters/month",
+      "50 reports/month",
+      "5GB storage",
+      "5 team seats",
+      "Full Amelia AI",
+      "AI-generated letters",
+      "Bulk dispute creation",
+      "Credit DNA analysis",
+      "Evidence Center (Full)",
       "Email support",
     ],
-    limits: {
-      clients: 15,
-      reportsPerMonth: 25,
-      aiRequests: 100,
-    },
+    limits: { clients: 50, reportsPerMonth: 50, disputesPerMonth: 100, aiRequests: 500 },
   },
   PROFESSIONAL: {
     name: "Professional",
-    price: Number(process.env.NEXT_PUBLIC_PRO_PRICE) || 99,
-    interval: "month",
+    price: 249,
+    priceYearly: 207, // \,490/year
+    interval: "month" as const,
     features: [
-      "50 clients",
-      "100 reports/month",
-      "AI dispute strategy",
-      "DOCX letter generation",
+      "250 clients",
+      "400 disputes/month",
+      "400 letters/month",
+      "200 reports/month",
+      "25GB storage",
+      "15 team seats",
+      "Full Amelia AI with priority",
+      "AI-generated letters",
+      "Bulk dispute creation",
       "CFPB complaint generator",
-      "AMELIA letter generation",
+      "Litigation Scanner",
+      "Credit DNA analysis",
+      "White-label customization",
+      "Evidence Center (Full)",
       "Priority support",
     ],
-    limits: {
-      clients: 50,
-      reportsPerMonth: 100,
-      aiRequests: 500,
-    },
+    limits: { clients: 250, reportsPerMonth: 200, disputesPerMonth: 400, aiRequests: 2000 },
   },
   ENTERPRISE: {
     name: "Enterprise",
-    price: 299,
-    interval: "month",
+    price: null, // Custom pricing
+    priceYearly: null,
+    interval: "custom" as const,
     features: [
       "Unlimited clients",
+      "Unlimited disputes",
+      "Unlimited letters",
       "Unlimited reports",
-      "Full AI access",
-      "White-label options",
+      "100GB storage",
+      "Unlimited team seats",
+      "Full Amelia AI with priority",
       "API access",
-      "Dedicated support",
+      "White-label customization",
+      "Dedicated account manager",
+      "Custom integrations",
+      "SLA guarantee",
     ],
-    limits: {
-      clients: Infinity,
-      reportsPerMonth: Infinity,
-      aiRequests: Infinity,
-    },
-  },
-  // Alias for backward compatibility
-  PRO: {
-    name: "Professional",
-    price: Number(process.env.NEXT_PUBLIC_PRO_PRICE) || 99,
-    interval: "month",
-    features: [
-      "50 clients",
-      "100 reports/month",
-      "AI dispute strategy",
-      "DOCX letter generation",
-      "CFPB complaint generator",
-      "AMELIA letter generation",
-      "Priority support",
-    ],
-    limits: {
-      clients: 50,
-      reportsPerMonth: 100,
-      aiRequests: 500,
-    },
+    limits: { clients: Infinity, reportsPerMonth: Infinity, disputesPerMonth: Infinity, aiRequests: Infinity },
   },
 };
+
+// Get price ID from plan and interval
+export function getPriceId(plan: "STARTER" | "PROFESSIONAL", interval: "monthly" | "yearly"): string {
+  const key = `${plan}_${interval.toUpperCase()}` as keyof typeof STRIPE_PRICES;
+  return STRIPE_PRICES[key] || "";
+}
 
 // Create a checkout session for subscription
 export async function createCheckoutSession(
@@ -117,10 +119,11 @@ export async function createCheckoutSession(
   priceId: string,
   successUrl: string,
   cancelUrl: string,
-  organizationId: string
+  organizationId: string,
+  tier: string = "PROFESSIONAL"
 ): Promise<string | null> {
   if (!stripe) {
-    console.error("Stripe not configured");
+    log.error("Stripe not configured");
     return null;
   }
 
@@ -139,11 +142,12 @@ export async function createCheckoutSession(
       cancel_url: cancelUrl,
       metadata: {
         organizationId,
+        tier,
       },
       subscription_data: {
-        trial_period_days: TRIAL_DAYS,
         metadata: {
           organizationId,
+          tier,
         },
       },
       allow_promotion_codes: true,
@@ -151,7 +155,7 @@ export async function createCheckoutSession(
 
     return session.url;
   } catch (error) {
-    console.error("Error creating checkout session:", error);
+    log.error({ err: error }, "Error creating checkout session");
     return null;
   }
 }
@@ -162,7 +166,7 @@ export async function createPortalSession(
   returnUrl: string
 ): Promise<string | null> {
   if (!stripe) {
-    console.error("Stripe not configured");
+    log.error("Stripe not configured");
     return null;
   }
 
@@ -174,7 +178,7 @@ export async function createPortalSession(
 
     return session.url;
   } catch (error) {
-    console.error("Error creating portal session:", error);
+    log.error({ err: error }, "Error creating portal session");
     return null;
   }
 }
@@ -186,7 +190,7 @@ export async function getOrCreateCustomer(
   name: string
 ): Promise<string | null> {
   if (!stripe) {
-    console.error("Stripe not configured");
+    log.error("Stripe not configured");
     return null;
   }
 
@@ -216,7 +220,7 @@ export async function getOrCreateCustomer(
 
     return customer.id;
   } catch (error) {
-    console.error("Error creating/getting customer:", error);
+    log.error({ err: error }, "Error creating/getting customer");
     return null;
   }
 }
@@ -226,14 +230,14 @@ export async function getSubscription(
   subscriptionId: string
 ): Promise<Stripe.Subscription | null> {
   if (!stripe) {
-    console.error("Stripe not configured");
+    log.error("Stripe not configured");
     return null;
   }
 
   try {
     return await stripe.subscriptions.retrieve(subscriptionId);
   } catch (error) {
-    console.error("Error retrieving subscription:", error);
+    log.error({ err: error }, "Error retrieving subscription");
     return null;
   }
 }
@@ -244,7 +248,7 @@ export async function cancelSubscription(
   immediately = false
 ): Promise<boolean> {
   if (!stripe) {
-    console.error("Stripe not configured");
+    log.error("Stripe not configured");
     return false;
   }
 
@@ -258,7 +262,7 @@ export async function cancelSubscription(
     }
     return true;
   } catch (error) {
-    console.error("Error canceling subscription:", error);
+    log.error({ err: error }, "Error canceling subscription");
     return false;
   }
 }
@@ -269,20 +273,20 @@ export function constructWebhookEvent(
   signature: string
 ): Stripe.Event | null {
   if (!stripe) {
-    console.error("Stripe not configured");
+    log.error("Stripe not configured");
     return null;
   }
 
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!webhookSecret) {
-    console.error("Stripe webhook secret not configured");
+    log.error("Stripe webhook secret not configured");
     return null;
   }
 
   try {
     return stripe.webhooks.constructEvent(payload, signature, webhookSecret);
   } catch (error) {
-    console.error("Error verifying webhook signature:", error);
+    log.error({ err: error }, "Error verifying webhook signature");
     return null;
   }
 }

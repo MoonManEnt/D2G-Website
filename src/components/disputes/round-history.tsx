@@ -21,6 +21,8 @@ import {
   History,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("round-history");
 
 interface RoundHistoryItem {
   round: number;
@@ -66,7 +68,7 @@ export function RoundHistory({
           setHistory(data.roundHistory || []);
         }
       } catch (error) {
-        console.error("Failed to fetch round history:", error);
+        log.error({ err: error }, "Failed to fetch round history");
       } finally {
         setLoading(false);
       }

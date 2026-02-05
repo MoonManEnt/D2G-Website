@@ -26,6 +26,8 @@ import {
   DetectedIssue,
 } from "./types";
 import { generateAmeliaContext } from "./amelia-integration";
+import { createLogger } from "../logger";
+const log = createLogger("archive-service");
 
 const RETENTION_DAYS = 90;
 
@@ -773,7 +775,7 @@ export class ArchiveService {
         );
         deletedClients.push(snapshot.clientId);
       } catch (error) {
-        console.error(`Failed to delete client ${snapshot.clientId}:`, error);
+        log.error({ err: error }, "Failed to delete client ${snapshot.clientId}");
       }
     }
 

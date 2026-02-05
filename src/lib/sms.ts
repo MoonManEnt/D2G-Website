@@ -1,6 +1,8 @@
 // SMS notifications via Twilio
 
 import { isFeatureEnabled } from "./env";
+import { createLogger } from "./logger";
+const log = createLogger("sms");
 
 interface TwilioClient {
   messages: {
@@ -28,7 +30,7 @@ async function getTwilioClient(): Promise<TwilioClient | null> {
         process.env.TWILIO_AUTH_TOKEN
       );
     } catch (error) {
-      console.error("Failed to initialize Twilio client:", error);
+      log.error({ err: error }, "Failed to initialize Twilio client");
       return null;
     }
   }
@@ -49,7 +51,7 @@ export async function sendSMS(to: string, message: string): Promise<SMSResult> {
   const client = await getTwilioClient();
 
   if (!client) {
-    console.log(`[SMS Disabled] Would send to ${to}: ${message}`);
+    log.info({ to, message }, "[SMS Disabled] Would send to");
     return { success: false, error: "SMS not configured" };
   }
 
@@ -68,7 +70,7 @@ export async function sendSMS(to: string, message: string): Promise<SMSResult> {
       messageId: result.sid,
     };
   } catch (error) {
-    console.error("SMS send failed:", error);
+    log.error({ err: error }, "SMS send failed");
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",

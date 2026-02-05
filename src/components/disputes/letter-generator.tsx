@@ -30,6 +30,8 @@ import {
   Save,
   X,
 } from "lucide-react";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("letter-generator");
 
 // Letter types with their round numbers
 const LETTER_TYPES = [
@@ -141,7 +143,7 @@ export function LetterGenerator({
         }
       }
     } catch (error) {
-      console.error("Failed to fetch letter data:", error);
+      log.error({ err: error }, "Failed to fetch letter data");
     }
   }, [disputeId]);
 
@@ -161,7 +163,7 @@ export function LetterGenerator({
         setEoscarRisk(100 - (data.metrics?.eoscarRisk || 25)); // Invert for UI display
       }
     } catch (error) {
-      console.error("Failed to fetch suggestions:", error);
+      log.error({ err: error }, "Failed to fetch suggestions");
     } finally {
       setIsLoadingSuggestions(false);
     }

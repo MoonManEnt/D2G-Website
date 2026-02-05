@@ -24,6 +24,8 @@ import {
 import { recommendCodesForAccount } from "@/lib/sentry/eoscar-engine";
 import { getRecommendedFields } from "@/lib/sentry/metro2-targeting";
 import type { SentryFlowType, SentryCRA, SuccessPredictionRequest } from "@/types/sentry";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("sentry-analyze-api");
 
 export const dynamic = "force-dynamic";
 
@@ -280,7 +282,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       system: "SENTRY",
     });
   } catch (error) {
-    console.error("Error analyzing Sentry dispute:", error);
+    log.error({ err: error }, "Error analyzing Sentry dispute");
     return NextResponse.json(
       {
         error:

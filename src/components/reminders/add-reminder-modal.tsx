@@ -21,6 +21,8 @@ import {
 } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("add-reminder-modal");
 
 interface AddReminderModalProps {
   open: boolean;
@@ -91,7 +93,7 @@ export function AddReminderModal({
         .then((data) => {
           setClients(data.clients || []);
         })
-        .catch(console.error)
+        .catch(function(err) { log.error({ err: err }, "Error occurred"); })
         .finally(() => setLoadingClients(false));
     }
   }, [open, initialClientId]);
@@ -105,7 +107,7 @@ export function AddReminderModal({
         .then((data) => {
           setDisputes(data.disputes || []);
         })
-        .catch(console.error)
+        .catch(function(err) { log.error({ err: err }, "Error occurred"); })
         .finally(() => setLoadingDisputes(false));
     }
   }, [formData.clientId, initialDisputeId]);

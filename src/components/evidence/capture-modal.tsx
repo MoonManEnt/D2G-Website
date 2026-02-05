@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { PDFViewer } from "@/components/pdf/pdf-viewer";
 import { Loader2, CheckCircle2, Image, Trash2 } from "lucide-react";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("capture-modal");
 
 interface CapturedEvidence {
   id: string;
@@ -83,7 +85,7 @@ export function EvidenceCaptureModal({
       const data = await response.json();
       setCapturedEvidence((prev) => [...prev, data.evidence]);
     } catch (err) {
-      console.error("Error uploading screenshot:", err);
+      log.error({ err: err }, "Error uploading screenshot");
       setError(err instanceof Error ? err.message : "Failed to upload screenshot");
     } finally {
       setUploading(false);

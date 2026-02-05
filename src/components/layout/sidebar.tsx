@@ -29,6 +29,8 @@ import { Badge } from "@/components/ui/badge";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useBrandingOptional } from "@/components/branding";
 import { Avatar } from "@/components/profile";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("sidebar");
 
 // Sidebar width boundaries
 const MIN_WIDTH = 72;
@@ -193,7 +195,7 @@ export function Sidebar({ user }: SidebarProps) {
           setProfilePicture(data.profilePicture);
         }
       } catch (error) {
-        console.error("Failed to fetch profile picture:", error);
+        log.error({ err: error }, "Failed to fetch profile picture");
       }
     }
     fetchProfilePicture();

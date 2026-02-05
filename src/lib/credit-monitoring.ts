@@ -1,3 +1,6 @@
+import { createLogger } from "./logger";
+const log = createLogger("credit-monitoring");
+
 /**
  * Credit Monitoring API Integration
  *
@@ -278,7 +281,7 @@ export async function enrollClient(
 
     return { success: false, error: "Unknown provider" };
   } catch (error) {
-    console.error("Enrollment error:", error);
+    log.error({ err: error }, "Enrollment error");
     return {
       success: false,
       error: error instanceof Error ? error.message : "Enrollment failed",

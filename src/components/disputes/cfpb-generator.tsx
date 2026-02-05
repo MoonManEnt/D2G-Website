@@ -31,6 +31,8 @@ import {
   Lightbulb,
   Zap,
 } from "lucide-react";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("cfpb-generator");
 
 // CFPB Product categories
 const PRODUCTS = [
@@ -286,7 +288,7 @@ Supporting documents available upon request.`,
           return;
         }
       } catch (error) {
-        console.error("AI generation failed, falling back to template:", error);
+        log.error({ err: error }, "AI generation failed, falling back to template");
       }
     }
 

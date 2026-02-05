@@ -10,6 +10,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { sentryResponseSchema, sentryResponseUpdateSchema } from "@/lib/api-validation-schemas";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("sentry-response-api");
 
 export const dynamic = "force-dynamic";
 
@@ -144,7 +146,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       message: `Response recorded. Dispute status: ${newStatus}`,
     });
   } catch (error) {
-    console.error("Error recording Sentry response:", error);
+    log.error({ err: error }, "Error recording Sentry response");
     return NextResponse.json(
       { error: "Failed to record response" },
       { status: 500 }
@@ -206,7 +208,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       item: updatedItem,
     });
   } catch (error) {
-    console.error("Error updating Sentry response:", error);
+    log.error({ err: error }, "Error updating Sentry response");
     return NextResponse.json(
       { error: "Failed to update response" },
       { status: 500 }

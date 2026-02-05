@@ -67,6 +67,8 @@ import {
   type DNAClassification,
 } from "@/lib/credit-dna";
 import { Progress } from "@/components/ui/progress";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("client-detail-page");
 
 // Safe date formatting helper
 const safeFormatDate = (dateInput: string | Date | null | undefined, fallback: string = "Unknown"): string => {
@@ -519,7 +521,7 @@ export default function ClientDetailPage() {
         router.push("/clients");
       }
     } catch (error) {
-      console.error("Failed to fetch client:", error);
+      log.error({ err: error }, "Failed to fetch client");
     } finally {
       setLoading(false);
     }
@@ -535,7 +537,7 @@ export default function ClientDetailPage() {
         setChartData(data.chartData);
       }
     } catch (error) {
-      console.error("Failed to fetch credit scores:", error);
+      log.error({ err: error }, "Failed to fetch credit scores");
     }
   }, [clientId]);
 
@@ -549,7 +551,7 @@ export default function ClientDetailPage() {
         }
       }
     } catch (error) {
-      console.error("Failed to fetch DNA profile:", error);
+      log.error({ err: error }, "Failed to fetch DNA profile");
     }
   }, [clientId]);
 
@@ -575,7 +577,7 @@ export default function ClientDetailPage() {
         });
       }
     } catch (error) {
-      console.error("Failed to generate DNA:", error);
+      log.error({ err: error }, "Failed to generate DNA");
       toast({
         title: "Error",
         description: "An unexpected error occurred",
@@ -623,7 +625,7 @@ export default function ClientDetailPage() {
 
         finalUrl = blob.url;
       } catch (blobError) {
-        console.warn("Vercel Blob upload failed, falling back to local:", blobError);
+        log.warn({ err: blobError }, "Vercel Blob upload failed, falling back to local");
 
         const formData = new FormData();
         formData.append("file", file);
@@ -693,7 +695,7 @@ export default function ClientDetailPage() {
         });
       }
     } catch (error) {
-      console.error("Upload error:", error);
+      log.error({ err: error }, "Upload error");
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "An unexpected error occurred",

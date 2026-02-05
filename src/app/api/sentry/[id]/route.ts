@@ -11,6 +11,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { unlockAccountsForDispute } from "@/lib/account-lock-service";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("sentry-detail-api");
 
 export const dynamic = "force-dynamic";
 
@@ -153,7 +155,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       system: "SENTRY",
     });
   } catch (error) {
-    console.error("Error fetching Sentry dispute:", error);
+    log.error({ err: error }, "Error fetching Sentry dispute");
     return NextResponse.json(
       { error: "Failed to fetch Sentry dispute", code: "FETCH_ERROR" },
       { status: 500 }
@@ -327,7 +329,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       system: "SENTRY",
     });
   } catch (error) {
-    console.error("Error updating Sentry dispute:", error);
+    log.error({ err: error }, "Error updating Sentry dispute");
     return NextResponse.json(
       { error: "Failed to update Sentry dispute", code: "UPDATE_ERROR" },
       { status: 500 }
@@ -401,7 +403,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       system: "SENTRY",
     });
   } catch (error) {
-    console.error("Error deleting Sentry dispute:", error);
+    log.error({ err: error }, "Error deleting Sentry dispute");
     return NextResponse.json(
       { error: "Failed to delete Sentry dispute", code: "DELETE_ERROR" },
       { status: 500 }

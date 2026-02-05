@@ -18,6 +18,8 @@ import {
 } from "@/lib/sentry/success-calculator";
 import type { SuccessPredictionRequest } from "@/types/sentry";
 import { sentrySuccessPredictionSchema } from "@/lib/api-validation-schemas";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("sentry-prediction-api");
 
 export const dynamic = "force-dynamic";
 
@@ -166,7 +168,7 @@ export const POST = withAuth(async (req, ctx) => {
       system: "SENTRY",
     });
   } catch (error) {
-    console.error("Error calculating success prediction:", error);
+    log.error({ err: error }, "Error calculating success prediction");
     return NextResponse.json(
       {
         error:
@@ -220,7 +222,7 @@ export const GET = withAuth(async (req, ctx) => {
       system: "SENTRY",
     });
   } catch (error) {
-    console.error("Error fetching success factors:", error);
+    log.error({ err: error }, "Error fetching success factors");
     return NextResponse.json(
       { error: "Failed to fetch success factors", code: "FETCH_ERROR" },
       { status: 500 }

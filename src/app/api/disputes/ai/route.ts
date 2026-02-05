@@ -14,6 +14,8 @@ import {
 } from "@/lib/ai-rules-engine";
 import { captureError } from "@/lib/errors";
 import { disputeAiSchema } from "@/lib/api-validation-schemas";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("disputes-ai-api");
 
 export const dynamic = "force-dynamic";
 
@@ -340,7 +342,7 @@ export async function POST(request: NextRequest) {
       action: "ai_dispute_creation",
     });
 
-    console.error("Error creating AI dispute:", error);
+    log.error({ err: error }, "Error creating AI dispute");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to create dispute" },
       { status: 500 }
@@ -475,7 +477,7 @@ export async function GET(request: NextRequest) {
       action: "ai_strategy_preview",
     });
 
-    console.error("Error getting AI strategy:", error);
+    log.error({ err: error }, "Error getting AI strategy");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to get strategy" },
       { status: 500 }

@@ -1,6 +1,8 @@
 import * as Sentry from "@sentry/nextjs";
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
+import { createLogger } from "./logger";
+const log = createLogger("api-error-handler");
 
 interface ApiErrorOptions {
   context?: string;
@@ -100,7 +102,7 @@ export function handleApiError(error: unknown, options: ApiErrorOptions = {}): N
 
   // Unknown errors
   const message = error instanceof Error ? error.message : "An unexpected error occurred";
-  console.error(`[API Error] ${context || "Unknown context"}:`, error);
+  log.error({ err: error }, "[API Error] ${context || \"Unknown context\"}");
 
   Sentry.captureException(error, {
     extra: { context, userId, organizationId, ...extra },

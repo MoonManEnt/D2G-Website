@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("client-accounts-api");
 
 export const dynamic = 'force-dynamic';
 
@@ -119,7 +121,7 @@ export async function GET(
       stats,
     });
   } catch (error) {
-    console.error("Error fetching client accounts:", error);
+    log.error({ err: error }, "Error fetching client accounts");
     return NextResponse.json(
       { error: "Failed to fetch accounts" },
       { status: 500 }

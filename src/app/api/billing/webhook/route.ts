@@ -5,6 +5,8 @@ import { constructWebhookEvent, mapSubscriptionStatus } from "@/lib/stripe";
 import { sendEmail } from "@/lib/email";
 import { paymentFailedTemplate } from "@/lib/email-templates";
 import Stripe from "stripe";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("billing-webhook");
 
 // Disable body parsing, we need the raw body for webhook verification
 export const runtime = "nodejs";
@@ -60,12 +62,12 @@ export async function POST(request: NextRequest) {
       }
 
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        log.info({ eventType: event.type }, "Unhandled event type");
     }
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error("Webhook error:", error);
+    log.error({ err: error }, "Webhook error");
     return NextResponse.json(
       { error: "Webhook handler failed" },
       { status: 500 }
@@ -78,8 +80,25 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const subscriptionId = session.subscription as string;
 
   if (!organizationId || !subscriptionId) {
-    console.error("Missing organizationId or subscriptionId in checkout session");
+    log.error("Missing organizationId or subscriptionId in checkout session");
     return;
+  }
+
+  // Read tier from session metadata, default to PROFESSIONAL for backward compat
+  const tier = session.metadata?.tier || "PROFESSIONAL";
+
+  // Founding Member logic for Professional tier
+  let isFoundingMember = false;
+  let foundingMemberNumber: number | null = null;
+
+  if (tier === "PROFESSIONAL") {
+    const foundingCount = await prisma.organization.count({
+      where: { isFoundingMember: true },
+    });
+    if (foundingCount < 100) {
+      isFoundingMember = true;
+      foundingMemberNumber = foundingCount + 1;
+    }
   }
 
   // Update organization with subscription
@@ -87,8 +106,11 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     where: { id: organizationId },
     data: {
       stripeSubscriptionId: subscriptionId,
-      subscriptionTier: "PRO",
+      subscriptionTier: tier,
       subscriptionStatus: "ACTIVE",
+      isFoundingMember,
+      foundingMemberNumber,
+      foundingMemberLockedPrice: isFoundingMember ? 149.0 : null,
     },
   });
 
@@ -100,7 +122,9 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       targetId: organizationId,
       eventData: JSON.stringify({
         subscriptionId,
-        tier: "PRO",
+        tier,
+        isFoundingMember,
+        foundingMemberNumber,
       }),
       organizationId,
     },
@@ -116,7 +140,7 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
       where: { stripeSubscriptionId: subscription.id },
     });
     if (!org) {
-      console.error("Could not find organization for subscription:", subscription.id);
+      log.error({ data: subscription.id }, "Could not find organization for subscription");
       return;
     }
     await updateOrganizationSubscription(org.id, subscription);
@@ -131,12 +155,15 @@ async function updateOrganizationSubscription(
 ) {
   const status = mapSubscriptionStatus(subscription.status);
 
+  // Read tier from subscription metadata, default to PROFESSIONAL for backward compat
+  const tier = subscription.metadata?.tier || "PROFESSIONAL";
+
   await prisma.organization.update({
     where: { id: organizationId },
     data: {
       stripeSubscriptionId: subscription.id,
       subscriptionStatus: status,
-      subscriptionTier: status === "ACTIVE" ? "PRO" : "FREE",
+      subscriptionTier: status === "ACTIVE" ? tier : "FREE",
     },
   });
 
@@ -149,6 +176,7 @@ async function updateOrganizationSubscription(
       eventData: JSON.stringify({
         subscriptionId: subscription.id,
         status,
+        tier,
         cancelAtPeriodEnd: subscription.cancel_at_period_end,
       }),
       organizationId,
@@ -167,7 +195,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
       where: { stripeSubscriptionId: subscription.id },
     });
     if (!org) {
-      console.error("Could not find organization for subscription:", subscription.id);
+      log.error({ data: subscription.id }, "Could not find organization for subscription");
       return;
     }
     orgId = org.id;
@@ -206,7 +234,7 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
   });
 
   if (!org) {
-    console.error("Could not find organization for customer:", customerId);
+    log.error({ data: customerId }, "Could not find organization for customer");
     return;
   }
 
@@ -268,6 +296,6 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
       });
     }
   } catch (emailError) {
-    console.error("Failed to send payment failure email:", emailError);
+    log.error({ err: emailError }, "Failed to send payment failure email");
   }
 }

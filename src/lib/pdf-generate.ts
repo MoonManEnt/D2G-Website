@@ -8,6 +8,8 @@
 import { PDFDocument, rgb, StandardFonts, PDFFont, PDFPage, degrees } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import { format } from "date-fns";
+import { createLogger } from "./logger";
+const log = createLogger("pdf-generate");
 
 // Page configuration
 const PAGE_WIDTH = 612; // 8.5 inches in points
@@ -935,7 +937,7 @@ export async function generateExhibitPackagePDF(
 
         pageY -= drawHeight + 20;
       } catch (imageError) {
-        console.error(`Failed to embed image for Exhibit ${exhibit.label}:`, imageError);
+        log.error({ err: imageError }, "Failed to embed image for Exhibit ${exhibit.label}");
 
         // Draw placeholder for failed image
         exhibitPage.drawRectangle({

@@ -11,6 +11,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { updateVendorSchema } from "@/lib/api-validation-schemas";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("vendor-detail-api");
 
 export const dynamic = "force-dynamic";
 
@@ -55,7 +57,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ success: true, vendor });
   } catch (error) {
-    console.error("Error fetching vendor:", error);
+    log.error({ err: error }, "Error fetching vendor");
     return NextResponse.json(
       { error: "Failed to fetch vendor", code: "FETCH_ERROR" },
       { status: 500 }
@@ -139,7 +141,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ success: true, vendor: updatedVendor });
   } catch (error) {
-    console.error("Error updating vendor:", error);
+    log.error({ err: error }, "Error updating vendor");
     return NextResponse.json(
       { error: "Failed to update vendor", code: "UPDATE_ERROR" },
       { status: 500 }
@@ -209,7 +211,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       message: "Vendor deleted",
     });
   } catch (error) {
-    console.error("Error deleting vendor:", error);
+    log.error({ err: error }, "Error deleting vendor");
     return NextResponse.json(
       { error: "Failed to delete vendor", code: "DELETE_ERROR" },
       { status: 500 }

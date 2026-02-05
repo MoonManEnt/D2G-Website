@@ -24,6 +24,8 @@ import {
 } from "@/lib/amelia/index";
 import type { NextRoundContext } from "@/lib/dispute-intelligence/types";
 import { CRA } from "@/types";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("dispute-next-round-api");
 
 export const dynamic = "force-dynamic";
 
@@ -305,7 +307,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       },
     });
   } catch (error) {
-    console.error("Error creating next round dispute:", error);
+    log.error({ err: error }, "Error creating next round dispute");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to create next round" },
       { status: 500 }

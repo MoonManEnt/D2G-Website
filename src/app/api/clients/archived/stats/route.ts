@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ArchiveService } from "@/lib/archive";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("archived-stats-api");
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +22,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(stats);
   } catch (error) {
-    console.error("Error fetching archive stats:", error);
+    log.error({ err: error }, "Error fetching archive stats");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to fetch archive stats" },
       { status: 500 }

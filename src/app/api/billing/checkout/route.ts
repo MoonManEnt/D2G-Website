@@ -5,9 +5,11 @@ import prisma from "@/lib/prisma";
 import {
   createCheckoutSession,
   getOrCreateCustomer,
-  STRIPE_PRICES,
+  getPriceId,
 } from "@/lib/stripe";
 import { checkoutSchema } from "@/lib/api-validation-schemas";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("billing-checkout-api");
 
 export const dynamic = "force-dynamic";
 
@@ -30,15 +32,12 @@ export async function POST(request: NextRequest) {
     }
     const { plan, interval } = parsed.data;
 
-    // Get price ID
-    const priceId =
-      interval === "yearly"
-        ? STRIPE_PRICES.PRO_YEARLY
-        : STRIPE_PRICES.PRO_MONTHLY;
+    // Get price ID using the new helper
+    const priceId = getPriceId(plan, interval);
 
     if (!priceId) {
       return NextResponse.json(
-        { error: "Stripe not configured. Contact support." },
+        { error: "Stripe price not configured for selected plan. Contact support." },
         { status: 500 }
       );
     }
@@ -86,7 +85,8 @@ export async function POST(request: NextRequest) {
       priceId,
       `${baseUrl}/billing?success=true`,
       `${baseUrl}/billing?canceled=true`,
-      organization.id
+      organization.id,
+      plan
     );
 
     if (!checkoutUrl) {
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url: checkoutUrl });
   } catch (error) {
-    console.error("Error creating checkout session:", error);
+    log.error({ err: error }, "Error creating checkout session");
     return NextResponse.json(
       { error: "Failed to create checkout session" },
       { status: 500 }

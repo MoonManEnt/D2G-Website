@@ -8,9 +8,12 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { withAuth } from "@/lib/api-middleware";
+import { SubscriptionTier } from "@/types";
 import { litigationScanSchema } from "@/lib/api-validation-schemas";
 import { runLitigationScan } from "@/lib/litigation-scanner";
 import type { LitigationScanInput, ScanAccount, ScanDispute } from "@/lib/litigation-scanner";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("litigation-scan-api");
 
 export const dynamic = "force-dynamic";
 
@@ -77,13 +80,13 @@ export const GET = withAuth(async (req, ctx) => {
       count: parsed.length,
     });
   } catch (error) {
-    console.error("Error fetching litigation scans:", error);
+    log.error({ err: error }, "Error fetching litigation scans");
     return NextResponse.json(
       { error: "Failed to fetch litigation scans", code: "FETCH_ERROR" },
       { status: 500 }
     );
   }
-});
+}, { minTier: SubscriptionTier.PROFESSIONAL });
 
 // =============================================================================
 // POST /api/clients/[id]/litigation-scan
@@ -195,7 +198,7 @@ export const POST = withAuth(
       });
 
       // 4. Build scan input
-      console.log(`[LITIGATION] Scan for client ${clientId}: ${client.accounts.length} accounts, report ${latestReport.id}, ${disputes.length} disputes`);
+      log.info({ clientId, accountCount: client.accounts.length, reportId: latestReport.id, disputeCount: disputes.length }, "[LITIGATION] Scan for client");
 
       if (client.accounts.length === 0) {
         return NextResponse.json(
@@ -316,7 +319,7 @@ export const POST = withAuth(
         { status: 201 }
       );
     } catch (error) {
-      console.error("Error running litigation scan:", error);
+      log.error({ err: error }, "Error running litigation scan");
       return NextResponse.json(
         {
           error: error instanceof Error ? error.message : "Failed to run litigation scan",
@@ -328,5 +331,6 @@ export const POST = withAuth(
   },
   {
     schema: litigationScanSchema,
+    minTier: SubscriptionTier.PROFESSIONAL,
   }
 );

@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { orgResetSchema } from "@/lib/api-validation-schemas";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("org-reset-api");
 
 export const dynamic = "force-dynamic";
 
@@ -209,7 +211,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error resetting organization data:", error);
+    log.error({ err: error }, "Error resetting organization data");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to reset data" },
       { status: 500 }
@@ -261,7 +263,7 @@ export async function GET(request: NextRequest) {
       confirmationPhrase: "DELETE ALL MY DATA",
     });
   } catch (error) {
-    console.error("Error fetching data counts:", error);
+    log.error({ err: error }, "Error fetching data counts");
     return NextResponse.json(
       { error: "Failed to fetch data counts" },
       { status: 500 }

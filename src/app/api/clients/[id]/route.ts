@@ -5,6 +5,8 @@ import prisma from "@/lib/prisma";
 import { ArchiveService } from "@/lib/archive";
 import { encryptPIIFields, decryptPIIFields } from "@/lib/encryption";
 import { cacheGet, cacheSet, cacheDel, cacheDelPrefix } from "@/lib/redis";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("client-detail-api");
 
 export const dynamic = "force-dynamic";
 
@@ -165,7 +167,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json(responseData);
   } catch (error) {
-    console.error("Error fetching client:", error);
+    log.error({ err: error }, "Error fetching client");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to fetch client" },
       { status: 500 }
@@ -231,7 +233,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     // Decrypt before returning
     return NextResponse.json(decryptPIIFields(updatedClient as Record<string, unknown>));
   } catch (error) {
-    console.error("Error updating client:", error);
+    log.error({ err: error }, "Error updating client");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to update client" },
       { status: 500 }
@@ -520,7 +522,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       }
     });
   } catch (error) {
-    console.error("Error deleting client:", error);
+    log.error({ err: error }, "Error deleting client");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to delete client" },
       { status: 500 }
@@ -611,7 +613,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       } : null,
     });
   } catch (error) {
-    console.error("Error restoring client:", error);
+    log.error({ err: error }, "Error restoring client");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to restore client" },
       { status: 500 }

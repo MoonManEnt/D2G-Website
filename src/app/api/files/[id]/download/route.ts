@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("file-download-api");
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +58,7 @@ export async function GET(
       { status: 404 }
     );
   } catch (error) {
-    console.error("Error getting file download URL:", error);
+    log.error({ err: error }, "Error getting file download URL");
     return NextResponse.json(
       { error: "Failed to get download URL" },
       { status: 500 }

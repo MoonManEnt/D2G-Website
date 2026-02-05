@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { subDays, startOfDay, format, startOfMonth, subMonths } from "date-fns";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("analytics-api");
 
 export const dynamic = 'force-dynamic';
 
@@ -602,7 +604,7 @@ export async function GET(req: Request) {
       llmStats,
     });
   } catch (error) {
-    console.error("Error fetching analytics:", error);
+    log.error({ err: error }, "Error fetching analytics");
     return NextResponse.json(
       { error: "Failed to fetch analytics" },
       { status: 500 }

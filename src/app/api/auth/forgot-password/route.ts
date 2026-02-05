@@ -3,6 +3,8 @@ import prisma from "@/lib/prisma";
 import { randomBytes } from "crypto";
 import { sendPasswordResetEmail } from "@/lib/email";
 import { forgotPasswordSchema } from "@/lib/api-validation-schemas";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("forgot-password-api");
 
 // POST /api/auth/forgot-password - Request password reset
 export async function POST(request: NextRequest) {
@@ -53,7 +55,7 @@ export async function POST(request: NextRequest) {
     const emailResult = await sendPasswordResetEmail(user.email, user.name, token);
 
     if (!emailResult.success) {
-      console.error("Failed to send password reset email:", emailResult.error);
+      log.error({ err: emailResult.error }, "Failed to send password reset email");
       // Don't reveal the error to the user
     }
 
@@ -62,7 +64,7 @@ export async function POST(request: NextRequest) {
       message: "If an account exists with this email, you will receive a password reset link.",
     });
   } catch (error) {
-    console.error("Error in forgot password:", error);
+    log.error({ err: error }, "Error in forgot password");
     return NextResponse.json(
       { error: "Failed to process request" },
       { status: 500 }

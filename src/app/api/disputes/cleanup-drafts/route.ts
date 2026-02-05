@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { withAuth } from "@/lib/api-middleware";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("disputes-cleanup-api");
 
 export const dynamic = "force-dynamic";
 
@@ -107,7 +109,7 @@ export const DELETE = withAuth(async (req, ctx) => {
       })),
     });
   } catch (error) {
-    console.error("Error cleaning up drafts:", error);
+    log.error({ err: error }, "Error cleaning up drafts");
     return NextResponse.json(
       { error: "Failed to clean up drafts" },
       { status: 500 }
@@ -170,7 +172,7 @@ export const GET = withAuth(async (req, ctx) => {
       count: drafts.length,
     });
   } catch (error) {
-    console.error("Error fetching drafts:", error);
+    log.error({ err: error }, "Error fetching drafts");
     return NextResponse.json(
       { error: "Failed to fetch drafts" },
       { status: 500 }

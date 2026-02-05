@@ -8,6 +8,8 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { withAuth } from "@/lib/api-middleware";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("litigation-scan-detail-api");
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +61,7 @@ export const GET = withAuth(async (req, ctx) => {
       },
     });
   } catch (error) {
-    console.error("Error fetching litigation scan:", error);
+    log.error({ err: error }, "Error fetching litigation scan");
     return NextResponse.json(
       { error: "Failed to fetch litigation scan", code: "FETCH_ERROR" },
       { status: 500 }
@@ -98,7 +100,7 @@ export const DELETE = withAuth(async (req, ctx) => {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting litigation scan:", error);
+    log.error({ err: error }, "Error deleting litigation scan");
     return NextResponse.json(
       { error: "Failed to delete litigation scan", code: "DELETE_ERROR" },
       { status: 500 }

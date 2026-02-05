@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { uploadFile, generateFileKey } from "@/lib/storage";
 import { v4 as uuid } from "uuid";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("local-upload-api");
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +31,7 @@ export async function POST(request: NextRequest) {
         const key = generateFileKey(organizationId, type, file.name);
         const contentType = file.type || "application/octet-stream";
 
-        console.log(`📂 [LOCAL-UPLOAD] Uploading ${file.name} to ${key}`);
+        log.info({ name: file.name, key }, "[LOCAL-UPLOAD] Uploading to");
 
         const result = await uploadFile(buffer, key, contentType);
 
@@ -44,7 +46,7 @@ export async function POST(request: NextRequest) {
         });
 
     } catch (error) {
-        console.error("❌ [LOCAL-UPLOAD] Error:", error);
+        log.error({ err: error }, "[LOCAL-UPLOAD] Error");
         return NextResponse.json(
             { error: error instanceof Error ? error.message : "Upload failed" },
             { status: 500 }

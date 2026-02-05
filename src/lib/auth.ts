@@ -4,6 +4,8 @@ import { compare } from "bcryptjs";
 import prisma from "./prisma";
 import { UserRole, SubscriptionTier, SubscriptionStatus } from "@/types";
 import { getEnv } from "./env";
+import { createLogger } from "./logger";
+const log = createLogger("auth");
 
 declare module "next-auth" {
   interface Session {
@@ -16,6 +18,8 @@ declare module "next-auth" {
       organizationName: string;
       subscriptionTier: SubscriptionTier;
       subscriptionStatus: SubscriptionStatus;
+      isFoundingMember: boolean;
+      foundingMemberNumber: number | null;
     };
   }
 
@@ -28,6 +32,8 @@ declare module "next-auth" {
     organizationName: string;
     subscriptionTier: SubscriptionTier;
     subscriptionStatus: SubscriptionStatus;
+    isFoundingMember: boolean;
+    foundingMemberNumber: number | null;
   }
 }
 
@@ -41,6 +47,8 @@ declare module "next-auth/jwt" {
     organizationName: string;
     subscriptionTier: SubscriptionTier;
     subscriptionStatus: SubscriptionStatus;
+    isFoundingMember: boolean;
+    foundingMemberNumber: number | null;
   }
 }
 
@@ -67,6 +75,8 @@ export const authOptions: NextAuthOptions = {
                   name: true,
                   subscriptionTier: true,
                   subscriptionStatus: true,
+                  isFoundingMember: true,
+                  foundingMemberNumber: true,
                 },
               },
             },
@@ -83,7 +93,7 @@ export const authOptions: NextAuthOptions = {
           const isPasswordValid = await compare(credentials.password, user.passwordHash);
 
           if (!isPasswordValid) {
-            console.log("❌ Invalid password for:", credentials.email);
+            log.info({ data: credentials.email }, "Invalid password for");
             throw new Error("Invalid email or password");
           }
 
@@ -117,6 +127,8 @@ export const authOptions: NextAuthOptions = {
             organizationName: user.organization.name,
             subscriptionTier: user.organization.subscriptionTier as SubscriptionTier,
             subscriptionStatus: user.organization.subscriptionStatus as SubscriptionStatus,
+            isFoundingMember: user.organization.isFoundingMember,
+            foundingMemberNumber: user.organization.foundingMemberNumber,
           };
 
         } catch (error) {
@@ -136,6 +148,8 @@ export const authOptions: NextAuthOptions = {
         token.organizationName = user.organizationName;
         token.subscriptionTier = user.subscriptionTier;
         token.subscriptionStatus = user.subscriptionStatus;
+        token.isFoundingMember = user.isFoundingMember;
+        token.foundingMemberNumber = user.foundingMemberNumber;
       }
       return token;
     },
@@ -149,6 +163,8 @@ export const authOptions: NextAuthOptions = {
         organizationName: token.organizationName,
         subscriptionTier: token.subscriptionTier,
         subscriptionStatus: token.subscriptionStatus,
+        isFoundingMember: token.isFoundingMember,
+        foundingMemberNumber: token.foundingMemberNumber,
       };
       return session;
     },

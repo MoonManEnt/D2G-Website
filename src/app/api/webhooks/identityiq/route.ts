@@ -3,6 +3,8 @@ import crypto from "crypto";
 import { processWebhook, WebhookPayload } from "@/lib/identityiq-api";
 import { prisma } from "@/lib/prisma";
 import { captureError } from "@/lib/errors";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("identityiq-webhook");
 
 const WEBHOOK_SECRET = process.env.IDENTITYIQ_WEBHOOK_SECRET;
 
@@ -14,7 +16,7 @@ function verifySignature(payload: string, signature: string | null): boolean {
   if (!WEBHOOK_SECRET || !signature) {
     // If no secret configured, skip verification in development
     if (process.env.NODE_ENV === "development") {
-      console.warn("Webhook signature verification skipped (no secret configured)");
+      log.warn("Webhook signature verification skipped (no secret configured)");
       return true;
     }
     return false;
@@ -51,7 +53,7 @@ export async function POST(request: NextRequest) {
 
     // Verify webhook signature
     if (!verifySignature(rawBody, signature)) {
-      console.error("Invalid webhook signature");
+      log.error("Invalid webhook signature");
       return NextResponse.json(
         { error: "Invalid signature" },
         { status: 401 }
@@ -89,7 +91,7 @@ export async function POST(request: NextRequest) {
     const result = await processWebhook(payload);
 
     if (!result.success) {
-      console.error("Webhook processing failed:", result.error);
+      log.error({ err: result.error }, "Webhook processing failed");
 
       // Still return 200 to acknowledge receipt (prevent retries for business logic errors)
       return NextResponse.json({
@@ -99,7 +101,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    console.log(`IdentityIQ webhook processed: ${payload.event}`, result.action);
+    log.info({ data: result.action }, "IdentityIQ webhook processed: ${payload.event}");
 
     return NextResponse.json({
       received: true,
@@ -111,7 +113,7 @@ export async function POST(request: NextRequest) {
       action: "identityiq_webhook",
     });
 
-    console.error("Webhook error:", error);
+    log.error({ err: error }, "Webhook error");
 
     // Return 500 to trigger retry
     return NextResponse.json(

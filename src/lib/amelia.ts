@@ -27,6 +27,8 @@ import crypto from "crypto";
 import { prisma } from "./prisma";
 import { completeLLM } from "./llm-orchestrator";
 import { validateUniqueness, buildRejectionFeedback, type ValidationResult } from "@/lib/ai/content-validator";
+import { createLogger } from "./logger";
+const log = createLogger("amelia");
 
 // =============================================================================
 // TYPES
@@ -1213,7 +1215,7 @@ export async function generateAmeliaAILetter(
     );
     contextBlock = formatContextForPrompt(context);
   } catch (ctxError) {
-    console.warn("[Amelia] Context assembly failed, proceeding without context:", ctxError);
+    log.warn({ err: ctxError }, "[Amelia] Context assembly failed, proceeding without context");
   }
 
   // Combine prompt with context
@@ -1248,16 +1250,12 @@ export async function generateAmeliaAILetter(
           // Content too similar — inject rejection feedback and retry
           const feedback = buildRejectionFeedback(attempt, validation.similarityScore);
           finalPrompt = fullPrompt + `\n\n=== REJECTION FEEDBACK ===\n${feedback}`;
-          console.warn(
-            `[Amelia] Attempt ${attempt}/${MAX_RETRIES} rejected: ${validation.similarityScore}% similar to previous letter ${validation.mostSimilarIndex}`
-          );
+          log.warn({ attempt, MAX_RETRIES, similarityScore: validation.similarityScore, mostSimilarIndex: validation.mostSimilarIndex }, "[Amelia] Attempt / rejected: % similar to previous letter");
           continue;
         }
 
         if (!validation.isUnique && attempt === MAX_RETRIES) {
-          console.warn(
-            `[Amelia] All ${MAX_RETRIES} attempts exceeded similarity threshold. Using best attempt (${validation.similarityScore}% similar).`
-          );
+          log.warn({ MAX_RETRIES, similarityScore: validation.similarityScore }, "[Amelia] All attempts exceeded similarity threshold. Using best attempt (% similar).");
         }
       }
 
@@ -1288,7 +1286,7 @@ export async function generateAmeliaAILetter(
       violationCount: request.violationCount,
     };
   } catch (error) {
-    console.error("AI generation failed, using template:", error);
+    log.error({ err: error }, "AI generation failed, using template");
     return generateAmeliaLetter(request);
   }
 }

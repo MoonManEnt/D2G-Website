@@ -9,6 +9,8 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { withAuth } from "@/lib/api-middleware";
 import { createVendorSchema } from "@/lib/api-validation-schemas";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("vendors-api");
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +50,7 @@ export const GET = withAuth(async (req, ctx) => {
       vendors,
     });
   } catch (error) {
-    console.error("Error fetching vendors:", error);
+    log.error({ err: error }, "Error fetching vendors");
     return NextResponse.json(
       { error: "Failed to fetch vendors", code: "FETCH_ERROR" },
       { status: 500 }
@@ -105,7 +107,7 @@ export const POST = withAuth(
 
       return NextResponse.json({ success: true, vendor }, { status: 201 });
     } catch (error) {
-      console.error("Error creating vendor:", error);
+      log.error({ err: error }, "Error creating vendor");
       return NextResponse.json(
         { error: "Failed to create vendor", code: "CREATE_ERROR" },
         { status: 500 }

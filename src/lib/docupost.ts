@@ -1,3 +1,6 @@
+import { createLogger } from "./logger";
+const log = createLogger("docupost");
+
 /**
  * DocuPost API Service
  *
@@ -159,7 +162,7 @@ export async function sendLetterViaDocuPost(
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("DocuPost API error:", response.status, errorText);
+      log.error({ arg0: response.status, errorText }, "DocuPost API error");
       return {
         success: false,
         error: `DocuPost API returned ${response.status}: ${errorText}`,
@@ -180,7 +183,7 @@ export async function sendLetterViaDocuPost(
       letterId: letterId || undefined,
     };
   } catch (error) {
-    console.error("DocuPost send error:", error);
+    log.error({ err: error }, "DocuPost send error");
     return {
       success: false,
       error:

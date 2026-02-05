@@ -10,6 +10,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { aggregateOutcomePatterns } from "@/lib/ai/outcome-aggregator";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("amelia-patterns-api");
 
 export const dynamic = "force-dynamic";
 
@@ -81,7 +83,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error fetching patterns:", error);
+    log.error({ err: error }, "Error fetching patterns");
     return NextResponse.json(
       { error: "Failed to fetch patterns" },
       { status: 500 }
@@ -106,7 +108,7 @@ export async function POST() {
       computedAt: new Date().toISOString(),
     });
   } catch (error) {
-    console.error("Error computing patterns:", error);
+    log.error({ err: error }, "Error computing patterns");
     return NextResponse.json(
       { error: "Failed to compute patterns" },
       { status: 500 }

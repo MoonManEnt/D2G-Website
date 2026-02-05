@@ -3,6 +3,8 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { createHash } from "crypto";
 import fs from "fs/promises";
 import path from "path";
+import { createLogger } from "./logger";
+const log = createLogger("storage");
 
 // Storage provider type
 export type StorageProvider = "local" | "s3" | "r2";
@@ -27,7 +29,7 @@ function getS3Client(): S3Client | null {
     const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
 
     if (!accountId || !accessKeyId || !secretAccessKey) {
-      console.warn("R2 credentials not configured, falling back to local storage");
+      log.warn("R2 credentials not configured, falling back to local storage");
       return null;
     }
 
@@ -47,7 +49,7 @@ function getS3Client(): S3Client | null {
   const region = process.env.AWS_REGION || "us-east-1";
 
   if (!accessKeyId || !secretAccessKey) {
-    console.warn("S3 credentials not configured, falling back to local storage");
+    log.warn("S3 credentials not configured, falling back to local storage");
     return null;
   }
 
@@ -142,7 +144,7 @@ export async function uploadFile(
 
       return { key, url, provider, checksum, size };
     } catch (error) {
-      console.error("Cloud storage upload failed, falling back to local:", error);
+      log.error({ err: error }, "Cloud storage upload failed, falling back to local");
     }
   }
 
@@ -189,7 +191,7 @@ export async function getFile(key: string): Promise<StorageFile | null> {
         size: response.ContentLength || buffer.length,
       };
     } catch (error) {
-      console.error("Cloud storage get failed, trying local:", error);
+      log.error({ err: error }, "Cloud storage get failed, trying local");
     }
   }
 
@@ -229,7 +231,7 @@ export async function deleteFile(key: string): Promise<boolean> {
       );
       return true;
     } catch (error) {
-      console.error("Cloud storage delete failed:", error);
+      log.error({ err: error }, "Cloud storage delete failed");
     }
   }
 
@@ -294,7 +296,7 @@ export async function getSignedFileUrl(
         { expiresIn }
       );
     } catch (error) {
-      console.error("Failed to generate signed URL:", error);
+      log.error({ err: error }, "Failed to generate signed URL");
     }
   }
 
@@ -342,7 +344,7 @@ export async function migrateToCloud(localPath: string, key: string): Promise<Up
 
     return result;
   } catch (error) {
-    console.error("Migration failed:", error);
+    log.error({ err: error }, "Migration failed");
     return null;
   }
 }

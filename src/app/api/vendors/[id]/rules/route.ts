@@ -10,6 +10,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { createVendorRuleSchema } from "@/lib/api-validation-schemas";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("vendor-rules-api");
 
 export const dynamic = "force-dynamic";
 
@@ -67,7 +69,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       rules: parsedRules,
     });
   } catch (error) {
-    console.error("Error fetching vendor rules:", error);
+    log.error({ err: error }, "Error fetching vendor rules");
     return NextResponse.json(
       { error: "Failed to fetch vendor rules", code: "FETCH_ERROR" },
       { status: 500 }
@@ -165,7 +167,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       { status: 201 }
     );
   } catch (error) {
-    console.error("Error creating vendor rule:", error);
+    log.error({ err: error }, "Error creating vendor rule");
     return NextResponse.json(
       { error: "Failed to create vendor rule", code: "CREATE_ERROR" },
       { status: 500 }

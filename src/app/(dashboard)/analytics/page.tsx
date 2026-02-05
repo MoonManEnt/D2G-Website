@@ -21,6 +21,8 @@ import {
   ChevronDown,
   Download,
 } from "lucide-react";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("analytics-page");
 
 // Extended analytics interface preserving existing data + new metrics
 interface AnalyticsData {
@@ -130,7 +132,7 @@ export default function AnalyticsPage() {
           setData(analytics);
         }
       } catch (error) {
-        console.error("Error fetching analytics:", error);
+        log.error({ err: error }, "Error fetching analytics");
       } finally {
         setIsLoading(false);
       }

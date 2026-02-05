@@ -9,6 +9,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { generateExhibitPackagePDF, ExhibitItem } from "@/lib/pdf-generate";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("evidence-exhibits-pdf-api");
 
 export const dynamic = "force-dynamic";
 
@@ -65,7 +67,7 @@ export async function POST(req: NextRequest) {
     for (const exhibit of exhibits) {
       const evidence = evidenceRecords.find((e) => e.id === exhibit.evidenceId);
       if (!evidence) {
-        console.warn(`Evidence not found: ${exhibit.evidenceId}`);
+        log.warn({ evidenceId: exhibit.evidenceId }, "Evidence not found");
         continue;
       }
 
@@ -94,10 +96,10 @@ export async function POST(req: NextRequest) {
             const mimeType = evidence.renderedFile.mimeType || "image/png";
             imageBase64 = `data:${mimeType};base64,${Buffer.from(imageBuffer).toString("base64")}`;
           } else {
-            console.warn(`Failed to fetch image: ${imageUrl}`);
+            log.warn({ imageUrl }, "Failed to fetch image");
           }
         } catch (fetchError) {
-          console.error(`Error fetching image for exhibit ${exhibit.label}:`, fetchError);
+          log.error({ err: fetchError }, "Error fetching image for exhibit");
         }
       }
 
@@ -137,7 +139,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error generating exhibit PDF:", error);
+    log.error({ err: error }, "Error generating exhibit PDF");
     return NextResponse.json(
       { error: "Failed to generate exhibit package PDF" },
       { status: 500 }

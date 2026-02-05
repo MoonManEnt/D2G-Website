@@ -1,4 +1,6 @@
 import Redis from "ioredis";
+import { createLogger } from "./logger";
+const log = createLogger("redis");
 
 // Redis configuration
 const REDIS_URL = process.env.REDIS_URL;
@@ -14,12 +16,9 @@ let isConnected = false;
 function createRedisClient(): Redis | null {
   if (!REDIS_URL && !REDIS_HOST) {
     if (process.env.NODE_ENV === "production") {
-      console.error(
-        "⚠️  REDIS NOT CONFIGURED IN PRODUCTION — cache is per-instance only. " +
-        "Set REDIS_URL for shared caching across serverless instances."
-      );
+      log.error("REDIS NOT CONFIGURED IN PRODUCTION - cache is per-instance only. Set REDIS_URL for shared caching.");
     }
-    console.warn("Redis not configured, using in-memory fallback");
+    log.warn("Redis not configured, using in-memory fallback");
     return null;
   }
 
@@ -46,11 +45,11 @@ function createRedisClient(): Redis | null {
 
     client.on("connect", () => {
       isConnected = true;
-      console.log("Redis connected");
+      log.info("Redis connected");
     });
 
     client.on("error", (err) => {
-      console.error("Redis error:", err.message);
+      log.error({ err }, "Redis error");
       isConnected = false;
     });
 
@@ -60,7 +59,7 @@ function createRedisClient(): Redis | null {
 
     return client;
   } catch (error) {
-    console.error("Failed to create Redis client:", error);
+    log.error({ err: error }, "Failed to create Redis client");
     return null;
   }
 }
@@ -101,7 +100,7 @@ export async function cacheGet(key: string): Promise<string | null> {
     try {
       return await client.get(key);
     } catch (error) {
-      console.error("Redis get error:", error);
+      log.error({ err: error }, "Redis get error");
     }
   }
 
@@ -134,7 +133,7 @@ export async function cacheSet(
       }
       return;
     } catch (error) {
-      console.error("Redis set error:", error);
+      log.error({ err: error }, "Redis set error");
     }
   }
 
@@ -156,7 +155,7 @@ export async function cacheDel(key: string): Promise<void> {
       await client.del(key);
       return;
     } catch (error) {
-      console.error("Redis del error:", error);
+      log.error({ err: error }, "Redis del error");
     }
   }
 
@@ -192,7 +191,7 @@ export async function rateLimit(
         resetAt,
       };
     } catch (error) {
-      console.error("Redis rate limit error:", error);
+      log.error({ err: error }, "Redis rate limit error");
     }
   }
 
@@ -267,7 +266,7 @@ export async function publish(channel: string, message: string): Promise<void> {
     try {
       await client.publish(channel, message);
     } catch (error) {
-      console.error("Redis publish error:", error);
+      log.error({ err: error }, "Redis publish error");
     }
   }
 }
@@ -285,7 +284,7 @@ export async function listPush(
     try {
       return await client.rpush(key, ...values);
     } catch (error) {
-      console.error("Redis lpush error:", error);
+      log.error({ err: error }, "Redis lpush error");
     }
   }
 
@@ -307,7 +306,7 @@ export async function listPop(key: string): Promise<string | null> {
     try {
       return await client.lpop(key);
     } catch (error) {
-      console.error("Redis rpop error:", error);
+      log.error({ err: error }, "Redis rpop error");
     }
   }
 
@@ -385,7 +384,7 @@ export async function cacheDelPrefix(prefix: string): Promise<void> {
       } while (cursor !== "0");
       return;
     } catch (error) {
-      console.error("Redis delPrefix error:", error);
+      log.error({ err: error }, "Redis delPrefix error");
     }
   }
 

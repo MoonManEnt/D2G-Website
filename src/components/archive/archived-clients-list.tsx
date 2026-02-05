@@ -34,6 +34,8 @@ import { ArchivedClientListItem, ArchiveStats } from "@/lib/archive/types";
 import { ArchiveViewerModal } from "./archive-viewer-modal";
 import { RestoreDialog } from "./restore-dialog";
 import { PermanentDeleteDialog } from "./permanent-delete-dialog";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("archived-clients-list");
 
 export function ArchivedClientsList() {
   const { toast } = useToast();
@@ -68,7 +70,7 @@ export function ArchivedClientsList() {
         setTotal(data.pagination.total);
       }
     } catch (error) {
-      console.error("Failed to fetch archived clients:", error);
+      log.error({ err: error }, "Failed to fetch archived clients");
     } finally {
       setLoading(false);
     }
@@ -82,7 +84,7 @@ export function ArchivedClientsList() {
         setStats(data);
       }
     } catch (error) {
-      console.error("Failed to fetch archive stats:", error);
+      log.error({ err: error }, "Failed to fetch archive stats");
     }
   }, []);
 

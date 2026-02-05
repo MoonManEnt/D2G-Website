@@ -7,6 +7,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { recommendAccounts } from "@/lib/ai/account-recommender";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("client-recommendations-api");
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +37,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       generatedAt: new Date().toISOString(),
     });
   } catch (error) {
-    console.error("Error generating account recommendations:", error);
+    log.error({ err: error }, "Error generating account recommendations");
     return NextResponse.json(
       { error: "Failed to generate recommendations" },
       { status: 500 }

@@ -483,30 +483,85 @@ export interface FeatureFlags {
   canUseEvidence: boolean;
   canViewDiff: boolean;
   canExportDocuments: boolean;
+  canUseLitigationScanner: boolean;
+  canUseCreditDNA: boolean;
+  canUseWhiteLabel: boolean;
+  canUseAPI: boolean;
+  canUseBulkDisputes: boolean;
+  canUseCFPB: boolean;
+  canUseAILetters: boolean;
   maxClients: number;
   maxReportsPerMonth: number;
+  maxDisputesPerMonth: number;
+  maxLettersPerMonth: number;
+  maxTeamSeats: number;
+  storageQuotaBytes: number;
 }
 
 export const FREE_TIER_FLAGS: FeatureFlags = {
-  canUploadReports: false,
-  canGenerateLetters: false,
+  canUploadReports: true,
+  canGenerateLetters: true,
   canGenerateCFPB: false,
-  canUseEvidence: false,
-  canViewDiff: false,
-  canExportDocuments: false,
-  maxClients: 1,
-  maxReportsPerMonth: 0,
+  canUseEvidence: true,
+  canViewDiff: true,
+  canExportDocuments: true,
+  canUseAILetters: false,
+  canUseBulkDisputes: false,
+  canUseLitigationScanner: false,
+  canUseCreditDNA: false,
+  canUseWhiteLabel: false,
+  canUseAPI: false,
+  canUseCFPB: false,
+  maxClients: 5,
+  maxReportsPerMonth: 10,
+  maxDisputesPerMonth: 15,
+  maxLettersPerMonth: 15,
+  maxTeamSeats: 1,
+  storageQuotaBytes: 524288000, // 500MB
 };
 
-export const PRO_TIER_FLAGS: FeatureFlags = {
+export const STARTER_TIER_FLAGS: FeatureFlags = {
+  canUploadReports: true,
+  canGenerateLetters: true,
+  canGenerateCFPB: false,
+  canUseEvidence: true,
+  canViewDiff: true,
+  canExportDocuments: true,
+  canUseAILetters: true,
+  canUseBulkDisputes: true,
+  canUseLitigationScanner: false,
+  canUseCreditDNA: true,
+  canUseWhiteLabel: false,
+  canUseAPI: false,
+  canUseCFPB: false,
+  maxClients: 50,
+  maxReportsPerMonth: 50,
+  maxDisputesPerMonth: 100,
+  maxLettersPerMonth: 100,
+  maxTeamSeats: 5,
+  storageQuotaBytes: 5368709120, // 5GB
+};
+
+export const PROFESSIONAL_TIER_FLAGS: FeatureFlags = {
   canUploadReports: true,
   canGenerateLetters: true,
   canGenerateCFPB: true,
   canUseEvidence: true,
   canViewDiff: true,
   canExportDocuments: true,
-  maxClients: 50,
-  maxReportsPerMonth: 100,
+  canUseAILetters: true,
+  canUseBulkDisputes: true,
+  canUseLitigationScanner: true,
+  canUseCreditDNA: true,
+  canUseWhiteLabel: true,
+  canUseAPI: false,
+  canUseCFPB: true,
+  maxClients: 250,
+  maxReportsPerMonth: 200,
+  maxDisputesPerMonth: 400,
+  maxLettersPerMonth: 400,
+  maxTeamSeats: 15,
+  storageQuotaBytes: 26843545600, // 25GB
 };
 
 export const ENTERPRISE_TIER_FLAGS: FeatureFlags = {
@@ -516,8 +571,19 @@ export const ENTERPRISE_TIER_FLAGS: FeatureFlags = {
   canUseEvidence: true,
   canViewDiff: true,
   canExportDocuments: true,
-  maxClients: -1, // Unlimited
-  maxReportsPerMonth: -1, // Unlimited
+  canUseAILetters: true,
+  canUseBulkDisputes: true,
+  canUseLitigationScanner: true,
+  canUseCreditDNA: true,
+  canUseWhiteLabel: true,
+  canUseAPI: true,
+  canUseCFPB: true,
+  maxClients: -1,
+  maxReportsPerMonth: -1,
+  maxDisputesPerMonth: -1,
+  maxLettersPerMonth: -1,
+  maxTeamSeats: -1,
+  storageQuotaBytes: 107374182400, // 100GB
 };
 
 // ============================================================================

@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { lockAccountsForDispute, buildLockErrorMessage } from "@/lib/account-lock-service";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("dispute-launch-api");
 
 export const dynamic = 'force-dynamic';
 
@@ -155,7 +157,7 @@ export async function POST(
       message: `Round ${dispute.round} launched! 30-day FCRA deadline: ${responseDeadline.toLocaleDateString()}`,
     });
   } catch (error) {
-    console.error("Error launching dispute:", error);
+    log.error({ err: error }, "Error launching dispute");
     return NextResponse.json(
       { error: "Failed to launch dispute" },
       { status: 500 }

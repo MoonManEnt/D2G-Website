@@ -3,6 +3,8 @@ import prisma from "@/lib/prisma";
 import { withAuth, trackUsage } from "@/lib/api-middleware";
 import { getDisputeReasonFromIssueCode } from "@/lib/dispute-templates";
 import { disputeCreateAndLaunchSchema } from "@/lib/api-validation-schemas";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("disputes-create-launch-api");
 
 export const dynamic = "force-dynamic";
 
@@ -252,7 +254,7 @@ export const POST = withAuth(async (req, ctx) => {
       message: `Round ${round} launched! 30-day FCRA deadline: ${responseDeadline.toLocaleDateString()}`,
     });
   } catch (error) {
-    console.error("Error creating and launching dispute:", error);
+    log.error({ err: error }, "Error creating and launching dispute");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to create and launch dispute", code: "CREATE_LAUNCH_ERROR" },
       { status: 500 }

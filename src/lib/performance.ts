@@ -1,4 +1,6 @@
 import * as Sentry from "@sentry/nextjs";
+import { createLogger } from "./logger";
+const log = createLogger("performance");
 
 interface PerformanceMetric {
   endpoint: string;
@@ -20,9 +22,7 @@ export function recordMetric(metric: PerformanceMetric) {
 
   // Log slow requests
   if (metric.duration > SLOW_THRESHOLD_MS) {
-    console.warn(
-      `[SLOW REQUEST] ${metric.method} ${metric.endpoint} took ${metric.duration}ms (status: ${metric.statusCode})`
-    );
+    log.warn({ method: metric.method, endpoint: metric.endpoint, duration: metric.duration, statusCode: metric.statusCode }, "[SLOW REQUEST] took ms (status: )");
     Sentry.captureMessage(`Slow API request: ${metric.method} ${metric.endpoint}`, {
       level: "warning",
       extra: {
@@ -50,7 +50,7 @@ export function flushMetrics() {
   const slowCount = metrics.filter(m => m.duration > SLOW_THRESHOLD_MS).length;
   const errorCount = metrics.filter(m => m.statusCode >= 500).length;
 
-  console.log(`[PERF] Flushed ${metrics.length} metrics | Avg: ${avgDuration.toFixed(0)}ms | Slow: ${slowCount} | Errors: ${errorCount}`);
+  log.info({ length: metrics.length, toFixed0: avgDuration.toFixed(0), slowCount, errorCount }, "[PERF] Flushed metrics | Avg: ms | Slow: | Errors");
 }
 
 export function getMetricsSummary() {

@@ -10,6 +10,8 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyPortalToken, extractBearerToken } from "@/lib/jwt";
 import { buildClientContext, evaluateVendorsForClient } from "@/lib/vendor-rules";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("portal-recommendations-api");
 
 export const dynamic = "force-dynamic";
 
@@ -166,7 +168,7 @@ export async function GET(request: NextRequest) {
       totalRecommendations: recommendations.length,
     });
   } catch (error) {
-    console.error("Portal recommendations error:", error);
+    log.error({ err: error }, "Portal recommendations error");
     return NextResponse.json(
       { error: "Failed to load recommendations" },
       { status: 500 }

@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { createLogger } from "./logger";
+const log = createLogger("env");
 
 /**
  * Environment variable schema with validation
@@ -95,7 +97,7 @@ function validateEnv(): Env {
         .map((e) => `  - ${e.path.join(".")}: ${e.message}`)
         .join("\n");
 
-      console.error("\n❌ Invalid environment variables:\n" + missingVars + "\n");
+      log.error("\n Invalid environment variables:\n\" + missingVars + \"\n");
 
       // In production, fail hard. In development, warn but continue
       if (process.env.NODE_ENV === "production") {

@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { z } from "zod";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("reminder-detail-api");
 
 export const dynamic = "force-dynamic";
 
@@ -67,7 +69,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("Failed to fetch reminder:", error);
+    log.error({ err: error }, "Failed to fetch reminder");
     return NextResponse.json(
       { error: "Failed to fetch reminder" },
       { status: 500 }
@@ -184,7 +186,7 @@ export async function PATCH(
       },
     });
   } catch (error) {
-    console.error("Failed to update reminder:", error);
+    log.error({ err: error }, "Failed to update reminder");
     return NextResponse.json(
       { error: "Failed to update reminder" },
       { status: 500 }
@@ -224,7 +226,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Failed to delete reminder:", error);
+    log.error({ err: error }, "Failed to delete reminder");
     return NextResponse.json(
       { error: "Failed to delete reminder" },
       { status: 500 }

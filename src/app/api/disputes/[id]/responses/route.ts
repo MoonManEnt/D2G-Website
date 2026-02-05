@@ -16,6 +16,8 @@ import {
   type StallTactic,
 } from "@/lib/dispute-intelligence";
 import { disputeResponseBodySchema } from "@/lib/api-validation-schemas";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("dispute-responses-api");
 
 export const dynamic = "force-dynamic";
 
@@ -141,7 +143,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       })),
     });
   } catch (error) {
-    console.error("Error fetching dispute responses:", error);
+    log.error({ err: error }, "Error fetching dispute responses");
     return NextResponse.json(
       { error: "Failed to fetch responses" },
       { status: 500 }
@@ -364,7 +366,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           },
         });
       } catch (recError) {
-        console.error("Failed to create next-round recommendation:", recError);
+        log.error({ err: recError }, "Failed to create next-round recommendation");
       }
 
       // Update dispute status
@@ -414,7 +416,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       ).length,
     });
   } catch (error) {
-    console.error("Error recording dispute response:", error);
+    log.error({ err: error }, "Error recording dispute response");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to record response" },
       { status: 500 }

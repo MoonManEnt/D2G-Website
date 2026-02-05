@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { hash } from "bcryptjs";
 import { updateTeamMemberSchema } from "@/lib/api-validation-schemas";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("team-member-api");
 
 export const dynamic = "force-dynamic";
 
@@ -78,7 +80,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       recentActivity,
     });
   } catch (error) {
-    console.error("Error fetching user:", error);
+    log.error({ err: error }, "Error fetching user");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to fetch user" },
       { status: 500 }
@@ -203,7 +205,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ success: true, user: updatedUser });
   } catch (error) {
-    console.error("Error updating user:", error);
+    log.error({ err: error }, "Error updating user");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to update user" },
       { status: 500 }
@@ -283,7 +285,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       message: hardDelete ? "User permanently deleted" : "User deactivated",
     });
   } catch (error) {
-    console.error("Error deleting user:", error);
+    log.error({ err: error }, "Error deleting user");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to delete user" },
       { status: 500 }

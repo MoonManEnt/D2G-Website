@@ -10,6 +10,8 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { mailSendSchema } from "@/lib/api-validation-schemas";
 import { sendMail, MailProvider } from "@/lib/mail-provider";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("sentry-mail-api");
 
 export const dynamic = "force-dynamic";
 
@@ -209,7 +211,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       },
     });
   } catch (error) {
-    console.error("Error mailing Sentry dispute:", error);
+    log.error({ err: error }, "Error mailing Sentry dispute");
     return NextResponse.json(
       {
         error:

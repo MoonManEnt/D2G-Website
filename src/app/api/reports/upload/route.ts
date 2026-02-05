@@ -7,6 +7,8 @@ import path from "path";
 import fs from "fs";
 import { parseAndAnalyzeReport } from "@/lib/report-parser";
 import { put } from "@vercel/blob";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("reports-upload-api");
 
 // Detect if running on Vercel (production)
 const isVercel = process.env.VERCEL === "1";
@@ -91,7 +93,7 @@ export async function POST(req: NextRequest) {
       });
       relativePath = blob.url;
       storageType = "VERCEL_BLOB";
-      console.log(`☁️ [UPLOAD] File saved to Vercel Blob: ${blob.url}`);
+      log.info({ url: blob.url }, "[UPLOAD] File saved to Vercel Blob");
     } else {
       // Local: Use filesystem
       const uploadsDir = path.join(process.cwd(), "uploads", "reports");
@@ -102,7 +104,7 @@ export async function POST(req: NextRequest) {
       relativePath = `uploads/reports/${fileId}-${safeFileName}`;
       storageType = "LOCAL";
       fs.writeFileSync(storagePath, pdfBuffer);
-      console.log(`📂 [UPLOAD] File saved to: ${storagePath}`);
+      log.info({ storagePath }, "[UPLOAD] File saved to");
     }
 
     // Create database records in transaction
@@ -187,7 +189,7 @@ export async function POST(req: NextRequest) {
     }, { status: 201 });
 
   } catch (error) {
-    console.error("Upload error:", error);
+    log.error({ err: error }, "Upload error");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Upload failed" },
       { status: 500 }

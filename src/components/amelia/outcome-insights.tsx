@@ -9,6 +9,8 @@ import {
   TrendingUp,
   TrendingDown,
 } from "lucide-react";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("outcome-insights");
 
 interface OutcomePattern {
   id: string;
@@ -70,7 +72,7 @@ export function OutcomeInsights({ className = "" }: OutcomeInsightsProps) {
         setSummary(data.summary || null);
       }
     } catch (error) {
-      console.error("Failed to fetch patterns:", error);
+      log.error({ err: error }, "Failed to fetch patterns");
     } finally {
       setLoading(false);
     }
@@ -86,7 +88,7 @@ export function OutcomeInsights({ className = "" }: OutcomeInsightsProps) {
       await fetch("/api/amelia/patterns", { method: "POST" });
       await fetchPatterns();
     } catch (error) {
-      console.error("Failed to refresh patterns:", error);
+      log.error({ err: error }, "Failed to refresh patterns");
     } finally {
       setRefreshing(false);
     }

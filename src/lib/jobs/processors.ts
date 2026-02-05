@@ -11,7 +11,9 @@ import {
   sendEmail,
   deadlineReminderEmail,
   scoreChangeEmail,
+  dailySummaryEmail,
 } from "../email";
+import { deleteFile } from "../storage";
 import { getCreditScores } from "../credit-monitoring";
 
 // =============================================================================
@@ -19,7 +21,7 @@ import { getCreditScores } from "../credit-monitoring";
 // =============================================================================
 
 export async function processDeadlineReminders(job: Job): Promise<void> {
-  console.log("[JOB] Processing deadline reminders...");
+  log.info("[JOB] Processing deadline reminders...");
 
   // Find all disputes that are SENT and approaching deadline
   const sentDisputes = await prisma.dispute.findMany({
@@ -67,7 +69,7 @@ export async function processDeadlineReminders(job: Job): Promise<void> {
     }
   }
 
-  console.log(`[JOB] Sent ${remindersSent.length} deadline reminders`);
+  log.info({ length: remindersSent.length }, "[JOB] Sent deadline reminders");
 }
 
 // =============================================================================
@@ -75,7 +77,7 @@ export async function processDeadlineReminders(job: Job): Promise<void> {
 // =============================================================================
 
 export async function syncCreditScores(job: Job): Promise<void> {
-  console.log("[JOB] Syncing credit scores...");
+  log.info("[JOB] Syncing credit scores...");
 
   // Find all clients with credit monitoring enabled
   const clients = await prisma.client.findMany({
@@ -152,12 +154,12 @@ export async function syncCreditScores(job: Job): Promise<void> {
         }
       }
     } catch (error) {
-      console.error(`[JOB] Error syncing scores for client ${client.id}:`, error);
+      log.error({ err: error }, "[JOB] Error syncing scores for client");
       errors++;
     }
   }
 
-  console.log(`[JOB] Credit score sync complete: ${synced} new scores, ${errors} errors`);
+  log.info({ synced, errors }, "[JOB] Credit score sync complete: new scores, errors");
 }
 
 // =============================================================================
@@ -165,7 +167,7 @@ export async function syncCreditScores(job: Job): Promise<void> {
 // =============================================================================
 
 export async function generateDailyReport(job: Job): Promise<void> {
-  console.log("[JOB] Generating daily report...");
+  log.info("[JOB] Generating daily report...");
 
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
@@ -226,17 +228,29 @@ export async function generateDailyReport(job: Job): Promise<void> {
 
     // Only send if there's activity
     if (newClients > 0 || newDisputes > 0 || resolvedDisputes > 0 || reportsUploaded > 0) {
-      // TODO: Send daily summary email to owner
-      console.log(`[JOB] Daily stats for ${org.name}:`, {
-        newClients,
-        newDisputes,
-        resolvedDisputes,
-        reportsUploaded,
-      });
+      // Send daily summary email to owner
+      const dateStr = format(yesterday, "MMMM d, yyyy");
+      const template = dailySummaryEmail(
+        owner.name || owner.email,
+        org.name,
+        dateStr,
+        { newClients, newDisputes, resolvedDisputes, reportsUploaded }
+      );
+
+      try {
+        await sendEmail({
+          to: owner.email,
+          template,
+          tags: [{ name: "category", value: "daily-summary" }],
+        });
+        log.info({ email: owner.email, name: org.name }, "[JOB] Sent daily summary to for");
+      } catch (error) {
+        log.error({ err: error }, "[JOB] Failed to send daily summary for");
+      }
     }
   }
 
-  console.log("[JOB] Daily report generation complete");
+  log.info("[JOB] Daily report generation complete");
 }
 
 // =============================================================================
@@ -244,7 +258,7 @@ export async function generateDailyReport(job: Job): Promise<void> {
 // =============================================================================
 
 export async function cleanupOldFiles(job: Job): Promise<void> {
-  console.log("[JOB] Cleaning up old files...");
+  log.info("[JOB] Cleaning up old files...");
 
   // Files older than 90 days that aren't associated with active resources
   const cutoffDate = new Date();
@@ -264,12 +278,25 @@ export async function cleanupOldFiles(job: Job): Promise<void> {
     },
   });
 
-  console.log(`[JOB] Found ${orphanedFiles.length} orphaned files to clean up`);
+  log.info({ length: orphanedFiles.length }, "[JOB] Found orphaned files to clean up");
 
-  // TODO: Actually delete files from storage
-  // For now, just log them
+  let deleted = 0;
+  let deleteErrors = 0;
 
-  console.log("[JOB] File cleanup complete");
+  for (const file of orphanedFiles) {
+    try {
+      await deleteFile(file.storagePath);
+      await prisma.storedFile.delete({ where: { id: file.id } });
+      deleted++;
+    } catch (error) {
+      log.error({ err: error }, "[JOB] Failed to delete file");
+      deleteErrors++;
+    }
+  }
+
+  log.info({ deleted, deleteErrors }, "[JOB] Deleted files, errors");
+
+  log.info("[JOB] File cleanup complete");
 }
 
 // =============================================================================
@@ -277,6 +304,8 @@ export async function cleanupOldFiles(job: Job): Promise<void> {
 // =============================================================================
 
 import { registerProcessor, JOB_TYPES } from "./index";
+import { createLogger } from "../logger";
+const log = createLogger("job-processors");
 
 export function registerAllProcessors(): void {
   registerProcessor(JOB_TYPES.PROCESS_DEADLINE_REMINDERS, processDeadlineReminders, "scheduled");
@@ -284,5 +313,5 @@ export function registerAllProcessors(): void {
   registerProcessor(JOB_TYPES.GENERATE_DAILY_REPORT, generateDailyReport, "scheduled");
   registerProcessor(JOB_TYPES.CLEANUP_OLD_FILES, cleanupOldFiles, "scheduled");
 
-  console.log("[JOBS] All processors registered");
+  log.info("[JOBS] All processors registered");
 }

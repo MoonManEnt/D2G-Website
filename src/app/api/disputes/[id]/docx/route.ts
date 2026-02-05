@@ -10,6 +10,8 @@ import {
   type LetterData,
   type DisputeAccountForLetter,
 } from "@/lib/docx-generator";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("dispute-docx-api");
 
 export const dynamic = "force-dynamic";
 
@@ -158,7 +160,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         },
       });
     } catch (error) {
-      console.error("DOCX generation error:", error);
+      log.error({ err: error }, "DOCX generation error");
       // Fall back to text format if DOCX generation fails - use AMELIA content if available
       const textContent = hasAmeliaContent
         ? dispute.letterContent!
@@ -171,7 +173,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       });
     }
   } catch (error) {
-    console.error("Error generating document:", error);
+    log.error({ err: error }, "Error generating document");
     return NextResponse.json(
       { error: "Failed to generate document" },
       { status: 500 }

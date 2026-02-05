@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { parsePaginationParams, buildPaginatedResponse } from "@/lib/pagination";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("evidence-api");
 
 export const dynamic = "force-dynamic";
 
@@ -164,7 +166,7 @@ export async function GET(request: NextRequest) {
       stats,
     });
   } catch (error) {
-    console.error("Error fetching evidence:", error);
+    log.error({ err: error }, "Error fetching evidence");
     return NextResponse.json(
       { error: "Failed to fetch evidence" },
       { status: 500 }
@@ -234,7 +236,7 @@ export async function PATCH(request: NextRequest) {
       evidence: updated,
     });
   } catch (error) {
-    console.error("Error updating evidence:", error);
+    log.error({ err: error }, "Error updating evidence");
     return NextResponse.json(
       { error: "Failed to update evidence" },
       { status: 500 }
@@ -282,7 +284,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting evidence:", error);
+    log.error({ err: error }, "Error deleting evidence");
     return NextResponse.json(
       { error: "Failed to delete evidence" },
       { status: 500 }

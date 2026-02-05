@@ -9,6 +9,8 @@ import {
 import { completeLLM } from "./llm-orchestrator";
 import { validateUniqueness, buildRejectionFeedback } from "@/lib/ai/content-validator";
 import { isAIAvailable } from "@/lib/ai/providers";
+import { createLogger } from "./logger";
+const log = createLogger("cfpb-complaints");
 
 export type DisputeFlow = "ACCURACY" | "COLLECTION" | "CONSENT" | "COMBO";
 
@@ -374,7 +376,7 @@ Please write the complaint narrative in plain consumer language, focusing on the
       uniquenessScore,
     };
   } catch (error) {
-    console.error("AI CFPB complaint generation failed, falling back to template:", error);
+    log.error({ err: error }, "AI CFPB complaint generation failed, falling back to template");
 
     // Fall back to template-based generation
     const templateResult = await generateCFPBComplaint(data);

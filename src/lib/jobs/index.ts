@@ -7,6 +7,8 @@
 
 import { Queue, Worker, Job, QueueEvents, ConnectionOptions } from "bullmq";
 import { isRedisAvailable } from "../redis";
+import { createLogger } from "../logger";
+const log = createLogger("jobs");
 
 // Redis connection options for BullMQ
 const getConnectionOptions = (): ConnectionOptions => {
@@ -78,7 +80,7 @@ const getConnection = (): ConnectionOptions => {
  */
 export function getQueue(name: string = QUEUE_NAMES.DEFAULT): Queue | null {
   if (!isRedisAvailable()) {
-    console.warn("Job queues disabled: Redis not available");
+    log.warn("Job queues disabled: Redis not available");
     return null;
   }
 
@@ -127,7 +129,7 @@ export async function addJob<T>(
   const queue = getQueue(options.queue);
   if (!queue) {
     // In development without Redis, just log the job
-    console.log(`[JOB] Would add ${jobType}:`, data);
+    log.info({ data: data }, "[JOB] Would add");
     return null;
   }
 
@@ -171,11 +173,11 @@ export function registerProcessor(
   );
 
   worker.on("completed", (job) => {
-    console.log(`[JOB] Completed: ${job.id} (${job.name})`);
+    log.info({ id: job.id, name: job.name }, "[JOB] Completed: ()");
   });
 
   worker.on("failed", (job, err) => {
-    console.error(`[JOB] Failed: ${job?.id} (${job?.name})`, err);
+    log.error({ err: err }, "[JOB] Failed: ()");
   });
 
   workers.set(workerKey, worker);
@@ -187,7 +189,7 @@ export function registerProcessor(
  */
 export async function scheduleRecurringJobs(): Promise<void> {
   if (!isRedisAvailable()) {
-    console.warn("Scheduled jobs disabled: Redis not available");
+    log.warn("Scheduled jobs disabled: Redis not available");
     return;
   }
 
@@ -268,7 +270,7 @@ export async function scheduleRecurringJobs(): Promise<void> {
     }
   );
 
-  console.log("[JOBS] Recurring jobs scheduled");
+  log.info("[JOBS] Recurring jobs scheduled");
 }
 
 /**
@@ -316,5 +318,5 @@ export async function closeAll(): Promise<void> {
   queues.clear();
   workers.clear();
 
-  console.log("[JOBS] All queues and workers closed");
+  log.info("[JOBS] All queues and workers closed");
 }

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { createClient } from "@vercel/kv";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("middleware");
 
 // In-memory fallback for local development or if KV is not configured
 const localRateLimitMap = new Map<string, { count: number; resetTime: number }>();
@@ -58,7 +60,7 @@ async function rateLimit(ip: string, limit: number, windowMs: number): Promise<b
       }
       return count <= limit;
     } catch (error) {
-      console.error("Rate limit error:", error);
+      log.error({ err: error }, "Rate limit error");
       // Fail open (allow request) if Redis fails
       return true;
     }

@@ -7,6 +7,8 @@ import {
   type WorthinessInput,
 } from "@/lib/dispute-intelligence/worthiness";
 import type { DisputeOutcome } from "@/lib/dispute-intelligence/types";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("negative-accounts-api");
 
 export const dynamic = 'force-dynamic';
 
@@ -328,7 +330,7 @@ export async function GET(request: Request) {
     });
 
   } catch (error) {
-    console.error("Error fetching negative accounts:", error);
+    log.error({ err: error }, "Error fetching negative accounts");
     return NextResponse.json(
       { error: "Failed to fetch negative accounts" },
       { status: 500 }

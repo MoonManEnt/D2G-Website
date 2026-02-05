@@ -1,6 +1,8 @@
 // Rate limiter with Redis support and in-memory fallback
 
 import { rateLimit as redisRateLimit, isRedisAvailable } from "./redis";
+import { createLogger } from "./logger";
+const log = createLogger("rate-limit");
 
 interface RateLimitEntry {
   count: number;
@@ -82,7 +84,7 @@ export async function checkRateLimitAsync(
         retryAfter: result.success ? undefined : Math.ceil((result.resetAt - Date.now()) / 1000),
       };
     } catch (error) {
-      console.error("Redis rate limit error, falling back to memory:", error);
+      log.error({ err: error }, "Redis rate limit error, falling back to memory");
     }
   }
 

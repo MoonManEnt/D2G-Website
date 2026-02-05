@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ArchiveService } from "@/lib/archive";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("archived-client-detail-api");
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +37,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json(snapshot);
   } catch (error) {
-    console.error("Error fetching archive snapshot:", error);
+    log.error({ err: error }, "Error fetching archive snapshot");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to fetch archive" },
       { status: 500 }
@@ -77,7 +79,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       ameliaContext: result.ameliaContext,
     });
   } catch (error) {
-    console.error("Error restoring client:", error);
+    log.error({ err: error }, "Error restoring client");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to restore client" },
       { status: 500 }
@@ -132,7 +134,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       deletedCounts: result.deletedCounts,
     });
   } catch (error) {
-    console.error("Error permanently deleting client:", error);
+    log.error({ err: error }, "Error permanently deleting client");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to delete client" },
       { status: 500 }

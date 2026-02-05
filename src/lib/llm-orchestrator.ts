@@ -12,6 +12,8 @@
 import { generateText, streamText, type ModelMessage } from "ai";
 import { getModel, isProviderAvailable } from "@/lib/ai/providers";
 import prisma from "@/lib/prisma";
+import { createLogger } from "./logger";
+const log = createLogger("llm-orchestrator");
 
 // Types
 export type LLMProvider = "CLAUDE" | "OPENAI";
@@ -145,7 +147,7 @@ async function getBestProvider(taskType: TaskType): Promise<LLMConfig> {
       }
     }
   } catch (error) {
-    console.error("Error fetching provider stats:", error);
+    log.error({ err: error }, "Error fetching provider stats");
   }
 
   return DEFAULT_MODELS[taskType];
@@ -187,7 +189,7 @@ export async function completeLLM(request: LLMRequest): Promise<LLMResponse> {
       const fallbackModel = fallbackProvider === "CLAUDE" ? "claude-sonnet-4-20250514" : "gpt-4o";
 
       if (isProviderAvailable(fallbackProvider)) {
-        console.warn(`Primary provider ${activeConfig.provider} failed, trying ${fallbackProvider}`);
+        log.warn({ provider: activeConfig.provider, fallbackProvider }, "Primary provider failed, trying");
 
         try {
           const result = await generateText({
@@ -298,7 +300,7 @@ export async function streamLLM(request: LLMStreamRequest) {
           },
         });
       } catch (logError) {
-        console.error("Failed to log streaming LLM request:", logError);
+        log.error({ err: logError }, "Failed to log streaming LLM request");
       }
     },
   });

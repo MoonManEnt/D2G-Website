@@ -12,6 +12,8 @@ import {
   computeRecommendationsForOrg,
   getCachedRecommendations,
 } from "@/lib/ai/recommendation-engine";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("amelia-recommendations-api");
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +45,7 @@ export async function GET() {
       count: recommendations.length,
     });
   } catch (error) {
-    console.error("Error fetching recommendations:", error);
+    log.error({ err: error }, "Error fetching recommendations");
     return NextResponse.json(
       { error: "Failed to fetch recommendations" },
       { status: 500 }
@@ -69,7 +71,7 @@ export async function POST() {
       refreshedAt: new Date().toISOString(),
     });
   } catch (error) {
-    console.error("Error refreshing recommendations:", error);
+    log.error({ err: error }, "Error refreshing recommendations");
     return NextResponse.json(
       { error: "Failed to refresh recommendations" },
       { status: 500 }

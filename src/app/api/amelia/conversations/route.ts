@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("amelia-conversations-api");
 
 export const dynamic = "force-dynamic";
 
@@ -96,7 +98,7 @@ export async function GET(request: NextRequest) {
       hasMore,
     });
   } catch (error) {
-    console.error("Error listing Amelia conversations:", error);
+    log.error({ err: error }, "Error listing Amelia conversations");
     return NextResponse.json(
       {
         error:
@@ -168,7 +170,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(conversation, { status: 201 });
   } catch (error) {
-    console.error("Error creating Amelia conversation:", error);
+    log.error({ err: error }, "Error creating Amelia conversation");
     return NextResponse.json(
       {
         error:

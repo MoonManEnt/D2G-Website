@@ -16,6 +16,8 @@ import {
   Bell,
 } from "lucide-react";
 import Link from "next/link";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("fcra-alerts");
 
 interface FCRAAlert {
   id: string;
@@ -96,7 +98,7 @@ export function FCRAAlerts() {
           });
         }
       } catch (error) {
-        console.error("Failed to fetch FCRA alerts:", error);
+        log.error({ err: error }, "Failed to fetch FCRA alerts");
       } finally {
         setLoading(false);
       }

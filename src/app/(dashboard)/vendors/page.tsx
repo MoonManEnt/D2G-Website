@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import { VendorForm } from "@/components/vendors/vendor-form";
 import { VendorRuleBuilder } from "@/components/vendors/vendor-rule-builder";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("vendors-page");
 
 // ---------------------------------------------------------------------------
 // Types
@@ -151,7 +153,7 @@ export default function VendorsPage() {
         setReferrals(rData.referrals || []);
       }
     } catch (error) {
-      console.error("Error fetching vendor data:", error);
+      log.error({ err: error }, "Error fetching vendor data");
     } finally {
       setLoading(false);
     }

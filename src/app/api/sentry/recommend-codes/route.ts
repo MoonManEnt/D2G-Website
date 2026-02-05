@@ -16,6 +16,8 @@ import {
 } from "@/lib/sentry/eoscar-engine";
 import type { SentryFlowType, SentryCRA } from "@/types/sentry";
 import { sentryRecommendCodesSchema } from "@/lib/api-validation-schemas";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("sentry-recommend-codes-api");
 
 export const dynamic = "force-dynamic";
 
@@ -129,7 +131,7 @@ export const POST = withAuth(async (req, ctx) => {
       system: "SENTRY",
     });
   } catch (error) {
-    console.error("Error recommending codes:", error);
+    log.error({ err: error }, "Error recommending codes");
     return NextResponse.json(
       {
         error:
@@ -171,7 +173,7 @@ export const GET = withAuth(async (req, ctx) => {
       system: "SENTRY",
     });
   } catch (error) {
-    console.error("Error fetching code database:", error);
+    log.error({ err: error }, "Error fetching code database");
     return NextResponse.json(
       { error: "Failed to fetch e-OSCAR code database", code: "FETCH_ERROR" },
       { status: 500 }

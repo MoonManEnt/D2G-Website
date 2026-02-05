@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("user-profile-picture-api");
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +23,7 @@ export async function GET() {
 
     return NextResponse.json({ profilePicture: user?.profilePicture || null });
   } catch (error) {
-    console.error("Error fetching profile picture:", error);
+    log.error({ err: error }, "Error fetching profile picture");
     return NextResponse.json(
       { error: "Failed to fetch profile picture" },
       { status: 500 }
@@ -91,7 +93,7 @@ export async function PATCH(request: NextRequest) {
       profilePicture: profilePicture || null,
     });
   } catch (error) {
-    console.error("Error updating profile picture:", error);
+    log.error({ err: error }, "Error updating profile picture");
     return NextResponse.json(
       { error: "Failed to update profile picture" },
       { status: 500 }
@@ -131,7 +133,7 @@ export async function DELETE() {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error removing profile picture:", error);
+    log.error({ err: error }, "Error removing profile picture");
     return NextResponse.json(
       { error: "Failed to remove profile picture" },
       { status: 500 }

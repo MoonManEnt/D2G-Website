@@ -18,6 +18,8 @@ import {
 import { validateCitations, getRecommendedCitations } from "@/lib/sentry/legal-validator";
 import type { CitationApplicability } from "@/types/sentry";
 import { sentryAnalyzeLetterSchema } from "@/lib/api-validation-schemas";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("sentry-analyze-letter-api");
 
 export const dynamic = "force-dynamic";
 
@@ -131,7 +133,7 @@ export const POST = withAuth(async (req, ctx) => {
       system: "SENTRY",
     });
   } catch (error) {
-    console.error("Error analyzing letter:", error);
+    log.error({ err: error }, "Error analyzing letter");
     return NextResponse.json(
       {
         error:

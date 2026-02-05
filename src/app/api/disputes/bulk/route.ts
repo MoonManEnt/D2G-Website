@@ -3,6 +3,10 @@ import { getServerSession } from "next-auth";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { z } from "zod";
+import { createLogger } from "@/lib/logger";
+import { SUBSCRIPTION_LIMITS } from "@/lib/api-middleware";
+import { SubscriptionTier } from "@/types";
+const log = createLogger("disputes-bulk-api");
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +27,22 @@ export async function POST(request: NextRequest) {
 
     if (!session?.user?.organizationId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Minimum tier check: bulk disputes require STARTER or higher
+    const tierOrder = ["FREE", "STARTER", "PROFESSIONAL", "ENTERPRISE"];
+    const currentTier = (session.user.subscriptionTier as string) || "FREE";
+    if (tierOrder.indexOf(currentTier) < tierOrder.indexOf("STARTER")) {
+      return NextResponse.json(
+        {
+          error: "Upgrade required",
+          code: "TIER_REQUIRED",
+          requiredTier: "STARTER",
+          currentTier,
+          message: "Bulk dispute creation requires STARTER tier or higher.",
+        },
+        { status: 403 }
+      );
     }
 
     const body = await request.json();
@@ -253,7 +273,7 @@ export async function POST(request: NextRequest) {
       errors: errors.length > 0 ? errors : undefined,
     });
   } catch (error) {
-    console.error("Failed to create bulk disputes:", error);
+    log.error({ err: error }, "Failed to create bulk disputes");
     return NextResponse.json(
       { error: "Failed to create disputes" },
       { status: 500 }
@@ -294,6 +314,22 @@ export async function GET(request: NextRequest) {
 
     if (!session?.user?.organizationId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Minimum tier check: bulk disputes require STARTER or higher
+    const bulkTierOrder = ["FREE", "STARTER", "PROFESSIONAL", "ENTERPRISE"];
+    const bulkCurrentTier = (session.user.subscriptionTier as string) || "FREE";
+    if (bulkTierOrder.indexOf(bulkCurrentTier) < bulkTierOrder.indexOf("STARTER")) {
+      return NextResponse.json(
+        {
+          error: "Upgrade required",
+          code: "TIER_REQUIRED",
+          requiredTier: "STARTER",
+          currentTier: bulkCurrentTier,
+          message: "Bulk dispute preview requires STARTER tier or higher.",
+        },
+        { status: 403 }
+      );
     }
 
     const { searchParams } = new URL(request.url);
@@ -381,7 +417,7 @@ export async function GET(request: NextRequest) {
       accountsAlreadyInDispute: accountsInDispute.size,
     });
   } catch (error) {
-    console.error("Failed to preview bulk disputes:", error);
+    log.error({ err: error }, "Failed to preview bulk disputes");
     return NextResponse.json(
       { error: "Failed to generate preview" },
       { status: 500 }

@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { uploadFile, generateFileKey } from "@/lib/storage";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("client-documents-api");
 
 export const dynamic = "force-dynamic";
 
@@ -78,7 +80,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       },
     });
   } catch (error) {
-    console.error("Error fetching documents:", error);
+    log.error({ err: error }, "Error fetching documents");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to fetch documents" },
       { status: 500 }
@@ -210,7 +212,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       },
     }, { status: 201 });
   } catch (error) {
-    console.error("Error uploading document:", error);
+    log.error({ err: error }, "Error uploading document");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to upload document" },
       { status: 500 }

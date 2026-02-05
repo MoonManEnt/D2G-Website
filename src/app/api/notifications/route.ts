@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/api-middleware";
 import { NotificationService } from "@/lib/notifications";
 import { notificationActionSchema } from "@/lib/api-validation-schemas";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("notifications-api");
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +51,7 @@ export const GET = withAuth(async (req, ctx) => {
       totalPages: Math.ceil(total / limit),
     });
   } catch (error) {
-    console.error("Error fetching notifications:", error);
+    log.error({ err: error }, "Error fetching notifications");
     return NextResponse.json(
       { error: "Failed to fetch notifications", code: "FETCH_ERROR" },
       { status: 500 }
@@ -91,7 +93,7 @@ export const POST = withAuth(async (req, ctx) => {
       { status: 400 }
     );
   } catch (error) {
-    console.error("Error updating notifications:", error);
+    log.error({ err: error }, "Error updating notifications");
     return NextResponse.json(
       { error: "Failed to update notifications", code: "UPDATE_ERROR" },
       { status: 500 }

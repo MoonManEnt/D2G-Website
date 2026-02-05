@@ -2,6 +2,8 @@ import Docxtemplater from "docxtemplater";
 import PizZip from "pizzip";
 import * as fs from "fs";
 import * as path from "path";
+import { createLogger } from "./logger";
+const log = createLogger("docx-generator");
 
 // CRA addresses for letters
 const CRA_ADDRESSES: Record<string, string> = {
@@ -346,7 +348,7 @@ export function generateLetterFromTemplate(
     const text = extractTextFromDocxXml(documentXml);
     return text;
   } catch (error) {
-    console.error("Error extracting template text:", error);
+    log.error({ err: error }, "Error extracting template text");
     return generateFallbackLetterText(cra, data, flow, round);
   }
 }
@@ -571,6 +573,6 @@ export function generateDocxFromContent(
   }
 
   // Fallback - return text as buffer (will be handled by route)
-  console.warn("No blank.docx template found, returning text content");
+  log.warn("No blank.docx template found, returning text content");
   return Buffer.from(content, "utf-8");
 }

@@ -13,6 +13,8 @@
 import prisma from "./prisma";
 import { parseIdentityIQReport, analyzeAccountsForIssues } from "./parser";
 import { analyzeReportAndGenerateStrategy, type ParsedAccount, type DisputeStrategy } from "./ai-rules-engine";
+import { createLogger } from "./logger";
+const log = createLogger("identityiq");
 
 // =============================================================================
 // CONFIGURATION
@@ -139,7 +141,7 @@ export async function getMember(identifier: string): Promise<IdentityIQMember | 
 
     return await identityIQRequest<IdentityIQMember>(endpoint);
   } catch (error) {
-    console.error("Error fetching IdentityIQ member:", error);
+    log.error({ err: error }, "Error fetching IdentityIQ member");
     return null;
   }
 }
@@ -170,7 +172,7 @@ export async function linkClientToIdentityIQ(
 
     return true;
   } catch (error) {
-    console.error("Error linking client to IdentityIQ:", error);
+    log.error({ err: error }, "Error linking client to IdentityIQ");
     return false;
   }
 }
@@ -410,7 +412,7 @@ export async function importReportFromIdentityIQ(
         });
       }
     } catch (scoreError) {
-      console.warn("Failed to update credit scores:", scoreError);
+      log.warn({ err: scoreError }, "Failed to update credit scores");
       // Continue - scores are not critical
     }
 
@@ -486,7 +488,7 @@ export async function importReportFromIdentityIQ(
       strategy,
     };
   } catch (error) {
-    console.error("Error importing report from IdentityIQ:", error);
+    log.error({ err: error }, "Error importing report from IdentityIQ");
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",
@@ -506,7 +508,7 @@ export function verifyWebhookSignature(
   signature: string
 ): boolean {
   if (!IDENTITYIQ_WEBHOOK_SECRET) {
-    console.warn("Webhook secret not configured");
+    log.warn("Webhook secret not configured");
     return false;
   }
 
@@ -681,7 +683,7 @@ export async function processWebhook(payload: WebhookPayload): Promise<{
 
       case "member.enrolled": {
         // New member enrolled - could be used for onboarding
-        console.log(`New IdentityIQ member enrolled: ${payload.memberId}`);
+        log.info({ memberId: payload.memberId }, "New IdentityIQ member enrolled");
         return { success: true, action: "member_enrolled" };
       }
 
@@ -692,7 +694,7 @@ export async function processWebhook(payload: WebhookPayload): Promise<{
         };
     }
   } catch (error) {
-    console.error("Error processing webhook:", error);
+    log.error({ err: error }, "Error processing webhook");
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",

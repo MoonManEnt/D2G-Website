@@ -2,6 +2,8 @@
 // For production, ensure Redis is configured via REDIS_URL
 
 import type { Job, Queue as BullQueue, Worker as BullWorker } from "bullmq";
+import { createLogger } from "./logger";
+const log = createLogger("queue");
 
 // Job types
 export type JobType =
@@ -73,7 +75,7 @@ function getRedisConnection() {
  */
 export async function initializeQueues(): Promise<void> {
   if (!isQueueEnabled()) {
-    console.log("⚠️ Redis not configured. Background jobs will run synchronously.");
+    log.info("Redis not configured. Background jobs will run synchronously.");
     return;
   }
 
@@ -112,19 +114,19 @@ export async function initializeQueues(): Promise<void> {
       );
 
       worker.on("completed", (job: Job) => {
-        console.log(`✅ Job ${type}:${job.id} completed`);
+        log.info({ type, id: job.id }, "Job : completed");
       });
 
       worker.on("failed", (job: Job | undefined, error: Error) => {
-        console.error(`❌ Job ${type}:${job?.id} failed:`, error);
+        log.error({ err: error }, "Job : failed");
       });
 
       workers.set(type, worker);
     }
 
-    console.log("✅ Background job queues initialized");
+    log.info("Background job queues initialized");
   } catch (error) {
-    console.error("Failed to initialize queues:", error);
+    log.error({ err: error }, "Failed to initialize queues");
   }
 }
 
@@ -143,7 +145,7 @@ export async function addJob<T extends JobType>(
 ): Promise<string | null> {
   // If queues not initialized, run synchronously
   if (!queues || !queues.has(type)) {
-    console.log(`Running ${type} job synchronously`);
+    log.info({ type }, "Running job synchronously");
     await processJob(type, data);
     return null;
   }
@@ -202,7 +204,7 @@ async function processJob<T extends JobType>(
       break;
 
     default:
-      console.warn(`Unknown job type: ${type}`);
+      log.warn({ type }, "Unknown job type");
   }
 }
 
@@ -384,9 +386,9 @@ async function handleGenerateDisputeLetter(data: JobData["generate-dispute-lette
       },
     });
 
-    console.log(`Letter generated for dispute ${data.disputeId}`);
+    log.info({ disputeId: data.disputeId }, "Letter generated for dispute");
   } catch (error) {
-    console.error("Error generating dispute letter:", error);
+    log.error({ err: error }, "Error generating dispute letter");
 
     // Update dispute status to indicate error
     await prisma.dispute.update({
@@ -432,9 +434,9 @@ async function handleSendEmail(data: JobData["send-email"]) {
       },
     });
 
-    console.log(`Email sent: ${data.template} to ${data.to}`);
+    log.info({ template: data.template, to: data.to }, "Email sent: to");
   } catch (error) {
-    console.error(`Failed to send email ${data.template} to ${data.to}:`, error);
+    log.error({ err: error }, "Failed to send email to");
     throw error;
   }
 }
@@ -522,7 +524,7 @@ async function handleSyncCreditScores(data: JobData["sync-credit-scores"]) {
   const { getCreditScores, isCreditMonitoringAvailable } = await import("./credit-monitoring");
 
   if (!isCreditMonitoringAvailable()) {
-    console.log("Credit monitoring not configured, skipping sync for client:", data.clientId);
+    log.info({ data: data.clientId }, "Credit monitoring not configured, skipping sync for client");
     return;
   }
 
@@ -539,7 +541,7 @@ async function handleSyncCreditScores(data: JobData["sync-credit-scores"]) {
     });
 
     if (!client || !client.creditMonitoringId) {
-      console.log("Client not enrolled in credit monitoring:", data.clientId);
+      log.info({ data: data.clientId }, "Client not enrolled in credit monitoring");
       return;
     }
 
@@ -550,7 +552,7 @@ async function handleSyncCreditScores(data: JobData["sync-credit-scores"]) {
     );
 
     if (!result.success || !result.scores) {
-      console.error("Failed to fetch credit scores:", result.error);
+      log.error({ err: result.error }, "Failed to fetch credit scores");
       return;
     }
 
@@ -597,9 +599,9 @@ async function handleSyncCreditScores(data: JobData["sync-credit-scores"]) {
       },
     });
 
-    console.log(`Credit scores synced for client ${data.clientId}: ${result.scores.length} scores updated`);
+    log.info({ clientId: data.clientId, length: result.scores.length }, "Credit scores synced for client : scores updated");
   } catch (error) {
-    console.error("Error syncing credit scores:", error);
+    log.error({ err: error }, "Error syncing credit scores");
     throw error;
   }
 }
@@ -625,7 +627,7 @@ async function handleCleanupFiles(data: JobData["cleanup-old-files"]) {
     await prisma.storedFile.delete({ where: { id: file.id } });
   }
 
-  console.log(`Cleaned up ${oldFiles.length} old files`);
+  log.info({ length: oldFiles.length }, "Cleaned up old files");
 }
 
 // ============================================
@@ -666,7 +668,7 @@ export async function scheduleRecurringJobs(): Promise<void> {
     }
   );
 
-  console.log("✅ Recurring jobs scheduled");
+  log.info("Recurring jobs scheduled");
 }
 
 /**

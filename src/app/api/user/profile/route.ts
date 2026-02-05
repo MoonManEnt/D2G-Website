@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { updateProfileSchema } from "@/lib/api-validation-schemas";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("user-profile-api");
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +41,7 @@ export async function GET() {
 
     return NextResponse.json(user);
   } catch (error) {
-    console.error("Error fetching profile:", error);
+    log.error({ err: error }, "Error fetching profile");
     return NextResponse.json(
       { error: "Failed to fetch profile" },
       { status: 500 }
@@ -98,7 +100,7 @@ export async function PATCH(request: NextRequest) {
       user: updatedUser,
     });
   } catch (error) {
-    console.error("Error updating profile:", error);
+    log.error({ err: error }, "Error updating profile");
     return NextResponse.json(
       { error: "Failed to update profile" },
       { status: 500 }

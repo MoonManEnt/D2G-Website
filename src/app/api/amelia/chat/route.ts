@@ -11,6 +11,8 @@ import {
   assembleClientContext,
   formatContextForPrompt,
 } from "@/lib/ai/context-assembler";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("amelia-chat-api");
 
 const AMELIA_SYSTEM_PROMPT = `You are Amelia, an AI assistant built into Dispute2Go that specializes in credit repair strategy and FCRA/FDCPA compliance.
 
@@ -107,10 +109,7 @@ export async function POST(request: NextRequest) {
         );
         clientContextString = formatContextForPrompt(context);
       } catch (ctxError) {
-        console.warn(
-          "[Amelia Chat] Failed to assemble client context, proceeding without it:",
-          ctxError
-        );
+        log.warn({ err: ctxError }, "[Amelia Chat] Failed to assemble client context, proceeding without it");
       }
     }
 
@@ -196,10 +195,7 @@ export async function POST(request: NextRequest) {
           },
         });
       } catch (saveError) {
-        console.error(
-          "[Amelia Chat] Failed to save assistant message:",
-          saveError
-        );
+        log.error({ err: saveError }, "[Amelia Chat] Failed to save assistant message");
       }
     });
 
@@ -211,7 +207,7 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error("[Amelia Chat] Error:", error);
+    log.error({ err: error }, "[Amelia Chat] Error");
     return NextResponse.json(
       {
         error:

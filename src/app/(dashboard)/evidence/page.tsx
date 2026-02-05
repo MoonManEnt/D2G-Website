@@ -69,6 +69,8 @@ import {
 import { EvidenceCaptureModal } from "@/components/evidence/capture-modal";
 import { EvidenceImage, useEvidenceImageUrl } from "@/components/evidence/evidence-image";
 import { useToast } from "@/lib/use-toast";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("evidence-page");
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -313,7 +315,7 @@ export default function EvidencePage() {
         setClients(Array.isArray(data) ? data : []);
       }
     } catch (error) {
-      console.error("Failed to fetch clients:", error);
+      log.error({ err: error }, "Failed to fetch clients");
       setClients([]);
     } finally {
       setLoadingClients(false);
@@ -331,7 +333,7 @@ export default function EvidencePage() {
         setReports(Array.isArray(data) ? data : []);
       }
     } catch (error) {
-      console.error("Failed to fetch reports:", error);
+      log.error({ err: error }, "Failed to fetch reports");
       setReports([]);
     } finally {
       setLoadingReports(false);
@@ -357,7 +359,7 @@ export default function EvidencePage() {
         setStats(data.stats || null);
       }
     } catch (error) {
-      console.error("Failed to fetch evidence:", error);
+      log.error({ err: error }, "Failed to fetch evidence");
       setEvidence([]);
       toast({
         title: "Error",
@@ -403,7 +405,7 @@ export default function EvidencePage() {
         setPendingEvidence(data.items || []);
       }
     } catch (error) {
-      console.error("Failed to fetch pending evidence:", error);
+      log.error({ err: error }, "Failed to fetch pending evidence");
     } finally {
       setLoadingPending(false);
     }
@@ -430,7 +432,7 @@ export default function EvidencePage() {
         });
       }
     } catch (error) {
-      console.error("Failed to dismiss pending evidence:", error);
+      log.error({ err: error }, "Failed to dismiss pending evidence");
     }
   };
 
@@ -445,7 +447,7 @@ export default function EvidencePage() {
       setPendingEvidence((prev) => prev.filter((p) => p.id !== pendingId));
       fetchEvidence(); // Refresh evidence list
     } catch (error) {
-      console.error("Failed to mark pending as captured:", error);
+      log.error({ err: error }, "Failed to mark pending as captured");
     }
   };
 
@@ -1129,7 +1131,7 @@ export default function EvidencePage() {
                     throw new Error("Failed to save");
                   }
                 } catch (error) {
-                  console.error("Error saving annotations:", error);
+                  log.error({ err: error }, "Error saving annotations");
                   toast({
                     title: "Save Failed",
                     description: "Annotations saved locally but failed to persist to database.",
@@ -1858,7 +1860,7 @@ function ExhibitBuilder({
         variant: "success",
       });
     } catch (error) {
-      console.error("Error generating PDF:", error);
+      log.error({ err: error }, "Error generating PDF");
       toast({
         title: "Generation Failed",
         description: error instanceof Error ? error.message : "Failed to generate exhibit PDF",

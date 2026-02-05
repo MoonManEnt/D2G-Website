@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { z } from "zod";
-import { withAuth } from "@/lib/api-middleware";
+import { withAuth, SUBSCRIPTION_LIMITS } from "@/lib/api-middleware";
+import { SubscriptionTier } from "@/types";
 import { encryptPIIFields, decryptPIIFields } from "@/lib/encryption";
 import { parsePaginationParams, buildPaginatedResponse } from "@/lib/pagination";
 import { cacheGet, cacheSet, cacheGetOrSet, cacheDelPrefix } from "@/lib/redis";
@@ -291,15 +292,23 @@ export const HEAD = withAuth(async (req, { organizationId }) => {
 });
 
 export const POST = withAuth<CreateClientBody>(async (req, { session, body, organizationId }) => {
-  // Check subscription
-  if (session.user.subscriptionTier === "FREE") {
-    // Check client count for free tier
+  // Check subscription client limits
+  const tier = session.user.subscriptionTier as SubscriptionTier || "FREE";
+  const limits = SUBSCRIPTION_LIMITS[tier] || SUBSCRIPTION_LIMITS[SubscriptionTier.FREE];
+  const clientLimit = limits.clients.total;
+
+  if (clientLimit !== -1) {
     const clientCount = await prisma.client.count({
       where: { organizationId, isActive: true },
     });
-    if (clientCount >= 1) {
+    if (clientCount >= clientLimit) {
       return NextResponse.json(
-        { message: "Free plan limited to 1 client. Upgrade to Pro for unlimited clients." },
+        {
+          message: `You've reached your plan's limit of ${clientLimit} active clients. Archive existing clients or upgrade your plan.`,
+          upgradeRequired: true,
+          currentCount: clientCount,
+          limit: clientLimit,
+        },
         { status: 403 }
       );
     }

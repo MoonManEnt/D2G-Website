@@ -21,6 +21,8 @@ import {
 import { createDisputeBodySchema } from "@/lib/api-validation-schemas";
 import { generateDisputeCode } from "@/lib/dispute-id-generator";
 import { checkAccountAvailability } from "@/lib/account-lock-service";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("disputes-api");
 
 export const dynamic = "force-dynamic";
 
@@ -113,7 +115,7 @@ export const GET = withAuth(async (req, ctx) => {
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error("Error fetching disputes:", error);
+    log.error({ err: error }, "Error fetching disputes");
     return NextResponse.json(
       { error: "Failed to fetch disputes", code: "FETCH_ERROR" },
       { status: 500 }
@@ -521,7 +523,7 @@ export const POST = withAuth(async (req, ctx) => {
       },
     });
   } catch (error) {
-    console.error("Error creating dispute:", error);
+    log.error({ err: error }, "Error creating dispute");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to create dispute", code: "CREATE_ERROR" },
       { status: 500 }

@@ -7,6 +7,8 @@ import { join } from "path";
 import { v4 as uuid } from "uuid";
 import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
 import { evidenceCaptureSchema } from "@/lib/api-validation-schemas";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("evidence-capture-api");
 
 export const dynamic = "force-dynamic";
 
@@ -232,7 +234,7 @@ ${account.detectedIssues || "None"}
     });
 
   } catch (error) {
-    console.error("Error capturing evidence:", error);
+    log.error({ err: error }, "Error capturing evidence");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to capture evidence" },
       { status: 500 }

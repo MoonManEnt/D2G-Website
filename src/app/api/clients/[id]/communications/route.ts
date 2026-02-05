@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("client-communications-api");
 
 export const dynamic = "force-dynamic";
 
@@ -72,7 +74,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       },
     });
   } catch (error) {
-    console.error("Error fetching communications:", error);
+    log.error({ err: error }, "Error fetching communications");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to fetch communications" },
       { status: 500 }
@@ -153,7 +155,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json(communication, { status: 201 });
   } catch (error) {
-    console.error("Error creating communication:", error);
+    log.error({ err: error }, "Error creating communication");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to create communication" },
       { status: 500 }

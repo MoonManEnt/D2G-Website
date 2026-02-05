@@ -6,6 +6,8 @@ import { z } from "zod";
 import path from "path";
 import fs from "fs";
 import { parseAndAnalyzeReport } from "@/lib/report-parser";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("reports-api");
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // Allow up to 60 seconds for PDF processing
@@ -75,7 +77,7 @@ export const POST = withAuth<UploadReportBody>(async (req, { session, body, orga
   // }
 
   const { clientId, blobUrl, fileName, reportDate } = body;
-  console.log("📂 [REPORTS] Processing upload:", { clientId, fileName, blobUrl });
+  log.info({ data: { clientId, fileName, blobUrl } }, "[REPORTS] Processing upload");
 
   let pdfBuffer: Buffer = Buffer.alloc(0);
   let fileSize: number = 0;
@@ -91,7 +93,7 @@ export const POST = withAuth<UploadReportBody>(async (req, { session, body, orga
       const localPath = path.join(rootDir, 'public', blobUrl.replace(/^\/public/, ''));
       const uploadsPath = path.join(rootDir, blobUrl.startsWith('/') ? blobUrl.slice(1) : blobUrl);
 
-      console.log(`📂 [REPORTS] Trying local paths: ${localPath} OR ${uploadsPath}`);
+      log.info({ localPath, uploadsPath }, "[REPORTS] Trying local paths: OR");
 
       let fileBuffer: Buffer;
       if (fs.existsSync(localPath)) {
@@ -118,7 +120,7 @@ export const POST = withAuth<UploadReportBody>(async (req, { session, body, orga
       fileSize = pdfBuffer.length;
     }
   } catch (fetchError) {
-    console.error("PDF retrieval error:", fetchError);
+    log.error({ err: fetchError }, "PDF retrieval error");
     return NextResponse.json(
       { error: `Failed to retrieve uploaded file: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}` },
       { status: 400 }

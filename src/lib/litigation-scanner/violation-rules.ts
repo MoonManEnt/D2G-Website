@@ -20,6 +20,8 @@ import type {
 } from "./types";
 
 import { normalizeCreditorName } from "@/lib/creditor-normalization";
+import { createLogger } from "../logger";
+const log = createLogger("violation-rules");
 
 // =============================================================================
 // HELPERS
@@ -1807,7 +1809,7 @@ export function runAllViolationRules(
       const violations = rule(input);
       allViolations.push(...violations);
     } catch (error) {
-      console.warn(`Rule ${rule.name} failed:`, error);
+      log.warn({ err: error }, "Rule ${rule.name} failed");
     }
   }
 

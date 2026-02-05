@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("amelia-conversation-api");
 
 export const dynamic = "force-dynamic";
 
@@ -60,7 +62,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json(conversation);
   } catch (error) {
-    console.error("Error fetching Amelia conversation:", error);
+    log.error({ err: error }, "Error fetching Amelia conversation");
     return NextResponse.json(
       {
         error:
@@ -112,7 +114,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       message: "Conversation archived successfully",
     });
   } catch (error) {
-    console.error("Error archiving Amelia conversation:", error);
+    log.error({ err: error }, "Error archiving Amelia conversation");
     return NextResponse.json(
       {
         error:

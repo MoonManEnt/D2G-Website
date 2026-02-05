@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { resetPasswordSchema } from "@/lib/api-validation-schemas";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("reset-password-api");
 
 // POST /api/auth/reset-password - Reset password with token
 export async function POST(request: NextRequest) {
@@ -84,7 +86,7 @@ export async function POST(request: NextRequest) {
       message: "Password has been reset successfully. You can now log in.",
     });
   } catch (error) {
-    console.error("Error resetting password:", error);
+    log.error({ err: error }, "Error resetting password");
     return NextResponse.json(
       { error: "Failed to reset password" },
       { status: 500 }

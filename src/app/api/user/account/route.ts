@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("user-account-api");
 
 /**
  * DELETE /api/user/account
@@ -54,9 +56,7 @@ export async function DELETE(request: NextRequest) {
     // Log the deletion event BEFORE deleting (for audit trail)
     // This record will be deleted as part of the transaction, but the
     // server logs will retain evidence of the action.
-    console.log(
-      `[GDPR] Account deletion initiated by ${session.user.email} (${session.user.id}) for organization ${organizationId} at ${new Date().toISOString()}`
-    );
+    log.info({ email: session.user.email, id: session.user.id, organizationId, toISOString: new Date().toISOString() }, "[GDPR] Account deletion initiated by () for organization at");
 
     await prisma.eventLog.create({
       data: {
@@ -147,7 +147,7 @@ export async function DELETE(request: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error deleting account:", error);
+    log.error({ err: error }, "Error deleting account");
     return NextResponse.json(
       { error: "Failed to delete account" },
       { status: 500 }

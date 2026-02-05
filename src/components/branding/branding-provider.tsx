@@ -10,6 +10,8 @@ import {
 } from "react";
 import { useSession } from "next-auth/react";
 import { BrandingSettings, defaultBranding } from "@/types/branding";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("branding-provider");
 
 // Convert hex color to HSL string (without "hsl()" wrapper, just "H S% L%")
 function hexToHSL(hex: string): string {
@@ -97,7 +99,7 @@ export function BrandingProvider({ children, initialBranding }: BrandingProvider
         setBranding({ ...defaultBranding, ...data.branding });
       }
     } catch (error) {
-      console.error("Failed to fetch branding:", error);
+      log.error({ err: error }, "Failed to fetch branding");
     } finally {
       setIsLoading(false);
     }

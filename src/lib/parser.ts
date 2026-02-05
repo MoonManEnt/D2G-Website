@@ -20,6 +20,8 @@ import {
   PaymentHistoryEntry,
 } from "@/types";
 import { generateFingerprint } from "./utils";
+import { createLogger } from "./logger";
+const log = createLogger("parser");
 
 // Issue types that can be flagged on accounts
 export interface AccountIssue {
@@ -316,7 +318,7 @@ export function extractCreditScores(text: string): ExtractedCreditScores {
 
   if (creditScoreMatch) {
     const [, tuVal, exVal, eqVal] = creditScoreMatch;
-    console.log(`[PARSER] Found IdentityIQ score format: TU=${tuVal}, EX=${exVal}, EQ=${eqVal}`);
+    log.info({ tuVal, exVal, eqVal }, "[PARSER] Found IdentityIQ score format: TU=, EX=, EQ=");
 
     if (tuVal && tuVal !== "-") {
       const score = parseInt(tuVal, 10);
@@ -339,7 +341,7 @@ export function extractCreditScores(text: string): ExtractedCreditScores {
 
     // If we found at least one score, return early - this format is authoritative
     if (scores.transunion || scores.experian || scores.equifax) {
-      console.log(`[PARSER] Score extraction result: TU=${scores.transunion}, EQ=${scores.equifax}, EX=${scores.experian}`);
+      log.info({ transunion: scores.transunion, equifax: scores.equifax, experian: scores.experian }, "[PARSER] Score extraction result: TU=, EQ=, EX=");
       return scores;
     }
   }
@@ -440,7 +442,7 @@ export function extractCreditScores(text: string): ExtractedCreditScores {
 
     if (creditScoreMatch) {
       const [, tuVal, exVal, eqVal] = creditScoreMatch;
-      console.log(`[PARSER] Found IdentityIQ score format: TU=${tuVal}, EX=${exVal}, EQ=${eqVal}`);
+      log.info({ tuVal, exVal, eqVal }, "[PARSER] Found IdentityIQ score format: TU=, EX=, EQ=");
 
       if (tuVal && tuVal !== "-" && !scores.transunion) {
         const score = parseInt(tuVal, 10);
@@ -568,7 +570,7 @@ export function extractCreditScores(text: string): ExtractedCreditScores {
     }
   }
 
-  console.log(`[PARSER] Score extraction result: TU=${scores.transunion}, EQ=${scores.equifax}, EX=${scores.experian}`);
+  log.info({ transunion: scores.transunion, equifax: scores.equifax, experian: scores.experian }, "[PARSER] Score extraction result: TU=, EQ=, EX=");
 
   return scores;
 }
@@ -604,17 +606,17 @@ export async function parseIdentityIQReport(fullText: string, pages?: string[]):
   const hasEquifax = /Equifax/i.test(fullText);
   const hasAccountHash = /Account\s*#/i.test(fullText);
   const hasBalance = /Balance:/i.test(fullText);
-  console.log(`[PARSER] PDF markers: TU=${hasTransUnion} EX=${hasExperian} EQ=${hasEquifax} Account#=${hasAccountHash} Balance=${hasBalance} TextLen=${fullText.length}`);
+  log.info({ hasTransUnion, hasExperian, hasEquifax, hasAccountHash, hasBalance, length: fullText.length }, "[PARSER] PDF markers: TU EX EQ Account# Balance TextLen=");
 
   // Find account blocks by looking for creditor names followed by bureau headers
   const accountBlocks = extractAccountBlocks(fullText, pages);
 
-  console.log(`[PARSER] Found ${accountBlocks.length} account blocks`);
+  log.info({ length: accountBlocks.length }, "[PARSER] Found account blocks");
   if (accountBlocks.length === 0 && hasAccountHash) {
     // Show a sample of the text around "Account #" for debugging
     const idx = fullText.search(/Account\s*#/i);
     if (idx >= 0) {
-      console.log(`[PARSER] Sample near "Account #" (idx ${idx}):`, JSON.stringify(fullText.substring(Math.max(0, idx - 100), idx + 200)));
+      log.info({ data: JSON.stringify(fullText.substring(Math.max(0, idx - 100), idx + 200)) }, "[PARSER] Sample near \"Account #\" (idx )");
     }
   }
 
@@ -653,7 +655,7 @@ export async function parseIdentityIQReport(fullText: string, pages?: string[]):
     }
   });
 
-  console.log(`Parsed ${accounts.length} accounts total`);
+  log.info({ length: accounts.length }, "Parsed accounts total");
 
   return {
     success: accounts.length > 0,
@@ -751,7 +753,7 @@ function extractAccountBlocks(text: string, pages?: string[]): AccountBlock[] {
     }
   }
 
-  console.log(`[PARSER] extractAccountBlocks: tried ${patterns.length} patterns, found ${matches.length} matches`);
+  log.info({ patternCount: patterns.length, matchCount: matches.length }, "[PARSER] extractAccountBlocks: tried patterns, found matches");
 
   // Deduplicate matches that have the same cleaned creditor name
   const seen = new Set<string>();

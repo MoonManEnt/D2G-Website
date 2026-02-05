@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("client-reports-api");
 
 export const dynamic = 'force-dynamic';
 
@@ -224,7 +226,7 @@ export async function GET(
 
     return NextResponse.json({ reports: formattedReports });
   } catch (error) {
-    console.error("Error fetching client reports:", error);
+    log.error({ err: error }, "Error fetching client reports");
     return NextResponse.json(
       { error: "Failed to fetch reports" },
       { status: 500 }

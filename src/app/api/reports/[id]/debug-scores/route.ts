@@ -5,6 +5,8 @@ import prisma from "@/lib/prisma";
 import { extractTextFromPDF, extractTextFromBuffer } from "@/lib/pdf-extract";
 import { extractCreditScores } from "@/lib/parser";
 import { readFile } from "fs/promises";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("report-debug-scores-api");
 
 export const dynamic = 'force-dynamic';
 
@@ -125,7 +127,7 @@ export async function GET(
       textSample,
     });
   } catch (error) {
-    console.error("Debug scores error:", error);
+    log.error({ err: error }, "Debug scores error");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unknown error" },
       { status: 500 }

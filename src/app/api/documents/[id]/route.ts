@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { updateDocumentSchema } from "@/lib/api-validation-schemas";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("document-api");
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +51,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json(document);
   } catch (error) {
-    console.error("Error fetching document:", error);
+    log.error({ err: error }, "Error fetching document");
     return NextResponse.json(
       { error: "Failed to fetch document" },
       { status: 500 }
@@ -127,7 +129,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json(updatedDocument);
   } catch (error) {
-    console.error("Error updating document:", error);
+    log.error({ err: error }, "Error updating document");
     return NextResponse.json(
       { error: "Failed to update document" },
       { status: 500 }

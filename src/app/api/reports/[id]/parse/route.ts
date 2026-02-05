@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { parseAndAnalyzeReport } from "@/lib/report-parser";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("report-parse-api");
 
 export const dynamic = "force-dynamic";
 
@@ -93,7 +95,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     });
 
   } catch (error) {
-    console.error("Error parsing report:", error);
+    log.error({ err: error }, "Error parsing report");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to parse report" },
       { status: 500 }
@@ -157,7 +159,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     });
 
   } catch (error) {
-    console.error("Error fetching parse status:", error);
+    log.error({ err: error }, "Error fetching parse status");
     return NextResponse.json(
       { error: "Failed to fetch parse status" },
       { status: 500 }

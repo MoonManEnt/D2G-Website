@@ -25,6 +25,8 @@ import type {
   SentryAccountItem,
   SuccessPredictionRequest,
 } from "@/types/sentry";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("sentry-recommendations-api");
 
 export const dynamic = "force-dynamic";
 
@@ -255,7 +257,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Error processing recommendation:", error);
+    log.error({ err: error }, "Error processing recommendation");
     return NextResponse.json(
       { error: "Failed to process recommendation" },
       { status: 500 }
@@ -334,7 +336,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       canReset: (tracker?.appliedRecommendations?.length || 0) > 0,
     });
   } catch (error) {
-    console.error("Error getting recommendation status:", error);
+    log.error({ err: error }, "Error getting recommendation status");
     return NextResponse.json(
       { error: "Failed to get recommendation status" },
       { status: 500 }

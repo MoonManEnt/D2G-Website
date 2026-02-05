@@ -10,6 +10,8 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { sentryLaunchSchema } from "@/lib/api-validation-schemas";
 import { lockAccountsForDispute, buildLockErrorMessage } from "@/lib/account-lock-service";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("sentry-launch-api");
 
 export const dynamic = "force-dynamic";
 
@@ -242,7 +244,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       system: "SENTRY",
     });
   } catch (error) {
-    console.error("Error launching Sentry dispute:", error);
+    log.error({ err: error }, "Error launching Sentry dispute");
     return NextResponse.json(
       {
         error:

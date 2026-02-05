@@ -35,6 +35,8 @@ import {
 } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
 import { format, formatDistanceToNow } from "date-fns";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("credit-reports-panel");
 
 // Safe date formatting helpers (module-level for reuse)
 const safeFormatDate = (dateStr: string | null | undefined, formatStr: string = "MMM d, yyyy") => {
@@ -1044,7 +1046,7 @@ export function CreditReportsPanel({
         setReports(data.reports || []);
       }
     } catch (error) {
-      console.error("Failed to fetch reports:", error);
+      log.error({ err: error }, "Failed to fetch reports");
     } finally {
       setLoading(false);
     }
@@ -1079,7 +1081,7 @@ export function CreditReportsPanel({
           const randomNum = Math.floor(Math.random() * 100000);
           const safePath = `reports/report${timestamp}${randomNum}.pdf`;
 
-          console.log("Starting Vercel Blob upload...");
+          log.info("Starting Vercel Blob upload...");
 
           const blob = await upload(safePath, file, {
             access: "public",
@@ -1087,9 +1089,9 @@ export function CreditReportsPanel({
           });
 
           finalUrl = blob.url;
-          console.log("Vercel Blob upload complete:", finalUrl);
+          log.info({ data: finalUrl }, "Vercel Blob upload complete");
         } catch (blobError) {
-          console.warn("Vercel Blob upload failed, falling back to local:", blobError);
+          log.warn({ err: blobError }, "Vercel Blob upload failed, falling back to local");
 
           // Local Fallback
           const formData = new FormData();
@@ -1108,7 +1110,7 @@ export function CreditReportsPanel({
 
           const localData = await localRes.json();
           finalUrl = localData.url;
-          console.log("Local upload complete:", finalUrl);
+          log.info({ data: finalUrl }, "Local upload complete");
         }
 
         setUploadProgress(70);

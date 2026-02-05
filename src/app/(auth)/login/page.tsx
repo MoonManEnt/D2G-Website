@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, Loader2 } from "lucide-react";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("login-page");
 
 function LoginForm() {
   const router = useRouter();
@@ -50,7 +52,7 @@ function LoginForm() {
         router.refresh();
       }
     } catch (err) {
-      console.error("Login error:", err);
+      log.error({ err: err }, "Login error");
       setLoginError(
         err instanceof Error
           ? `Login failed: ${err.message}`

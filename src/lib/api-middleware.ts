@@ -5,6 +5,8 @@ import { z } from "zod";
 import { Session } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { SubscriptionTier } from "@/types";
+import { createLogger } from "./logger";
+const log = createLogger("api-middleware");
 
 // =============================================================================
 // TYPES
@@ -45,43 +47,55 @@ interface ApiOptions<TBody> {
 // SUBSCRIPTION LIMITS BY TIER
 // =============================================================================
 
-export const SUBSCRIPTION_LIMITS: Record<
-  SubscriptionTier,
-  {
-    disputes: { monthly: number };
-    letters: { monthly: number };
-    clients: { total: number };
-    reports: { monthly: number };
-    features: string[];
-  }
-> = {
+export const SUBSCRIPTION_LIMITS: Record<SubscriptionTier, {
+  disputes: { monthly: number };
+  letters: { monthly: number };
+  clients: { total: number };
+  reports: { monthly: number };
+  teamSeats: { total: number };
+  storage: { bytes: number };
+  rateLimit: { perMinute: number };
+  features: string[];
+}> = {
   [SubscriptionTier.FREE]: {
-    disputes: { monthly: 5 },
-    letters: { monthly: 10 },
-    clients: { total: 3 },
-    reports: { monthly: 5 },
-    features: ["basic_disputes", "manual_letters"],
+    disputes: { monthly: 15 },
+    letters: { monthly: 15 },
+    clients: { total: 5 },
+    reports: { monthly: 10 },
+    teamSeats: { total: 1 },
+    storage: { bytes: 524288000 },
+    rateLimit: { perMinute: 30 },
+    features: ["basic_disputes", "manual_letters", "basic_evidence"],
   },
   [SubscriptionTier.STARTER]: {
-    disputes: { monthly: 25 },
-    letters: { monthly: 50 },
-    clients: { total: 15 },
-    reports: { monthly: 25 },
-    features: ["basic_disputes", "manual_letters", "ai_insights"],
+    disputes: { monthly: 100 },
+    letters: { monthly: 100 },
+    clients: { total: 50 },
+    reports: { monthly: 50 },
+    teamSeats: { total: 5 },
+    storage: { bytes: 5368709120 },
+    rateLimit: { perMinute: 60 },
+    features: ["basic_disputes", "manual_letters", "ai_letters", "bulk_disputes", "credit_dna", "full_evidence"],
   },
   [SubscriptionTier.PROFESSIONAL]: {
-    disputes: { monthly: 100 },
-    letters: { monthly: 200 },
-    clients: { total: 50 },
-    reports: { monthly: 100 },
-    features: ["basic_disputes", "manual_letters", "ai_insights", "amelia_letters", "bulk_disputes"],
+    disputes: { monthly: 400 },
+    letters: { monthly: 400 },
+    clients: { total: 250 },
+    reports: { monthly: 200 },
+    teamSeats: { total: 15 },
+    storage: { bytes: 26843545600 },
+    rateLimit: { perMinute: 100 },
+    features: ["basic_disputes", "manual_letters", "ai_letters", "bulk_disputes", "cfpb", "litigation_scanner", "credit_dna", "white_label", "full_evidence"],
   },
   [SubscriptionTier.ENTERPRISE]: {
-    disputes: { monthly: -1 }, // Unlimited
+    disputes: { monthly: -1 },
     letters: { monthly: -1 },
     clients: { total: -1 },
     reports: { monthly: -1 },
-    features: ["basic_disputes", "manual_letters", "ai_insights", "amelia_letters", "bulk_disputes", "api_access", "white_label"],
+    teamSeats: { total: -1 },
+    storage: { bytes: 107374182400 },
+    rateLimit: { perMinute: 300 },
+    features: ["*"],
   },
 };
 
@@ -145,7 +159,10 @@ async function getMonthlyUsage(
  */
 function hasFeatureAccess(tier: SubscriptionTier, feature: string): boolean {
   const tierLimits = SUBSCRIPTION_LIMITS[tier];
-  return tierLimits?.features.includes(feature) ?? false;
+  if (!tierLimits) return false;
+  // Enterprise wildcard: "*" grants access to all features
+  if (tierLimits.features.includes("*")) return true;
+  return tierLimits.features.includes(feature);
 }
 
 /**
@@ -339,7 +356,7 @@ export function withAuth<TBody = unknown>(
             });
 
         } catch (error) {
-            console.error("API Error:", error);
+            log.error({ err: error }, "API Error");
             return NextResponse.json(
                 { error: "Internal Server Error", code: "INTERNAL_ERROR" },
                 { status: 500 }
@@ -378,7 +395,7 @@ export async function trackUsage(
     });
   } catch (error) {
     // Don't fail the main operation if tracking fails
-    console.error("Failed to track usage:", error);
+    log.error({ err: error }, "Failed to track usage");
   }
 }
 

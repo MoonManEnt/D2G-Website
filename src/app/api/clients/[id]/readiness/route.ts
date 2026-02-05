@@ -15,6 +15,8 @@ import { withAuth } from "@/lib/api-middleware";
 import { creditReadinessSchema } from "@/lib/api-validation-schemas";
 import { analyzeApprovalLikelihood } from "@/lib/credit-readiness";
 import type { CreditDataInput, ProductType } from "@/lib/credit-readiness/types";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("client-readiness-api");
 
 export const dynamic = "force-dynamic";
 
@@ -83,7 +85,7 @@ export const GET = withAuth(async (req, ctx) => {
       count: parsed.length,
     });
   } catch (error) {
-    console.error("Error fetching readiness analyses:", error);
+    log.error({ err: error }, "Error fetching readiness analyses");
     return NextResponse.json(
       { error: "Failed to fetch readiness analyses", code: "FETCH_ERROR" },
       { status: 500 }
@@ -274,7 +276,7 @@ export const POST = withAuth(
         }
       } catch (vendorError) {
         // Vendor rules evaluation is optional; don't break the analysis
-        console.warn("Vendor rules evaluation skipped:", vendorError);
+        log.warn({ err: vendorError }, "Vendor rules evaluation skipped");
       }
 
       // ---------------------------------------------------------------
@@ -369,7 +371,7 @@ export const POST = withAuth(
         { status: 201 }
       );
     } catch (error) {
-      console.error("Error running readiness analysis:", error);
+      log.error({ err: error }, "Error running readiness analysis");
       return NextResponse.json(
         {
           error: error instanceof Error ? error.message : "Failed to run readiness analysis",

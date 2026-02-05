@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyPortalToken, extractBearerToken } from "@/lib/jwt";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("portal-dashboard-api");
 
 export const dynamic = 'force-dynamic';
 
@@ -187,7 +189,7 @@ export async function GET(request: NextRequest) {
       recentActivity: [],
     });
   } catch (error) {
-    console.error("Portal dashboard error:", error);
+    log.error({ err: error }, "Portal dashboard error");
     return NextResponse.json(
       { error: "Failed to load dashboard" },
       { status: 500 }

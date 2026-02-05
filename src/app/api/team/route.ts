@@ -4,6 +4,12 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { hash } from "bcryptjs";
 import { teamMemberSchema } from "@/lib/api-validation-schemas";
+import { sendVerificationEmail } from "@/lib/email-verification";
+import { sendEmail, welcomeEmail } from "@/lib/email";
+import { createLogger } from "@/lib/logger";
+import { SUBSCRIPTION_LIMITS } from "@/lib/api-middleware";
+import { SubscriptionTier } from "@/types";
+const log = createLogger("team-api");
 
 export const dynamic = "force-dynamic";
 
@@ -89,12 +95,9 @@ export async function GET(request: NextRequest) {
     });
 
     // Calculate max team size based on subscription
-    const maxTeamSize =
-      organization?.subscriptionTier === "ENTERPRISE"
-        ? 999
-        : organization?.subscriptionTier === "PRO"
-        ? 10
-        : 3;
+    const tier = organization?.subscriptionTier || "FREE";
+    const tierLimits = SUBSCRIPTION_LIMITS[tier as SubscriptionTier] || SUBSCRIPTION_LIMITS[SubscriptionTier.FREE];
+    const maxTeamSize = tierLimits.teamSeats.total === -1 ? 999 : tierLimits.teamSeats.total;
 
     return NextResponse.json({
       team: users.map((u) => ({
@@ -123,7 +126,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error fetching team:", error);
+    log.error({ err: error }, "Error fetching team");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to fetch team" },
       { status: 500 }
@@ -192,12 +195,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const maxTeamSize =
-      organization.subscriptionTier === "ENTERPRISE"
-        ? 999
-        : organization.subscriptionTier === "PRO"
-        ? 10
-        : 3;
+    const postTier = organization.subscriptionTier || "FREE";
+    const postTierLimits = SUBSCRIPTION_LIMITS[postTier as SubscriptionTier] || SUBSCRIPTION_LIMITS[SubscriptionTier.FREE];
+    const maxTeamSize = postTierLimits.teamSeats.total === -1 ? 999 : postTierLimits.teamSeats.total;
 
     if (organization.users.length >= maxTeamSize) {
       return NextResponse.json(
@@ -228,7 +228,40 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // TODO: Send invitation email with temporary password
+    // Send invitation email with temporary password
+    try {
+      const template = welcomeEmail(
+        newUser.name || newUser.email,
+        organization.name
+      );
+      template.subject = `You have been invited to join ${organization.name}`;
+      template.text += `\n\nYour temporary password is: ${tempPassword}\nPlease change it after your first login.`;
+      template.html = template.html.replace(
+        "</body>",
+        `<div style="text-align:center;padding:0 40px 20px;"><p style="font-size:14px;color:#3f3f46;">Your temporary password is: <strong>${tempPassword}</strong></p><p style="font-size:13px;color:#71717a;">Please change your password after your first login.</p></div></body>`
+      );
+
+      await sendEmail({
+        to: newUser.email,
+        template,
+        tags: [{ name: "category", value: "team-invite" }],
+      });
+    } catch (emailError) {
+      log.error({ err: emailError }, "Failed to send invitation email");
+      // Email failure should not prevent user creation
+    }
+
+    // Send email verification
+    const verificationResult = await sendVerificationEmail(
+      newUser.id,
+      newUser.email,
+      newUser.name,
+      session.user.organizationId
+    );
+
+    if (!verificationResult.success) {
+      log.error({ err: verificationResult.error }, "Failed to send verification email");
+    }
 
     return NextResponse.json(
       {
@@ -240,7 +273,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error("Error creating team member:", error);
+    log.error({ err: error }, "Error creating team member");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to create team member" },
       { status: 500 }

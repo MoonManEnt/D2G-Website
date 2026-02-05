@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { changePasswordSchema } from "@/lib/api-validation-schemas";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("user-password-api");
 
 export const dynamic = "force-dynamic";
 
@@ -70,7 +72,7 @@ export async function POST(request: NextRequest) {
       message: "Password changed successfully",
     });
   } catch (error) {
-    console.error("Error changing password:", error);
+    log.error({ err: error }, "Error changing password");
     return NextResponse.json(
       { error: "Failed to change password" },
       { status: 500 }

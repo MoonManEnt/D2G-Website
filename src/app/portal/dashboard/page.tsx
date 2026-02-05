@@ -23,6 +23,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { usePortal } from "../portal-context";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("portal-dashboard-page");
 
 interface DashboardData {
   creditScores: {
@@ -156,7 +158,7 @@ export default function PortalDashboardPage() {
           setData(dashboardData);
         }
       } catch (error) {
-        console.error("Failed to fetch dashboard:", error);
+        log.error({ err: error }, "Failed to fetch dashboard");
       } finally {
         setLoading(false);
       }
@@ -170,7 +172,7 @@ export default function PortalDashboardPage() {
           setRecommendations(recData.recommendations || []);
         }
       } catch (error) {
-        console.error("Failed to fetch recommendations:", error);
+        log.error({ err: error }, "Failed to fetch recommendations");
       }
     };
 

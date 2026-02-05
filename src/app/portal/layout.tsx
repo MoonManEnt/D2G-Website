@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, ReactNode } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { PortalContext, PortalUser, PortalOrganization } from "./portal-context";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("portal-layout");
 
 const PUBLIC_PATHS = ["/portal/login", "/portal/accept-invite", "/portal/forgot-password"];
 const TOKEN_REFRESH_INTERVAL = 50 * 60 * 1000; // Refresh 10 minutes before expiry (50 min)
@@ -39,7 +41,7 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
         return false;
       }
     } catch (error) {
-      console.error("Token refresh failed:", error);
+      log.error({ err: error }, "Token refresh failed");
       return false;
     }
   }, []);

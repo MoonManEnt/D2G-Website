@@ -23,6 +23,8 @@ import {
 } from "@/types";
 import { formatDate, CRA_INFO } from "./utils";
 import prisma from "./prisma";
+import { createLogger } from "./logger";
+const log = createLogger("document-generator");
 
 // ============================================================================
 // TYPES
@@ -199,7 +201,7 @@ async function resolveStatute(flow: FlowType, round: number, statuteCode: string
     });
     return statute?.argumentText || STATUTE_TEXT[statuteCode]?.argument;
   } catch (error) {
-    console.error("Error resolving statute from DB, falling back:", error);
+    log.error({ err: error }, "Error resolving statute from DB, falling back");
     return STATUTE_TEXT[statuteCode]?.argument;
   }
 }
@@ -215,7 +217,7 @@ async function resolveTemplate(flow: FlowType, round: number) {
     });
     return template;
   } catch (error) {
-    console.error("Error resolving template from DB, falling back:", error);
+    log.error({ err: error }, "Error resolving template from DB, falling back");
     return null;
   }
 }

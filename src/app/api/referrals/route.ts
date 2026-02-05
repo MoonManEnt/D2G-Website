@@ -9,6 +9,8 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { withAuth } from "@/lib/api-middleware";
 import { trackReferralSchema } from "@/lib/api-validation-schemas";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("referrals-api");
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +50,7 @@ export const GET = withAuth(async (req, ctx) => {
       referrals,
     });
   } catch (error) {
-    console.error("Error fetching referrals:", error);
+    log.error({ err: error }, "Error fetching referrals");
     return NextResponse.json(
       { error: "Failed to fetch referrals", code: "FETCH_ERROR" },
       { status: 500 }
@@ -139,7 +141,7 @@ export const POST = withAuth(
         { status: 201 }
       );
     } catch (error) {
-      console.error("Error creating referral:", error);
+      log.error({ err: error }, "Error creating referral");
       return NextResponse.json(
         { error: "Failed to create referral", code: "CREATE_ERROR" },
         { status: 500 }

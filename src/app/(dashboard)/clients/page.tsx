@@ -58,6 +58,8 @@ import { CreditReportsPanel, ReportComparisonModal } from "@/components/client";
 import { useToast } from "@/lib/use-toast";
 import { useRouter, useSearchParams } from "next/navigation";
 import { formatDistanceToNow, format } from "date-fns";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("clients-page");
 
 // Safe date formatting helpers
 const safeFormat = (dateStr: string | Date | null | undefined, formatStr: string) => {
@@ -692,7 +694,7 @@ function ClientQuickViewModal({
         }
       }
     } catch (error) {
-      console.error("Failed to fetch client detail:", error);
+      log.error({ err: error }, "Failed to fetch client detail");
     } finally {
       setLoading(false);
     }
@@ -1193,7 +1195,7 @@ export default function ClientsPage() {
         setClients(Array.isArray(data) ? data : data.data || []);
       }
     } catch (error) {
-      console.error("Failed to fetch clients:", error);
+      log.error({ err: error }, "Failed to fetch clients");
     } finally {
       setLoading(false);
     }
@@ -1207,7 +1209,7 @@ export default function ClientsPage() {
         setStats(data);
       }
     } catch (error) {
-      console.error("Failed to fetch stats:", error);
+      log.error({ err: error }, "Failed to fetch stats");
     }
   };
 

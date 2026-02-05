@@ -9,6 +9,8 @@ import {
   formatContextForPrompt,
 } from "@/lib/ai/context-assembler";
 import { validateUniqueness } from "@/lib/ai/content-validator";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("amelia-insights-api");
 
 export const dynamic = "force-dynamic";
 
@@ -137,7 +139,7 @@ export async function POST(request: NextRequest) {
           generationMethod: "ai",
         });
       } catch (aiError) {
-        console.error("[Amelia Insights] AI analysis failed, using fallback:", aiError);
+        log.error({ err: aiError }, "[Amelia Insights] AI analysis failed, using fallback");
       }
     }
 
@@ -152,7 +154,7 @@ export async function POST(request: NextRequest) {
       generationMethod: "fallback",
     });
   } catch (error) {
-    console.error("Error generating AMELIA insights:", error);
+    log.error({ err: error }, "Error generating AMELIA insights");
     return NextResponse.json(
       { error: "Failed to generate insights" },
       { status: 500 }

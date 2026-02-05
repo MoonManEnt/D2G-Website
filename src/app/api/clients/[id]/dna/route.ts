@@ -3,6 +3,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import type { DNAClassification, CreditDNAProfile } from "@/lib/credit-dna/types";
+import { createLogger } from "@/lib/logger";
+import { SubscriptionTier } from "@/types";
+const log = createLogger("client-dna-api");
 
 export const dynamic = "force-dynamic";
 
@@ -243,6 +246,22 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Minimum tier check: Credit DNA requires STARTER or higher
+    const dnaTierOrder = ["FREE", "STARTER", "PROFESSIONAL", "ENTERPRISE"];
+    const dnaCurrentTier = (session.user.subscriptionTier as string) || "FREE";
+    if (dnaTierOrder.indexOf(dnaCurrentTier) < dnaTierOrder.indexOf("STARTER")) {
+      return NextResponse.json(
+        {
+          error: "Upgrade required",
+          code: "TIER_REQUIRED",
+          requiredTier: "STARTER",
+          currentTier: dnaCurrentTier,
+          message: "Credit DNA analysis requires STARTER tier or higher.",
+        },
+        { status: 403 }
+      );
+    }
+
     const { id: clientId } = await params;
 
     const client = await prisma.client.findFirst({
@@ -300,7 +319,7 @@ export async function GET(
 
     return NextResponse.json({ hasDNA: true, dna: profile });
   } catch (error) {
-    console.error("Error fetching Credit DNA:", error);
+    log.error({ err: error }, "Error fetching Credit DNA");
     return NextResponse.json({ error: "Failed to fetch Credit DNA" }, { status: 500 });
   }
 }
@@ -314,6 +333,22 @@ export async function POST(
     const session = await getServerSession(authOptions);
     if (!session?.user?.organizationId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Minimum tier check: Credit DNA requires STARTER or higher
+    const postDnaTierOrder = ["FREE", "STARTER", "PROFESSIONAL", "ENTERPRISE"];
+    const postDnaCurrentTier = (session.user.subscriptionTier as string) || "FREE";
+    if (postDnaTierOrder.indexOf(postDnaCurrentTier) < postDnaTierOrder.indexOf("STARTER")) {
+      return NextResponse.json(
+        {
+          error: "Upgrade required",
+          code: "TIER_REQUIRED",
+          requiredTier: "STARTER",
+          currentTier: postDnaCurrentTier,
+          message: "Credit DNA generation requires STARTER tier or higher.",
+        },
+        { status: 403 }
+      );
     }
 
     const { id: clientId } = await params;
@@ -521,7 +556,7 @@ export async function POST(
       dna: profile,
     });
   } catch (error) {
-    console.error("Error generating Credit DNA:", error);
+    log.error({ err: error }, "Error generating Credit DNA");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to generate Credit DNA" },
       { status: 500 }

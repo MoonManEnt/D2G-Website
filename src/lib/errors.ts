@@ -6,6 +6,8 @@
 
 import * as Sentry from "@sentry/nextjs";
 import { NextResponse } from "next/server";
+import { createLogger } from "./logger";
+const log = createLogger("errors");
 
 // Custom error types
 export class AppError extends Error {
@@ -146,7 +148,7 @@ export function handleApiError(
 
   // Log to console in development
   if (process.env.NODE_ENV === "development") {
-    console.error("API Error:", error);
+    log.error({ err: error }, "API Error");
   }
 
   // Handle known error types
@@ -223,7 +225,7 @@ export function logError(
   error?: Error | unknown,
   metadata?: Record<string, unknown>
 ): void {
-  console.error(message, error);
+  log.error({ message, error }, "Operation");
 
   Sentry.withScope((scope) => {
     if (metadata) {

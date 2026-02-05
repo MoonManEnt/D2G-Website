@@ -1,4 +1,4 @@
-import { SubscriptionTier, SubscriptionStatus, FeatureFlags, FREE_TIER_FLAGS, PRO_TIER_FLAGS, ENTERPRISE_TIER_FLAGS } from "@/types";
+import { SubscriptionTier, SubscriptionStatus, FeatureFlags, FREE_TIER_FLAGS, STARTER_TIER_FLAGS, PROFESSIONAL_TIER_FLAGS, ENTERPRISE_TIER_FLAGS } from "@/types";
 
 /**
  * Get feature flags based on subscription tier and status
@@ -13,9 +13,9 @@ export function getFeatureFlags(tier: SubscriptionTier, status: SubscriptionStat
     case SubscriptionTier.ENTERPRISE:
       return ENTERPRISE_TIER_FLAGS;
     case SubscriptionTier.PROFESSIONAL:
-      return PRO_TIER_FLAGS;
+      return PROFESSIONAL_TIER_FLAGS;
     case SubscriptionTier.STARTER:
-      return { ...FREE_TIER_FLAGS, canUploadReports: true, maxClients: 15, maxReportsPerMonth: 25 };
+      return STARTER_TIER_FLAGS;
     case SubscriptionTier.FREE:
     default:
       return FREE_TIER_FLAGS;
@@ -45,7 +45,7 @@ export function isFeatureEnabled(
  * Get the numeric limit for a feature
  */
 export function getFeatureLimit(
-  feature: "maxClients" | "maxReportsPerMonth",
+  feature: "maxClients" | "maxReportsPerMonth" | "maxDisputesPerMonth" | "maxLettersPerMonth" | "maxTeamSeats" | "storageQuotaBytes",
   tier: SubscriptionTier,
   status: SubscriptionStatus
 ): number {
@@ -57,7 +57,7 @@ export function getFeatureLimit(
  * Check if user has reached a limit
  */
 export function hasReachedLimit(
-  feature: "maxClients" | "maxReportsPerMonth",
+  feature: "maxClients" | "maxReportsPerMonth" | "maxDisputesPerMonth" | "maxLettersPerMonth" | "maxTeamSeats" | "storageQuotaBytes",
   currentCount: number,
   tier: SubscriptionTier,
   status: SubscriptionStatus
@@ -76,14 +76,25 @@ export function hasReachedLimit(
  * Feature gate messages for UI
  */
 export const FEATURE_GATE_MESSAGES: Record<keyof FeatureFlags, string> = {
-  canUploadReports: "Upgrade to Pro to upload and parse credit reports",
-  canGenerateLetters: "Upgrade to Pro to generate CRA dispute letters",
-  canGenerateCFPB: "Upgrade to Pro to generate CFPB complaint drafts",
-  canUseEvidence: "Upgrade to Pro to use evidence tools",
-  canViewDiff: "Upgrade to Pro to view month-over-month report comparisons",
-  canExportDocuments: "Upgrade to Pro to export documents",
+  canUploadReports: "Upgrade your plan to upload and parse credit reports",
+  canGenerateLetters: "Upgrade your plan to generate CRA dispute letters",
+  canGenerateCFPB: "Upgrade to Professional to generate CFPB complaint drafts",
+  canUseEvidence: "Upgrade your plan to use evidence tools",
+  canViewDiff: "Upgrade your plan to view month-over-month report comparisons",
+  canExportDocuments: "Upgrade your plan to export documents",
+  canUseLitigationScanner: "Upgrade to Professional to use the litigation scanner",
+  canUseCreditDNA: "Upgrade to Starter to use Credit DNA analysis",
+  canUseWhiteLabel: "Upgrade to Professional to use white-label branding",
+  canUseAPI: "Upgrade to Enterprise for API access",
+  canUseBulkDisputes: "Upgrade to Starter to send bulk disputes",
+  canUseCFPB: "Upgrade to Professional to file CFPB complaints",
+  canUseAILetters: "Upgrade to Starter to use AI-generated letters",
   maxClients: "You've reached the maximum number of clients for your plan",
   maxReportsPerMonth: "You've reached the maximum number of reports for this month",
+  maxDisputesPerMonth: "You've reached the maximum number of disputes for this month",
+  maxLettersPerMonth: "You've reached the maximum number of letters for this month",
+  maxTeamSeats: "You've reached the maximum number of team seats for your plan",
+  storageQuotaBytes: "You've reached your storage quota. Upgrade for more space",
 };
 
 /**

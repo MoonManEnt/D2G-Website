@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import {
   portalInviteTemplate,
+  dailySummaryTemplate,
   disputeCreatedTemplate,
   disputeStatusUpdateTemplate,
   deadlineReminderTemplate,
@@ -11,6 +12,8 @@ import {
   BrandingConfig,
 } from "./email-templates";
 import prisma from "./prisma";
+import { createLogger } from "./logger";
+const log = createLogger("email");
 
 // Initialize Resend client
 const resend = process.env.RESEND_API_KEY
@@ -57,7 +60,7 @@ async function getOrganizationBranding(
       websiteUrl: org.websiteUrl || APP_URL,
     };
   } catch (error) {
-    console.error("Error fetching organization branding:", error);
+    log.error({ err: error }, "Error fetching organization branding");
     return {
       companyName: process.env.DEFAULT_COMPANY_NAME || "Dispute2Go",
       primaryColor: "#7c3aed",
@@ -273,14 +276,10 @@ export async function sendEmail(
   const { to, template, replyTo = REPLY_TO, tags } = options;
 
   if (!resend) {
-    console.warn("Email not configured: RESEND_API_KEY not set");
+    log.warn("Email not configured: RESEND_API_KEY not set");
     // In development, log the email instead
     if (process.env.NODE_ENV === "development") {
-      console.log("--- Email Preview ---");
-      console.log("To:", to);
-      console.log("Subject:", template.subject);
-      console.log("Preview:", template.text.slice(0, 200) + "...");
-      console.log("---");
+      log.info({ to, subject: template.subject, preview: template.text.slice(0, 200) }, "Email preview (dev mode)");
     }
     return { success: false, error: "Email service not configured" };
   }
@@ -297,13 +296,13 @@ export async function sendEmail(
     });
 
     if (error) {
-      console.error("Email send error:", error);
+      log.error({ err: error }, "Email send error");
       return { success: false, error: error.message };
     }
 
     return { success: true, id: data?.id };
   } catch (err) {
-    console.error("Email send exception:", err);
+    log.error({ err: err }, "Email send exception");
     return {
       success: false,
       error: err instanceof Error ? err.message : "Unknown error",
@@ -481,6 +480,42 @@ export async function sendDocumentReadyEmail(
       { name: "document-type", value: documentType },
     ],
   });
+}
+
+
+// Daily Summary Email
+export function dailySummaryEmail(
+  userName: string,
+  organizationName: string,
+  date: string,
+  stats: {
+    newClients: number;
+    newDisputes: number;
+    resolvedDisputes: number;
+    reportsUploaded: number;
+  },
+  branding?: Partial<BrandingConfig>
+): EmailTemplate {
+  const dashboardUrl = APP_URL;
+  const html = dailySummaryTemplate(
+    { userName, organizationName, date, ...stats, dashboardUrl },
+    { branding }
+  );
+
+  return {
+    subject: `Daily Summary for ${organizationName} - ${date}`,
+    html,
+    text: `Hi ${userName},
+
+Here is your daily activity summary for ${organizationName} (${date}):
+
+New Clients: ${stats.newClients}
+New Disputes: ${stats.newDisputes}
+Resolved Disputes: ${stats.resolvedDisputes}
+Reports Uploaded: ${stats.reportsUploaded}
+
+View your dashboard: ${dashboardUrl}`,
+  };
 }
 
 // =============================================================================

@@ -1,4 +1,6 @@
 import { SignJWT, jwtVerify, JWTPayload } from "jose";
+import { createLogger } from "./logger";
+const log = createLogger("jwt");
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || "fallback-secret-change-in-production"
@@ -85,7 +87,7 @@ export async function verifyPortalToken(token: string): Promise<PortalTokenPaylo
 
     return payload as PortalTokenPayload;
   } catch (error) {
-    console.error("Token verification failed:", error);
+    log.error({ err: error }, "Token verification failed");
     return null;
   }
 }
@@ -106,7 +108,7 @@ export async function verifyRefreshToken(token: string): Promise<PortalRefreshPa
 
     return payload as PortalRefreshPayload;
   } catch (error) {
-    console.error("Refresh token verification failed:", error);
+    log.error({ err: error }, "Refresh token verification failed");
     return null;
   }
 }

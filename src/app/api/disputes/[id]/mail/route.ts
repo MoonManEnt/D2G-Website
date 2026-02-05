@@ -19,6 +19,8 @@ import {
 } from "@/lib/pdf-generate";
 import { sendMail, MailProvider } from "@/lib/mail-provider";
 import { format } from "date-fns";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("dispute-mail-api");
 
 export const dynamic = "force-dynamic";
 
@@ -66,7 +68,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       tracking,
     });
   } catch (error) {
-    console.error("Error getting mail status:", error);
+    log.error({ err: error }, "Error getting mail status");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to get mail status" },
       { status: 500 }
@@ -337,7 +339,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       mailProvider: "LOB",
     });
   } catch (error) {
-    console.error("Error sending mail:", error);
+    log.error({ err: error }, "Error sending mail");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to send mail" },
       { status: 500 }
@@ -407,7 +409,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       message: "Letter has been cancelled",
     });
   } catch (error) {
-    console.error("Error cancelling mail:", error);
+    log.error({ err: error }, "Error cancelling mail");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to cancel mail" },
       { status: 500 }

@@ -11,6 +11,8 @@ import { extractTextFromPDF, extractTextFromBuffer } from "@/lib/pdf-extract";
 import { parseIdentityIQReport, analyzeAccountsForIssues, getIssuesSummary, ParsedAccountWithIssues, extractCreditScores, ExtractedCreditScores, extractHardInquiries } from "@/lib/parser";
 import { computeConfidenceLevel } from "@/types";
 import { cacheDelPrefix } from "@/lib/redis";
+import { createLogger } from "./logger";
+const log = createLogger("report-parser");
 
 export interface ParseReportOptions {
   reportId: string;
@@ -173,7 +175,7 @@ export async function parseAndAnalyzeReport(options: ParseReportOptions): Promis
     const analyzedAccounts = analyzeAccountsForIssues(parseResult.accounts);
     const issuesSummary = getIssuesSummary(analyzedAccounts);
 
-    console.log(`[PARSER] Analysis complete: ${issuesSummary.disputableAccounts} disputable accounts, ${issuesSummary.highSeverityIssues} high severity issues`);
+    log.info({ disputableAccounts: issuesSummary.disputableAccounts, highSeverityIssues: issuesSummary.highSeverityIssues }, "[PARSER] Analysis complete: disputable accounts, high severity issues");
 
     // Step 4: Save all accounts with full analysis data
     let accountsParsed = 0;
@@ -228,7 +230,7 @@ export async function parseAndAnalyzeReport(options: ParseReportOptions): Promis
       reportDate: new Date(), // Will be updated with actual report date if available
     });
 
-    console.log(`[PARSER] Credit scores extracted: TU=${extractedScores.transunion}, EQ=${extractedScores.equifax}, EX=${extractedScores.experian}`);
+    log.info({ transunion: extractedScores.transunion, equifax: extractedScores.equifax, experian: extractedScores.experian }, "[PARSER] Credit scores extracted: TU=, EQ=, EX=");
 
     // Step 5c: Extract and save hard inquiries
     const hardInquiries = extractHardInquiries(extractionResult.text);
@@ -239,7 +241,7 @@ export async function parseAndAnalyzeReport(options: ParseReportOptions): Promis
           hardInquiries: JSON.stringify(hardInquiries),
         },
       });
-      console.log(`[PARSER] Hard inquiries extracted: ${hardInquiries.length}`);
+      log.info({ length: hardInquiries.length }, "[PARSER] Hard inquiries extracted");
     }
 
     // Step 5b: Create pending evidence suggestions for accounts with issues
@@ -261,7 +263,7 @@ export async function parseAndAnalyzeReport(options: ParseReportOptions): Promis
         })),
         skipDuplicates: true,
       });
-      console.log(`[PARSER] Created ${accountsWithIssues.length} pending evidence suggestions`);
+      log.info({ length: accountsWithIssues.length }, "[PARSER] Created pending evidence suggestions");
     }
 
     // Step 6: Update report status to completed

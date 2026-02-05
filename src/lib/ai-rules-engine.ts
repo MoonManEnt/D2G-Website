@@ -22,6 +22,8 @@ import {
   type LetterGenerationRequest,
   type GeneratedLetter,
 } from "./amelia";
+import { createLogger } from "./logger";
+const log = createLogger("ai-rules-engine");
 
 // =============================================================================
 // TYPE DEFINITIONS
@@ -1049,7 +1051,7 @@ export async function generateDisputeLetterContent(
       ameliaVersion: ameliaResult.ameliaVersion,
     };
   } catch (error) {
-    console.warn("Amelia AI generation failed, using template-based generation:", error);
+    log.warn({ err: error }, "Amelia AI generation failed, using template-based generation");
 
     // Fallback to Amelia's template-based generation (still unique)
     try {
@@ -1062,7 +1064,7 @@ export async function generateDisputeLetterContent(
         ameliaVersion: templateResult.ameliaVersion,
       };
     } catch (templateError) {
-      console.error("Amelia template generation also failed:", templateError);
+      log.error({ err: templateError }, "Amelia template generation also failed");
 
       // Final fallback to basic template
       const craAddresses: Record<CRA, string> = {

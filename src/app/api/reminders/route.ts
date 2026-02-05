@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { z } from "zod";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("reminders-api");
 
 export const dynamic = "force-dynamic";
 
@@ -101,7 +103,7 @@ export async function GET(request: NextRequest) {
       stats,
     });
   } catch (error) {
-    console.error("Failed to fetch reminders:", error);
+    log.error({ err: error }, "Failed to fetch reminders");
     return NextResponse.json(
       { error: "Failed to fetch reminders" },
       { status: 500 }
@@ -194,7 +196,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Failed to create reminder:", error);
+    log.error({ err: error }, "Failed to create reminder");
     return NextResponse.json(
       { error: "Failed to create reminder" },
       { status: 500 }

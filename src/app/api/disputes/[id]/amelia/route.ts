@@ -42,6 +42,8 @@ import {
   recordDisputedItems,
 } from "@/lib/personal-info-dispute-service";
 import { validateUniqueness } from "@/lib/ai/content-validator";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("dispute-amelia-api");
 
 export const dynamic = "force-dynamic";
 
@@ -265,7 +267,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         ).join("\n");
       }
     } catch (patternError) {
-      console.error("Failed to load outcome patterns:", patternError);
+      log.error({ err: patternError }, "Failed to load outcome patterns");
     }
 
     // Phase 5: Count violations for litigation threshold
@@ -311,7 +313,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         }
       }
     } catch (violationError) {
-      console.error("Failed to count violations:", violationError);
+      log.error({ err: violationError }, "Failed to count violations");
       // Litigation features degrade gracefully
     }
 
@@ -392,9 +394,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           letterStructure: "DAMAGES_FIRST",
         };
 
-        console.log("[Amelia] AI letter generated successfully for dispute", disputeId);
+        log.info({ data: disputeId }, "[Amelia] AI letter generated successfully for dispute");
       } catch (aiError) {
-        console.error("[Amelia] AI generation failed, falling back to template:", aiError);
+        log.error({ err: aiError }, "[Amelia] AI generation failed, falling back to template");
         // generatedLetter stays null, falls through to template generation
       }
     }
@@ -420,10 +422,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       const validation = validateUniqueness(generatedLetter.content, previousLetterContents);
 
       if (!validation.isUnique) {
-        console.warn(
-          `[Amelia] Generated letter has ${validation.similarityScore}% overlap with previous letter ${validation.mostSimilarIndex}. ` +
-          `Uniqueness score: ${validation.uniquenessScore}%`
-        );
+        log.warn({ similarityScore: validation.similarityScore, mostSimilarIndex: validation.mostSimilarIndex, uniquenessScore: validation.uniquenessScore }, "[Amelia] Generated letter has high overlap with previous letter");
 
         // If template path generated a too-similar letter, try forcing different variant selection
         if (!isAIAvailable() || generatedLetter.content === dispute.letterContent) {
@@ -565,7 +564,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       },
     });
   } catch (error) {
-    console.error("Error generating AMELIA letter:", error);
+    log.error({ err: error }, "Error generating AMELIA letter");
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Failed to generate letter",
@@ -626,7 +625,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       },
     });
   } catch (error) {
-    console.error("Error fetching AMELIA letter:", error);
+    log.error({ err: error }, "Error fetching AMELIA letter");
     return NextResponse.json(
       { error: "Failed to fetch letter metadata" },
       { status: 500 }

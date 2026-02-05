@@ -20,6 +20,8 @@ import { sentryCreateSchema } from "@/lib/api-validation-schemas";
 import { generateDisputeCode } from "@/lib/dispute-id-generator";
 import { checkAccountAvailability } from "@/lib/account-lock-service";
 import { parsePaginationParams, buildPaginatedResponse } from "@/lib/pagination";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("sentry-api");
 
 export const dynamic = "force-dynamic";
 
@@ -110,7 +112,7 @@ export const GET = withAuth(async (req, ctx) => {
       system: "SENTRY",
     });
   } catch (error) {
-    console.error("Error fetching Sentry disputes:", error);
+    log.error({ err: error }, "Error fetching Sentry disputes");
     return NextResponse.json(
       { error: "Failed to fetch Sentry disputes", code: "FETCH_ERROR" },
       { status: 500 }
@@ -514,7 +516,7 @@ export const POST = withAuth(async (req, ctx) => {
       system: "SENTRY",
     });
   } catch (error) {
-    console.error("Error creating Sentry dispute:", error);
+    log.error({ err: error }, "Error creating Sentry dispute");
     return NextResponse.json(
       {
         error:

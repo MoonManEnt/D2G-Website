@@ -13,6 +13,8 @@ import {
   Loader2,
   AlertCircle,
 } from "lucide-react";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("pdf-viewer");
 
 interface PDFViewerProps {
   pdfUrl: string;
@@ -51,7 +53,7 @@ export function PDFViewer({
         pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
         setPdfjsLib(pdfjs);
       } catch (err) {
-        console.error("Error loading pdfjs:", err);
+        log.error({ err: err }, "Error loading pdfjs");
         setError("Failed to load PDF library");
         setLoading(false);
       }
@@ -79,7 +81,7 @@ export function PDFViewer({
           : 1;
         setCurrentPage(startPage);
       } catch (err) {
-        console.error("Error loading PDF:", err);
+        log.error({ err: err }, "Error loading PDF");
         setError(err instanceof Error ? err.message : "Failed to load PDF");
       } finally {
         setLoading(false);
@@ -120,7 +122,7 @@ export function PDFViewer({
           highlightText(context, textContent, viewport, searchText);
         }
       } catch (err) {
-        console.error("Error rendering page:", err);
+        log.error({ err: err }, "Error rendering page");
       }
     };
 
@@ -173,7 +175,7 @@ export function PDFViewer({
       const imageData = canvas.toDataURL("image/png", 1.0);
       onCapture(imageData, currentPage);
     } catch (err) {
-      console.error("Error capturing page:", err);
+      log.error({ err: err }, "Error capturing page");
     } finally {
       setCapturing(false);
     }

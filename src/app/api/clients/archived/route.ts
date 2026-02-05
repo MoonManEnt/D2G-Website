@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ArchiveService } from "@/lib/archive";
+import { createLogger } from "@/lib/logger";
+const log = createLogger("archived-clients-api");
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +35,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Error fetching archived clients:", error);
+    log.error({ err: error }, "Error fetching archived clients");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to fetch archived clients" },
       { status: 500 }
