@@ -1,27 +1,30 @@
 import { describe, it, expect, beforeEach, afterEach, jest } from "@jest/globals";
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act, cleanup } from "@testing-library/react";
+import { useToast, toast, reducer } from "@/lib/use-toast";
 
 // =============================================================================
-// The useToast hook and toast function use module-level state,
-// so we need to reset the module between tests.
+// State cleanup: since use-toast uses module-level state, we reset it
+// between tests by dismissing all toasts and advancing timers.
 // =============================================================================
 
 describe("useToast Hook", () => {
-  let useToast: typeof import("@/lib/use-toast").useToast;
-  let toast: typeof import("@/lib/use-toast").toast;
-  let reducer: typeof import("@/lib/use-toast").reducer;
-
   beforeEach(() => {
-    jest.resetModules();
     jest.useFakeTimers();
-    // Re-import fresh module to reset module-level state
-    const module = require("@/lib/use-toast");
-    useToast = module.useToast;
-    toast = module.toast;
-    reducer = module.reducer;
   });
 
   afterEach(() => {
+    // Flush all toasts WHILE fake timers are still active so that
+    // addToRemoveQueue timeouts actually fire and clear the internal
+    // toastTimeouts Map (which is not exported).
+    const { result, unmount } = renderHook(() => useToast());
+    act(() => {
+      result.current.dismiss(); // dismiss all → queues remove timeouts
+    });
+    act(() => {
+      jest.advanceTimersByTime(10000); // fire remove timeouts
+    });
+    unmount();
+    cleanup();
     jest.useRealTimers();
   });
 

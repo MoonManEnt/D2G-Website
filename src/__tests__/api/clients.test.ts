@@ -116,11 +116,11 @@ describe("/api/clients", () => {
 
     it("returns 403 when free-tier exceeds client limit", async () => {
       mockGetServerSession.mockResolvedValue(createSession({ subscriptionTier: "FREE" }));
-      mockPrisma.client.count.mockResolvedValue(1 as never);
+      mockPrisma.client.count.mockResolvedValue(5 as never);
       const res = await POST(new Request("http://localhost/api/clients", { method: "POST", body: JSON.stringify({ firstName: "Jane", lastName: "Smith" }), headers: { "Content-Type": "application/json" } }) as any, undefined as any);
       expect(res.status).toBe(403);
       const body = await res.json();
-      expect(body.message).toContain("Free plan");
+      expect(body.message).toContain("plan's limit");
     });
 
     it("logs CLIENT_CREATED event", async () => {

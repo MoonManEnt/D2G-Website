@@ -103,6 +103,15 @@ describe("Environment Validation (env.ts)", () => {
       process.env.NEXTAUTH_URL = "http://localhost:3000";
       (process.env as Record<string, string | undefined>).NODE_ENV ="test";
 
+      // Explicitly delete optional env vars that may leak from the host environment
+      delete process.env.STRIPE_SECRET_KEY;
+      delete process.env.RESEND_API_KEY;
+      delete process.env.ANTHROPIC_API_KEY;
+      delete process.env.TWILIO_ACCOUNT_SID;
+      delete process.env.TWILIO_AUTH_TOKEN;
+      delete process.env.TWILIO_PHONE_NUMBER;
+      delete process.env.OPENAI_API_KEY;
+
       const { getEnv } = require("@/lib/env");
       const env = getEnv();
 

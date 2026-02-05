@@ -1,4 +1,7 @@
-import { describe, it, expect, beforeEach, jest } from "@jest/globals";
+/**
+ * @jest-environment node
+ */
+import { describe, it, expect, beforeEach, beforeAll, jest } from "@jest/globals";
 
 // =============================================================================
 // MOCKS
@@ -20,16 +23,18 @@ const mockPrisma = {
 jest.mock("@/lib/prisma", () => ({
   __esModule: true,
   default: mockPrisma,
+  prisma: mockPrisma,
 }));
 
-import {
-  getActiveDisputes,
-  getLastDisputeDate,
-  recordDisputedItems,
-  compareReportAndUpdateDisputes,
-  getDisputeHistorySummary,
-} from "@/lib/personal-info-dispute-service";
-import type { ActivePersonalInfoDispute } from "@/lib/personal-info-dispute-service";
+let getActiveDisputes: any, getLastDisputeDate: any, recordDisputedItems: any, compareReportAndUpdateDisputes: any, getDisputeHistorySummary: any;
+beforeAll(async () => {
+  const mod = await import("@/lib/personal-info-dispute-service");
+  getActiveDisputes = mod.getActiveDisputes;
+  getLastDisputeDate = mod.getLastDisputeDate;
+  recordDisputedItems = mod.recordDisputedItems;
+  compareReportAndUpdateDisputes = mod.compareReportAndUpdateDisputes;
+  getDisputeHistorySummary = mod.getDisputeHistorySummary;
+});
 
 // =============================================================================
 // TESTS

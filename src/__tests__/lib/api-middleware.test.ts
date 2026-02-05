@@ -1,9 +1,22 @@
-import { describe, it, expect, beforeEach, jest } from "@jest/globals";
+/**
+ * @jest-environment node
+ */
+import { describe, it, expect, beforeEach, beforeAll, jest } from "@jest/globals";
 import { SubscriptionTier } from "@/types";
 
 // =============================================================================
 // MOCKS
 // =============================================================================
+
+// Mock logger first to prevent pino import issues
+const mockLogFn = jest.fn();
+jest.mock("@/lib/logger", () => ({
+  createLogger: jest.fn().mockReturnValue({
+    info: mockLogFn, error: mockLogFn, warn: mockLogFn, debug: mockLogFn,
+    child: jest.fn().mockReturnValue({ info: mockLogFn, error: mockLogFn, warn: mockLogFn, debug: mockLogFn }),
+  }),
+  logger: { info: mockLogFn, error: mockLogFn, warn: mockLogFn, debug: mockLogFn },
+}));
 
 // Mock Prisma
 const mockPrisma = {
@@ -36,39 +49,28 @@ jest.mock("@/lib/prisma", () => ({
   prisma: mockPrisma,
 }));
 
-// Mock NextResponse
-const mockJson = jest.fn((data: any, opts?: any) => ({
-  status: opts?.status || 200,
-  json: async () => data,
-  data,
-  _status: opts?.status || 200,
-}));
-
-jest.mock("next/server", () => ({
-  NextResponse: {
-    json: mockJson,
-  },
-}));
-
-// Mock next-auth getServerSession
+// Mock next-auth (both paths)
 const mockGetServerSession = jest.fn();
 jest.mock("next-auth", () => ({
-  getServerSession: mockGetServerSession,
+  __esModule: true, default: jest.fn(),
+  getServerSession: (...args: any[]) => mockGetServerSession(...args),
+}));
+jest.mock("next-auth/next", () => ({
+  __esModule: true, default: jest.fn(),
+  getServerSession: (...args: any[]) => mockGetServerSession(...args),
 }));
 
-// Mock auth options
-jest.mock("@/lib/auth", () => ({
-  authOptions: {},
-}));
+jest.mock("@/lib/auth", () => ({ authOptions: {} }));
 
-// Import after mocks are set up
-import {
-  withAuth,
-  trackUsage,
-  getUsageStats,
-  SUBSCRIPTION_LIMITS,
-} from "@/lib/api-middleware";
-import type { AuthContext } from "@/lib/api-middleware";
+// Dynamic import to ensure mocks are applied first
+let withAuth: any, trackUsage: any, getUsageStats: any, SUBSCRIPTION_LIMITS: any;
+beforeAll(async () => {
+  const mod = await import("@/lib/api-middleware");
+  withAuth = mod.withAuth;
+  trackUsage = mod.trackUsage;
+  getUsageStats = mod.getUsageStats;
+  SUBSCRIPTION_LIMITS = mod.SUBSCRIPTION_LIMITS;
+});
 
 // =============================================================================
 // TEST HELPERS
@@ -140,7 +142,8 @@ describe("API Middleware", () => {
       const session = createMockSession();
       mockGetServerSession.mockResolvedValue(session);
 
-      const mockResponse = { status: 200, data: { success: true } };
+      const { NextResponse } = await import("next/server");
+      const mockResponse = NextResponse.json({ success: true });
       const handler = jest.fn().mockResolvedValue(mockResponse as never);
       const wrappedHandler = withAuth(handler);
       const result = await wrappedHandler(createMockRequest(), undefined);
@@ -153,11 +156,12 @@ describe("API Middleware", () => {
       const session = createMockSession();
       mockGetServerSession.mockResolvedValue(session);
 
-      const handler = jest.fn().mockResolvedValue({ status: 200 } as never);
+      const { NextResponse } = await import("next/server");
+      const handler = jest.fn().mockResolvedValue(NextResponse.json({}) as never);
       const wrappedHandler = withAuth(handler);
       await wrappedHandler(createMockRequest(), { params: Promise.resolve({ id: "abc" }) });
 
-      const [, context] = handler.mock.calls[0] as [any, AuthContext];
+      const [, context] = handler.mock.calls[0] as [any, any];
       expect(context.userId).toBe("user-123");
       expect(context.organizationId).toBe("org-123");
       expect(context.subscriptionTier).toBe(SubscriptionTier.PROFESSIONAL);
@@ -184,7 +188,8 @@ describe("API Middleware", () => {
       const session = createMockSession({ subscriptionStatus: "ACTIVE" });
       mockGetServerSession.mockResolvedValue(session);
 
-      const handler = jest.fn().mockResolvedValue({ status: 200 } as never);
+      const { NextResponse } = await import("next/server");
+      const handler = jest.fn().mockResolvedValue(NextResponse.json({}) as never);
       const wrappedHandler = withAuth(handler);
       await wrappedHandler(createMockRequest(), undefined);
 
@@ -212,7 +217,8 @@ describe("API Middleware", () => {
       const session = createMockSession({ role: "ADMIN" });
       mockGetServerSession.mockResolvedValue(session);
 
-      const handler = jest.fn().mockResolvedValue({ status: 200 } as never);
+      const { NextResponse } = await import("next/server");
+      const handler = jest.fn().mockResolvedValue(NextResponse.json({}) as never);
       const wrappedHandler = withAuth(handler, { roles: ["ADMIN"] });
       await wrappedHandler(createMockRequest(), undefined);
 
@@ -223,7 +229,8 @@ describe("API Middleware", () => {
       const session = createMockSession({ role: "SPECIALIST" });
       mockGetServerSession.mockResolvedValue(session);
 
-      const handler = jest.fn().mockResolvedValue({ status: 200 } as never);
+      const { NextResponse } = await import("next/server");
+      const handler = jest.fn().mockResolvedValue(NextResponse.json({}) as never);
       const wrappedHandler = withAuth(handler, { roles: ["ADMIN", "SPECIALIST"] });
       await wrappedHandler(createMockRequest(), undefined);
 
@@ -234,7 +241,8 @@ describe("API Middleware", () => {
       const session = createMockSession({ role: "SPECIALIST" });
       mockGetServerSession.mockResolvedValue(session);
 
-      const handler = jest.fn().mockResolvedValue({ status: 200 } as never);
+      const { NextResponse } = await import("next/server");
+      const handler = jest.fn().mockResolvedValue(NextResponse.json({}) as never);
       const wrappedHandler = withAuth(handler);
       await wrappedHandler(createMockRequest(), undefined);
 
@@ -262,7 +270,8 @@ describe("API Middleware", () => {
       const session = createMockSession({ subscriptionTier: SubscriptionTier.PROFESSIONAL });
       mockGetServerSession.mockResolvedValue(session);
 
-      const handler = jest.fn().mockResolvedValue({ status: 200 } as never);
+      const { NextResponse } = await import("next/server");
+      const handler = jest.fn().mockResolvedValue(NextResponse.json({}) as never);
       const wrappedHandler = withAuth(handler, { minTier: SubscriptionTier.STARTER });
       await wrappedHandler(createMockRequest(), undefined);
 
@@ -273,7 +282,8 @@ describe("API Middleware", () => {
       const session = createMockSession({ subscriptionTier: SubscriptionTier.ENTERPRISE });
       mockGetServerSession.mockResolvedValue(session);
 
-      const handler = jest.fn().mockResolvedValue({ status: 200 } as never);
+      const { NextResponse } = await import("next/server");
+      const handler = jest.fn().mockResolvedValue(NextResponse.json({}) as never);
       const wrappedHandler = withAuth(handler, { minTier: SubscriptionTier.PROFESSIONAL });
       await wrappedHandler(createMockRequest(), undefined);
 
@@ -287,7 +297,7 @@ describe("API Middleware", () => {
       mockGetServerSession.mockResolvedValue(session);
 
       const handler = jest.fn();
-      const wrappedHandler = withAuth(handler, { requiredFeature: "amelia_letters" });
+      const wrappedHandler = withAuth(handler, { requiredFeature: "ai_letters" });
       const result = await wrappedHandler(createMockRequest(), undefined);
 
       expect(result.status).toBe(403);
@@ -300,8 +310,9 @@ describe("API Middleware", () => {
       const session = createMockSession({ subscriptionTier: SubscriptionTier.PROFESSIONAL });
       mockGetServerSession.mockResolvedValue(session);
 
-      const handler = jest.fn().mockResolvedValue({ status: 200 } as never);
-      const wrappedHandler = withAuth(handler, { requiredFeature: "amelia_letters" });
+      const { NextResponse } = await import("next/server");
+      const handler = jest.fn().mockResolvedValue(NextResponse.json({}) as never);
+      const wrappedHandler = withAuth(handler, { requiredFeature: "ai_letters" });
       await wrappedHandler(createMockRequest(), undefined);
 
       expect(handler).toHaveBeenCalledTimes(1);
@@ -313,8 +324,8 @@ describe("API Middleware", () => {
       const session = createMockSession({ subscriptionTier: SubscriptionTier.FREE });
       mockGetServerSession.mockResolvedValue(session);
 
-      // FREE tier has 5 monthly disputes
-      mockPrisma.dispute.count.mockResolvedValue(5 as never);
+      // FREE tier has 15 monthly disputes
+      mockPrisma.dispute.count.mockResolvedValue(15 as never);
 
       const handler = jest.fn();
       const wrappedHandler = withAuth(handler, { checkLimit: "disputes" });
@@ -323,8 +334,8 @@ describe("API Middleware", () => {
       expect(result.status).toBe(429);
       const data = await result.json();
       expect(data.code).toBe("LIMIT_REACHED");
-      expect(data.current).toBe(5);
-      expect(data.limit).toBe(5);
+      expect(data.current).toBe(15);
+      expect(data.limit).toBe(15);
       expect(handler).not.toHaveBeenCalled();
     });
 
@@ -334,7 +345,8 @@ describe("API Middleware", () => {
 
       mockPrisma.dispute.count.mockResolvedValue(2 as never);
 
-      const handler = jest.fn().mockResolvedValue({ status: 200 } as never);
+      const { NextResponse } = await import("next/server");
+      const handler = jest.fn().mockResolvedValue(NextResponse.json({}) as never);
       const wrappedHandler = withAuth(handler, { checkLimit: "disputes" });
       await wrappedHandler(createMockRequest(), undefined);
 
@@ -345,7 +357,8 @@ describe("API Middleware", () => {
       const session = createMockSession({ subscriptionTier: SubscriptionTier.ENTERPRISE });
       mockGetServerSession.mockResolvedValue(session);
 
-      const handler = jest.fn().mockResolvedValue({ status: 200 } as never);
+      const { NextResponse } = await import("next/server");
+      const handler = jest.fn().mockResolvedValue(NextResponse.json({}) as never);
       const wrappedHandler = withAuth(handler, { checkLimit: "disputes" });
       await wrappedHandler(createMockRequest(), undefined);
 
@@ -365,13 +378,14 @@ describe("API Middleware", () => {
         email: z.string().email(),
       });
 
-      const handler = jest.fn().mockResolvedValue({ status: 200 } as never);
+      const { NextResponse } = await import("next/server");
+      const handler = jest.fn().mockResolvedValue(NextResponse.json({}) as never);
       const wrappedHandler = withAuth(handler, { schema });
       const req = createMockRequest({ name: "Test", email: "test@example.com" });
       await wrappedHandler(req, undefined);
 
       expect(handler).toHaveBeenCalledTimes(1);
-      const [, context] = handler.mock.calls[0] as [any, AuthContext];
+      const [, context] = handler.mock.calls[0] as [any, any];
       expect(context.body).toEqual({ name: "Test", email: "test@example.com" });
     });
 
@@ -497,13 +511,13 @@ describe("API Middleware", () => {
   describe("SUBSCRIPTION_LIMITS", () => {
     it("FREE tier has correct limits", () => {
       const free = SUBSCRIPTION_LIMITS[SubscriptionTier.FREE];
-      expect(free.disputes.monthly).toBe(5);
-      expect(free.letters.monthly).toBe(10);
-      expect(free.clients.total).toBe(3);
-      expect(free.reports.monthly).toBe(5);
+      expect(free.disputes.monthly).toBe(15);
+      expect(free.letters.monthly).toBe(15);
+      expect(free.clients.total).toBe(5);
+      expect(free.reports.monthly).toBe(10);
       expect(free.features).toContain("basic_disputes");
       expect(free.features).toContain("manual_letters");
-      expect(free.features).not.toContain("amelia_letters");
+      expect(free.features).not.toContain("ai_letters");
     });
 
     it("STARTER tier has higher limits than FREE", () => {
@@ -514,9 +528,9 @@ describe("API Middleware", () => {
       expect(starter.clients.total).toBeGreaterThan(free.clients.total);
     });
 
-    it("PROFESSIONAL tier includes amelia_letters feature", () => {
+    it("PROFESSIONAL tier includes ai_letters feature", () => {
       const pro = SUBSCRIPTION_LIMITS[SubscriptionTier.PROFESSIONAL];
-      expect(pro.features).toContain("amelia_letters");
+      expect(pro.features).toContain("ai_letters");
       expect(pro.features).toContain("bulk_disputes");
     });
 
@@ -528,11 +542,9 @@ describe("API Middleware", () => {
       expect(enterprise.reports.monthly).toBe(-1);
     });
 
-    it("ENTERPRISE tier includes all features", () => {
+    it("ENTERPRISE tier uses wildcard for all features", () => {
       const enterprise = SUBSCRIPTION_LIMITS[SubscriptionTier.ENTERPRISE];
-      expect(enterprise.features).toContain("api_access");
-      expect(enterprise.features).toContain("white_label");
-      expect(enterprise.features).toContain("amelia_letters");
+      expect(enterprise.features).toContain("*");
     });
 
     it("tier hierarchy: FREE < STARTER < PROFESSIONAL < ENTERPRISE", () => {
@@ -549,7 +561,6 @@ describe("API Middleware", () => {
 
       expect(free.features.length).toBeLessThan(starter.features.length);
       expect(starter.features.length).toBeLessThanOrEqual(pro.features.length);
-      expect(pro.features.length).toBeLessThanOrEqual(enterprise.features.length);
     });
   });
 });

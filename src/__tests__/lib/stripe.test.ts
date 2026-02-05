@@ -1,5 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach } from "@jest/globals";
 
+// Mock logger to prevent pino import issues
+const mockLogFn = jest.fn();
+jest.mock("@/lib/logger", () => ({
+  createLogger: jest.fn().mockReturnValue({
+    info: mockLogFn, error: mockLogFn, warn: mockLogFn, debug: mockLogFn,
+    child: jest.fn().mockReturnValue({ info: mockLogFn, error: mockLogFn, warn: mockLogFn, debug: mockLogFn }),
+  }),
+  logger: { info: mockLogFn, error: mockLogFn, warn: mockLogFn, debug: mockLogFn },
+}));
+
 const mockCheckoutCreate = jest.fn();
 const mockBillingPortalCreate = jest.fn();
 const mockCustomersList = jest.fn();
@@ -34,12 +44,12 @@ describe("Stripe Module", () => {
   function loadModule() { return require("@/lib/stripe") as typeof import("@/lib/stripe"); }
 
   describe("createCheckoutSession", () => {
-    it("should create with trial period", async () => {
+    it("should create checkout session", async () => {
       mockCheckoutCreate.mockResolvedValue({ url: "https://checkout.stripe.com/s-123" });
       const mod = loadModule();
       const url = await mod.createCheckoutSession("cus_123","price_monthly_123","https://app.com/success","https://app.com/cancel","org_123");
       expect(url).toBe("https://checkout.stripe.com/s-123");
-      expect(mockCheckoutCreate).toHaveBeenCalledWith(expect.objectContaining({ customer: "cus_123", mode: "subscription", payment_method_types: ["card"], line_items: [{ price: "price_monthly_123", quantity: 1 }], subscription_data: expect.objectContaining({ trial_period_days: 14 }), allow_promotion_codes: true }));
+      expect(mockCheckoutCreate).toHaveBeenCalledWith(expect.objectContaining({ customer: "cus_123", mode: "subscription", payment_method_types: ["card"], line_items: [{ price: "price_monthly_123", quantity: 1 }], subscription_data: expect.objectContaining({ metadata: expect.objectContaining({ organizationId: "org_123" }) }), allow_promotion_codes: true }));
     });
     it("should return null on error", async () => {
       mockCheckoutCreate.mockRejectedValue(new Error("Stripe error"));
@@ -150,10 +160,6 @@ describe("Stripe Module", () => {
     it("maps unknown to UNKNOWN", () => { expect(loadModule().mapSubscriptionStatus("paused" as any)).toBe("UNKNOWN"); });
   });
 
-  describe("TRIAL_DAYS", () => {
-    it("should be 14", () => { expect(loadModule().TRIAL_DAYS).toBe(14); });
-  });
-
   describe("PLAN_FEATURES", () => {
     it("should have all plans", () => {
       const pf = loadModule().PLAN_FEATURES;
@@ -161,9 +167,8 @@ describe("Stripe Module", () => {
       expect(pf.STARTER).toBeDefined();
       expect(pf.PROFESSIONAL).toBeDefined();
       expect(pf.ENTERPRISE).toBeDefined();
-      expect(pf.PRO).toBeDefined();
     });
-    it("FREE plan 3 clients", () => { expect(loadModule().PLAN_FEATURES.FREE.limits.clients).toBe(3); });
+    it("FREE plan 5 clients", () => { expect(loadModule().PLAN_FEATURES.FREE.limits.clients).toBe(5); });
     it("ENTERPRISE unlimited", () => {
       const e = loadModule().PLAN_FEATURES.ENTERPRISE.limits;
       expect(e.clients).toBe(Infinity);
