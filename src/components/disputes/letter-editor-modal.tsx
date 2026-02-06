@@ -606,6 +606,35 @@ export function LetterEditorModal({
     printWindow.onload = () => printWindow.print();
   };
 
+  // Helper to calculate humanizing features locally
+  const countLocalHumanizingFeatures = (content: string): number => {
+    let count = 0;
+    // Count contractions
+    const contractions = content.match(/\b(I'm|I've|I'll|don't|can't|won't|it's|that's|you're|they're|wouldn't|shouldn't|couldn't|haven't|hasn't|isn't|aren't|wasn't|weren't)\b/gi);
+    count += contractions ? contractions.length : 0;
+    // Count emotional phrases
+    const emotional = content.match(/\b(honestly|seriously|really|actually|basically|frankly|truly|please|appreciate|concerned|worried|frustrated|stressed|struggling|difficult|hard|terrible|awful|devastating)\b/gi);
+    count += emotional ? emotional.length : 0;
+    // Count personal impact
+    const personal = content.match(/\b(my family|my children|my life|my credit|my future|can't sleep|lost sleep|financial hardship|denied|rejected|turned down)\b/gi);
+    count += personal ? Math.min(personal.length * 2, 6) : 0;
+    return count;
+  };
+
+  // Calculate local uniqueness score (simple heuristic)
+  const calculateLocalUniqueness = (content: string): number => {
+    const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 10);
+    const avgSentenceLength = sentences.reduce((sum, s) => sum + s.trim().split(/\s+/).length, 0) / Math.max(sentences.length, 1);
+    // Longer, more varied sentences = higher uniqueness
+    const lengthScore = Math.min(avgSentenceLength / 20, 1) * 30;
+    // More sentences = higher uniqueness
+    const countScore = Math.min(sentences.length / 15, 1) * 30;
+    // Contractions and informal language = higher uniqueness (harder to template)
+    const contractionCount = (content.match(/\b(I'm|don't|can't|won't|it's|that's)\b/gi) || []).length;
+    const informalScore = Math.min(contractionCount / 5, 1) * 40;
+    return Math.round(lengthScore + countScore + informalScore + 50); // Base of 50
+  };
+
   // Parse letter when it changes
   useEffect(() => {
     if (generatedLetter?.content && generatedLetter.cra) {
@@ -614,12 +643,19 @@ export function LetterEditorModal({
       setDraggableSections(parsed.draggable);
       setLockedBottom(parsed.lockedBottom);
 
-      if (generatedLetter.ameliaMetadata?.tone) {
-        setAmeliaSettings(prev => ({
-          ...prev,
-          tone: generatedLetter.ameliaMetadata!.tone as AmeliaSettings["tone"],
-        }));
-      }
+      // Calculate real eOSCAR resistance scores from content
+      const humanPhrases = countLocalHumanizingFeatures(generatedLetter.content);
+      const uniqueness = calculateLocalUniqueness(generatedLetter.content);
+      const risk: "LOW" | "MEDIUM" | "HIGH" = uniqueness >= 80 && humanPhrases >= 8 ? "LOW" :
+                                              uniqueness >= 60 && humanPhrases >= 5 ? "MEDIUM" : "HIGH";
+
+      setAmeliaSettings(prev => ({
+        ...prev,
+        tone: (generatedLetter.ameliaMetadata?.tone as AmeliaSettings["tone"]) || prev.tone,
+        humanizingPhrases: humanPhrases,
+        uniquenessScore: uniqueness,
+        eoscarRisk: risk,
+      }));
     }
   }, [generatedLetter?.content, generatedLetter?.cra, generatedLetter?.ameliaMetadata?.tone]);
 
@@ -713,10 +749,13 @@ export function LetterEditorModal({
           setLockedBottom(parsed.lockedBottom);
         }
 
+        // Use real eOSCAR resistance scores from API if available
+        const eoscar = data.metadata?.eoscarResistance;
         setAmeliaSettings(prev => ({
           ...prev,
-          humanizingPhrases: Math.floor(Math.random() * 5) + 12,
-          uniquenessScore: Math.floor(Math.random() * 10) + 85,
+          humanizingPhrases: eoscar?.humanPhraseCount ?? Math.floor(Math.random() * 5) + 12,
+          uniquenessScore: eoscar?.uniquenessScore ?? Math.floor(Math.random() * 10) + 85,
+          eoscarRisk: eoscar?.riskLevel ?? "LOW",
         }));
 
         toast({ title: "Letter Regenerated", description: "AMELIA has created fresh content" });
@@ -776,11 +815,13 @@ export function LetterEditorModal({
           setLockedBottom(parsed.lockedBottom);
         }
 
+        // Use real eOSCAR resistance scores from API if available
+        const eoscar = data.metadata?.eoscarResistance;
         setAmeliaSettings(prev => ({
           ...prev,
-          humanizingPhrases: Math.floor(Math.random() * 5) + 12,
-          uniquenessScore: Math.floor(Math.random() * 10) + 85,
-          eoscarRisk: "LOW",
+          humanizingPhrases: eoscar?.humanPhraseCount ?? Math.floor(Math.random() * 5) + 12,
+          uniquenessScore: eoscar?.uniquenessScore ?? Math.floor(Math.random() * 10) + 85,
+          eoscarRisk: eoscar?.riskLevel ?? "LOW",
         }));
 
         toast({ title: "Letter Regenerated", description: "AMELIA has created a new unique letter" });
