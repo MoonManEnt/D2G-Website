@@ -888,4 +888,174 @@ export function applyVoiceToText(
   return result;
 }
 
+// =============================================================================
+// VOICE PROFILE FORMATTING FOR AI PROMPTS
+// =============================================================================
+
+const STYLE_DESCRIPTIONS: Record<string, string> = {
+  conversational: "Write like you're explaining to a friend - natural, flowing, with occasional tangents and personal asides",
+  direct: "Get to the point - short sentences, clear demands, minimal fluff. You're not here to make friends.",
+  measured: "Balanced approach - mix of explanation and direct statements. Professional but not robotic.",
+  formal: "More structured language, but still human. You know the law and you're citing it properly.",
+  assertive: "Strong, confident language. You know your rights and you're not backing down.",
+};
+
+const EMOTION_DESCRIPTIONS: Record<string, string> = {
+  confused: "Show genuine confusion - why is this happening? You've done everything right and somehow your credit is wrong.",
+  concerned: "Express worry about real consequences - can't get a mortgage, car loan, apartment. Your future is at stake.",
+  frustrated: "Let frustration show - you've been dealing with this for too long. Multiple letters, no real answers.",
+  determined: "Focused and persistent - you won't give up until this is fixed. You know your rights.",
+  angry_controlled: "Angry but channeling it productively. You're furious but you're going to win this the right way.",
+  exhausted: "Tired of fighting but still pushing forward. You can't afford to stop now.",
+  resolute: "Firm and unwavering - this ends now. You're done playing games.",
+};
+
+const FATIGUE_DESCRIPTIONS: Record<string, string> = {
+  none: "First time disputing - unfamiliar with the process but ready to fight",
+  mild: "You've been through this before - you know what to expect but still hopeful",
+  significant: "Multiple disputes, same problems - you're tired of repeating yourself",
+  severe: "This has been going on too long - you're exhausted but determined to see it through",
+};
+
+/**
+ * Format voice profile for AI prompt injection
+ *
+ * This creates a detailed voice description that guides the AI
+ * to write in the consumer's authentic voice.
+ */
+export function formatVoiceProfileForPrompt(profile: ConsumerVoiceProfile): string {
+  const ageGuidance: Record<AgeRange, string> = {
+    "18-29": "Younger voice - uses contractions frequently (I'm, don't, can't), more casual sentence structure, comfortable with direct language",
+    "30-44": "Mid-range voice - natural contractions, mix of casual and professional, confident but not aggressive",
+    "45-59": "Moderate formality - some contractions, more measured language, draws on life experience",
+    "60+": "More formal approach - fewer contractions, dignified tone, references to decades of responsible credit history",
+  };
+
+  const literacyGuidance: Record<string, string> = {
+    low: "Knows something is wrong but not sure of the legal specifics. References 'the law' generally. Focuses on fairness.",
+    medium: "Familiar with FCRA basics. Can cite the 30-day rule and accuracy requirements. Getting more confident.",
+    high: "Well-versed in credit law. Cites specific statutes, references court cases, knows the procedural requirements.",
+  };
+
+  const formalityGuidance: Record<number, string> = {
+    1: "Very casual - sentence fragments OK, conversational asides, emotional expressions",
+    2: "Casual-moderate - mostly complete sentences, natural flow, some informal language",
+    3: "Moderate-formal - proper sentences, professional tone, occasional personal touches",
+    4: "Formal - complete sentences, precise language, minimal casual expressions",
+  };
+
+  const styleDesc = STYLE_DESCRIPTIONS[profile.communicationStyle] || STYLE_DESCRIPTIONS.direct;
+  const emotionDesc = EMOTION_DESCRIPTIONS[profile.emotionalState] || EMOTION_DESCRIPTIONS.frustrated;
+  const fatigueDesc = FATIGUE_DESCRIPTIONS[profile.disputeFatigue] || FATIGUE_DESCRIPTIONS.none;
+  const ageDesc = ageGuidance[profile.ageRange];
+  const literacyDesc = literacyGuidance[profile.legalLiteracy] || literacyGuidance.medium;
+  const formalityDesc = formalityGuidance[profile.grammarPosture] || formalityGuidance[2];
+
+  const lines = [
+    "=== CONSUMER VOICE PROFILE ===",
+    "",
+    `AGE RANGE: ${profile.ageRange}`,
+    ageDesc,
+    "",
+    `EMOTIONAL STATE: ${profile.emotionalState}`,
+    emotionDesc,
+    "",
+    `COMMUNICATION STYLE: ${profile.communicationStyle}`,
+    styleDesc,
+    "",
+    `LEGAL LITERACY: ${profile.legalLiteracy}`,
+    literacyDesc,
+    "",
+    `FORMALITY LEVEL: ${profile.grammarPosture}/4`,
+    formalityDesc,
+    "",
+    `DISPUTE FATIGUE: ${profile.disputeFatigue}`,
+    fatigueDesc,
+    "",
+    `LIFE STAKES: ${profile.lifeStakes}`,
+    "",
+    "=== VOICE DIRECTIVES ===",
+    "",
+    "1. Write AS this person, not ABOUT them",
+    "2. Use their vocabulary and sentence patterns",
+    "3. Express their specific emotional state",
+    "4. Match their level of legal sophistication",
+    "5. Reflect their frustration/fatigue level",
+    "",
+  ];
+
+  // Add personal narrative elements if available
+  if (profile.personalNarrativeElements && profile.personalNarrativeElements.length > 0) {
+    lines.push("PERSONAL ELEMENTS TO INCORPORATE:");
+    for (const element of profile.personalNarrativeElements) {
+      lines.push(`- ${element}`);
+    }
+    lines.push("");
+  }
+
+  // Add region-specific guidance if available
+  if (profile.geographicRegion) {
+    const regionHints: Record<string, string> = {
+      south: "Slightly warmer tone, may use 'y'all' or other regional expressions naturally",
+      northeast: "More direct and assertive, less small talk",
+      midwest: "Polite but firm, may use softer language",
+      west: "Casual and direct, less formal structure",
+    };
+    lines.push(`REGIONAL VOICE HINT: ${regionHints[profile.geographicRegion] || ""}`);
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
+
+/**
+ * Get prohibited phrases for this voice profile
+ *
+ * Some phrases are especially wrong for certain voices.
+ */
+export function getProhibitedPhrasesForVoice(profile: ConsumerVoiceProfile): string[] {
+  const prohibited: string[] = [
+    // Always prohibited
+    "this letter is to inform you",
+    "i am writing to dispute",
+    "please be advised",
+    "pursuant to",
+    "in accordance with",
+    "i hereby",
+  ];
+
+  // Age-specific prohibitions
+  if (profile.ageRange === "18-29" || profile.ageRange === "30-44") {
+    prohibited.push(
+      "kindly",
+      "henceforth",
+      "aforementioned",
+      "heretofore",
+      "furthermore"
+    );
+  }
+
+  // Style-specific prohibitions
+  if (profile.communicationStyle === "direct") {
+    prohibited.push(
+      "i would like to",
+      "perhaps you could",
+      "it would be appreciated if",
+      "at your earliest convenience"
+    );
+  }
+
+  // Literacy-specific prohibitions
+  if (profile.legalLiteracy === "low") {
+    prohibited.push(
+      "prima facie",
+      "ipso facto",
+      "inter alia",
+      "supra"
+    );
+  }
+
+  return prohibited;
+}
+
 export default inferConsumerVoice;

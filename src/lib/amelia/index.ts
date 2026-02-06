@@ -130,3 +130,93 @@ export {
   type LetterGenerationRequest,
   type GeneratedLetter as LegacyGeneratedLetter,
 } from "../amelia";
+
+// =============================================================================
+// AI-DRIVEN LETTER GENERATION (V4)
+// =============================================================================
+
+export {
+  generateAILetter,
+  isAIGenerationAvailable,
+  type AILetterGenerationRequest,
+  type AIGeneratedLetter,
+} from "./ai-letter-generator";
+
+// =============================================================================
+// LEGAL FRAMEWORKS
+// =============================================================================
+
+export {
+  getLegalFramework,
+  getStatutesForPrompt,
+  getCourtCasesForPrompt,
+  getAllFrameworks,
+  type LegalFramework,
+  type CourtCase,
+} from "./legal-frameworks";
+
+// =============================================================================
+// PROMPT BUILDING
+// =============================================================================
+
+export {
+  buildFullLetterPrompt,
+  buildSectionRegenerationPrompt,
+  estimatePromptTokens,
+  type PromptContext,
+  type ClientContext,
+  type AccountContext,
+} from "./prompt-builder";
+
+// =============================================================================
+// SECTION PARSING
+// =============================================================================
+
+export {
+  parseLetterSections,
+  parseWithoutMarkers,
+  assembleLetter,
+  getSectionNames,
+  isSectionRequired,
+  type ParsedLetterSections,
+  type ParseResult,
+} from "./section-parser";
+
+// =============================================================================
+// VALIDATION
+// =============================================================================
+
+export {
+  validateAllSections,
+  getIssuesForSection,
+  type ValidationIssue,
+  type SectionValidationResult,
+  type FullValidationResult,
+  type ValidationContext,
+} from "./section-validator";
+
+// =============================================================================
+// PHRASE BLACKLIST
+// =============================================================================
+
+export {
+  TEMPLATE_PHRASES,
+  AI_PHRASES,
+  containsBlacklistedPhrase,
+  hasAIStructurePatterns,
+  getBlacklistForPrompt,
+  countBlacklistedItems,
+} from "./phrase-blacklist";
+
+// =============================================================================
+// SECTION RETRY
+// =============================================================================
+
+export {
+  regenerateSection,
+  retryMultipleSections,
+  shouldRetrySection,
+  getSectionsToRetry,
+  type RetryConfig,
+  type RetryResult,
+} from "./section-retry";
