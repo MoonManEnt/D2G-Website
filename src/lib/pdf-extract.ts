@@ -2,6 +2,7 @@
  * PDF Text Extraction Service
  *
  * Uses unpdf (serverless-friendly wrapper for PDF.js) for robust text extraction.
+ * For image-based PDFs, use the OCR module in @/lib/credit-report/ocr-processor
  */
 
 import { readFile } from "fs/promises";
@@ -16,6 +17,8 @@ export interface PDFExtractionResult {
   error?: string;
   /** Array of text content per page (0-indexed). Useful for tracking which page content appears on. */
   pages?: string[];
+  /** Indicates if the PDF might be image-based and need OCR */
+  mayNeedOCR?: boolean;
 }
 
 /**
@@ -54,25 +57,28 @@ export async function extractTextFromBuffer(buffer: Buffer): Promise<PDFExtracti
 
     // Validations
     if (!fullText || fullText.trim().length === 0) {
+      log.info({ pageCount }, "PDF has no selectable text - may need OCR");
       return {
         success: false,
         text: "",
         pageCount: pageCount,
         pages: [],
         error: "PDF appears to be empty or image-based (no selectable text found).",
+        mayNeedOCR: true,
       };
     }
 
     log.info({ pageCount, length: fullText.length }, "PDF Extraction complete. Pages, Length");
 
     if (fullText.length < 100) {
-      log.warn("Extracted text is suspiciously short.");
+      log.warn("Extracted text is suspiciously short - may need OCR");
       return {
         success: false,
         text: fullText,
         pageCount: pageCount,
         pages,
         error: "Extracted text is too short. The PDF might be an image scan.",
+        mayNeedOCR: true,
       };
     }
 

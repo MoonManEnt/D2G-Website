@@ -5,7 +5,7 @@ import prisma from "@/lib/prisma";
 import { v4 as uuid } from "uuid";
 import path from "path";
 import fs from "fs";
-import { parseAndAnalyzeReport } from "@/lib/report-parser";
+import { parseAndAnalyzeReport, parseAndAnalyzeReportAI } from "@/lib/report-parser";
 import { put } from "@vercel/blob";
 import { createLogger } from "@/lib/logger";
 const log = createLogger("reports-upload-api");
@@ -13,8 +13,25 @@ const log = createLogger("reports-upload-api");
 // Detect if running on Vercel (production)
 const isVercel = process.env.VERCEL === "1";
 
+// Supported file types for credit report uploads
+const SUPPORTED_MIME_TYPES = [
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+  "image/webp",
+];
+
+const MIME_TO_TYPE: Record<string, "PDF" | "PNG" | "JPG" | "JPEG" | "WEBP"> = {
+  "application/pdf": "PDF",
+  "image/png": "PNG",
+  "image/jpeg": "JPEG",
+  "image/jpg": "JPG",
+  "image/webp": "WEBP",
+};
+
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60; // Allow up to 60 seconds for PDF processing
+export const maxDuration = 120; // Allow up to 120 seconds for OCR+AI processing
 
 /**
  * POST /api/reports/upload - Direct file upload endpoint
@@ -60,6 +77,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Client ID is required" }, { status: 400 });
     }
 
+    // Validate file type
+    const mimeType = file.type || "application/pdf";
+    if (!SUPPORTED_MIME_TYPES.includes(mimeType)) {
+      return NextResponse.json(
+        { error: `Unsupported file type: ${mimeType}. Supported: PDF, PNG, JPG, WEBP` },
+        { status: 400 }
+      );
+    }
+
+    const fileType = MIME_TO_TYPE[mimeType] || "PDF";
+    const isImage = fileType !== "PDF";
+
+    // Check for AI parsing preference (optional query param or form field)
+    const useAIParsing = formData.get("useAI") === "true" || isImage;
+
     // Verify client belongs to organization
     const client = await prisma.client.findFirst({
       where: {
@@ -74,8 +106,8 @@ export async function POST(req: NextRequest) {
 
     // Read file buffer
     const arrayBuffer = await file.arrayBuffer();
-    const pdfBuffer = Buffer.from(arrayBuffer);
-    const fileSize = pdfBuffer.length;
+    const fileBuffer = Buffer.from(arrayBuffer);
+    const fileSize = fileBuffer.length;
 
     // Generate unique filename
     const fileId = uuid();
@@ -87,9 +119,9 @@ export async function POST(req: NextRequest) {
 
     if (isVercel) {
       // Production: Use Vercel Blob storage
-      const blob = await put(blobName, pdfBuffer, {
+      const blob = await put(blobName, fileBuffer, {
         access: "public",
-        contentType: "application/pdf",
+        contentType: mimeType,
       });
       relativePath = blob.url;
       storageType = "VERCEL_BLOB";
@@ -103,8 +135,8 @@ export async function POST(req: NextRequest) {
       const storagePath = path.join(uploadsDir, `${fileId}-${safeFileName}`);
       relativePath = `uploads/reports/${fileId}-${safeFileName}`;
       storageType = "LOCAL";
-      fs.writeFileSync(storagePath, pdfBuffer);
-      log.info({ storagePath }, "[UPLOAD] File saved to");
+      fs.writeFileSync(storagePath, fileBuffer);
+      log.info({ storagePath, fileType }, "[UPLOAD] File saved to");
     }
 
     // Create database records in transaction
@@ -114,7 +146,7 @@ export async function POST(req: NextRequest) {
         data: {
           id: fileId,
           filename: file.name,
-          mimeType: "application/pdf",
+          mimeType: mimeType,
           sizeBytes: fileSize,
           storagePath: relativePath,
           storageType: storageType,
@@ -122,11 +154,11 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Create report record
+      // Create report record - sourceType determined by parsing
       const report = await tx.creditReport.create({
         data: {
           reportDate: new Date(),
-          sourceType: "IDENTITYIQ",
+          sourceType: isImage ? "OTHER" : "IDENTITYIQ", // Will be updated after parsing
           originalFileId: storedFile.id,
           parseStatus: "PENDING",
           organizationId,
@@ -155,15 +187,29 @@ export async function POST(req: NextRequest) {
       return { storedFile, report };
     });
 
-    // Auto-trigger parsing
-    const parseResult = await parseAndAnalyzeReport({
-      reportId: report.id,
-      organizationId,
-      clientId,
-      actorId: userId,
-      actorEmail: userEmail || "",
-      pdfBuffer,
-    });
+    // Auto-trigger parsing - use AI parser for images or when requested
+    let parseResult;
+    if (useAIParsing) {
+      log.info({ useAI: true, isImage, fileType }, "[UPLOAD] Using AI-powered parsing");
+      parseResult = await parseAndAnalyzeReportAI({
+        reportId: report.id,
+        organizationId,
+        clientId,
+        actorId: userId,
+        actorEmail: userEmail || "",
+        fileBuffer,
+        fileType,
+      });
+    } else {
+      parseResult = await parseAndAnalyzeReport({
+        reportId: report.id,
+        organizationId,
+        clientId,
+        actorId: userId,
+        actorEmail: userEmail || "",
+        pdfBuffer: fileBuffer,
+      });
+    }
 
     // Fetch final report state
     const finalReport = await prisma.creditReport.findUnique({

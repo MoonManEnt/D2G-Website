@@ -23,7 +23,8 @@ export type TaskType =
   | "CFPB_COMPLAINT"
   | "ISSUE_ANALYSIS"
   | "CHAT"
-  | "RECOMMENDATION";
+  | "RECOMMENDATION"
+  | "REPORT_PARSING";
 
 export interface LLMConfig {
   provider: LLMProvider;
@@ -83,6 +84,7 @@ const DEFAULT_MODELS: Record<TaskType, LLMConfig> = {
   ISSUE_ANALYSIS: { provider: "OPENAI", model: "gpt-4o", temperature: 0.2 },
   CHAT: { provider: "CLAUDE", model: "claude-sonnet-4-20250514", temperature: 0.4 },
   RECOMMENDATION: { provider: "CLAUDE", model: "claude-3-5-haiku-20241022", temperature: 0.2 },
+  REPORT_PARSING: { provider: "CLAUDE", model: "claude-sonnet-4-20250514", temperature: 0.1, maxTokens: 8000 },
 };
 
 // Calculate cost in cents
@@ -473,6 +475,9 @@ Guidelines:
 
     case "RECOMMENDATION":
       return `You are Amelia, an AI credit repair analyst. Analyze client data and provide brief, actionable recommendations. Be concise — each recommendation should be 1-2 sentences.`;
+
+    case "REPORT_PARSING":
+      return `You are an expert credit report parser. Extract structured data from credit report text into a precise JSON format. Focus on accuracy and completeness. Output ONLY valid JSON.`;
 
     default:
       return "You are a helpful assistant specializing in credit repair and consumer rights.";
