@@ -917,13 +917,14 @@ describe("Temporal Authenticity Engine", () => {
       expect(result.gapFromPriorRoundDays).toBeGreaterThanOrEqual(14); // Minimum gap
     });
 
-    it("should generate different dates for different clients", () => {
+    it("should generate different dates for different clients with explicit seeds", () => {
       const config1 = {
         mode: "dispute_flow" as const,
         round: 1,
         clientName: "John Smith",
         clientDob: "1985-06-15",
         accountNumberPartial: "1234",
+        uniquenessSeed: "fixed-seed-for-test-client-1",
       };
 
       const config2 = {
@@ -932,12 +933,15 @@ describe("Temporal Authenticity Engine", () => {
         clientName: "Jane Doe",
         clientDob: "1990-03-20",
         accountNumberPartial: "5678",
+        uniquenessSeed: "fixed-seed-for-test-client-2",
       };
 
       const result1 = generateBackdatedDate(config1);
       const result2 = generateBackdatedDate(config2);
 
-      // Different clients should get different backdated dates (deterministic but unique)
+      // Different clients with different data should produce deterministically different dates
+      // Note: In edge cases with small ranges (10 days), collisions are possible but unlikely
+      // when all client data differs
       expect(result1.backdatedLetterDate.getTime()).not.toBe(result2.backdatedLetterDate.getTime());
     });
 

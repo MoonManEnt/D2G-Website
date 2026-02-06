@@ -792,14 +792,23 @@ export function validateLetter(letter: GeneratedLetter): {
 } {
   const violations: string[] = [];
 
-  // Round 1 must be backdated
+  // Round 1 must be backdated 60-69 days
   if (letter.round === 1 && !letter.isBackdated) {
-    violations.push("Round 1 letter must be backdated 30 days");
+    violations.push("Round 1 letter must be backdated 60-69 days");
   }
 
-  // Round 1 must be backdated exactly 30 days
-  if (letter.round === 1 && letter.backdatedDays !== 30) {
-    violations.push(`Round 1 backdating must be exactly 30 days, got ${letter.backdatedDays}`);
+  // Round 1 must be backdated within 60-69 day range
+  if (letter.round === 1 && (letter.backdatedDays < 60 || letter.backdatedDays > 69)) {
+    violations.push(`Round 1 backdating must be 60-69 days, got ${letter.backdatedDays}`);
+  }
+
+  // Round 2+ must be backdated 30-39 days
+  if (letter.round >= 2 && !letter.isBackdated) {
+    violations.push("Round 2+ letter must be backdated 30-39 days");
+  }
+
+  if (letter.round >= 2 && (letter.backdatedDays < 30 || letter.backdatedDays > 39)) {
+    violations.push(`Round 2+ backdating must be 30-39 days, got ${letter.backdatedDays}`);
   }
 
   // Content must not be empty

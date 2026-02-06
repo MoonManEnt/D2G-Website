@@ -76,12 +76,20 @@ export function daysUntilDeadline(sentDate: string | Date | null | undefined, da
 }
 
 /**
- * Calculate letter date (backdated for Round 1)
+ * Calculate letter date (backdated per AMELIA doctrine)
+ * Round 1: 60-69 days (random)
+ * Round 2+: 30-39 days (random)
  */
 export function calculateLetterDate(round: number): string {
   const date = new Date();
   if (round === 1) {
-    date.setDate(date.getDate() - 30);
+    // Random backdate between 60-69 days for Round 1
+    const backdateDays = 60 + Math.floor(Math.random() * 10);
+    date.setDate(date.getDate() - backdateDays);
+  } else if (round >= 2) {
+    // Random backdate between 30-39 days for Round 2+
+    const backdateDays = 30 + Math.floor(Math.random() * 10);
+    date.setDate(date.getDate() - backdateDays);
   }
   return date.toISOString().split('T')[0];
 }

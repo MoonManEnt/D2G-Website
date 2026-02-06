@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { Reorder, useDragControls } from "framer-motion";
 import {
   Dialog,
   DialogContent,
@@ -29,9 +28,9 @@ import {
   ChevronUp,
   Lightbulb,
   Rocket,
-  GripVertical,
   Lock,
   Send,
+  AlertCircle,
 } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
 import { MailSendDialog } from "./mail-send-dialog";
@@ -148,7 +147,7 @@ function StatuteBadge({ code, name }: { code: string; name: string }) {
   );
 }
 
-// Section Card Component with Drag Handle
+// Section Card Component (no drag - structure is fixed per AMELIA doctrine)
 function SectionCard({
   section,
   isEditing,
@@ -160,6 +159,7 @@ function SectionCard({
   onRegenerate,
   isRegenerating,
   regeneratingSection,
+  isDisabled,
 }: {
   section: DraggableSection;
   isEditing: boolean;
@@ -168,55 +168,43 @@ function SectionCard({
   onSaveEdit: () => void;
   onCancelEdit: () => void;
   onEditChange: (value: string) => void;
-  onRegenerate: () => void;
+  onRegenerate?: () => void;
   isRegenerating: boolean;
   regeneratingSection: string | null;
+  isDisabled?: boolean;
 }) {
-  const dragControls = useDragControls();
-
   return (
-    <Reorder.Item
-      value={section}
-      id={section.id}
-      dragListener={false}
-      dragControls={dragControls}
+    <div
       className={cn(
         "p-4 rounded-xl border transition-all bg-card",
         isEditing
           ? "bg-purple-500/10 border-purple-500/30"
-          : section.locked
-          ? "border-border opacity-80"
+          : isDisabled
+          ? "border-border opacity-50 bg-muted/30"
           : "border-border hover:border-primary/30 hover:bg-muted"
       )}
-      whileDrag={{
-        scale: 1.02,
-        boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
-        zIndex: 50,
-      }}
     >
       {/* Section Header */}
       <div className="flex justify-between items-center mb-3">
         <div className="flex items-center gap-2">
-          {/* Drag Handle */}
-          {section.locked ? (
-            <div className="p-1.5 text-muted-foreground cursor-not-allowed" title="Fixed position">
-              <Lock className="w-4 h-4" />
+          {isDisabled ? (
+            <div className="p-1.5 text-muted-foreground" title="No items to dispute">
+              <AlertCircle className="w-4 h-4" />
             </div>
           ) : (
-            <div
-              onPointerDown={(e) => dragControls.start(e)}
-              className="p-1.5 text-muted-foreground hover:text-muted-foreground cursor-grab active:cursor-grabbing rounded hover:bg-muted transition-colors"
-              title="Drag to reorder"
-            >
-              <GripVertical className="w-4 h-4" />
+            <div className="p-1.5 text-muted-foreground">
+              <Lock className="w-4 h-4" />
             </div>
           )}
           <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
             {section.label}
           </span>
+          {isDisabled && (
+            <span className="text-[10px] text-muted-foreground italic">(No items found in report)</span>
+          )}
         </div>
         <div className="flex gap-2">
-          {section.aiRegenerable && (
+          {section.aiRegenerable && onRegenerate && !isDisabled && (
             <button
               onClick={onRegenerate}
               disabled={isRegenerating}
@@ -230,7 +218,7 @@ function SectionCard({
               Regenerate
             </button>
           )}
-          {section.editable && !isEditing && (
+          {section.editable && !isEditing && !isDisabled && (
             <button
               onClick={onStartEdit}
               className="flex items-center gap-1 px-2.5 py-1 bg-muted hover:bg-muted rounded text-muted-foreground text-[11px] font-medium transition-colors"
@@ -261,13 +249,17 @@ function SectionCard({
           </div>
         </div>
       ) : (
-        <div className="text-foreground text-sm leading-relaxed pl-8">
-          {section.content.split("\n").map((line, i) => (
-            <p key={i} className={cn("mb-1", !line && "h-4")}>{line}</p>
-          ))}
+        <div className={cn("text-foreground text-sm leading-relaxed pl-8", isDisabled && "text-muted-foreground italic")}>
+          {isDisabled ? (
+            <p>This section will be included when relevant items are found in the credit report.</p>
+          ) : (
+            section.content.split("\n").map((line, i) => (
+              <p key={i} className={cn("mb-1", !line && "h-4")}>{line}</p>
+            ))
+          )}
         </div>
       )}
-    </Reorder.Item>
+    </div>
   );
 }
 
@@ -374,7 +366,9 @@ export function LetterEditorModal({
     let storyParagraph = "";
     let demandHeadline = "";
     let accountsList = "";
+    let requestedCorrections = "";
     let personalInfo = "";
+    let hardInquiries = "";
     let consumerStatement = "";
     let deadlineNotice = "";
     let signature = "";
@@ -394,12 +388,17 @@ export function LetterEditorModal({
         demandHeadline = p;
       } else if (p.match(/^\d\./m) || p.includes("Account #") || p.includes("Account:") || p.includes("Account Name:")) {
         accountsList += (accountsList ? "\n\n" : "") + p;
-      } else if (p.toUpperCase().includes("PREVIOUS NAME") ||
-                 p.toUpperCase().includes("PREVIOUS ADDRESS") ||
-                 p.toUpperCase().includes("HARD INQUIR") ||
-                 p.toUpperCase().includes("UNAUTHORIZED") ||
-                 p.toUpperCase().includes("PERSONAL INFORMATION")) {
+      } else if (p.toUpperCase().includes("REQUESTED CORRECTION") || p.toUpperCase().includes("REQUESTED DELETION") ||
+                 p.toUpperCase().includes("IF NOT VERIFIED AS ACCURATE")) {
+        requestedCorrections += (requestedCorrections ? "\n\n" : "") + p;
+      } else if (p.toUpperCase().includes("PERSONAL INFORMATION TO INVESTIGATE") ||
+                 p.toUpperCase().includes("PREVIOUS NAME") ||
+                 p.toUpperCase().includes("PREVIOUS ADDRESS")) {
         personalInfo += (personalInfo ? "\n\n" : "") + p;
+      } else if (p.toUpperCase().includes("HARD INQUIR") ||
+                 p.toUpperCase().includes("UNAUTHORIZED") ||
+                 p.toUpperCase().includes("NO CONSENT")) {
+        hardInquiries += (hardInquiries ? "\n\n" : "") + p;
       } else if (p.toLowerCase().includes("consumer statement")) {
         consumerStatement = p;
       } else if (p.includes("30 days") || p.includes("deadline") || p.toLowerCase().includes("failure to respond")) {
@@ -449,7 +448,7 @@ export function LetterEditorModal({
       },
     ];
 
-    // Draggable middle sections
+    // Middle sections (fixed order per AMELIA doctrine)
     const draggable: DraggableSection[] = [
       {
         id: "damagesParagraph",
@@ -482,11 +481,29 @@ export function LetterEditorModal({
         editable: true,
         aiRegenerable: true,
       },
+      // MANDATORY: Requested Corrections/Deletions section (always included per AMELIA doctrine)
+      {
+        id: "requestedCorrections",
+        key: "requestedCorrections",
+        label: "Requested Corrections / Deletions",
+        content: requestedCorrections || "Requested Corrections / Deletions (If Not Verified as Accurate):\n\nFor each account listed above, I am requesting that you either:\n1. Delete the account entirely if it cannot be verified with documentation\n2. Correct all inaccurate information to reflect accurate data\n3. Update the payment status and history to accurate reporting\n\nAs a consumer by law, these accounts must be updated or deleted immediately if not verified as accurate.",
+        editable: true,
+        aiRegenerable: true,
+      },
+      // CONDITIONAL: Personal Information section (greyed out if no items)
       {
         id: "personalInfo",
         key: "personalInfo",
-        label: "Personal Information Disputes",
-        content: personalInfo || "",
+        label: "Personal Information to Investigate and Correct/Remove",
+        content: personalInfo || "", // Empty = will be greyed out
+        editable: true,
+      },
+      // CONDITIONAL: Hard Inquiries section (greyed out if no items)
+      {
+        id: "hardInquiries",
+        key: "hardInquiries",
+        label: "Hard Inquiries to Investigate (Unauthorized / No Consent)",
+        content: hardInquiries || "", // Empty = will be greyed out
         editable: true,
       },
       {
@@ -504,7 +521,7 @@ export function LetterEditorModal({
         editable: true,
         aiRegenerable: true,
       },
-    ].filter(s => s.content); // Filter out empty sections
+    ];
 
     // Locked bottom sections
     const lockedBottom: DraggableSection[] = [
@@ -933,10 +950,10 @@ export function LetterEditorModal({
           {/* Editor Panel */}
           <div className="bg-card overflow-y-auto p-6" ref={editorRef}>
             <div className="space-y-4 max-w-3xl mx-auto">
-              {/* Drag instruction banner */}
-              <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-lg text-primary text-xs">
-                <GripVertical className="w-4 h-4" />
-                <span>Drag sections by their handle to reorder the letter structure</span>
+              {/* AMELIA doctrine banner */}
+              <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-400 text-xs">
+                <CheckCircle className="w-4 h-4" />
+                <span>Letter structure follows AMELIA doctrine - optimized for maximum eOSCAR resistance</span>
               </div>
 
               {/* Locked Top Sections */}
@@ -953,29 +970,32 @@ export function LetterEditorModal({
                 />
               ))}
 
-              {/* Draggable Middle Sections */}
-              <Reorder.Group
-                axis="y"
-                values={draggableSections}
-                onReorder={setDraggableSections}
-                className="space-y-4"
-              >
-                {draggableSections.map((section) => (
-                  <SectionCard
-                    key={section.id}
-                    section={section}
-                    isEditing={editingSection === section.id}
-                    editValue={editValue}
-                    onStartEdit={() => startEditing(section)}
-                    onSaveEdit={saveEdit}
-                    onCancelEdit={cancelEdit}
-                    onEditChange={setEditValue}
-                    onRegenerate={() => regenerateSection(section.id)}
-                    isRegenerating={isRegenerating}
-                    regeneratingSection={regeneratingSection}
-                  />
-                ))}
-              </Reorder.Group>
+              {/* Middle Sections (fixed order per AMELIA doctrine) */}
+              <div className="space-y-4">
+                {draggableSections.map((section) => {
+                  // Determine if section should be disabled (greyed out)
+                  const isDisabled =
+                    (section.id === "personalInfo" && !section.content) ||
+                    (section.id === "hardInquiries" && !section.content);
+
+                  return (
+                    <SectionCard
+                      key={section.id}
+                      section={section}
+                      isEditing={editingSection === section.id}
+                      editValue={editValue}
+                      onStartEdit={() => startEditing(section)}
+                      onSaveEdit={saveEdit}
+                      onCancelEdit={cancelEdit}
+                      onEditChange={setEditValue}
+                      onRegenerate={section.aiRegenerable ? () => regenerateSection(section.id) : undefined}
+                      isRegenerating={isRegenerating}
+                      regeneratingSection={regeneratingSection}
+                      isDisabled={isDisabled}
+                    />
+                  );
+                })}
+              </div>
 
               {/* Locked Bottom Sections */}
               {lockedBottom.map((section) => (
@@ -1138,16 +1158,26 @@ export function LetterEditorModal({
                 {generatedLetter.ameliaMetadata?.isBackdated && (
                   <div className="flex items-start gap-2 text-xs text-muted-foreground">
                     <CheckCircle className="w-3.5 h-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                    <span>Letter is backdated {generatedLetter.ameliaMetadata.backdatedDays} days per R1 doctrine</span>
+                    <span>Letter backdated {generatedLetter.ameliaMetadata.backdatedDays} days per eOSCAR/CFPB doctrine</span>
+                  </div>
+                )}
+                {generatedLetter.round === 1 && (
+                  <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                    <span>R1 letters use 60-69 day backdate range for batch detection prevention</span>
                   </div>
                 )}
                 <div className="flex items-start gap-2 text-xs text-muted-foreground">
                   <CheckCircle className="w-3.5 h-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                  <span>Drag middle sections to customize letter structure</span>
+                  <span>Letter structure follows AMELIA doctrine (fixed order)</span>
                 </div>
                 <div className="flex items-start gap-2 text-xs text-muted-foreground">
                   <CheckCircle className="w-3.5 h-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
                   <span>Unique phrasing avoids template detection</span>
+                </div>
+                <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                  <CheckCircle className="w-3.5 h-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                  <span>Regenerate to get new backdate within range</span>
                 </div>
               </div>
             </div>

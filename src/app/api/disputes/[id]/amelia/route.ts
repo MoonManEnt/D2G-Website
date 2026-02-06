@@ -5,7 +5,8 @@
  *
  * This endpoint generates unique, human-written dispute letters following
  * the AMELIA doctrine rules:
- * - 30-day backdating for Round 1
+ * - 60-69 day backdating for Round 1 (random within range)
+ * - 30-39 day backdating for Round 2+ (random within range)
  * - DAMAGES → STORY → FACTS → PENALTY structure
  * - Personal info disputes (names, addresses, inquiries)
  * - eOSCAR-resistant unique stories

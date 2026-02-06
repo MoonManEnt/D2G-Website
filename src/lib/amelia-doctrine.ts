@@ -6,7 +6,7 @@
  * CORE PRINCIPLES:
  * 1. Never divert from prescribed flow unless severity triggers escalation
  * 2. Auto-populate all client fields from onboarding data
- * 3. Backdate ALL Round 1 letters by 30 days
+ * 3. Backdate ALL Round 1 letters by 60-69 days (random), Round 2+ by 30-39 days
  * 4. Round 1 MUST include personal info disputes (names, addresses, inquiries)
  * 5. Every letter follows: DAMAGES → STORY → FACTS → PENALTY structure
  * 6. Stories are NEVER repeated - 100% unique, eOSCAR-resistant
@@ -225,35 +225,115 @@ export function shouldDivertFlow(
 }
 
 // =============================================================================
-// DOCTRINE RULE 2: 30-DAY BACKDATING FOR ALL ROUND 1 LETTERS
+// DOCTRINE RULE 2: 60-69 DAY BACKDATING FOR ALL ROUND 1 LETTERS
 // =============================================================================
 
 /**
- * Calculate the letter date. For ALL Round 1 letters (any flow), backdate 30 days.
- * This is DOCTRINE - no exceptions.
+ * Calculate the letter date. For ALL Round 1 letters (any flow), backdate 60-69 days.
+ * For Round 2+, backdate 30-39 days.
+ * This is DOCTRINE per the 2026 eOSCAR/CFPB stipulations - no exceptions.
+ *
+ * The random range prevents batch detection when multiple letters are generated.
  */
-export function calculateLetterDate(round: number, createdAt: Date = new Date()): {
+export function calculateLetterDate(
+  round: number,
+  createdAt: Date = new Date(),
+  seed?: string
+): {
   letterDate: Date;
   isBackdated: boolean;
   backdatedDays: number;
 } {
   if (round === 1) {
-    // DOCTRINE: All Round 1 letters are backdated 30 days
+    // DOCTRINE: All Round 1 letters are backdated 60-69 days (random within range)
+    // This prevents batch detection by eOSCAR systems
+    const backdatedDays = generateBackdateDays(60, 69, seed);
     const letterDate = new Date(createdAt);
-    letterDate.setDate(letterDate.getDate() - 30);
+    letterDate.setDate(letterDate.getDate() - backdatedDays);
+
+    // Ensure not a Sunday or major holiday
+    const adjusted = adjustForWeekendAndHoliday(letterDate);
+
     return {
-      letterDate,
+      letterDate: adjusted,
       isBackdated: true,
-      backdatedDays: 30,
+      backdatedDays: Math.round((createdAt.getTime() - adjusted.getTime()) / (1000 * 60 * 60 * 24)),
     };
   }
 
-  // Rounds 2+ use actual date
+  if (round >= 2) {
+    // DOCTRINE: Round 2+ letters are backdated 30-39 days
+    const backdatedDays = generateBackdateDays(30, 39, seed);
+    const letterDate = new Date(createdAt);
+    letterDate.setDate(letterDate.getDate() - backdatedDays);
+
+    // Ensure not a Sunday or major holiday
+    const adjusted = adjustForWeekendAndHoliday(letterDate);
+
+    return {
+      letterDate: adjusted,
+      isBackdated: true,
+      backdatedDays: Math.round((createdAt.getTime() - adjusted.getTime()) / (1000 * 60 * 60 * 24)),
+    };
+  }
+
+  // Fallback (shouldn't reach here)
   return {
     letterDate: createdAt,
     isBackdated: false,
     backdatedDays: 0,
   };
+}
+
+/**
+ * Generate a random backdate within a range.
+ * If seed is provided, generates deterministic result for same seed.
+ */
+function generateBackdateDays(min: number, max: number, seed?: string): number {
+  if (seed) {
+    // Deterministic random based on seed
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+      hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+      hash = hash & hash;
+    }
+    const normalized = Math.abs(hash % 1000) / 1000;
+    return min + Math.floor(normalized * (max - min + 1));
+  }
+  // True random
+  return min + Math.floor(Math.random() * (max - min + 1));
+}
+
+/**
+ * Adjust date to avoid Sundays and major U.S. federal holidays.
+ * Moves to the next valid business day.
+ */
+function adjustForWeekendAndHoliday(date: Date): Date {
+  const adjusted = new Date(date);
+
+  // Check for Sunday (0)
+  if (adjusted.getDay() === 0) {
+    adjusted.setDate(adjusted.getDate() + 1); // Move to Monday
+  }
+
+  // Check for major holidays (simplified list)
+  const month = adjusted.getMonth();
+  const day = adjusted.getDate();
+
+  // New Year's Day (Jan 1)
+  if (month === 0 && day === 1) {
+    adjusted.setDate(adjusted.getDate() + 1);
+  }
+  // Independence Day (Jul 4)
+  if (month === 6 && day === 4) {
+    adjusted.setDate(adjusted.getDate() + 1);
+  }
+  // Christmas (Dec 25)
+  if (month === 11 && day === 25) {
+    adjusted.setDate(adjusted.getDate() + 1);
+  }
+
+  return adjusted;
 }
 
 /**

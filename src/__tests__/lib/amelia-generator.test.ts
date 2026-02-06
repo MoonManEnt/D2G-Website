@@ -290,45 +290,48 @@ describe("AMELIA Generator", () => {
   });
 
   describe("generateLetter() - Backdating Logic", () => {
-    it("R1 letter is backdated 30 days", () => {
+    it("R1 letter is backdated 60-69 days", () => {
       const input = createBaseInput({ round: 1 });
       const letter = generateLetter(input);
 
       expect(letter.isBackdated).toBe(true);
-      expect(letter.backdatedDays).toBe(30);
+      // R1 letters should be backdated 60-69 days (random within range)
+      expect(letter.backdatedDays).toBeGreaterThanOrEqual(60);
+      expect(letter.backdatedDays).toBeLessThanOrEqual(69);
 
-      // Verify the letter date is approximately 30 days in the past
+      // Verify the letter date is approximately 60-69 days in the past
       const now = new Date();
-      const expectedDate = new Date(now);
-      expectedDate.setDate(expectedDate.getDate() - 30);
-
       const daysDiff = Math.abs(
         (now.getTime() - letter.letterDate.getTime()) / (1000 * 60 * 60 * 24)
       );
-      expect(daysDiff).toBeGreaterThanOrEqual(29);
-      expect(daysDiff).toBeLessThanOrEqual(31);
+      expect(daysDiff).toBeGreaterThanOrEqual(59);
+      expect(daysDiff).toBeLessThanOrEqual(70);
     });
 
-    it("R2 letter is NOT backdated", () => {
+    it("R2 letter is backdated 30-39 days", () => {
       const input = createBaseInput({
         round: 2,
         lastDisputeDate: "January 1, 2025",
       });
       const letter = generateLetter(input);
 
-      expect(letter.isBackdated).toBe(false);
-      expect(letter.backdatedDays).toBe(0);
+      expect(letter.isBackdated).toBe(true);
+      // R2+ letters should be backdated 30-39 days (random within range)
+      expect(letter.backdatedDays).toBeGreaterThanOrEqual(30);
+      expect(letter.backdatedDays).toBeLessThanOrEqual(39);
     });
 
-    it("R5 letter is NOT backdated", () => {
+    it("R5 letter is backdated 30-39 days", () => {
       const input = createBaseInput({
         round: 5,
         lastDisputeDate: "January 1, 2025",
       });
       const letter = generateLetter(input);
 
-      expect(letter.isBackdated).toBe(false);
-      expect(letter.backdatedDays).toBe(0);
+      expect(letter.isBackdated).toBe(true);
+      // R5 letters should be backdated 30-39 days (random within range)
+      expect(letter.backdatedDays).toBeGreaterThanOrEqual(30);
+      expect(letter.backdatedDays).toBeLessThanOrEqual(39);
     });
   });
 
