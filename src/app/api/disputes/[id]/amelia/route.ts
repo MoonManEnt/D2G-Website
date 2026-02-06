@@ -32,6 +32,11 @@ import {
 } from "@/lib/amelia";
 import { isAIAvailable } from "@/lib/ai/providers";
 import {
+  generateAILetter,
+  isAIGenerationAvailable,
+  type AILetterGenerationRequest,
+} from "@/lib/amelia/ai-letter-generator";
+import {
   calculateLetterDate,
   determineTone,
 } from "@/lib/amelia-doctrine";
@@ -352,8 +357,90 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Generate the letter — AI-first with template fallback
     let generatedLetter: GeneratedLetter | null = null;
+    let usedAIV4 = false;
 
-    if (isAIAvailable()) {
+    // Try AMELIA v4 AI-driven generation first (100% unique letters)
+    if (isAIGenerationAvailable()) {
+      try {
+        // Build the AI Letter Generation Request
+        const aiRequest: AILetterGenerationRequest = {
+          client: {
+            id: client.id,
+            firstName: client.firstName,
+            lastName: client.lastName,
+            fullName: `${client.firstName} ${client.lastName}`,
+            addressLine1: clientInfo.addressLine1,
+            addressLine2: clientInfo.addressLine2,
+            city: clientInfo.city,
+            state: clientInfo.state,
+            zipCode: clientInfo.zipCode,
+            ssnLast4: clientInfo.ssnLast4,
+            dateOfBirth: clientInfo.dateOfBirth,
+          },
+          accounts: accounts.map((a) => ({
+            creditorName: a.creditorName,
+            accountNumber: a.accountNumber,
+            accountType: a.accountType || "Credit Account",
+            balance: a.balance,
+            paymentStatus: a.paymentStatus,
+            dateOpened: a.dateOpened,
+            issues: a.issues.map((i: string | { code: string; description?: string }) =>
+              typeof i === "string"
+                ? { code: i, description: i }
+                : { code: i.code || i.description || "ISSUE", description: i.description }
+            ),
+            inaccurateCategories: a.inaccurateCategories,
+          })),
+          cra: cra,
+          flow: flowType,
+          round: dispute.round,
+          organizationId: session.user.organizationId,
+          lastDisputeDate: lastDisputeDateStr,
+          previousRoundContext: previousRoundIntelligence || undefined,
+          outcomePatternContext: outcomePatternContext || undefined,
+          litigationMode,
+          violationCount,
+        };
+
+        const aiResult = await generateAILetter(aiRequest);
+
+        // Map AIGeneratedLetter to GeneratedLetter format
+        generatedLetter = {
+          content: aiResult.content,
+          letterDate: aiResult.letterDate,
+          isBackdated: aiResult.isBackdated,
+          backdatedDays: aiResult.backdatedDays,
+          tone: aiResult.tone,
+          flow: aiResult.flow,
+          effectiveFlow: aiResult.effectiveFlow,
+          round: aiResult.round,
+          statute: aiResult.effectiveFlow === "COLLECTION" ? "FDCPA" : "FCRA",
+          contentHash: aiResult.contentHash,
+          includesScreenshots: false,
+          personalInfoDisputed: {
+            previousNames: [],
+            previousAddresses: [],
+            hardInquiries: [],
+          },
+          letterStructure: "DAMAGES_FIRST",
+        };
+
+        usedAIV4 = true;
+        log.info({
+          disputeId,
+          uniquenessScore: aiResult.uniquenessScore,
+          validationScore: aiResult.validationScore,
+          ameliaVersion: aiResult.ameliaVersion,
+          sectionsRetried: aiResult.generationStats.sectionsRetried,
+          totalAttempts: aiResult.generationStats.totalAttempts,
+        }, "[Amelia v4] AI letter generated successfully");
+      } catch (aiV4Error) {
+        log.error({ err: aiV4Error }, "[Amelia v4] AI generation failed, trying legacy generator");
+      }
+    }
+
+    // Fallback to legacy AI generation if v4 failed
+    if (!generatedLetter && isAIAvailable()) {
       try {
         // Adapt data to AI generation interface
         const aiClient: AmeliaClientInfo = {
@@ -427,7 +514,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           letterStructure: "DAMAGES_FIRST",
         };
 
-        log.info({ data: disputeId }, "[Amelia] AI letter generated successfully for dispute");
+        log.info({ data: disputeId }, "[Amelia] Legacy AI letter generated successfully for dispute");
       } catch (aiError) {
         log.error({ err: aiError }, "[Amelia] AI generation failed, falling back to template");
         // generatedLetter stays null, falls through to template generation
@@ -508,8 +595,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           statute: generatedLetter.statute,
           includesScreenshots: generatedLetter.includesScreenshots,
           personalInfoDisputed: generatedLetter.personalInfoDisputed,
-          ameliaVersion: "2.1",
-          generationMethod: isAIAvailable() ? "ai" : "template",
+          ameliaVersion: usedAIV4 ? "4.0.0-ai-driven" : "2.1",
+          generationMethod: usedAIV4 ? "ai-v4" : (isAIAvailable() ? "ai" : "template"),
         }),
       },
     });
