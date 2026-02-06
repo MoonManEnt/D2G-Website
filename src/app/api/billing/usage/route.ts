@@ -47,27 +47,38 @@ export async function GET() {
       prisma.storedFile.aggregate({ where: { organizationId: orgId }, _sum: { sizeBytes: true } }),
       prisma.user.count({ where: { organizationId: orgId, isActive: true } }),
     ]);
-    const storageBytes = storageResult._sum.sizeBytes || 0;
+    const storageBytes = Number(storageResult._sum.sizeBytes || 0);
     const storageLimitBytes = STORAGE_LIMITS[tier] ?? STORAGE_LIMITS.FREE;
     const teamLimit = TEAM_LIMITS[tier] ?? TEAM_LIMITS.FREE;
 
+    // Format storage for display
+    const formatBytes = (bytes: number) => {
+      if (bytes < 0) return "Unlimited";
+      if (bytes === 0) return "0 B";
+      const k = 1024;
+      const sizes = ["B", "KB", "MB", "GB", "TB"];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+    };
+
+    // Return flat structure matching frontend UsageData interface
     const usage = {
       clients: { current: clientCount, limit: tierLimits.clients.total },
       disputes: { current: disputeCount, limit: tierLimits.disputes.monthly },
       letters: { current: letterCount, limit: tierLimits.letters.monthly },
       reports: { current: reportCount, limit: tierLimits.reports.monthly },
-      storage: { currentBytes: storageBytes, limitBytes: storageLimitBytes },
+      storage: {
+        current: storageBytes,
+        limit: storageLimitBytes,
+        formatted: {
+          current: formatBytes(storageBytes),
+          limit: formatBytes(storageLimitBytes),
+        },
+      },
       teamSeats: { current: teamCount, limit: teamLimit },
     };
 
-    // Detect overflows
-    const overflows: string[] = [];
-    if (tierLimits.clients.total > 0 && clientCount >= tierLimits.clients.total) overflows.push("clients");
-    if (tierLimits.disputes.monthly > 0 && disputeCount >= tierLimits.disputes.monthly) overflows.push("disputes");
-    if (tierLimits.letters.monthly > 0 && letterCount >= tierLimits.letters.monthly) overflows.push("letters");
-    if (tierLimits.reports.monthly > 0 && reportCount >= tierLimits.reports.monthly) overflows.push("reports");
-
-    return NextResponse.json({ usage, tier, overflows });
+    return NextResponse.json(usage);
   } catch (error) {
     log.error({ err: error }, "Failed to fetch usage stats");
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

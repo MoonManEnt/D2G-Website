@@ -84,13 +84,14 @@ export function UsageDashboard({ onUpgradeClick }: UsageDashboardProps) {
 
   if (!usage) return null;
 
+  // Safely check for high usage with null guards
   const hasHighUsage = [
     usage.clients,
     usage.disputes,
     usage.letters,
     usage.reports,
   ].some(
-    (u) => u.limit !== -1 && u.current / u.limit >= 0.8
+    (u) => u && typeof u.limit === "number" && u.limit !== -1 && u.current / u.limit >= 0.8
   );
 
   return (
@@ -111,37 +112,49 @@ export function UsageDashboard({ onUpgradeClick }: UsageDashboardProps) {
         )}
       </CardHeader>
       <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <UsageBar
-          label="Active Clients"
-          current={usage.clients.current}
-          limit={usage.clients.limit}
-        />
-        <UsageBar
-          label="Disputes"
-          current={usage.disputes.current}
-          limit={usage.disputes.limit}
-        />
-        <UsageBar
-          label="Letters"
-          current={usage.letters.current}
-          limit={usage.letters.limit}
-        />
-        <UsageBar
-          label="Reports"
-          current={usage.reports.current}
-          limit={usage.reports.limit}
-        />
-        <UsageBar
-          label="Storage"
-          current={usage.storage.current}
-          limit={usage.storage.limit}
-          formatted={usage.storage.formatted}
-        />
-        <UsageBar
-          label="Team Seats"
-          current={usage.teamSeats.current}
-          limit={usage.teamSeats.limit}
-        />
+        {usage.clients && (
+          <UsageBar
+            label="Active Clients"
+            current={usage.clients.current ?? 0}
+            limit={usage.clients.limit ?? 0}
+          />
+        )}
+        {usage.disputes && (
+          <UsageBar
+            label="Disputes"
+            current={usage.disputes.current ?? 0}
+            limit={usage.disputes.limit ?? 0}
+          />
+        )}
+        {usage.letters && (
+          <UsageBar
+            label="Letters"
+            current={usage.letters.current ?? 0}
+            limit={usage.letters.limit ?? 0}
+          />
+        )}
+        {usage.reports && (
+          <UsageBar
+            label="Reports"
+            current={usage.reports.current ?? 0}
+            limit={usage.reports.limit ?? 0}
+          />
+        )}
+        {usage.storage && (
+          <UsageBar
+            label="Storage"
+            current={usage.storage.current ?? 0}
+            limit={usage.storage.limit ?? 0}
+            formatted={usage.storage.formatted}
+          />
+        )}
+        {usage.teamSeats && (
+          <UsageBar
+            label="Team Seats"
+            current={usage.teamSeats.current ?? 0}
+            limit={usage.teamSeats.limit ?? 0}
+          />
+        )}
       </CardContent>
     </Card>
   );
