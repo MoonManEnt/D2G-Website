@@ -186,24 +186,24 @@ export function LetterEditor({
     });
   };
 
-  const handleDownloadDocx = async () => {
+  const handleDownloadPdf = async () => {
     try {
       toast({
-        title: "Generating DOCX",
-        description: "Creating professionally formatted letter...",
+        title: "Generating PDF",
+        description: "Creating professionally formatted letter with signature...",
       });
 
-      const response = await fetch(`/api/disputes/${disputeId}/docx`);
+      const response = await fetch(`/api/disputes/${disputeId}/pdf`);
 
       if (!response.ok) {
-        throw new Error("Failed to generate DOCX");
+        throw new Error("Failed to generate PDF");
       }
 
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${documentTitle.replace(/\s+/g, "_")}.docx`;
+      a.download = `${documentTitle.replace(/\s+/g, "_")}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -211,12 +211,12 @@ export function LetterEditor({
 
       toast({
         title: "Downloaded",
-        description: "Professionally formatted DOCX file ready for eOSCAR.",
+        description: "Professionally formatted PDF with signature ready.",
       });
     } catch {
       toast({
         title: "Download Failed",
-        description: "Could not generate DOCX. Try downloading as TXT.",
+        description: "Could not generate PDF. Try downloading as TXT.",
         variant: "destructive"
       });
     }
@@ -308,11 +308,11 @@ export function LetterEditor({
             <Button
               size="sm"
               variant="outline"
-              onClick={handleDownloadDocx}
+              onClick={handleDownloadPdf}
               className="border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/10 bg-indigo-500/5 h-9"
             >
               <Download className="w-4 h-4 mr-2" />
-              .DOCX (eOSCAR)
+              .PDF
             </Button>
             <Button
               size="sm"

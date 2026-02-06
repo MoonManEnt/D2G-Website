@@ -77,6 +77,34 @@ export interface PDFGenerationOptions {
   includeSignatureLine?: boolean;
   includeFooter?: boolean;
   watermark?: string;
+  useScriptSignature?: boolean;
+}
+
+// Script signature font URL (Google Fonts - Dancing Script)
+const SCRIPT_FONT_URL = "https://fonts.gstatic.com/s/dancingscript/v25/If2cXTr6YS-zF4S-kcSWSVi_sxjsohD9F50Ruu7BMSo3Sup6hNX6plRP.woff";
+
+// Cache for script font bytes
+let scriptFontCache: ArrayBuffer | null = null;
+
+/**
+ * Load script font for signatures
+ */
+async function loadScriptFont(): Promise<ArrayBuffer> {
+  if (scriptFontCache) {
+    return scriptFontCache;
+  }
+
+  try {
+    const response = await fetch(SCRIPT_FONT_URL);
+    if (!response.ok) {
+      throw new Error("Failed to fetch script font");
+    }
+    scriptFontCache = await response.arrayBuffer();
+    return scriptFontCache;
+  } catch (error) {
+    log.error({ err: error }, "Failed to load script font, using fallback");
+    throw error;
+  }
 }
 
 /**
@@ -91,6 +119,7 @@ export async function generateDisputeLetterPDF(
     includeSignatureLine = true,
     includeFooter = true,
     watermark,
+    useScriptSignature = false,
   } = options;
 
   // Create a new PDF document
@@ -101,6 +130,18 @@ export async function generateDisputeLetterPDF(
   const timesRoman = await pdfDoc.embedFont(StandardFonts.TimesRoman);
   const timesRomanBold = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
   const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+  // Load script font for signature if requested
+  let scriptFont: PDFFont | null = null;
+  if (useScriptSignature) {
+    try {
+      const scriptFontBytes = await loadScriptFont();
+      scriptFont = await pdfDoc.embedFont(scriptFontBytes);
+    } catch {
+      // Fall back to italic if script font fails to load
+      scriptFont = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
+    }
+  }
 
   // Add the first page
   let page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
@@ -423,6 +464,19 @@ export async function generateDisputeLetterPDF(
 
   // ===== SIGNATURE LINE =====
   if (includeSignatureLine) {
+    // Draw script signature if script font is available
+    if (scriptFont) {
+      // Draw the signature in script font (above the line)
+      page.drawText(data.clientName, {
+        x: MARGIN_LEFT,
+        y: currentY + LINE_HEIGHT + 5,
+        size: 24,
+        font: scriptFont,
+        color: rgb(0.1, 0.1, 0.3), // Dark blue-ish for signature
+      });
+      currentY -= 5;
+    }
+
     // Signature line
     page.drawLine({
       start: { x: MARGIN_LEFT, y: currentY + LINE_HEIGHT },
@@ -431,6 +485,7 @@ export async function generateDisputeLetterPDF(
       color: BLACK,
     });
 
+    // Print name below line
     page.drawText(data.clientName, {
       x: MARGIN_LEFT,
       y: currentY,
@@ -503,6 +558,21 @@ export async function generateDisputeLetterPDF(
 
   // Save and return the PDF bytes
   return pdfDoc.save();
+}
+
+/**
+ * Generate a dispute letter PDF with script signature (convenience wrapper)
+ * This is the preferred function for generating dispute letters with
+ * professional-looking cursive signatures.
+ */
+export async function generateDisputeLetterPDFWithSignature(
+  data: DisputeLetterData,
+  options: Omit<PDFGenerationOptions, 'useScriptSignature'> & { useScriptSignature?: boolean } = {}
+): Promise<Uint8Array> {
+  return generateDisputeLetterPDF(data, {
+    ...options,
+    useScriptSignature: options.useScriptSignature ?? true, // Default to script signature
+  });
 }
 
 /**

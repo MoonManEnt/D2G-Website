@@ -329,6 +329,18 @@ function LockedSectionCard({
             </Button>
           </div>
         </div>
+      ) : section.id === "signature" ? (
+        // Render signature block with script font
+        <div className="text-foreground text-sm leading-relaxed pl-8">
+          <p className="mb-2">Sincerely,</p>
+          <p className="font-signature text-3xl text-blue-400 my-4">
+            {section.content.split("\n").find(line => line.trim() && !line.includes("___") && !line.toLowerCase().includes("sincerely")) || "Client Name"}
+          </p>
+          <div className="border-b border-muted-foreground/40 w-48 mb-1"></div>
+          <p className="font-semibold">
+            {section.content.split("\n").find(line => line.trim() && !line.includes("___") && !line.toLowerCase().includes("sincerely")) || "Client Name"}
+          </p>
+        </div>
       ) : (
         <div className="text-foreground text-sm leading-relaxed pl-8">
           {section.content.split("\n").map((line, i) => (
@@ -523,13 +535,16 @@ export function LetterEditorModal({
       },
     ];
 
+    // Extract client name from address for signature
+    const clientName = clientAddress.split("\n")[0]?.trim() || "Client Name";
+
     // Locked bottom sections
     const lockedBottom: DraggableSection[] = [
       {
         id: "signature",
         key: "signature",
         label: "Signature Block",
-        content: signature || `Sincerely,\n\n\n_______________________\nClient Name`,
+        content: signature || `Sincerely,\n\n${clientName}\n_______________________\n${clientName}`,
         editable: true,
         locked: true,
       },
@@ -854,24 +869,24 @@ export function LetterEditorModal({
     }
   };
 
-  // Download letter as DOCX
-  const handleDownloadDocx = async () => {
+  // Download letter as PDF
+  const handleDownloadPdf = async () => {
     setIsDownloading(true);
     try {
       // Try API download first if we have a disputeId
       if (generatedLetter?.disputeId) {
-        const res = await fetch(`/api/disputes/${generatedLetter.disputeId}/docx`);
+        const res = await fetch(`/api/disputes/${generatedLetter.disputeId}/pdf`);
         if (res.ok) {
           const blob = await res.blob();
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
-          a.download = `${generatedLetter.cra || "Dispute"}_R${generatedLetter.round || 1}_Letter.docx`;
+          a.download = `${generatedLetter.cra || "Dispute"}_R${generatedLetter.round || 1}_Letter.pdf`;
           document.body.appendChild(a);
           a.click();
           window.URL.revokeObjectURL(url);
           document.body.removeChild(a);
-          toast({ title: "Downloaded", description: "Letter saved as DOCX" });
+          toast({ title: "Downloaded", description: "Letter saved as PDF with signature" });
           return;
         }
       }
@@ -1237,12 +1252,12 @@ export function LetterEditorModal({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleDownloadDocx}
+                onClick={handleDownloadPdf}
                 disabled={isDownloading}
                 className="flex-1 gap-1.5 border-input"
               >
                 {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                DOCX
+                PDF
               </Button>
               <Button
                 variant="outline"
@@ -1280,19 +1295,33 @@ export function LetterEditorModal({
                 <div className="font-serif text-slate-800 leading-relaxed">
                   {[...lockedTop, ...draggableSections, ...lockedBottom]
                     .filter(s => s.content)
-                    .map((section, i) => (
+                    .map((section) => (
                       <div key={section.id} className="mb-6">
-                        {section.content.split("\n").map((line: string, j: number) => (
-                          <p key={j} className="mb-2 text-sm">{line}</p>
-                        ))}
+                        {section.id === "signature" ? (
+                          // Render signature with script font
+                          <div className="mt-8">
+                            <p className="mb-2 text-sm">Sincerely,</p>
+                            <p className="font-signature text-3xl text-blue-900 my-4">
+                              {section.content.split("\n").find(line => line.trim() && !line.includes("___") && !line.toLowerCase().includes("sincerely")) || "Client Name"}
+                            </p>
+                            <div className="border-b border-slate-400 w-48 mb-1"></div>
+                            <p className="text-sm font-semibold">
+                              {section.content.split("\n").find(line => line.trim() && !line.includes("___") && !line.toLowerCase().includes("sincerely")) || "Client Name"}
+                            </p>
+                          </div>
+                        ) : (
+                          section.content.split("\n").map((line: string, j: number) => (
+                            <p key={j} className="mb-2 text-sm">{line}</p>
+                          ))
+                        )}
                       </div>
                     ))}
                 </div>
               </div>
               <div className="flex justify-end gap-3 px-6 py-4 border-t bg-muted">
-                <Button onClick={handleDownloadDocx} disabled={isDownloading} className="bg-purple-600 hover:bg-purple-500">
+                <Button onClick={handleDownloadPdf} disabled={isDownloading} className="bg-purple-600 hover:bg-purple-500">
                   <Download className="w-4 h-4 mr-2" />
-                  Download DOCX
+                  Download PDF
                 </Button>
                 <Button variant="outline" onClick={handlePrintLetter}>
                   <Printer className="w-4 h-4 mr-2" />
