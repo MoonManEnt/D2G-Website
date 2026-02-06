@@ -92,12 +92,14 @@ export interface RoundTemplate {
   flow: FlowType;
   headline: string;
   statute: string;
-  openingParagraph: string; // DAMAGES
-  bodyParagraphs: string[]; // STORY/FACTS
-  bodyParagraphVariants?: string[][]; // NEW: Array of variant arrays per paragraph slot
+  openingParagraph: string; // DAMAGES (default fallback)
+  openingParagraphVariants?: string[]; // Multiple unique opening variants
+  bodyParagraphs: string[]; // STORY/FACTS (default fallback)
+  bodyParagraphVariants?: string[][]; // Array of variant arrays per paragraph slot
   accountListIntro?: string;
   demandSection: string;
-  consumerStatement: string;
+  consumerStatement: string; // Default fallback
+  consumerStatementVariants?: string[]; // Multiple unique consumer statement variants
   includesScreenshots: boolean;
 }
 
@@ -149,6 +151,24 @@ export const ACCURACY_TEMPLATES: Record<number, Omit<RoundTemplate, "round" | "f
     headline: "FACTUAL DISPUTE—Inaccurate accounts on my credit report.",
     statute: "FCRA Maximum Accuracy",
     openingParagraph: `{bureauName} may be facing serious legal penalties. You are furnishing inaccurate information on my credit report which is stopping me from getting the credit I need to support my family. Because of your unreliable reporting habits, I am forced to work extra hours day in and day out… losing all my spare time (which I used to spend with my family). And all the extra stress, lost time, and unwanted pressure in my life is caused by the inaccurate items on my credit report.`,
+    openingParagraphVariants: [
+      // Variant 1: Working parent struggling with finances
+      `I need to bring something serious to your attention. The information {bureauName} is reporting about me is simply wrong. These errors have real consequences—I've been turned down for financing that would have helped my family, and the rejections keep piling up. Every time I think I'm close to getting ahead, another denial letter shows up because of data on your report that doesn't match reality.`,
+      // Variant 2: First-time homebuyer blocked
+      `I've spent months preparing to buy my first home. Saved up, got my paperwork ready, found a place I could actually afford. Then the mortgage company pulled my credit and everything fell apart. The information {bureauName} has on file contains errors that make me look like a completely different person. I'm not going to let incorrect reporting destroy the biggest opportunity of my life.`,
+      // Variant 3: Recent divorcee rebuilding
+      `After going through a divorce, I've been working to rebuild my financial life. What I didn't expect was to find errors on my credit report that have nothing to do with my actual history. {bureauName} is reporting information that is demonstrably inaccurate, and it's preventing me from moving forward. I've checked the data against my own records, and the discrepancies are clear.`,
+      // Variant 4: Small business owner denied credit
+      `Running a small business means I rely on credit to keep things moving. When I was denied a business line of credit last month, I pulled my reports to see what went wrong. What I found on my {bureauName} report shocked me—accounts reporting balances I don't owe, statuses that don't match reality, and dates that make no sense. This isn't a minor clerical issue. This is affecting my ability to keep my business running.`,
+      // Variant 5: Healthcare worker during crisis
+      `I work in healthcare, and the past few years have pushed me to my limits. The last thing I needed was to discover that my credit report is full of inaccuracies. When I tried to refinance my car to lower my payments, I was denied because of what {bureauName} is reporting. I pulled my report and compared it to my actual records. The information doesn't match. Not even close.`,
+      // Variant 6: Veteran returning to civilian life
+      `Transitioning back to civilian life after military service has been challenging enough. Now I've discovered that {bureauName} is reporting information that is flat-out wrong. I've been denied for basic things—an apartment, a car loan—because of errors on my credit report. I served my country, and I expect accurate reporting from the agencies that hold so much power over my financial future.`,
+      // Variant 7: Teacher with student loans
+      `As an educator, I don't make a lot, but I've always been responsible with my finances. So you can imagine my frustration when I discovered that {bureauName} has been reporting inaccurate information about my accounts. I compared what you're showing against my actual payment records and statements. The numbers don't add up. The statuses are wrong. This needs to be corrected.`,
+      // Variant 8: Single parent managing everything alone
+      `Raising kids on my own means every dollar counts. When I was denied for a credit card with a modest limit, I knew something was wrong. I've never missed payments, yet {bureauName} is showing information that paints a completely different picture. I've pulled my records and cross-referenced everything. Your data is inaccurate, and it's hurting my family's ability to get by.`,
+    ],
     bodyParagraphs: [
       `The information in this complaint is inaccurate because it reports different information across each consumer reporting agency (or CRA). However, the Fair Credit Reporting Act (or FCRA) requires {bureauName} to report my credit with maximum accuracy. What is maximum accuracy? Well, under the FCRA, this standard forces CRAs to report my credit 100% consistent across each agency, only after I inform you of the errors.`,
       `And for this reason, if you do not modify or delete the accounts I am about to list in this complaint, you may have to pay a hefty fine (over a couple thousand) for the damages your misleading reporting has caused me. Here is a list of the items furnishing incorrect, plus the exact categories that are inaccurate:`,
@@ -174,6 +194,24 @@ export const ACCURACY_TEMPLATES: Record<number, Omit<RoundTemplate, "round" | "f
     accountListIntro: `You have 30 days from receiving this dispute to either correct these items… or… delete them from my credit report. I know I may sound a little blunt and direct, but you should know, my credit score controls almost all of my financial decisions… and without it I am going to struggle for a very long time. So all I ask of you is this: Please follow your legal duties and remove the inaccurate information from my credit report. I can assure you, it would work out best for the both of us.`,
     demandSection: DEMAND_LANGUAGE.R1,
     consumerStatement: `All items listed in this complaint are reporting incorrect information on my credit report. I have not been able to use my credit in a very long time and I am suffering each and every day because of it. Please remove this information ASAP so I can go back to living my normal (less stressful) life.`,
+    consumerStatementVariants: [
+      // Variant 1: Direct and matter-of-fact
+      `The accounts I've listed contain errors that do not reflect my actual credit history. I'm asking for a proper investigation and correction of these inaccuracies so my report accurately represents who I am as a borrower.`,
+      // Variant 2: Frustrated but professional
+      `I've documented specific inaccuracies in the accounts above. These errors have caused real problems for me, and I expect them to be investigated and corrected. I shouldn't have to fight to have accurate information on my own credit report.`,
+      // Variant 3: Emphasizing impact on family
+      `My family depends on me having access to fair credit. The errors in these accounts have made that impossible. I'm requesting that you investigate and fix these problems so I can provide for the people who count on me.`,
+      // Variant 4: Future-focused
+      `I'm trying to build a better future, but these reporting errors keep holding me back. Please investigate the items I've identified and make the necessary corrections. Accurate reporting is all I'm asking for.`,
+      // Variant 5: Referencing own records
+      `I have my own records showing that the information you're reporting is incorrect. I'm requesting that you verify this data against the original source and correct the errors I've identified above.`,
+      // Variant 6: Calm but firm
+      `The disputed items contain information that is demonstrably inaccurate. I'm formally requesting an investigation into each account listed. If the data cannot be verified as accurate, it should be removed from my file.`,
+      // Variant 7: Expressing determination
+      `I will continue to dispute these inaccuracies until my credit report reflects the truth. I'm asking you to conduct a real investigation—not just send a form letter back. These errors affect my daily life.`,
+      // Variant 8: Healthcare/essential worker angle
+      `I work hard every day to take care of others. The least I can expect is that my credit report accurately reflects my payment history. Please investigate and correct the errors I've identified.`,
+    ],
     includesScreenshots: false,
   },
 
@@ -181,6 +219,20 @@ export const ACCURACY_TEMPLATES: Record<number, Omit<RoundTemplate, "round" | "f
     headline: "15 U.S.C. 1681e(b) Accuracy of report—Damages may be owed.",
     statute: "15 USC 1681e(b)",
     openingParagraph: `{bureauName} has broken the law and may have to pay me a good amount in damages because you did not correct the misleading information from my credit report, after getting my dispute over 50 days ago. On {lastDisputeDate}, I spelled out the exact accounts that were furnishing different information on your agency compared to the other CRAs. But on my credit report update, literally, no changes were made. Therefore, I am owed actual damages because I have not been able to use my credit during this time.`,
+    openingParagraphVariants: [
+      // Variant 1: Direct and frustrated
+      `I'm writing again because nothing has changed. On {lastDisputeDate}, I sent you a detailed dispute explaining exactly what was wrong with my credit report. I expected your agency to investigate and correct the errors. Instead, I pulled my updated report and found everything exactly the same. No corrections. No deletions. Nothing. {bureauName} has failed to do its job, and I've suffered real consequences because of it.`,
+      // Variant 2: Citing the law clearly
+      `Under 15 USC 1681e(b), {bureauName} is required to maintain maximum accuracy. I disputed inaccurate items on {lastDisputeDate} and provided specific details about what was wrong. More than 30 days have passed, and my credit report shows zero changes. Your agency has not met its legal obligations, and I am now facing damages because of your inaction.`,
+      // Variant 3: Personal consequences focus
+      `Since I sent my dispute on {lastDisputeDate}, I've been turned down for credit twice. Both times, the lender cited information that I specifically told you was inaccurate. I did my part—I identified the errors and gave you time to fix them. You did nothing. Now I'm dealing with the fallout from your failure to investigate.`,
+      // Variant 4: Comparison across bureaus
+      `I've compared my credit reports from all three bureaus, and the discrepancies are clear. The items I disputed on {lastDisputeDate} still show different information on {bureauName} than what the other agencies report. This proves the data is inaccurate, yet you've made no corrections. How is that meeting the maximum accuracy standard?`,
+      // Variant 5: Business impact angle
+      `When I disputed these accounts on {lastDisputeDate}, I explained how the errors were affecting my ability to conduct business. Thirty days later, nothing has changed on my report. Meanwhile, I've lost opportunities that won't come back. Your failure to investigate has cost me real money.`,
+      // Variant 6: Time and effort invested
+      `I've now spent hours documenting errors, writing disputes, and waiting for corrections that never came. My dispute from {lastDisputeDate} laid out everything clearly—the accounts, the discrepancies, the specific categories that were wrong. You had 30 days to act. You chose not to. That decision will cost one of us, and I intend for it to be you.`,
+    ],
     bodyParagraphs: [
       `If you do not want me to seek a legal claim against your agency, I suggest you delete the inaccurate information (in this complaint) right away. You see, according to 15 USC 1681e(b), {bureauName} must conduct reasonable procedures—to make certain without a doubt—that every item on my credit report is furnished without error. And after reviewing my updated credit report, NO CHANGES WERE MADE TO THE DISPUTED ITEMS. For this reason, you have, without a doubt, not followed reasonable procedures to report my credit with maximum accuracy.`,
       `Here is a list of the exact information furnishing inaccurate on my credit report:`,
@@ -206,6 +258,20 @@ export const ACCURACY_TEMPLATES: Record<number, Omit<RoundTemplate, "round" | "f
     accountListIntro: `To further prove the items are inaccurate, I have attached screenshots showing how the items listed above, are reporting different information on your agency compared to the other CRAs. Confirming these items are inaccurate—according to the maximum accuracy standard of the FCRA. This brings me to my next point…\n\nIf you would like me to drop my complaint (which you will clearly lose if I decide to take it to court)… I will only do so, if you delete the inaccurate information from my credit report. Please review the categories I listed as incorrect, plus the screenshots that prove the items are incorrect. Then I suggest you delete the following items from my credit report to avoid having to pay me actual damages under 15 USC 1681o.`,
     demandSection: DEMAND_LANGUAGE.R2,
     consumerStatement: `60 days flew by and {bureauName} failed to make any changes to the disputed accounts in my last complaint. I mean I gave you double the time to investigate, and you still did not make any changes. This is insane to think about, especially, when you are heavily watched by the FTC for this one job. If you are a creditor and you can see this statement, just know… the items in my report are heavily incorrect.`,
+    consumerStatementVariants: [
+      // Variant 1: Time passed without action
+      `I gave {bureauName} more time than required by law to investigate my dispute. In return, I received no corrections and no explanation. The items remain inaccurate, and my financial situation continues to suffer. I expect action on this follow-up dispute.`,
+      // Variant 2: Documentation emphasis
+      `I have documented every step of this process. My initial dispute was clear. The errors are verifiable. And {bureauName} has done nothing to address them. Creditors reviewing my file should know that I am actively fighting inaccurate information that your agency refuses to correct.`,
+      // Variant 3: Frustration with the system
+      `Two months of waiting and nothing to show for it. I followed the proper process, provided the required information, and expected a fair investigation. What I got was silence and inaction. These disputed items are wrong, and I will keep pushing until they're corrected.`,
+      // Variant 4: Impact on daily life
+      `Every day these errors remain on my report is another day I can't move forward. I can't get approved for what I need. I can't plan for my future. All because {bureauName} won't do its job. To any creditor reading this: the information being reported is inaccurate.`,
+      // Variant 5: Prepared for escalation
+      `I've been patient. I've followed the rules. And I've gotten nowhere. The disputed accounts contain clear errors that {bureauName} has failed to address. I am prepared to escalate this matter if my second dispute receives the same treatment as the first.`,
+      // Variant 6: Simple and direct
+      `The items I disputed remain inaccurate. {bureauName} has not corrected them despite having ample time and evidence. I am formally disputing these accounts again and expect a proper investigation this time.`,
+    ],
     includesScreenshots: true,
   },
 
@@ -394,6 +460,20 @@ export const COLLECTION_TEMPLATES: Record<number, Omit<RoundTemplate, "round" | 
     headline: "Debt Collector Violated 15 USC 1692g—I never got a dunning letter within 5 days of the accounts reporting.",
     statute: "15 USC 1692g",
     openingParagraph: `If you want to avoid getting dragged into a civil lawsuit where you may have to pay for damages, for something you did not even intentionally do, I suggest you delete the illegal collection accounts from my credit report today.`,
+    openingParagraphVariants: [
+      // Variant 1: Discovered through credit check
+      `I recently pulled my credit report and discovered collection accounts that I've never been properly notified about. These debt collectors reported to {bureauName} without ever sending me the required validation notice. That's not just unfair—it's a federal violation under 15 USC 1692g.`,
+      // Variant 2: Denied because of unknown collections
+      `I was denied credit last week, and when I checked my report, I found collection accounts I had no idea existed. No one ever contacted me about these debts. No validation letters. No proper notification. Just surprise entries destroying my credit. This is exactly what the FDCPA was designed to prevent.`,
+      // Variant 3: Multiple collections appearing suddenly
+      `Multiple collection accounts have appeared on my credit report without any prior communication from the debt collectors. Under federal law, collectors must validate debts before reporting them. They didn't. These accounts are illegally furnished and need to be removed.`,
+      // Variant 4: Working toward credit goals blocked
+      `I've been working to improve my credit situation, and I was making progress until these collection accounts appeared out of nowhere. The debt collectors never sent validation notices—they just reported to {bureauName} and damaged my score. This violates federal debt collection law.`,
+      // Variant 5: Comparing bureaus revealed discrepancies
+      `When I compared my credit reports from all three bureaus, I noticed collection accounts that shouldn't be there. I never received any validation letters from these debt collectors. Under 15 USC 1692g, they cannot report debts without first sending proper notice. They skipped that step entirely.`,
+      // Variant 6: Direct and legal-focused
+      `The collection accounts on my credit report were furnished in violation of 15 USC 1692g. The debt collectors failed to send me the mandatory validation notice within 5 days of initial communication. Reporting to a credit bureau is communication. I received nothing. These items must be deleted.`,
+    ],
     bodyParagraphs: [
       `You see, {debtCollectorNames}, has furnished a collection account on my credit report without validating this debt with me beforehand. In fact, the following debt collectors never sent me a dunning letter (which is mandatory to validate a debt) within 5 days of the accounts getting reported (which is also the initial communication). Therefore, the accounts listed below must all get deleted from my credit report under 15 USC 1692g.`,
       `However, there is one way you can leave the items on my credit report unscathed. And in order to do this, you must produce proof a dunning letter was sent to my address (within 5 days of the account getting furnished). If you cannot produce the requested information, then, by law, you must delete the collection items off my credit report by my next report update.`,
@@ -424,6 +504,20 @@ export const COLLECTION_TEMPLATES: Record<number, Omit<RoundTemplate, "round" | 
     ],
     demandSection: DEMAND_LANGUAGE.R1,
     consumerStatement: `The debt collectors cannot be trusted. They have placed these accounts on my credit report without validating the debt beforehand. I have sent a direct dispute informing the debt collectors of their criminal acts (along with this dispute.) They have committed debt parking, and I will not let them get away with it. So to save yourself the legal trouble, I suggest you delete the items right away.`,
+    consumerStatementVariants: [
+      // Variant 1: Validation failure focus
+      `These collection accounts were reported without any validation notice being sent to me. Under federal law, that's not allowed. I'm disputing these items with the debt collectors directly, but {bureauName} has a responsibility to ensure the information you report is accurate and legally obtained. Remove these accounts.`,
+      // Variant 2: Impact on credit goals
+      `I've been working hard to manage my finances responsibly, and these illegally reported collections are setting me back. The debt collectors skipped the validation process entirely. I expect {bureauName} to remove accounts that were furnished in violation of federal law.`,
+      // Variant 3: Warning about legal action
+      `The debt collectors listed in this dispute have violated the Fair Debt Collection Practices Act by reporting debts without proper validation. I have documented this violation and am prepared to take further action if these accounts are not removed from my credit report.`,
+      // Variant 4: Protecting consumer rights
+      `Debt collection laws exist to protect consumers from exactly this kind of behavior—surprise entries on credit reports without proper notice or validation. I'm exercising my rights under the FDCPA and FCRA. These unvalidated collection accounts must be deleted.`,
+      // Variant 5: Direct request
+      `No validation letter was ever sent for these collection accounts. That's a clear violation of 15 USC 1692g. I'm requesting that {bureauName} remove these illegally furnished accounts and stop reporting information that was obtained in violation of federal law.`,
+      // Variant 6: Comparing to legitimate creditors
+      `Legitimate creditors follow the rules. These debt collectors did not. They reported to {bureauName} without validating the debts first. I should not have to suffer credit damage because collectors failed to follow basic federal requirements. Delete these accounts.`,
+    ],
     includesScreenshots: false,
   },
 
@@ -693,6 +787,103 @@ export function selectBodyParagraphVariants(
     paragraphs: selected,
     variantComboKey: "fallback",
   };
+}
+
+/**
+ * Select an opening paragraph variant for uniqueness.
+ * Uses a seed for deterministic selection when provided.
+ *
+ * @param template - The round template
+ * @param seed - Optional seed for deterministic randomization
+ * @param usedVariantIndices - Set of previously used variant indices
+ * @returns Selected opening paragraph and its index
+ */
+export function selectOpeningVariant(
+  template: Omit<RoundTemplate, "round" | "flow">,
+  seed?: string,
+  usedVariantIndices: Set<number> = new Set()
+): { paragraph: string; variantIndex: number } {
+  // No variants available, use default
+  if (!template.openingParagraphVariants || template.openingParagraphVariants.length === 0) {
+    return {
+      paragraph: template.openingParagraph,
+      variantIndex: -1,
+    };
+  }
+
+  const variants = template.openingParagraphVariants;
+
+  // If seed provided, use deterministic selection
+  if (seed) {
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+      hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0;
+    }
+    const idx = Math.abs(hash) % variants.length;
+    return { paragraph: variants[idx], variantIndex: idx };
+  }
+
+  // Try to find an unused variant
+  const availableIndices = Array.from({ length: variants.length }, (_, i) => i)
+    .filter(i => !usedVariantIndices.has(i));
+
+  if (availableIndices.length > 0) {
+    const idx = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+    return { paragraph: variants[idx], variantIndex: idx };
+  }
+
+  // All used, pick random
+  const idx = Math.floor(Math.random() * variants.length);
+  return { paragraph: variants[idx], variantIndex: idx };
+}
+
+/**
+ * Select a consumer statement variant for uniqueness.
+ * Uses a seed for deterministic selection when provided.
+ *
+ * @param template - The round template
+ * @param seed - Optional seed for deterministic randomization
+ * @param usedVariantIndices - Set of previously used variant indices
+ * @returns Selected consumer statement and its index
+ */
+export function selectConsumerStatementVariant(
+  template: Omit<RoundTemplate, "round" | "flow">,
+  seed?: string,
+  usedVariantIndices: Set<number> = new Set()
+): { statement: string; variantIndex: number } {
+  // No variants available, use default
+  if (!template.consumerStatementVariants || template.consumerStatementVariants.length === 0) {
+    return {
+      statement: template.consumerStatement,
+      variantIndex: -1,
+    };
+  }
+
+  const variants = template.consumerStatementVariants;
+
+  // If seed provided, use deterministic selection
+  if (seed) {
+    // Use different hash multiplier than opening to avoid correlation
+    let hash = 7;
+    for (let i = 0; i < seed.length; i++) {
+      hash = ((hash << 3) + hash + seed.charCodeAt(i)) | 0;
+    }
+    const idx = Math.abs(hash) % variants.length;
+    return { statement: variants[idx], variantIndex: idx };
+  }
+
+  // Try to find an unused variant
+  const availableIndices = Array.from({ length: variants.length }, (_, i) => i)
+    .filter(i => !usedVariantIndices.has(i));
+
+  if (availableIndices.length > 0) {
+    const idx = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+    return { statement: variants[idx], variantIndex: idx };
+  }
+
+  // All used, pick random
+  const idx = Math.floor(Math.random() * variants.length);
+  return { statement: variants[idx], variantIndex: idx };
 }
 
 /**

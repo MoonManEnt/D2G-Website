@@ -25,6 +25,8 @@ import {
   getEffectiveFlow,
   shouldIncludeScreenshots,
   selectBodyParagraphVariants,
+  selectOpeningVariant,
+  selectConsumerStatementVariant,
   ACCURACY_TEMPLATES,
   COLLECTION_TEMPLATES,
   CONSENT_TEMPLATES,
@@ -49,6 +51,13 @@ import {
   humanizeText,
   buildComponentKey,
 } from "./amelia-stories";
+import {
+  inferConsumerVoice,
+  getVoicePhrases,
+  applyVoiceToText,
+  type ConsumerVoiceProfile,
+  type SoulEngineInput,
+} from "./amelia-soul-engine";
 import type { CRA } from "@/types";
 import type { NextRoundContext } from "./dispute-intelligence/types";
 
@@ -219,30 +228,159 @@ function generateAccountList(
 
 /**
  * Generate the "Requested Corrections / Deletions" section
+ *
+ * This section auto-populates from the disputed accounts and their specific issues.
+ * Each account gets a unique, issue-specific correction request.
  */
 function generateCorrectionsSection(
   accounts: DisputeAccount[],
-  flow: FlowType
+  flow: FlowType,
+  seed?: string
 ): string {
-  let section = `Requested Corrections / Deletions (If Not Verified as Accurate):\n\n`;
+  // Vary the header slightly
+  const headers = [
+    "Requested Corrections / Deletions (If Not Verified as Accurate):",
+    "Items Requiring Immediate Correction or Removal:",
+    "Accounts to be Corrected or Deleted if Unverifiable:",
+    "Corrections I Am Formally Requesting:",
+  ];
+  const headerIndex = seed ? Math.abs(hashString(seed)) % headers.length : 0;
+  let section = `${headers[headerIndex]}\n\n`;
 
   accounts.forEach((account, index) => {
-    let reason: string;
+    // Build correction request from ACTUAL issues on the account
+    const issueDescriptions = account.issues
+      .map(issue => issue.description || issue.code)
+      .filter(desc => desc && desc.length > 0);
 
-    if (flow === "COLLECTION") {
-      reason = "Disputing validity of this collection - As a consumer by law this debt must be validated or deleted immediately";
-    } else if (account.issues.some(i => i.code.includes("LATE") || i.code.includes("PAYMENT"))) {
-      reason = "Accuracy of Report - As a consumer by law the late payment transactions must be updated or removed";
-    } else if (account.issues.some(i => i.code.includes("COLLECTION"))) {
-      reason = "Disputing validity of this collection - As a consumer by law this account must be validated or deleted immediately";
-    } else {
-      reason = "Disputing the Accuracy of this account - As a consumer by law this account must be updated or deleted immediately";
+    const categories = determineInaccurateCategories(account);
+
+    // Start with account identifier
+    section += `${index + 1}. ${account.creditorName}`;
+    if (account.accountNumber) {
+      section += ` - Account #${account.accountNumber}`;
+    }
+    section += "\n";
+
+    // Add account type if available
+    if (account.accountType) {
+      section += `   Type: ${account.accountType}\n`;
     }
 
-    section += `${index + 1}. ${account.creditorName} - ${account.accountNumber} - ${reason}\n\n`;
+    // Add specific issues found
+    if (issueDescriptions.length > 0) {
+      section += `   Issues Found:\n`;
+      issueDescriptions.forEach(issue => {
+        section += `   • ${issue}\n`;
+      });
+    }
+
+    // Add inaccurate categories
+    if (categories.length > 0) {
+      section += `   Categories to Verify: ${categories.join(", ")}\n`;
+    }
+
+    // Generate unique action request based on flow and issues
+    const actionRequest = generateCorrectionAction(account, flow, index, seed);
+    section += `   Action Requested: ${actionRequest}\n\n`;
   });
 
   return section;
+}
+
+/**
+ * Generate a unique correction action request for an account
+ */
+function generateCorrectionAction(
+  account: DisputeAccount,
+  flow: FlowType,
+  index: number,
+  seed?: string
+): string {
+  const hasLatePaymentIssue = account.issues.some(i =>
+    i.code.includes("LATE") || i.code.includes("PAYMENT") || i.code.includes("DELINQ")
+  );
+  const hasCollectionIssue = account.issues.some(i =>
+    i.code.includes("COLLECTION") || i.code.includes("CHARGEOFF")
+  );
+  const hasBalanceIssue = account.issues.some(i =>
+    i.code.includes("BALANCE") || i.code.includes("AMOUNT")
+  );
+  const hasStatusIssue = account.issues.some(i =>
+    i.code.includes("STATUS") || i.code.includes("CLOSED") || i.code.includes("OPEN")
+  );
+
+  // Collection flow
+  if (flow === "COLLECTION" || hasCollectionIssue) {
+    const collectionActions = [
+      "Validate this debt with original documentation or delete it entirely",
+      "Provide proof of the original creditor agreement or remove this account",
+      "This collection must be verified with signed documentation or deleted",
+      "Remove if original creditor documentation cannot be provided",
+      "Delete this account if validation cannot be completed with proper documentation",
+    ];
+    const idx = seed ? Math.abs(hashString(seed + account.creditorName + index)) % collectionActions.length : index % collectionActions.length;
+    return collectionActions[idx];
+  }
+
+  // Late payment issues
+  if (hasLatePaymentIssue) {
+    const lateActions = [
+      "Correct the payment history to reflect accurate dates or remove late notations",
+      "Update payment status to show accurate reporting or delete inaccurate late marks",
+      "Remove inaccurate late payment notations that do not match my records",
+      "Verify each late payment date with documentation or correct to accurate status",
+      "The late payment reporting must be corrected or removed if unverifiable",
+    ];
+    const idx = seed ? Math.abs(hashString(seed + account.creditorName + index)) % lateActions.length : index % lateActions.length;
+    return lateActions[idx];
+  }
+
+  // Balance issues
+  if (hasBalanceIssue) {
+    const balanceActions = [
+      "Update the balance to reflect the correct amount or remove this account",
+      "Correct the reported balance to match actual records",
+      "The balance shown does not match my records and must be corrected",
+      "Verify the balance with documentation and correct any discrepancies",
+    ];
+    const idx = seed ? Math.abs(hashString(seed + account.creditorName + index)) % balanceActions.length : index % balanceActions.length;
+    return balanceActions[idx];
+  }
+
+  // Status issues
+  if (hasStatusIssue) {
+    const statusActions = [
+      "Correct the account status to reflect accurate information",
+      "Update the account status or remove if unverifiable",
+      "The account status is inaccurate and must be corrected",
+      "Verify and correct the account status reporting",
+    ];
+    const idx = seed ? Math.abs(hashString(seed + account.creditorName + index)) % statusActions.length : index % statusActions.length;
+    return statusActions[idx];
+  }
+
+  // Generic accuracy
+  const genericActions = [
+    "Verify all information with documentation and correct any inaccuracies",
+    "This account contains inaccurate information that must be corrected or deleted",
+    "Update this account to reflect accurate information or remove entirely",
+    "Correct all inaccurate details or delete if verification fails",
+    "The information on this account does not match my records and requires correction",
+  ];
+  const idx = seed ? Math.abs(hashString(seed + account.creditorName + index)) % genericActions.length : index % genericActions.length;
+  return genericActions[idx];
+}
+
+/**
+ * Simple string hash for deterministic randomization
+ */
+function hashString(str: string): number {
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash) ^ str.charCodeAt(i);
+  }
+  return hash;
 }
 
 /**
@@ -579,6 +717,40 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
     tone = toneMapping[previousRoundContext.suggestedTone] || tone;
   }
 
+  // SOUL ENGINE INTEGRATION: Generate unique voice profile for this consumer
+  // This ensures every letter has a distinct, human voice
+  let voiceProfile: ConsumerVoiceProfile | null = null;
+  try {
+    const soulInput: SoulEngineInput = {
+      client: {
+        name: client.fullName,
+        dob: client.dateOfBirth,
+        address: `${client.city}, ${client.state}`,
+      },
+      account: {
+        creditorName: accounts[0]?.creditorName || "Unknown",
+        accountType: accounts[0]?.accountType || "Credit Account",
+        currentStatus: accounts[0]?.paymentStatus || "Disputed",
+        reportedBalance: accounts[0]?.balance,
+      },
+      disputeConfig: {
+        mode: "dispute_flow",
+        round,
+        priorDisputeDates: lastDisputeDate ? [lastDisputeDate] : undefined,
+      },
+      disputeTarget: {
+        entityType: effectiveFlow === "COLLECTION" ? "collector" : "CRA",
+      },
+    };
+    voiceProfile = inferConsumerVoice(soulInput);
+  } catch {
+    // If Soul Engine fails, continue without voice profile
+    voiceProfile = null;
+  }
+
+  // Get voice-specific phrases if we have a profile
+  const voicePhrases = voiceProfile ? getVoicePhrases(voiceProfile) : null;
+
   // Build template variables
   const vars: TemplateVariables = {
     clientFirstName: client.firstName,
@@ -605,8 +777,11 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
   const header = generateHeader(client, cra, letterDate);
   const headline = interpolateVariables(template.headline, vars);
 
-  // Opening paragraph (DAMAGES) - adapt based on previous round context
-  let openingParagraph = interpolateVariables(template.openingParagraph, vars);
+  // Opening paragraph (DAMAGES) - select from variants for uniqueness
+  // Use client + date + CRA as seed for deterministic but unique selection
+  const variantSeed = `${client.fullName}-${letterDate.toISOString()}-${cra}-${round}`;
+  const { paragraph: selectedOpening } = selectOpeningVariant(template, variantSeed);
+  let openingParagraph = interpolateVariables(selectedOpening, vars);
 
   // AMELIA Doctrine: ALL rounds get unique stories for eOSCAR resistance
   // R1: Standard story generation from scenario pools
@@ -660,8 +835,9 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
   const demandLanguage = getDemandLanguage(round);
   const demandSection = demandLanguage;
 
-  // Corrections section
-  const correctionsSection = generateCorrectionsSection(accounts, effectiveFlow);
+  // Corrections section - use client info and date as seed for unique variations
+  const correctionsSeed = `${client.fullName}-${letterDate.toISOString()}-${cra}`;
+  const correctionsSection = generateCorrectionsSection(accounts, effectiveFlow, correctionsSeed);
 
   // AMELIA Doctrine: Personal info disputes persist until confirmed removed
   // R1: Initial disputes from client data
@@ -673,8 +849,9 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
     activePersonalInfoDisputes
   );
 
-  // Consumer statement
-  const consumerStatement = interpolateVariables(template.consumerStatement, vars);
+  // Consumer statement - select from variants for uniqueness
+  const { statement: selectedStatement } = selectConsumerStatementVariant(template, variantSeed);
+  const consumerStatement = interpolateVariables(selectedStatement, vars);
 
   // Screenshots reference (R2+)
   const screenshotsRef = shouldIncludeScreenshots(round)
@@ -733,7 +910,13 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
     closing
   );
 
-  const content = letterParts.join("\n").replace(/\n{3,}/g, "\n\n");
+  let content = letterParts.join("\n").replace(/\n{3,}/g, "\n\n");
+
+  // SOUL ENGINE: Apply voice transformation to make letter unique
+  // This adds contractions, adjusts formality, and personalizes language
+  if (voiceProfile) {
+    content = applyVoiceToText(content, voiceProfile);
+  }
 
   // Calculate content hash
   const contentHash = hashContent(content);
