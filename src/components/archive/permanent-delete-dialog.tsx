@@ -106,7 +106,7 @@ export function PermanentDeleteDialog({
               </div>
             </div>
             <p className="text-xs text-muted-foreground mt-3 text-center">
-              Plus all credit reports, scores, evidence, documents, and event logs
+              Plus all credit reports, scores, documents, and event logs
             </p>
           </div>
 

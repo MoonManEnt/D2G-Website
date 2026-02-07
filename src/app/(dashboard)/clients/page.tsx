@@ -1763,10 +1763,6 @@ export default function ClientsPage() {
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
-                  All evidence and documents
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
                   All activity history and audit logs
                 </li>
               </ul>

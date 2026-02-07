@@ -22,7 +22,6 @@ import {
   FileText,
   AlertTriangle,
   Scale,
-  Image as ImageIcon,
   Upload,
   Phone,
   Mail,
@@ -51,9 +50,7 @@ import {
   History,
   Eye,
   EyeOff,
-  Camera,
 } from "lucide-react";
-import { EvidenceCaptureModal } from "@/components/evidence/capture-modal";
 import { ScoreChart, AddScoreModal } from "@/components/credit-scores";
 import { useToast } from "@/lib/use-toast";
 import { DisputeCommandCenter } from "@/components/disputes/dispute-command-center";
@@ -135,12 +132,6 @@ interface ClientData {
     suggestedFlow: string | null;
     sourcePageNum: number | null;
     reportId: string;
-    evidences: Array<{
-      id: string;
-      evidenceType: string;
-      title: string | null;
-      createdAt: string;
-    }>;
   }>;
   disputes: Array<{
     id: string;
@@ -156,7 +147,6 @@ interface Summary {
   totalDisputes: number;
   negativeItems: number;
   highSeverityIssues: number;
-  totalEvidence: number;
 }
 
 interface CreditScore {
@@ -324,10 +314,9 @@ function getComplexityBadgeColor(complexity: string): string {
 }
 
 // Negative Item Card Component
-function NegativeItemCard({ account, onViewDetails, onCaptureEvidence }: {
+function NegativeItemCard({ account, onViewDetails }: {
   account: ClientData["accounts"][0];
   onViewDetails: () => void;
-  onCaptureEvidence: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const issues = account.detectedIssues ? JSON.parse(account.detectedIssues) : [];
@@ -430,18 +419,6 @@ function NegativeItemCard({ account, onViewDetails, onCaptureEvidence }: {
             <Button
               variant="outline"
               size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onCaptureEvidence();
-              }}
-              className="bg-card border-purple-500/30 hover:bg-purple-500/20 text-purple-300"
-            >
-              <Camera className="w-4 h-4 mr-1" />
-              Capture
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
               onClick={onViewDetails}
               className="bg-card border-input hover:bg-muted text-foreground"
             >
@@ -487,10 +464,6 @@ export default function ClientDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [showSSN, setShowSSN] = useState(true); // Default to showing last 4
-
-  // Evidence capture modal state
-  const [captureModalOpen, setCaptureModalOpen] = useState(false);
-  const [selectedAccountForCapture, setSelectedAccountForCapture] = useState<ClientData["accounts"][0] | null>(null);
 
   const fetchClient = useCallback(async () => {
     try {
@@ -894,13 +867,6 @@ export default function ClientDetailPage() {
               <p className="text-xs text-muted-foreground">Disputes</p>
             </CardContent>
           </Card>
-          <Card className="bg-card border-border">
-            <CardContent className="p-4 text-center">
-              <ImageIcon className="w-6 h-6 mx-auto text-muted-foreground" />
-              <p className="text-2xl font-bold text-foreground mt-2">{summary.totalEvidence}</p>
-              <p className="text-xs text-muted-foreground">Evidence</p>
-            </CardContent>
-          </Card>
         </div>
       )}
 
@@ -1048,10 +1014,6 @@ export default function ClientDetailPage() {
                   key={account.id}
                   account={account}
                   onViewDetails={() => router.push(`/disputes?account=${account.id}`)}
-                  onCaptureEvidence={() => {
-                    setSelectedAccountForCapture(account);
-                    setCaptureModalOpen(true);
-                  }}
                 />
               ))}
             </div>
@@ -1941,7 +1903,6 @@ export default function ClientDetailPage() {
                 <li>{summary?.totalReports || 0} credit reports</li>
                 <li>{summary?.totalAccounts || 0} creditors</li>
                 <li>{summary?.totalDisputes || 0} disputes</li>
-                <li>All evidence and documents</li>
               </ul>
             </div>
             <div className="space-y-2">
@@ -1988,34 +1949,6 @@ export default function ClientDetailPage() {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Evidence Capture Modal */}
-      {selectedAccountForCapture && (
-        <EvidenceCaptureModal
-          open={captureModalOpen}
-          onOpenChange={(open) => {
-            setCaptureModalOpen(open);
-            if (!open) setSelectedAccountForCapture(null);
-          }}
-          account={{
-            id: selectedAccountForCapture.id,
-            creditorName: selectedAccountForCapture.creditorName,
-            maskedAccountId: selectedAccountForCapture.maskedAccountId,
-            cra: selectedAccountForCapture.cra,
-            detectedIssues: selectedAccountForCapture.detectedIssues,
-            sourcePageNum: selectedAccountForCapture.sourcePageNum,
-          }}
-          reportId={selectedAccountForCapture.reportId}
-          pdfUrl={`/api/reports/${selectedAccountForCapture.reportId}/pdf`}
-          onEvidenceCaptured={() => {
-            fetchClient();
-            toast({
-              title: "Evidence Captured",
-              description: "Evidence has been saved successfully",
-            });
-          }}
-        />
-      )}
 
       {/* Amelia Chat Drawer */}
       <AmeliaChatDrawer

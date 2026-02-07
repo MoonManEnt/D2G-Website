@@ -35,13 +35,6 @@ const TOUR_STEPS: TourStep[] = [
     position: "right",
   },
   {
-    id: "evidence",
-    title: "Evidence Library",
-    description: "Capture screenshots of credit report errors, annotate them, and attach as evidence to strengthen your dispute letters.",
-    targetSelector: "[data-tour='evidence']",
-    position: "right",
-  },
-  {
     id: "responses",
     title: "Response Tracking",
     description: "Track CRA responses, log outcomes (deleted, verified, updated), and let the system recommend next steps automatically.",

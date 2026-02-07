@@ -74,7 +74,6 @@ export default function SettingsPage() {
     reports: number;
     disputes: number;
     accounts: number;
-    evidence: number;
     documents: number;
   } | null>(null);
   const [isLoadingCounts, setIsLoadingCounts] = useState(false);
@@ -546,7 +545,7 @@ export default function SettingsPage() {
                           Reset All Data
                         </h3>
                         <p className="text-sm text-muted-foreground max-w-md">
-                          Permanently delete ALL client data, reports, disputes, and evidence.
+                          Permanently delete ALL client data, reports, and disputes.
                           This action cannot be undone. Use this to start fresh with a clean slate.
                         </p>
                       </div>
@@ -567,7 +566,7 @@ export default function SettingsPage() {
                   <div className="p-4 border border-border rounded-lg bg-muted/30">
                     <p className="text-sm text-muted-foreground">
                       <strong className="text-foreground">Note:</strong> This will delete all clients, credit reports,
-                      disputes, account items, evidence, documents, and related data. Your organization settings,
+                      disputes, account items, documents, and related data. Your organization settings,
                       user accounts, and billing information will remain intact.
                     </p>
                   </div>
@@ -738,11 +737,6 @@ export default function SettingsPage() {
                     <span className="text-foreground font-medium">{dataCounts.accounts}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <FileText className="w-4 h-4 text-rose-400" />
-                    <span className="text-muted-foreground">Evidence:</span>
-                    <span className="text-foreground font-medium">{dataCounts.evidence}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
                     <FileText className="w-4 h-4 text-cyan-400" />
                     <span className="text-muted-foreground">Documents:</span>
                     <span className="text-foreground font-medium">{dataCounts.documents}</span>
@@ -757,7 +751,7 @@ export default function SettingsPage() {
             <div className="bg-red-950/30 border border-red-900/50 rounded-lg p-4">
               <p className="text-sm text-red-300">
                 <strong>Warning:</strong> This will permanently delete all client data, credit reports,
-                disputes, account items, evidence, and documents. Your organization settings and
+                disputes, account items, and documents. Your organization settings and
                 user accounts will remain intact.
               </p>
             </div>

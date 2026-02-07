@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, Users, FileText, Camera, BarChart3, MoreHorizontal } from "lucide-react";
+import { LayoutDashboard, Users, FileText, MoreHorizontal } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -10,7 +10,6 @@ const PRIMARY_TABS = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Home" },
   { href: "/clients", icon: Users, label: "Clients" },
   { href: "/disputes", icon: FileText, label: "Disputes" },
-  { href: "/evidence", icon: Camera, label: "Evidence" },
 ];
 
 const MORE_TABS = [
