@@ -124,7 +124,7 @@ function validateAccounts(accounts: CreditAccount[]): CreditAccount[] {
       creditorName: account.creditorName || "Unknown Creditor",
       accountNumber: account.accountNumber || "****",
       accountType: account.accountType || "OTHER",
-      status: account.status || "UNKNOWN",
+      accountStatus: account.accountStatus || account.status || "UNKNOWN",
       bureau: account.bureau || "TRANSUNION",
     };
 
@@ -352,7 +352,7 @@ export async function parseWithAIChunked(request: AIParseRequest): Promise<Parse
       parseConfidence: avgConfidence,
       sourceType: request.extractionMethod === "OCR" ? "IMAGE" : "PDF",
       extractionMethod: request.extractionMethod,
-      processingTimeMs: chunkResults.reduce((sum, r) => sum + r.metadata.processingTimeMs, 0),
+      processingTimeMs: chunkResults.reduce((sum, r) => sum + (r.metadata.processingTimeMs || 0), 0),
       warnings: [
         `Report was parsed in ${chunks.length} chunks due to size`,
         ...chunkResults.flatMap((r) => r.metadata.warnings || []),

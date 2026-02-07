@@ -152,6 +152,28 @@ model CreditReport {
   previousAddresses String @default("[]") // JSON array of non-current addresses
   hardInquiries     String @default("[]") // JSON array of {creditorName, inquiryDate, cra}
 
+  // =====================================================================
+  // Parser 2.0 Fields - Self-validation and enhanced extraction
+  // =====================================================================
+
+  // Account summary for self-validation (parsed from summary section)
+  accountSummary        String?  @db.Text // JSON: {TU: {totalAccounts: N, openAccounts: N, ...}, ...}
+
+  // Personal info comparison across bureaus
+  personalInfoByBureau  String?  @db.Text // JSON: {TU: {name, address, ssn, dob}, EQ: {...}, EX: {...}}
+
+  // Credit scores extracted from report
+  creditScoresExtracted String?  @db.Text // JSON: {TU: {score, model, date}, EQ: {...}, EX: {...}}
+
+  // Parser metadata
+  parserVersion         String?            // e.g., "2.0.0"
+  reportFormatVersion   String?            // Detected format version
+
+  // Extraction method metadata
+  extractionMethod      String?            // TEXT, OCR, HYBRID
+  extractionConfidence  Float?             // 0-100 overall extraction confidence
+  ocrConfidence         Float?             // OCR-specific confidence if used
+
   organizationId   String
   clientId         String
   uploadedById     String
@@ -170,6 +192,7 @@ model CreditReport {
   @@index([clientId])
   @@index([clientId, parseStatus])
   @@index([reportDate])
+  @@index([parserVersion])
 }
 
 model AccountItem {
@@ -211,6 +234,37 @@ model AccountItem {
   // Page tracking for evidence capture
   sourcePageNum      Int? // PDF page where account was found (1-indexed)
   sourcePageEnd      Int? // End page if spans multiple pages
+
+  // =====================================================================
+  // Parser 2.0 Fields - Enhanced extraction and validation
+  // =====================================================================
+
+  // Payment history grid (84 months per bureau, JSON format)
+  paymentHistory         String?           @db.Text // JSON: {TU: ["C","C","1",...], EQ: [...], EX: [...]}
+
+  // Account responsibility (for AU detection)
+  responsibility         String?           // INDIVIDUAL, JOINT, AUTHORIZED_USER, CO_SIGNER, etc.
+  isAuthorizedUser       Boolean           @default(false) // Derived from responsibility or bureau codes
+
+  // Dispute notation tracking
+  disputeNotations       String?           @db.Text // Parsed dispute comments/notations
+  hasBeenPreviouslyDisputed Boolean        @default(false) // Any "Consumer disputes" notation found
+
+  // Critical dates for SOL and analysis
+  dateOfFirstDelinquency DateTime?         // DOFD - for 7-year SOL calculation
+  dateOfLastPayment      DateTime?         // Last payment date
+  numberOfMonths         Int?              // Account age in months (for average age calc)
+
+  // Enhanced account classification
+  accountTypeDetail      String?           // More granular type (STUDENT_LOAN_FEDERAL, etc.)
+  bureauCode             String?           // Raw bureau code (e.g., "I1", "R1", "M1")
+
+  // Full comments from report
+  reportComments         String?           @db.Text // Complete comments/remarks section
+
+  // Sequence index for duplicate handling (8 Nelnet accounts scenario)
+  sequenceIndex          Int               @default(0) // Order of appearance when fingerprint matches
+
   reportId           String
   organizationId     String
   clientId           String
@@ -225,7 +279,7 @@ model AccountItem {
   sentryDisputeItems SentryDisputeItem[]
   pendingEvidences   PendingEvidence[]
 
-  @@unique([reportId, fingerprint, cra])
+  @@unique([reportId, fingerprint, cra, sequenceIndex])
   @@index([organizationId])
   @@index([clientId])
   @@index([organizationId, clientId])
@@ -234,6 +288,8 @@ model AccountItem {
   @@index([isConfirmed])
   @@index([isLockedInDispute])
   @@index([lockedByDisputeId])
+  @@index([isAuthorizedUser])
+  @@index([hasBeenPreviouslyDisputed])
 }
 
 model DiffResult {

@@ -37,6 +37,8 @@ export type {
   PaymentStatusCode,
   Address,
   PaymentHistoryEntry,
+  AccountSummaryData,
+  PersonalInfoData,
 } from "./extraction-schema";
 
 // Issue detection
@@ -77,3 +79,30 @@ export {
 
 // AI Parser (for advanced use cases)
 export { parseWithAI, parseWithAIChunked } from "./ai-parser";
+
+// Position-based Parser (for IdentityIQ format)
+export {
+  parseWithPositions,
+  isIdentityIQFormat,
+  detectColumnBoundaries,
+  detectDisputeNotations,
+  detectAuthorizedUser,
+  extractDOFD,
+  calculate7YearDate,
+  isExpiredBySOL,
+  generateEnhancedFingerprint,
+  assignSequenceIndices,
+  type ColumnBoundaries,
+  type PositionParsedAccount,
+  type PositionParseResult,
+  type AccountSummary,
+  type PersonalInfoByBureau,
+  type CreditScoreByBureau,
+} from "./position-parser";
+
+// Hybrid Parser (combines position + AI for best results)
+export {
+  parseWithHybrid,
+  type HybridParseOptions,
+  type HybridParseResult,
+} from "./hybrid-parser";

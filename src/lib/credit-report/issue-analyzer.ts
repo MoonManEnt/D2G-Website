@@ -259,20 +259,32 @@ const ACCOUNT_ISSUE_RULES: IssueRule[] = [
     check: (account) => {
       if (!account.paymentHistory || account.paymentHistory.length < 6) return false;
       // Look for suspicious patterns (like late payments on closed accounts)
-      if (account.status === "CLOSED" || account.status === "PAID") {
-        const recentLates = account.paymentHistory
-          .slice(0, 6)
-          .filter((p) => p.status !== "OK" && p.status !== "-");
+      const status = account.accountStatus || account.status;
+      if (status === "CLOSED" || status === "PAID") {
+        const recentHistory = account.paymentHistory.slice(0, 6);
+        const recentLates = recentHistory.filter((p) => {
+          // Handle both string[] and PaymentHistoryEntry[]
+          const code = typeof p === "string" ? p : p.status;
+          return code !== "OK" && code !== "-" && code !== "C";
+        });
         return recentLates.length > 0;
       }
       return false;
     },
-    getDescription: (account) =>
-      `${account.status} account shows recent late payments in payment history`,
+    getDescription: (account) => {
+      const status = account.accountStatus || account.status;
+      return `${status} account shows recent late payments in payment history`;
+    },
     getEvidence: (account) => {
       const lates = account.paymentHistory
-        ?.filter((p) => p.status !== "OK" && p.status !== "-")
-        .map((p) => `${p.month}/${p.year}: ${p.status}`)
+        ?.filter((p) => {
+          const code = typeof p === "string" ? p : p.status;
+          return code !== "OK" && code !== "-" && code !== "C";
+        })
+        .map((p) => {
+          if (typeof p === "string") return p;
+          return `${p.month}/${p.year}: ${p.status}`;
+        })
         .join(", ");
       return `Late payments: ${lates}`;
     },

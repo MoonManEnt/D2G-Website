@@ -209,13 +209,19 @@ function validateAccount(account: CreditAccount): {
   // Payment history validation
   if (account.paymentHistory && account.paymentHistory.length > 0) {
     fieldsComplete++;
-    // Check for valid status codes
-    const validCodes = ["OK", "30", "60", "90", "120", "150", "180", "CO", "CLS", "-", "UNKNOWN"];
-    const invalidCodes = account.paymentHistory.filter((p) => !validCodes.includes(p.status));
-    if (invalidCodes.length > 0) {
+    // Check for valid status codes - handle both string[] and PaymentHistoryEntry[]
+    const validCodes = ["OK", "30", "60", "90", "120", "150", "180", "CO", "CLS", "-", "UNKNOWN", "C", "1", "2", "3", "4", "5", "6", "X"];
+    const invalidEntries: string[] = [];
+    account.paymentHistory.forEach((p) => {
+      const code = typeof p === "string" ? p : p.status;
+      if (!validCodes.includes(code)) {
+        invalidEntries.push(code);
+      }
+    });
+    if (invalidEntries.length > 0) {
       warnings.push({
         field: "paymentHistory",
-        message: `Invalid payment status codes: ${invalidCodes.map((p) => p.status).join(", ")}`,
+        message: `Invalid payment status codes: ${invalidEntries.join(", ")}`,
         severity: "low",
       });
     }

@@ -445,7 +445,7 @@ export async function parseAndAnalyzeReportAI(options: ParseReportAIOptions): Pr
           fingerprint: `${account.creditorName}:${account.accountNumber}:${account.bureau}`,
           cra: account.bureau,
           accountType: mapAccountType(account.accountType),
-          accountStatus: mapAccountStatus(account.status),
+          accountStatus: mapAccountStatus(account.accountStatus || account.status || "UNKNOWN"),
           balance: account.balance,
           pastDue: account.pastDue,
           creditLimit: account.creditLimit,
@@ -476,11 +476,12 @@ export async function parseAndAnalyzeReportAI(options: ParseReportAIOptions): Pr
     // Save credit scores if available
     for (const bureau of report.bureaus) {
       if (bureau.creditScore) {
+        const bureauName = bureau.name || bureau.bureau || "UNKNOWN";
         const existing = await prisma.creditScore.findFirst({
           where: {
             clientId,
             reportId,
-            cra: bureau.bureau,
+            cra: bureauName,
           },
         });
 
@@ -489,9 +490,9 @@ export async function parseAndAnalyzeReportAI(options: ParseReportAIOptions): Pr
             data: {
               clientId,
               reportId,
-              cra: bureau.bureau,
+              cra: bureauName,
               score: bureau.creditScore,
-              scoreType: bureau.scoreType || "VANTAGE3",
+              scoreType: bureau.scoreType || bureau.scoreModel || "VANTAGE3",
               scoreDate: bureau.reportDate ? new Date(bureau.reportDate) : new Date(),
               source: "REPORT_PARSE",
             },

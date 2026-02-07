@@ -58,6 +58,7 @@ export interface Address {
   state: string;
   zip: string;
   type?: "CURRENT" | "PREVIOUS" | "UNKNOWN";
+  isCurrent?: boolean; // Convenience flag
   dateReported?: string;
 }
 
@@ -67,6 +68,7 @@ export interface ConsumerInfo {
   aliases?: string[];
   dateOfBirth?: string;
   ssn?: string; // Last 4 only (XXX-XX-1234)
+  ssnLast4?: string; // Convenience field for just the last 4
   addresses: Address[];
   phone?: string;
   employerInfo?: {
@@ -89,7 +91,7 @@ export interface CreditAccount {
   creditorName: string;
   accountNumber: string; // Last 4-6 digits masked
   accountType: AccountType;
-  status: AccountStatus;
+  accountStatus: AccountStatus; // Renamed from 'status' for consistency
   bureau: Bureau;
 
   // Financial data
@@ -105,26 +107,53 @@ export interface CreditAccount {
   dateReported?: string;
   dateClosed?: string;
   dateLastActive?: string;
-  dateLastPayment?: string;
-  dateOfFirstDelinquency?: string;
+  lastActivityDate?: string; // Alias for dateLastActive
 
-  // Payment info
+  // =====================================================================
+  // Parser 2.0 Enhanced Fields
+  // =====================================================================
+
+  // Payment history (84 months, array of status codes)
+  paymentHistory?: string[] | PaymentHistoryEntry[];
   paymentStatus?: string;
-  paymentHistory?: PaymentHistoryEntry[];
   termsMonths?: number;
   termsDuration?: string;
 
-  // Responsibility
-  responsibility?: "INDIVIDUAL" | "JOINT" | "AUTHORIZED_USER" | "CO_SIGNER" | "UNKNOWN";
+  // Responsibility and AU detection
+  responsibility?: string;
+  isAuthorizedUser?: boolean; // Derived from responsibility or bureau code
 
-  // Comments and remarks
-  comments?: string;
-  disputeComment?: string;
+  // Dispute tracking
+  disputeNotation?: string; // Parsed dispute comments
+  hasBeenPreviouslyDisputed?: boolean; // "Consumer disputes" found
+  remarks?: string; // Full comments/remarks section
+
+  // Critical dates for SOL calculation
+  dateOfFirstDelinquency?: string; // DOFD for 7-year calculation
+  dateOfLastPayment?: string; // Last payment date
+  numberOfMonths?: number; // Account age in months
+
+  // Bureau-specific data
+  bureauCode?: string; // Raw bureau code (I1, R1, M1, etc.)
+  accountTypeDetail?: string; // More granular type
+
+  // Fingerprint and sequence for duplicate handling
+  fingerprint?: string; // Multi-field fingerprint
+  sequenceIndex?: number; // Order when fingerprints match (0-based)
+
+  // SOL computation
+  isExpiredBySOL?: boolean; // Past 7-year removal date
 
   // Source tracking
   rawExtractedText?: string;
   sourcePageNum?: number;
+  sourcePageEnd?: number;
   extractionConfidence?: number;
+
+  // Legacy field alias (deprecated, use accountStatus)
+  status?: AccountStatus;
+  comments?: string;
+  disputeComment?: string;
 }
 
 // Inquiry information
@@ -150,11 +179,14 @@ export interface PublicRecord {
 
 // Bureau-specific summary
 export interface BureauSummary {
-  bureau: Bureau;
+  name: Bureau; // Changed from 'bureau' for consistency
+  bureau?: Bureau; // Legacy alias
   reportDate?: string;
   creditScore?: number;
-  scoreType?: string; // "FICO", "VANTAGE3", etc.
-  totalAccounts?: number;
+  scoreModel?: string; // Score model (VantageScore 3.0, FICO 8, etc.)
+  scoreType?: string; // Legacy alias for scoreModel
+  accountCount?: number; // Total accounts for this bureau
+  totalAccounts?: number; // Legacy alias
   openAccounts?: number;
   closedAccounts?: number;
   derogatory?: number;
@@ -177,11 +209,53 @@ export interface ParsedCreditReport {
     reportDate: string;
     reportFormat: string;
     parseConfidence: number;
-    sourceType: "PDF" | "IMAGE" | "TEXT";
-    extractionMethod: "TEXT" | "OCR";
-    processingTimeMs: number;
+    parserVersion?: string; // e.g., "2.0.0", "2.0.0-hybrid"
+    sourceType?: "PDF" | "IMAGE" | "TEXT";
+    extractionMethod?: "TEXT" | "OCR" | "HYBRID";
+    processingTimeMs?: number;
     warnings?: string[];
+    // Parser 2.0 validation fields
+    accountSummaryValidated?: boolean;
+    validationDiscrepancies?: string[];
+    positionParserUsed?: boolean;
+    aiParserUsed?: boolean;
   };
+
+  // Parser 2.0 additional fields (stored as JSON in DB)
+  accountSummary?: {
+    TRANSUNION?: AccountSummaryData;
+    EXPERIAN?: AccountSummaryData;
+    EQUIFAX?: AccountSummaryData;
+  };
+  personalInfoByBureau?: {
+    TRANSUNION?: PersonalInfoData;
+    EXPERIAN?: PersonalInfoData;
+    EQUIFAX?: PersonalInfoData;
+  };
+}
+
+// Account summary data for self-validation
+export interface AccountSummaryData {
+  totalAccounts?: number;
+  openAccounts?: number;
+  closedAccounts?: number;
+  delinquentAccounts?: number;
+  derogAccounts?: number;
+  collectionAccounts?: number;
+  balances?: number;
+  payments?: number;
+  publicRecords?: number;
+  inquiries?: number;
+}
+
+// Personal info data per bureau for comparison
+export interface PersonalInfoData {
+  name?: string;
+  address?: string;
+  previousAddresses?: string[];
+  employer?: string;
+  ssn?: string;
+  dateOfBirth?: string;
 }
 
 // AI Parsing Request
