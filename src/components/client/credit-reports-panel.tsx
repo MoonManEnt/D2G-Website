@@ -32,6 +32,9 @@ import {
   FileUp,
   Sparkles,
   ExternalLink,
+  ClipboardPaste,
+  Code,
+  FileJson,
 } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
 import { format, formatDistanceToNow } from "date-fns";
@@ -343,6 +346,216 @@ const UploadZone = ({
     </div>
   );
 };
+
+// =============================================================================
+// PASTE ZONE COMPONENT
+// =============================================================================
+
+const PasteZone = ({
+  onPaste,
+  isProcessing,
+}: {
+  onPaste: (content: string, contentType: "json" | "html") => void;
+  isProcessing: boolean;
+}) => {
+  const [pastedContent, setPastedContent] = useState("");
+  const [contentType, setContentType] = useState<"json" | "html">("json");
+  const [error, setError] = useState<string | null>(null);
+
+  const handlePaste = useCallback((e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const text = e.clipboardData.getData("text");
+    setPastedContent(text);
+    setError(null);
+
+    // Auto-detect content type
+    const trimmed = text.trim();
+    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+      setContentType("json");
+    } else if (trimmed.startsWith("<") || trimmed.includes("<!DOCTYPE")) {
+      setContentType("html");
+    }
+  }, []);
+
+  const handleSubmit = useCallback(() => {
+    if (!pastedContent.trim()) {
+      setError("Please paste some content first");
+      return;
+    }
+
+    // Validate JSON if that's the selected type
+    if (contentType === "json") {
+      try {
+        JSON.parse(pastedContent);
+      } catch {
+        setError("Invalid JSON format. Please check your content and try again.");
+        return;
+      }
+    }
+
+    setError(null);
+    onPaste(pastedContent, contentType);
+  }, [pastedContent, contentType, onPaste]);
+
+  const handleClear = useCallback(() => {
+    setPastedContent("");
+    setError(null);
+  }, []);
+
+  if (isProcessing) {
+    return (
+      <div className="border-2 border-dashed border-blue-500/50 rounded-2xl p-6 bg-blue-500/5">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center">
+              <Loader2 size={24} className="text-primary animate-spin" />
+            </div>
+          </div>
+          <div className="text-center">
+            <p className="text-foreground font-medium text-sm">Processing content...</p>
+            <p className="text-xs text-zinc-400 mt-1">Parsing credit report data</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border-2 border-dashed border-zinc-700 rounded-2xl p-4 hover:border-zinc-600 transition-all">
+      {/* Content Type Selector */}
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-xs text-zinc-500">Format:</span>
+        <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-lg p-0.5">
+          <button
+            onClick={() => setContentType("json")}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-all ${
+              contentType === "json" ? "bg-zinc-800 text-foreground" : "text-zinc-500 hover:text-foreground"
+            }`}
+          >
+            <FileJson size={12} />
+            JSON
+          </button>
+          <button
+            onClick={() => setContentType("html")}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-all ${
+              contentType === "html" ? "bg-zinc-800 text-foreground" : "text-zinc-500 hover:text-foreground"
+            }`}
+          >
+            <Code size={12} />
+            HTML
+          </button>
+        </div>
+      </div>
+
+      {/* Textarea */}
+      <div className="relative">
+        <textarea
+          value={pastedContent}
+          onChange={(e) => {
+            setPastedContent(e.target.value);
+            setError(null);
+          }}
+          onPaste={handlePaste}
+          placeholder={
+            contentType === "json"
+              ? '{\n  "accounts": [...],\n  "consumer": {...}\n}'
+              : "Paste HTML content from your credit report..."
+          }
+          className={`w-full h-40 bg-zinc-900/50 border rounded-xl p-3 text-sm text-foreground placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 font-mono resize-none ${
+            error ? "border-red-500/50" : "border-zinc-800"
+          }`}
+        />
+        {pastedContent && (
+          <button
+            onClick={handleClear}
+            className="absolute top-2 right-2 p-1 text-zinc-500 hover:text-foreground hover:bg-zinc-800 rounded transition-colors"
+          >
+            <X size={14} />
+          </button>
+        )}
+      </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="flex items-center gap-2 mt-2 p-2 bg-red-500/10 border border-red-500/20 rounded-lg">
+          <AlertCircle size={14} className="text-red-400 flex-shrink-0" />
+          <p className="text-xs text-red-400">{error}</p>
+        </div>
+      )}
+
+      {/* Info & Submit */}
+      <div className="flex items-center justify-between mt-3">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 px-2 py-1 bg-zinc-800 rounded-lg text-[10px] text-zinc-400">
+            <ClipboardPaste size={10} />
+            Paste from clipboard
+          </div>
+          <div className="flex items-center gap-1.5 px-2 py-1 bg-zinc-800 rounded-lg text-[10px] text-zinc-400">
+            <Shield size={10} />
+            Secure processing
+          </div>
+        </div>
+
+        <button
+          onClick={handleSubmit}
+          disabled={!pastedContent.trim()}
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium transition-all ${
+            pastedContent.trim()
+              ? "bg-primary hover:bg-blue-600 text-white"
+              : "bg-zinc-800 text-zinc-500 cursor-not-allowed"
+          }`}
+        >
+          <Zap size={14} />
+          Parse Content
+        </button>
+      </div>
+
+      {/* Help Text */}
+      <div className="mt-3 p-3 bg-zinc-900/50 border border-zinc-800/50 rounded-lg">
+        <p className="text-[10px] text-zinc-500">
+          <strong className="text-zinc-400">Tip:</strong>{" "}
+          {contentType === "json"
+            ? "Export your credit report as JSON from IdentityIQ or paste the API response directly."
+            : "Copy the entire page source (Ctrl+U / Cmd+U) from your credit report and paste it here."}
+        </p>
+      </div>
+    </div>
+  );
+};
+
+// =============================================================================
+// UPLOAD METHOD TABS
+// =============================================================================
+
+type UploadMethod = "file" | "paste";
+
+const UploadMethodTabs = ({
+  activeMethod,
+  onMethodChange,
+}: {
+  activeMethod: UploadMethod;
+  onMethodChange: (method: UploadMethod) => void;
+}) => (
+  <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-lg p-0.5 mb-3">
+    <button
+      onClick={() => onMethodChange("file")}
+      className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-all ${
+        activeMethod === "file" ? "bg-zinc-800 text-foreground" : "text-zinc-500 hover:text-foreground"
+      }`}
+    >
+      <Upload size={14} />
+      Upload File
+    </button>
+    <button
+      onClick={() => onMethodChange("paste")}
+      className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-all ${
+        activeMethod === "paste" ? "bg-zinc-800 text-foreground" : "text-zinc-500 hover:text-foreground"
+      }`}
+    >
+      <ClipboardPaste size={14} />
+      Paste Content
+    </button>
+  </div>
+);
 
 // =============================================================================
 // MOTIVATIONAL QUOTES
@@ -1031,6 +1244,8 @@ export function CreditReportsPanel({
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [pendingReportsData, setPendingReportsData] = useState<CreditReportData[] | null>(null);
   const [successFilename, setSuccessFilename] = useState("");
+  const [uploadMethod, setUploadMethod] = useState<UploadMethod>("file");
+  const [isProcessingPaste, setIsProcessingPaste] = useState(false);
 
   // Check if user has muted confirmations
   const isMuted = typeof window !== "undefined"
@@ -1180,6 +1395,61 @@ export function CreditReportsPanel({
     setParsingFile(null);
   }, []);
 
+  // Handle pasted JSON/HTML content
+  const handlePasteContent = useCallback(
+    async (content: string, contentType: "json" | "html") => {
+      setIsProcessingPaste(true);
+
+      try {
+        log.info({ contentType, contentLength: content.length }, "Processing pasted content");
+
+        // Send to the paste parsing API
+        const res = await fetch("/api/reports/parse-content", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            clientId,
+            content,
+            contentType,
+          }),
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error || `Parsing failed (${res.status})`);
+        }
+
+        const data = await res.json();
+
+        // Show success
+        setIsProcessingPaste(false);
+        setSuccessFilename(`Pasted ${contentType.toUpperCase()} Content`);
+
+        if (!isMuted) {
+          setShowSuccessModal(true);
+        } else {
+          toast({
+            title: "Content Parsed",
+            description: `Credit report has been parsed. ${data.accountsParsed || 0} accounts found.`,
+          });
+        }
+
+        // Refresh reports list
+        fetchReports();
+      } catch (error) {
+        setIsProcessingPaste(false);
+        const errorMessage = error instanceof Error ? error.message : "Failed to parse content";
+        toast({
+          title: "Parse Failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        log.error({ err: error }, "Failed to parse pasted content");
+      }
+    },
+    [clientId, toast, fetchReports, isMuted]
+  );
+
   const handleViewReport = useCallback((report: CreditReportData) => {
     // Navigate to report detail view
     window.location.href = `/clients/${clientId}?tab=reports&reportId=${report.id}`;
@@ -1271,9 +1541,17 @@ export function CreditReportsPanel({
       {/* Quick Stats */}
       <QuickStats reports={reports} />
 
-      {/* Upload Zone */}
+      {/* Upload Section with Tabs */}
       {!isParsing && (
-        <UploadZone onUpload={handleUpload} isUploading={isUploading} uploadProgress={uploadProgress} />
+        <div>
+          <UploadMethodTabs activeMethod={uploadMethod} onMethodChange={setUploadMethod} />
+
+          {uploadMethod === "file" ? (
+            <UploadZone onUpload={handleUpload} isUploading={isUploading} uploadProgress={uploadProgress} />
+          ) : (
+            <PasteZone onPaste={handlePasteContent} isProcessing={isProcessingPaste} />
+          )}
+        </div>
       )}
 
       {/* Parsing Progress */}
