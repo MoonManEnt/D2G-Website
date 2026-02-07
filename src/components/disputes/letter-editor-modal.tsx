@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
 import { MailSendDialog } from "./mail-send-dialog";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
 // Types
 interface DraggableSection {
@@ -87,6 +88,7 @@ interface LetterEditorModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   generatedLetter: GeneratedLetter | null;
+  clientName?: string;
   onLaunch: () => Promise<void>;
   launching: boolean;
   onDownload: () => Promise<void>;
@@ -356,6 +358,7 @@ export function LetterEditorModal({
   open,
   onOpenChange,
   generatedLetter,
+  clientName,
   onLaunch,
   launching,
   onDownload,
@@ -869,42 +872,135 @@ export function LetterEditorModal({
     }
   };
 
+  // Generate filename for download
+  const generateFilename = () => {
+    const name = clientName || "Client";
+    const round = generatedLetter?.round || 1;
+    const flow = generatedLetter?.flow || "ACCURACY";
+    return `${name} - Round ${round} ${flow}.pdf`;
+  };
+
+  // Generate PDF client-side using pdf-lib
+  const generateClientSidePdf = async (content: string): Promise<Uint8Array> => {
+    const pdfDoc = await PDFDocument.create();
+    const timesRoman = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+    const timesRomanBold = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
+    const timesRomanItalic = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
+
+    const fontSize = 11;
+    const lineHeight = 14;
+    const margin = 72; // 1 inch margins
+    const pageWidth = 612; // Letter size
+    const pageHeight = 792;
+    const maxWidth = pageWidth - (margin * 2);
+
+    // Split content into lines and wrap
+    const lines = content.split('\n');
+    const wrappedLines: { text: string; bold?: boolean; italic?: boolean }[] = [];
+
+    for (const line of lines) {
+      if (line.trim() === '') {
+        wrappedLines.push({ text: '' });
+        continue;
+      }
+
+      // Check for signature line (italic)
+      const isSignature = line.includes('Sincerely') ||
+                          (line.trim().length > 0 && line.trim().length < 40 &&
+                           !line.includes(':') && !line.includes('.') &&
+                           lines.indexOf(line) > lines.length - 10);
+
+      // Check for headers/bold text
+      const isBold = line.toUpperCase() === line && line.trim().length > 3 && line.trim().length < 60;
+
+      // Word wrap
+      const words = line.split(' ');
+      let currentLine = '';
+
+      for (const word of words) {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        const font = isBold ? timesRomanBold : timesRoman;
+        const width = font.widthOfTextAtSize(testLine, fontSize);
+
+        if (width > maxWidth && currentLine) {
+          wrappedLines.push({ text: currentLine, bold: isBold, italic: isSignature });
+          currentLine = word;
+        } else {
+          currentLine = testLine;
+        }
+      }
+
+      if (currentLine) {
+        wrappedLines.push({ text: currentLine, bold: isBold, italic: isSignature });
+      }
+    }
+
+    // Create pages and draw text
+    let page = pdfDoc.addPage([pageWidth, pageHeight]);
+    let y = pageHeight - margin;
+
+    for (const line of wrappedLines) {
+      if (y < margin + lineHeight) {
+        page = pdfDoc.addPage([pageWidth, pageHeight]);
+        y = pageHeight - margin;
+      }
+
+      const font = line.bold ? timesRomanBold : (line.italic ? timesRomanItalic : timesRoman);
+
+      page.drawText(line.text, {
+        x: margin,
+        y,
+        size: fontSize,
+        font,
+        color: rgb(0, 0, 0),
+      });
+
+      y -= lineHeight;
+    }
+
+    return pdfDoc.save();
+  };
+
   // Download letter as PDF
   const handleDownloadPdf = async () => {
     setIsDownloading(true);
+    const filename = generateFilename();
+
     try {
-      // Try API download first if we have a disputeId
-      if (generatedLetter?.disputeId) {
+      // Try API download first if we have a disputeId (not preview mode)
+      if (generatedLetter?.disputeId && !generatedLetter?.isPreview) {
         const res = await fetch(`/api/disputes/${generatedLetter.disputeId}/pdf`);
         if (res.ok) {
           const blob = await res.blob();
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
-          a.download = `${generatedLetter.cra || "Dispute"}_R${generatedLetter.round || 1}_Letter.pdf`;
+          a.download = filename;
           document.body.appendChild(a);
           a.click();
           window.URL.revokeObjectURL(url);
           document.body.removeChild(a);
-          toast({ title: "Downloaded", description: "Letter saved as PDF with signature" });
+          toast({ title: "Downloaded", description: "Letter saved as PDF" });
           return;
         }
       }
 
-      // Fallback: download as formatted text file
+      // Fallback: generate PDF client-side
       const fullContent = reconstructLetter();
-      const blob = new Blob([fullContent], { type: "text/plain;charset=utf-8" });
+      const pdfBytes = await generateClientSidePdf(fullContent);
+      const blob = new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${generatedLetter?.cra || "Dispute"}_R${generatedLetter?.round || 1}_Letter.txt`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      toast({ title: "Downloaded", description: "Letter saved as text file" });
-    } catch {
-      toast({ title: "Download Failed", description: "Could not download letter", variant: "destructive" });
+      toast({ title: "Downloaded", description: "Letter saved as PDF" });
+    } catch (error) {
+      console.error("PDF generation error:", error);
+      toast({ title: "Download Failed", description: "Could not generate PDF", variant: "destructive" });
     } finally {
       setIsDownloading(false);
     }

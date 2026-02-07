@@ -709,6 +709,7 @@ export function DisputeCommandCenter({
           if (!open) setGeneratedLetter(null);
         }}
         generatedLetter={generatedLetter}
+        clientName={clientName}
         onLaunch={handleLaunchDispute}
         launching={launching}
         onDownload={handleDownloadLetter}

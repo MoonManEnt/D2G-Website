@@ -1413,6 +1413,7 @@ export function DisputesEnhanced({ initialClient }: DisputesEnhancedProps) {
           }
         }}
         generatedLetter={generatedLetter}
+        clientName={client ? `${client.firstName} ${client.lastName}` : undefined}
         onLaunch={handleLaunchDispute}
         launching={launching}
         onDownload={handleDownloadLetter}

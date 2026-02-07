@@ -91,14 +91,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       watermark: dispute.status === "DRAFT" ? "DRAFT" : undefined,
     });
 
-    // Return the PDF
-    const filename = `dispute-${cra.toLowerCase()}-${dispute.id.slice(0, 8)}.pdf`;
+    // Return the PDF with proper filename
+    const clientFullName = `${client.firstName} ${client.lastName}`;
+    const flow = dispute.flow || "ACCURACY";
+    const round = dispute.round || 1;
+    const filename = `${clientFullName} - Round ${round} ${flow}.pdf`;
 
     return new NextResponse(Buffer.from(pdfBytes), {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="${filename}"`,
+        "Content-Disposition": `attachment; filename="${filename}"`,
         "Content-Length": pdfBytes.length.toString(),
         "Cache-Control": "private, max-age=300",
       },
@@ -188,7 +191,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       watermark: includeWatermark && dispute.status === "DRAFT" ? "DRAFT" : undefined,
     });
 
-    const filename = `dispute-${cra.toLowerCase()}-${dispute.id.slice(0, 8)}.pdf`;
+    // Generate filename with client name, round, and flow
+    const clientFullName = `${client.firstName} ${client.lastName}`;
+    const flow = dispute.flow || "ACCURACY";
+    const round = dispute.round || 1;
+    const filename = `${clientFullName} - Round ${round} ${flow}.pdf`;
     const disposition = download ? "attachment" : "inline";
 
     return new NextResponse(Buffer.from(pdfBytes), {
