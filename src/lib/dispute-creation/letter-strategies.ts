@@ -270,14 +270,24 @@ export async function generateAILetter(
 // AMELIA DOCTRINE GENERATION
 // =============================================================================
 
+import { getPersonalInfoForDispute } from "@/lib/personal-info-dispute-service";
+
 /**
- * Fetch credit report data for personal info disputes
+ * Fetch credit report data for personal info disputes.
+ * Uses the enhanced service that auto-detects discrepancies between
+ * client's stored address and what's on the credit report.
  */
-async function fetchCreditReportData(clientId: string): Promise<{
+async function fetchCreditReportData(clientId: string, cra?: CRA): Promise<{
   previousNames: string[];
   previousAddresses: string[];
   hardInquiries: HardInquiry[];
 }> {
+  // If CRA is specified, use the enhanced service that compares against client data
+  if (cra) {
+    return getPersonalInfoForDispute(clientId, cra as import("@/types").CRA);
+  }
+
+  // Fallback to direct database query for backwards compatibility
   const latestReport = await prisma.creditReport.findFirst({
     where: {
       clientId,
@@ -364,8 +374,10 @@ export async function generateAmeliaDoctrineLetterContent(
   disputeId: string
 ): Promise<GeneratedLetterResult> {
   // Fetch personal info from credit report
+  // This now includes auto-detected discrepancies between client's stored address
+  // and what appears on the credit report
   const { previousNames, previousAddresses, hardInquiries } =
-    await fetchCreditReportData(client.id);
+    await fetchCreditReportData(client.id, cra);
 
   // Build client personal info for AMELIA
   const clientInfo: ClientPersonalInfo = {

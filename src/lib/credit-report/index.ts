@@ -92,12 +92,18 @@ export {
   isExpiredBySOL,
   generateEnhancedFingerprint,
   assignSequenceIndices,
+  parsePersonalInfo,
+  parseCreditScores,
+  parseInquiries,
   type ColumnBoundaries,
   type PositionParsedAccount,
   type PositionParseResult,
   type AccountSummary,
   type PersonalInfoByBureau,
   type CreditScoreByBureau,
+  type PersonalInfo,
+  type CreditScore,
+  type ParsedInquiry,
 } from "./position-parser";
 
 // Hybrid Parser (combines position + AI for best results)

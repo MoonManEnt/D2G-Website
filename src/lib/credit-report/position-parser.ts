@@ -110,6 +110,14 @@ export interface CreditScore {
   factors: string[];
 }
 
+// Inquiry information
+export interface ParsedInquiry {
+  inquirerName: string;
+  inquiryDate: string;
+  inquiryType: "HARD" | "SOFT";
+  bureau: Bureau;
+}
+
 // Full position parse result
 export interface PositionParseResult {
   success: boolean;
@@ -117,6 +125,7 @@ export interface PositionParseResult {
   accountSummary: AccountSummary | null;
   personalInfo: PersonalInfoByBureau | null;
   creditScores: CreditScoreByBureau | null;
+  inquiries: ParsedInquiry[];
   columnBoundaries: ColumnBoundaries;
   validationResult: ValidationResult;
   metadata: {
@@ -703,6 +712,87 @@ export function validateAgainstSummary(
 }
 
 /**
+ * Parse hard inquiries from the credit report.
+ *
+ * IdentityIQ format shows inquiries in a table with columns for each bureau.
+ * Example:
+ *   CREDITOR NAME       01/29/2026     -              01/29/2026
+ *                       (TransUnion)   (Experian)     (Equifax)
+ */
+export function parseInquiries(
+  text: string,
+  boundaries: ColumnBoundaries
+): ParsedInquiry[] {
+  const lines = text.split("\n");
+  const inquiries: ParsedInquiry[] = [];
+
+  // Find inquiry section
+  const inquiryStart = lines.findIndex(
+    line => /(?:Hard\s+)?Inquir(?:y|ies)|Credit\s+Inquir/i.test(line)
+  );
+
+  if (inquiryStart < 0) {
+    log.warn("Inquiry section not found");
+    return inquiries;
+  }
+
+  // Find end of inquiry section (before soft inquiries or next section)
+  let inquiryEnd = lines.length;
+  for (let i = inquiryStart + 1; i < lines.length; i++) {
+    if (/Soft\s+Inquir|Promotional\s+Inquir|Public\s+Record|Employment\s+Inquir|Account\s+Summary/i.test(lines[i])) {
+      inquiryEnd = i;
+      break;
+    }
+  }
+
+  log.info({ inquiryStart, inquiryEnd }, "Found inquiry section");
+
+  // Pattern for inquiry lines: CREDITOR NAME followed by dates
+  // Dates can appear in any of the three bureau columns
+  const datePattern = /\b(\d{1,2}\/\d{1,2}\/\d{4})\b/g;
+  const bureaus: Bureau[] = ["TRANSUNION", "EXPERIAN", "EQUIFAX"];
+
+  for (let i = inquiryStart + 1; i < inquiryEnd; i++) {
+    const line = lines[i];
+
+    // Skip empty lines and headers
+    if (!line.trim() || /^[-=\s]+$/.test(line)) continue;
+    if (/TransUnion\s+Experian\s+Equifax/i.test(line)) continue;
+
+    // Look for creditor name at start of line
+    const creditorMatch = line.match(/^([A-Z][A-Z0-9\s\/&'.,\-]+?)(?=\s+\d{1,2}\/|\s{3,}|\s*$)/i);
+    if (!creditorMatch) continue;
+
+    const creditorName = creditorMatch[1].trim().toUpperCase();
+
+    // Skip if it's a section header or too short
+    if (creditorName.length < 3) continue;
+    if (/^(INQUIR|CREDIT|TRANSUNION|EXPERIAN|EQUIFAX|TOTAL|SOFT|HARD)/i.test(creditorName)) continue;
+
+    // Extract values for each bureau column
+    for (const bureau of bureaus) {
+      const value = extractColumnValue(line, boundaries, bureau);
+      const dateMatch = value.match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
+
+      if (dateMatch) {
+        const parsedDate = parseDate(dateMatch[1]);
+        if (parsedDate) {
+          inquiries.push({
+            inquirerName: creditorName,
+            inquiryDate: parsedDate,
+            inquiryType: "HARD",
+            bureau,
+          });
+        }
+      }
+    }
+  }
+
+  log.info({ inquiryCount: inquiries.length }, "Parsed inquiries");
+  return inquiries;
+}
+
+/**
  * Main entry point for position-based parsing.
  */
 export async function parseWithPositions(text: string): Promise<PositionParseResult> {
@@ -716,7 +806,16 @@ export async function parseWithPositions(text: string): Promise<PositionParseRes
   // Step 2: Parse account summary (for validation)
   const accountSummary = parseAccountSummary(text, boundaries);
 
-  // Step 3: Detect and parse account blocks
+  // Step 3: Parse personal info per bureau
+  const personalInfo = parsePersonalInfo(text, boundaries);
+
+  // Step 4: Parse credit scores
+  const creditScores = parseCreditScores(text, boundaries);
+
+  // Step 5: Parse hard inquiries
+  const inquiries = parseInquiries(text, boundaries);
+
+  // Step 6: Detect and parse account blocks
   const blocks = detectAccountBlocks(text, boundaries);
 
   // Track sequence indices for duplicate fingerprints
@@ -733,7 +832,7 @@ export async function parseWithPositions(text: string): Promise<PositionParseRes
     accounts.push(account);
   }
 
-  // Step 4: Validate against summary
+  // Step 7: Validate against summary
   const validationResult = validateAgainstSummary(accounts, accountSummary);
 
   const parseTimeMs = Date.now() - startTime;
@@ -741,6 +840,7 @@ export async function parseWithPositions(text: string): Promise<PositionParseRes
   log.info(
     {
       accountCount: accounts.length,
+      inquiryCount: inquiries.length,
       validationIsValid: validationResult.isValid,
       parseTimeMs,
     },
@@ -751,8 +851,9 @@ export async function parseWithPositions(text: string): Promise<PositionParseRes
     success: accounts.length > 0 || boundaries.detected,
     accounts,
     accountSummary,
-    personalInfo: null, // TODO: Parse personal info section
-    creditScores: null, // TODO: Parse credit scores section
+    personalInfo,
+    creditScores,
+    inquiries,
     columnBoundaries: boundaries,
     validationResult,
     metadata: {

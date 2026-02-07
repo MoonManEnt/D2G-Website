@@ -17,10 +17,10 @@ import prisma from "@/lib/prisma";
 import type { CRA } from "@/types";
 
 // Types for personal info items from credit reports
-interface HardInquiry {
+export interface HardInquiry {
   creditorName: string;
   inquiryDate: string;
-  cra: string;
+  cra: CRA;
 }
 
 interface PersonalInfoFromReport {
@@ -272,6 +272,288 @@ function normalizeAddress(address: string): string {
     .replace(/\bapartment\b/g, "apt")
     .replace(/\bsuite\b/g, "ste")
     .replace(/[.,#]/g, "");
+}
+
+/**
+ * Normalize name for comparison
+ */
+function normalizeName(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, " ")
+    .replace(/[.,]/g, "");
+}
+
+// Personal info discrepancy result
+export interface PersonalInfoDiscrepancy {
+  type: "ADDRESS" | "NAME";
+  reportValue: string;
+  clientValue: string;
+  cra: string;
+  reason: string;
+}
+
+/**
+ * Compare credit report personal info against client's stored info.
+ * Returns all addresses/names that DON'T match the client's actual data.
+ *
+ * This is used to auto-populate the "PERSONAL INFORMATION TO INVESTIGATE
+ * AND CORRECT/REMOVE" section of dispute letters.
+ */
+export async function detectPersonalInfoDiscrepancies(
+  clientId: string
+): Promise<{
+  discrepancies: PersonalInfoDiscrepancy[];
+  unmatchedAddresses: Array<{ address: string; cra: string }>;
+  unmatchedNames: Array<{ name: string; cra: string }>;
+}> {
+  const discrepancies: PersonalInfoDiscrepancy[] = [];
+  const unmatchedAddresses: Array<{ address: string; cra: string }> = [];
+  const unmatchedNames: Array<{ name: string; cra: string }> = [];
+
+  // Get client's stored data
+  const client = await prisma.client.findUnique({
+    where: { id: clientId },
+    select: {
+      firstName: true,
+      lastName: true,
+      addressLine1: true,
+      addressLine2: true,
+      city: true,
+      state: true,
+      zipCode: true,
+    },
+  });
+
+  if (!client) {
+    return { discrepancies, unmatchedAddresses, unmatchedNames };
+  }
+
+  // Build client's full name and address
+  const clientFullName = `${client.firstName} ${client.lastName}`.trim();
+  const clientAddress = [
+    client.addressLine1,
+    client.addressLine2,
+    client.city,
+    client.state,
+    client.zipCode,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  const normalizedClientName = normalizeName(clientFullName);
+  const normalizedClientAddress = normalizeAddress(clientAddress);
+
+  // Get latest credit report with personal info
+  const latestReport = await prisma.creditReport.findFirst({
+    where: {
+      clientId,
+      parseStatus: "COMPLETED",
+    },
+    orderBy: { reportDate: "desc" },
+    select: {
+      personalInfoByBureau: true,
+      previousNames: true,
+      previousAddresses: true,
+    },
+  });
+
+  if (!latestReport) {
+    return { discrepancies, unmatchedAddresses, unmatchedNames };
+  }
+
+  // Parse personal info by bureau
+  let personalInfoByBureau: Record<
+    string,
+    { name?: string; address?: string; previousAddresses?: string[] }
+  > = {};
+
+  try {
+    if (latestReport.personalInfoByBureau) {
+      personalInfoByBureau = JSON.parse(latestReport.personalInfoByBureau);
+    }
+  } catch {
+    // Ignore parse errors
+  }
+
+  // Check each bureau's personal info
+  const bureaus = ["TRANSUNION", "EXPERIAN", "EQUIFAX"];
+
+  for (const cra of bureaus) {
+    const bureauInfo = personalInfoByBureau[cra];
+    if (!bureauInfo) continue;
+
+    // Check current address
+    if (bureauInfo.address) {
+      const normalizedReportAddress = normalizeAddress(bureauInfo.address);
+
+      // If report address doesn't match client's stored address
+      if (
+        normalizedReportAddress &&
+        !normalizedReportAddress.includes(normalizeAddress(client.addressLine1 || "")) &&
+        !normalizedClientAddress.includes(normalizedReportAddress.substring(0, 20))
+      ) {
+        discrepancies.push({
+          type: "ADDRESS",
+          reportValue: bureauInfo.address,
+          clientValue: clientAddress,
+          cra,
+          reason: "Address on credit report does not match client's current address",
+        });
+        unmatchedAddresses.push({ address: bureauInfo.address, cra });
+      }
+    }
+
+    // Check previous addresses
+    if (bureauInfo.previousAddresses) {
+      for (const addr of bureauInfo.previousAddresses) {
+        const normalizedAddr = normalizeAddress(addr);
+        // All previous addresses that aren't current should be disputed
+        if (
+          normalizedAddr &&
+          !normalizedAddr.includes(normalizeAddress(client.addressLine1 || ""))
+        ) {
+          unmatchedAddresses.push({ address: addr, cra });
+        }
+      }
+    }
+
+    // Check name variations
+    if (bureauInfo.name) {
+      const normalizedReportName = normalizeName(bureauInfo.name);
+
+      // If name doesn't match client's name
+      if (
+        normalizedReportName &&
+        normalizedReportName !== normalizedClientName &&
+        !normalizedReportName.includes(normalizedClientName) &&
+        !normalizedClientName.includes(normalizedReportName)
+      ) {
+        discrepancies.push({
+          type: "NAME",
+          reportValue: bureauInfo.name,
+          clientValue: clientFullName,
+          cra,
+          reason: "Name on credit report does not match client's legal name",
+        });
+        unmatchedNames.push({ name: bureauInfo.name, cra });
+      }
+    }
+  }
+
+  // Also check previous names from report JSON
+  try {
+    const previousNames: string[] = JSON.parse(latestReport.previousNames || "[]");
+    for (const name of previousNames) {
+      const normalizedName = normalizeName(name);
+      if (normalizedName !== normalizedClientName) {
+        // Only add if not already in list
+        if (!unmatchedNames.some(n => normalizeName(n.name) === normalizedName)) {
+          unmatchedNames.push({ name, cra: "ALL" }); // Applies to all bureaus
+        }
+      }
+    }
+  } catch {
+    // Ignore parse errors
+  }
+
+  // Also check previous addresses from report JSON
+  try {
+    const previousAddresses: string[] = JSON.parse(latestReport.previousAddresses || "[]");
+    for (const addr of previousAddresses) {
+      const normalizedAddr = normalizeAddress(addr);
+      if (!normalizedAddr.includes(normalizeAddress(client.addressLine1 || ""))) {
+        // Only add if not already in list
+        if (!unmatchedAddresses.some(a => normalizeAddress(a.address) === normalizedAddr)) {
+          unmatchedAddresses.push({ address: addr, cra: "ALL" }); // Applies to all bureaus
+        }
+      }
+    }
+  } catch {
+    // Ignore parse errors
+  }
+
+  return { discrepancies, unmatchedAddresses, unmatchedNames };
+}
+
+/**
+ * Get personal info items to include in dispute letter.
+ * This combines:
+ * 1. Active disputes (previously disputed items still present)
+ * 2. Auto-detected discrepancies (addresses/names that don't match client data)
+ * 3. Hard inquiries
+ */
+export async function getPersonalInfoForDispute(
+  clientId: string,
+  cra: CRA
+): Promise<{
+  previousNames: string[];
+  previousAddresses: string[];
+  hardInquiries: HardInquiry[];
+}> {
+  // Get active disputes
+  const activeDisputes = await getActiveDisputes(clientId, cra);
+
+  // Get auto-detected discrepancies
+  const { unmatchedAddresses, unmatchedNames } =
+    await detectPersonalInfoDiscrepancies(clientId);
+
+  // Get hard inquiries from latest report
+  const latestReport = await prisma.creditReport.findFirst({
+    where: {
+      clientId,
+      parseStatus: "COMPLETED",
+    },
+    orderBy: { reportDate: "desc" },
+    select: { hardInquiries: true },
+  });
+
+  let hardInquiries: HardInquiry[] = [];
+  try {
+    const rawInquiries = JSON.parse(latestReport?.hardInquiries || "[]");
+    hardInquiries = rawInquiries
+      .filter((inq: { cra: string }) => inq.cra === cra || inq.cra === "ALL")
+      .map((inq: { creditorName: string; inquiryDate: string; cra: string }) => ({
+        creditorName: inq.creditorName,
+        inquiryDate: inq.inquiryDate,
+        cra: inq.cra as CRA,
+      }));
+  } catch {
+    // Ignore parse errors
+  }
+
+  // Combine active disputes with auto-detected discrepancies
+  const previousNames = new Set<string>();
+  const previousAddresses = new Set<string>();
+
+  // Add from active disputes
+  for (const dispute of activeDisputes) {
+    if (dispute.type === "PREVIOUS_NAME") {
+      previousNames.add(dispute.value);
+    } else if (dispute.type === "PREVIOUS_ADDRESS") {
+      previousAddresses.add(dispute.value);
+    }
+  }
+
+  // Add from auto-detected discrepancies
+  for (const item of unmatchedNames) {
+    if (item.cra === cra || item.cra === "ALL") {
+      previousNames.add(item.name);
+    }
+  }
+
+  for (const item of unmatchedAddresses) {
+    if (item.cra === cra || item.cra === "ALL") {
+      previousAddresses.add(item.address);
+    }
+  }
+
+  return {
+    previousNames: [...previousNames],
+    previousAddresses: [...previousAddresses],
+    hardInquiries,
+  };
 }
 
 /**

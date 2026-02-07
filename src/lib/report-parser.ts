@@ -503,12 +503,53 @@ export async function parseAndAnalyzeReportAI(options: ParseReportAIOptions): Pr
 
     // Save inquiries as hard inquiries JSON
     if (report.inquiries.length > 0) {
+      const formattedInquiries = report.inquiries.map(inq => ({
+        creditorName: inq.inquirerName,
+        inquiryDate: inq.inquiryDate,
+        cra: inq.bureau,
+      }));
       await prisma.creditReport.update({
         where: { id: reportId },
         data: {
-          hardInquiries: JSON.stringify(report.inquiries),
+          hardInquiries: JSON.stringify(formattedInquiries),
         },
       });
+      log.info({ count: report.inquiries.length }, "[AI-PARSER] Hard inquiries extracted");
+    }
+
+    // Save personal info by bureau if available
+    if (report.personalInfoByBureau) {
+      // Extract previous names and addresses for letter generation
+      const previousNames: string[] = [];
+      const previousAddresses: string[] = [];
+
+      // Get all addresses marked as previous or non-current
+      for (const addr of report.consumer.addresses || []) {
+        if (addr.type === "PREVIOUS" || !addr.isCurrent) {
+          if (addr.street) {
+            previousAddresses.push(addr.street);
+          }
+        }
+      }
+
+      // Get previous names from consumer aliases
+      if (report.consumer.aliases) {
+        previousNames.push(...report.consumer.aliases);
+      }
+
+      await prisma.creditReport.update({
+        where: { id: reportId },
+        data: {
+          personalInfoByBureau: JSON.stringify(report.personalInfoByBureau),
+          previousNames: JSON.stringify(previousNames),
+          previousAddresses: JSON.stringify(previousAddresses),
+          parserVersion: report.metadata.parserVersion || "2.0.0",
+        },
+      });
+      log.info({
+        previousNamesCount: previousNames.length,
+        previousAddressesCount: previousAddresses.length,
+      }, "[AI-PARSER] Personal info saved");
     }
 
     // Create pending evidence suggestions for accounts with issues

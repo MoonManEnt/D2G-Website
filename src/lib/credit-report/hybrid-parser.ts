@@ -26,9 +26,11 @@ import {
   assignSequenceIndices,
   parsePersonalInfo,
   parseCreditScores,
+  parseInquiries,
   detectColumnBoundaries,
   type PositionParsedAccount,
   type PositionParseResult,
+  type ParsedInquiry,
   type Bureau,
 } from "./position-parser";
 import type { ParsedCreditReport, CreditAccount } from "./extraction-schema";
@@ -167,51 +169,67 @@ function convertPositionResult(
     }
   }
 
-  // Get personal info and scores from position parser
+  // Get personal info, scores, and inquiries from position parser
   const boundaries = detectColumnBoundaries(text);
-  const personalInfo = parsePersonalInfo(text, boundaries);
-  const creditScores = parseCreditScores(text, boundaries);
+  const personalInfo = posResult.personalInfo || parsePersonalInfo(text, boundaries);
+  const creditScores = posResult.creditScores || parseCreditScores(text, boundaries);
+  const parsedInquiries = posResult.inquiries || parseInquiries(text, boundaries);
+
+  // Convert inquiries to standard format
+  const inquiries = parsedInquiries.map(inq => ({
+    inquirerName: inq.inquirerName,
+    inquiryDate: inq.inquiryDate,
+    inquiryType: inq.inquiryType as "HARD" | "SOFT",
+    bureau: inq.bureau,
+  }));
 
   // Build bureau summaries
   const tuAccounts = accounts.filter(a => a.bureau === "TRANSUNION");
   const exAccounts = accounts.filter(a => a.bureau === "EXPERIAN");
   const eqAccounts = accounts.filter(a => a.bureau === "EQUIFAX");
 
+  const tuInquiries = inquiries.filter(i => i.bureau === "TRANSUNION").length;
+  const exInquiries = inquiries.filter(i => i.bureau === "EXPERIAN").length;
+  const eqInquiries = inquiries.filter(i => i.bureau === "EQUIFAX").length;
+
   const result: ParsedCreditReport = {
     consumer: {
-      name: personalInfo.TRANSUNION?.name ||
-        personalInfo.EXPERIAN?.name ||
-        personalInfo.EQUIFAX?.name ||
+      name: personalInfo?.TRANSUNION?.name ||
+        personalInfo?.EXPERIAN?.name ||
+        personalInfo?.EQUIFAX?.name ||
         "Unknown",
       addresses: [],
-      ssnLast4: personalInfo.TRANSUNION?.ssn?.slice(-4) || undefined,
-      dateOfBirth: personalInfo.TRANSUNION?.dateOfBirth || undefined,
+      ssnLast4: personalInfo?.TRANSUNION?.ssn?.slice(-4) || undefined,
+      dateOfBirth: personalInfo?.TRANSUNION?.dateOfBirth || undefined,
     },
     bureaus: [
       {
         name: "TRANSUNION",
-        creditScore: creditScores.TRANSUNION?.score,
-        scoreModel: creditScores.TRANSUNION?.model,
+        creditScore: creditScores?.TRANSUNION?.score,
+        scoreModel: creditScores?.TRANSUNION?.model,
         reportDate: new Date().toISOString().split("T")[0],
         accountCount: tuAccounts.length,
+        hardInquiries: tuInquiries,
       },
       {
         name: "EXPERIAN",
-        creditScore: creditScores.EXPERIAN?.score,
-        scoreModel: creditScores.EXPERIAN?.model,
+        creditScore: creditScores?.EXPERIAN?.score,
+        scoreModel: creditScores?.EXPERIAN?.model,
         reportDate: new Date().toISOString().split("T")[0],
         accountCount: exAccounts.length,
+        hardInquiries: exInquiries,
       },
       {
         name: "EQUIFAX",
-        creditScore: creditScores.EQUIFAX?.score,
-        scoreModel: creditScores.EQUIFAX?.model,
+        creditScore: creditScores?.EQUIFAX?.score,
+        scoreModel: creditScores?.EQUIFAX?.model,
         reportDate: new Date().toISOString().split("T")[0],
         accountCount: eqAccounts.length,
+        hardInquiries: eqInquiries,
       },
     ],
     accounts,
-    inquiries: [], // TODO: Parse inquiries section
+    inquiries,
     publicRecords: [], // TODO: Parse public records
     metadata: {
       reportDate: new Date().toISOString().split("T")[0],
@@ -219,27 +237,40 @@ function convertPositionResult(
       parseConfidence: posResult.columnBoundaries.confidence * 100,
       parserVersion: "2.0.0",
     },
+
+    // Parser 2.0 fields
+    personalInfoByBureau: personalInfo ? {
+      TRANSUNION: personalInfo.TRANSUNION || undefined,
+      EXPERIAN: personalInfo.EXPERIAN || undefined,
+      EQUIFAX: personalInfo.EQUIFAX || undefined,
+    } : undefined,
   };
 
   // Add addresses from personal info
-  const allAddresses = new Set<string>();
-  for (const bureau of bureaus) {
-    const info = personalInfo[bureau];
-    if (info?.address) {
-      allAddresses.add(info.address);
-    }
-    if (info?.previousAddresses) {
-      info.previousAddresses.forEach(addr => allAddresses.add(addr));
-    }
-  }
+  if (personalInfo) {
+    const allAddresses = new Set<string>();
+    const currentAddresses = new Set<string>();
 
-  result.consumer.addresses = [...allAddresses].map(addr => ({
-    street: addr,
-    city: "",
-    state: "",
-    zip: "",
-    isCurrent: addr === personalInfo.TRANSUNION?.address,
-  }));
+    for (const bureau of bureaus) {
+      const info = personalInfo[bureau];
+      if (info?.address) {
+        allAddresses.add(info.address);
+        currentAddresses.add(info.address);
+      }
+      if (info?.previousAddresses) {
+        info.previousAddresses.forEach(addr => allAddresses.add(addr));
+      }
+    }
+
+    result.consumer.addresses = [...allAddresses].map(addr => ({
+      street: addr,
+      city: "",
+      state: "",
+      zip: "",
+      type: currentAddresses.has(addr) ? "CURRENT" as const : "PREVIOUS" as const,
+      isCurrent: currentAddresses.has(addr),
+    }));
+  }
 
   return result;
 }
