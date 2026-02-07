@@ -103,7 +103,6 @@ interface ParsedAnalysis {
   findings: any[];
   recommendations: any[];
   scoreGapAnalysis: any | null;
-  vendorRecommendations: any[];
   computeTimeMs: number | null;
   version: string | null;
   createdAt: string;
@@ -127,7 +126,6 @@ function parseAnalysis(raw: any): ParsedAnalysis {
     findings: safeParseJSON(raw.findings, []),
     recommendations: safeParseJSON(raw.recommendations, []),
     scoreGapAnalysis: safeParseJSON(raw.scoreGapAnalysis, null),
-    vendorRecommendations: safeParseJSON(raw.vendorRecommendations, []),
     computeTimeMs: raw.computeTimeMs,
     version: raw.version,
     createdAt: raw.createdAt,
@@ -197,7 +195,6 @@ export default function CreditReadinessPage() {
         findings: data.analysis.findings,
         recommendations: data.analysis.recommendations ?? [],
         scoreGapAnalysis: data.analysis.scoreGap,
-        vendorRecommendations: data.analysis.vendorRecommendations ?? [],
         computeTimeMs: data.analysis.computeTimeMs,
         version: "2.0.0",
         createdAt: new Date().toISOString(),
@@ -530,43 +527,6 @@ export default function CreditReadinessPage() {
                 </span>
               </h3>
               <ActionPlanList steps={currentAnalysis.actionPlan} />
-            </motion.div>
-          )}
-
-          {/* ================================================================= */}
-          {/* Vendor Recommendations (Full Width, conditional)                  */}
-          {/* ================================================================= */}
-          {currentAnalysis.vendorRecommendations.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-              className="relative z-10 bg-card backdrop-blur-xl border border-border rounded-2xl p-6 mb-6"
-            >
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-purple-400" />
-                Recommended Services
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {currentAnalysis.vendorRecommendations.map((vendor: any, i: number) => (
-                  <div
-                    key={i}
-                    className="bg-muted rounded-xl p-4 border border-input"
-                  >
-                    <p className="text-sm font-medium text-foreground mb-1">
-                      {vendor.name || vendor.vendorName || "Service"}
-                    </p>
-                    <p className="text-xs text-muted-foreground mb-2">
-                      {vendor.description || vendor.reason || ""}
-                    </p>
-                    {vendor.category && (
-                      <span className="px-2 py-0.5 rounded text-xs font-medium bg-purple-500/20 text-purple-400">
-                        {vendor.category}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
             </motion.div>
           )}
 

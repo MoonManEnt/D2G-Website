@@ -18,7 +18,6 @@ import {
   ArrowUp,
   ArrowDown,
   Target,
-  Sparkles,
   ExternalLink,
   ChevronRight,
 } from "lucide-react";
@@ -75,18 +74,6 @@ interface DashboardData {
   }>;
 }
 
-interface PortalRecommendation {
-  vendorId: string;
-  vendorName: string;
-  vendorCategory: string;
-  affiliateUrl: string | null;
-  ruleId: string;
-  recommendationTitle: string;
-  recommendationBody: string;
-  recommendationCTA: string | null;
-  customAffiliateUrl: string | null;
-}
-
 const CRA_COLORS = {
   TRANSUNION: { bg: "bg-sky-500", text: "text-sky-400" },
   EXPERIAN: { bg: "bg-blue-500", text: "text-blue-400" },
@@ -109,15 +96,6 @@ const TIER_COLORS: Record<string, { bg: string; text: string; label: string }> =
   POSSIBLE: { bg: "bg-amber-500/20", text: "text-amber-400", label: "Possible Approval" },
   UNLIKELY: { bg: "bg-orange-500/20", text: "text-orange-400", label: "Unlikely" },
   NOT_READY: { bg: "bg-red-500/20", text: "text-red-400", label: "Not Ready" },
-};
-
-const CATEGORY_COLORS: Record<string, string> = {
-  CREDIT_REPAIR: "bg-purple-500/20 text-purple-400",
-  DEBT_MANAGEMENT: "bg-primary/20 text-primary",
-  FINANCIAL_COACHING: "bg-amber-500/20 text-amber-400",
-  CREDIT_MONITORING: "bg-cyan-500/20 text-cyan-400",
-  CREDIT_BUILDER: "bg-emerald-500/20 text-emerald-400",
-  OTHER: "bg-muted text-muted-foreground",
 };
 
 function formatProductType(type: string): string {
@@ -144,7 +122,6 @@ export default function PortalDashboardPage() {
   const { user, organization, logout } = usePortal();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<DashboardData | null>(null);
-  const [recommendations, setRecommendations] = useState<PortalRecommendation[]>([]);
 
   useEffect(() => {
     const token = localStorage.getItem("portal_token");
@@ -164,20 +141,7 @@ export default function PortalDashboardPage() {
       }
     };
 
-    const fetchRecommendations = async () => {
-      try {
-        const res = await fetch("/api/portal/recommendations", { headers });
-        if (res.ok) {
-          const recData = await res.json();
-          setRecommendations(recData.recommendations || []);
-        }
-      } catch (error) {
-        log.error({ err: error }, "Failed to fetch recommendations");
-      }
-    };
-
     fetchDashboard();
-    fetchRecommendations();
   }, []);
 
   if (loading) {
@@ -495,76 +459,6 @@ export default function PortalDashboardPage() {
                   </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Vendor Recommendations */}
-        {recommendations.length > 0 && (
-          <Card className="bg-card border-border mt-6">
-            <CardHeader>
-              <CardTitle className="text-foreground flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-amber-400" />
-                Recommended Services
-              </CardTitle>
-              <CardDescription className="text-muted-foreground">
-                Personalized recommendations based on your credit profile
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {recommendations.map((rec) => {
-                  const url = rec.customAffiliateUrl || rec.affiliateUrl;
-                  const catColor = CATEGORY_COLORS[rec.vendorCategory] || CATEGORY_COLORS.OTHER;
-
-                  return (
-                    <div
-                      key={`${rec.vendorId}-${rec.ruleId}`}
-                      className="p-4 bg-muted rounded-lg border border-input hover:border-input transition-colors"
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="font-medium text-foreground">{rec.vendorName}</span>
-                        <Badge className={`text-[10px] ${catColor}`}>
-                          {rec.vendorCategory.replace(/_/g, " ")}
-                        </Badge>
-                      </div>
-                      <p className="text-sm font-semibold text-foreground mb-1">
-                        {rec.recommendationTitle}
-                      </p>
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                        {rec.recommendationBody}
-                      </p>
-                      {rec.recommendationCTA && url && (
-                        <Button
-                          size="sm"
-                          className="mt-3 gap-2"
-                          onClick={async () => {
-                            try {
-                              await fetch("/api/portal/recommendations", {
-                                method: "POST",
-                                headers: {
-                                  "Content-Type": "application/json",
-                                  Authorization: `Bearer ${localStorage.getItem("portal_token")}`,
-                                },
-                                body: JSON.stringify({
-                                  vendorId: rec.vendorId,
-                                  triggerType: "PORTAL_VIEW",
-                                }),
-                              });
-                            } catch {
-                              // Tracking failure shouldn't block the user
-                            }
-                            window.open(url, "_blank", "noopener,noreferrer");
-                          }}
-                        >
-                          {rec.recommendationCTA}
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </Button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
             </CardContent>
           </Card>
         )}
