@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Clock, AlertTriangle, CheckCircle, XCircle, FileText, Calendar, ChevronRight, Filter, Download, Bell } from "lucide-react";
+import { Clock, AlertTriangle, CheckCircle, XCircle, FileText, Calendar, ChevronRight, Filter, Download, Bell, Eye, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format, differenceInDays, addDays } from "date-fns";
 import { createLogger } from "@/lib/logger";
@@ -16,6 +16,7 @@ interface PendingResponse {
   cra: string;
   round: number;
   flow: string;
+  letterContent: string | null;
   sentDate: string;
   responseDeadline: string;
   daysRemaining: number;
@@ -28,10 +29,12 @@ interface PendingResponse {
 interface LoggedResponse {
   id: string;
   disputeId: string;
+  clientId: string;
   clientName: string;
   cra: string;
   round: number;
   flow: string;
+  letterContent: string | null;
   responseDate: string | null;
   daysToRespond: number | null;
   status: string;
@@ -62,6 +65,15 @@ export default function ResponseTrackerPage() {
   const [loading, setLoading] = useState(true);
   const [showLogModal, setShowLogModal] = useState(false);
   const [selectedDispute, setSelectedDispute] = useState<PendingResponse | null>(null);
+  const [showLetterModal, setShowLetterModal] = useState(false);
+  const [selectedLetter, setSelectedLetter] = useState<{
+    clientName: string;
+    cra: string;
+    round: number;
+    flow: string;
+    letterContent: string | null;
+    disputeId: string;
+  } | null>(null);
 
   useEffect(() => {
     fetchResponses();
@@ -98,6 +110,18 @@ export default function ResponseTrackerPage() {
   const openLogModal = (dispute: PendingResponse) => {
     setSelectedDispute(dispute);
     setShowLogModal(true);
+  };
+
+  const openLetterModal = (data: {
+    clientName: string;
+    cra: string;
+    round: number;
+    flow: string;
+    letterContent: string | null;
+    disputeId: string;
+  }) => {
+    setSelectedLetter(data);
+    setShowLetterModal(true);
   };
 
   if (loading) {
@@ -175,6 +199,14 @@ export default function ResponseTrackerPage() {
                   key={response.id}
                   response={response}
                   onLogResponse={() => openLogModal(response)}
+                  onViewLetter={() => openLetterModal({
+                    clientName: response.clientName,
+                    cra: response.cra,
+                    round: response.round,
+                    flow: response.flow,
+                    letterContent: response.letterContent,
+                    disputeId: response.disputeId,
+                  })}
                 />
               ))
             )}
@@ -188,7 +220,18 @@ export default function ResponseTrackerPage() {
               </div>
             ) : (
               loggedResponses.map((response) => (
-                <LoggedResponseCard key={response.id} response={response} />
+                <LoggedResponseCard
+                  key={response.id}
+                  response={response}
+                  onViewLetter={() => openLetterModal({
+                    clientName: response.clientName,
+                    cra: response.cra,
+                    round: response.round,
+                    flow: response.flow,
+                    letterContent: response.letterContent,
+                    disputeId: response.disputeId,
+                  })}
+                />
               ))
             )}
           </div>
@@ -210,6 +253,17 @@ export default function ResponseTrackerPage() {
           }}
         />
       )}
+
+      {/* Letter Viewer Modal */}
+      {showLetterModal && selectedLetter && (
+        <LetterViewerModal
+          letter={selectedLetter}
+          onClose={() => {
+            setShowLetterModal(false);
+            setSelectedLetter(null);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -228,7 +282,7 @@ function StatCard({ icon, label, value, accent }: { icon: React.ReactNode; label
   );
 }
 
-function PendingResponseCard({ response, onLogResponse }: { response: PendingResponse; onLogResponse: () => void }) {
+function PendingResponseCard({ response, onLogResponse, onViewLetter }: { response: PendingResponse; onLogResponse: () => void; onViewLetter: () => void }) {
   const craColor = CRA_COLORS[response.cra] || CRA_COLORS.TRANSUNION;
   const isOverdue = response.daysRemaining <= 0;
   const isDueSoon = response.daysRemaining > 0 && response.daysRemaining <= 7;
@@ -295,6 +349,10 @@ function PendingResponseCard({ response, onLogResponse }: { response: PendingRes
 
       {/* Actions */}
       <div className="mt-4 flex justify-end gap-2">
+        <Button variant="outline" size="sm" onClick={onViewLetter} className="bg-card border-border text-muted-foreground hover:bg-muted hover:text-foreground gap-1.5">
+          <Eye className="w-3.5 h-3.5" />
+          View Letter
+        </Button>
         <Button variant="outline" size="sm" onClick={onLogResponse} className="bg-card border-border text-muted-foreground hover:bg-muted hover:text-foreground">
           Log Response
         </Button>
@@ -308,7 +366,7 @@ function PendingResponseCard({ response, onLogResponse }: { response: PendingRes
   );
 }
 
-function LoggedResponseCard({ response }: { response: LoggedResponse }) {
+function LoggedResponseCard({ response, onViewLetter }: { response: LoggedResponse; onViewLetter: () => void }) {
   const craColor = CRA_COLORS[response.cra] || CRA_COLORS.TRANSUNION;
   const responseConfig = RESPONSE_TYPES[response.responseType || "VERIFIED"];
 
@@ -361,11 +419,128 @@ function LoggedResponseCard({ response }: { response: LoggedResponse }) {
       </div>
 
       {/* Next Action */}
-      <div className="mt-4 flex items-center gap-2 text-sm">
-        <ChevronRight className="w-4 h-4 text-purple-400" />
-        <span className="text-muted-foreground">{response.nextAction}</span>
+      <div className="mt-4 flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm">
+          <ChevronRight className="w-4 h-4 text-purple-400" />
+          <span className="text-muted-foreground">{response.nextAction}</span>
+        </div>
+        <Button variant="outline" size="sm" onClick={onViewLetter} className="bg-card border-border text-muted-foreground hover:bg-muted hover:text-foreground gap-1.5">
+          <Eye className="w-3.5 h-3.5" />
+          View Letter
+        </Button>
       </div>
     </motion.div>
+  );
+}
+
+function LetterViewerModal({
+  letter,
+  onClose,
+}: {
+  letter: {
+    clientName: string;
+    cra: string;
+    round: number;
+    flow: string;
+    letterContent: string | null;
+    disputeId: string;
+  };
+  onClose: () => void;
+}) {
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      // Try to download the PDF from the API
+      const response = await fetch(`/api/disputes/${letter.disputeId}/pdf`);
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${letter.clientName} - Round ${letter.round} ${letter.flow}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    } catch (err) {
+      log.error("Failed to download letter PDF");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const craColor = CRA_COLORS[letter.cra] || CRA_COLORS.TRANSUNION;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="relative w-full max-w-3xl max-h-[85vh] bg-background rounded-2xl border border-border flex flex-col"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-border">
+          <div className="flex items-center gap-4">
+            <div className={"w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm " + craColor.bg + " " + craColor.text}>
+              {letter.cra.slice(0, 2)}
+            </div>
+            <div>
+              <h2 className="text-lg font-bold">{letter.clientName}</h2>
+              <p className="text-sm text-muted-foreground">
+                {letter.cra} - Round {letter.round} - {letter.flow}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownload}
+              disabled={downloading}
+              className="bg-card border-border text-muted-foreground hover:bg-muted hover:text-foreground gap-1.5"
+            >
+              <Download className="w-3.5 h-3.5" />
+              {downloading ? "Downloading..." : "Download PDF"}
+            </Button>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-muted rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5 text-muted-foreground" />
+            </button>
+          </div>
+        </div>
+
+        {/* Letter Content */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {letter.letterContent ? (
+            <div className="bg-white text-black rounded-lg p-8 min-h-[500px] font-serif text-sm leading-relaxed whitespace-pre-wrap">
+              {letter.letterContent}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              <FileText className="w-12 h-12 mb-4 opacity-50" />
+              <p className="text-lg font-medium">Letter content not available</p>
+              <p className="text-sm mt-1">The letter content was not saved for this dispute</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownload}
+                disabled={downloading}
+                className="mt-4 gap-1.5"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Try downloading PDF instead
+              </Button>
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </div>
   );
 }
 
