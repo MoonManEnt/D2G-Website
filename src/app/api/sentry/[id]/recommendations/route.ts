@@ -88,10 +88,21 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       isCollection: String(item.accountItem.accountType || "").toLowerCase().includes("collection"),
     }));
 
-    // Get or create the recommendations tracker from metadata
-    let tracker = dispute.letterContentHash
-      ? JSON.parse(dispute.letterContentHash).recommendationsTracker
-      : null;
+    // Get or create the recommendations tracker
+    // Note: letterContentHash may be a simple hash string or a JSON object with recommendationsTracker
+    let tracker = null;
+    if (dispute.letterContentHash) {
+      try {
+        // Try to parse as JSON (new format with tracker)
+        const parsed = JSON.parse(dispute.letterContentHash);
+        if (parsed && typeof parsed === 'object' && parsed.recommendationsTracker) {
+          tracker = parsed.recommendationsTracker;
+        }
+      } catch {
+        // letterContentHash is a simple hash string (old format) - no tracker yet
+        tracker = null;
+      }
+    }
 
     if (!tracker) {
       tracker = createAppliedRecommendationsTracker(disputeId, dispute.letterContent);
@@ -324,9 +335,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Return status of applied recommendations
-    const tracker = dispute.letterContentHash
-      ? JSON.parse(dispute.letterContentHash).recommendationsTracker
-      : null;
+    let tracker = null;
+    if (dispute.letterContentHash) {
+      try {
+        const parsed = JSON.parse(dispute.letterContentHash);
+        if (parsed && typeof parsed === 'object' && parsed.recommendationsTracker) {
+          tracker = parsed.recommendationsTracker;
+        }
+      } catch {
+        // letterContentHash is a simple hash string - no tracker
+        tracker = null;
+      }
+    }
 
     return NextResponse.json({
       success: true,

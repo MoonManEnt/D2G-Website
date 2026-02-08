@@ -529,7 +529,7 @@ export async function generateSentryLetter(
   let combinedStory: string | undefined;
 
   if (writingMode === "NORMAL_PEOPLE") {
-    // Generate unique impact stories for accounts
+    // Try to generate unique impact stories for accounts (optional enhancement)
     try {
       const storiesMap = await generateStoriesForAccounts(
         context.accounts,
@@ -551,39 +551,45 @@ export async function generateSentryLetter(
               context.organizationId
             );
       }
-
-      // Transform the letter to Normal People mode
-      letterContent = transformToNormalPeople(letterContent, {
-        includeStory: combinedStory,
-        preserveLegalBasis: true, // Keep citations with plain explanations
-      });
-
-      // Add human touches
-      letterContent = addHumanTouch(letterContent, "starters");
-      letterContent = addHumanTouch(letterContent, "closings");
-
-      // Replace formal account reasons with plain English
-      for (const account of context.accounts) {
-        const eoscarCode = account.detectedIssues?.[0]?.suggestedEOSCARCode || selectedEOSCARCode;
-        const plainReason = buildPlainEnglishReason(
-          eoscarCode,
-          account.creditorName,
-          account.disputeReason
-        );
-
-        // Find and replace formal dispute reason with plain English
-        const formalPattern = new RegExp(
-          `Account:\\s*${account.creditorName}[^\\n]*\\n[^\\n]*dispute reason[^\\n]*`,
-          "gi"
-        );
-        letterContent = letterContent.replace(formalPattern, (match) => {
-          return match + `\n\n${plainReason}`;
-        });
-      }
-
     } catch (error) {
-      warnings.push("Normal People mode story generation had issues, using fallback content");
+      // Story generation is optional - continue with text transformations
+      warnings.push("AI story generation unavailable, using core Normal People transformations");
     }
+
+    // ALWAYS apply text transformations for Normal People mode (not dependent on story generation)
+    // Transform the letter to Normal People mode
+    letterContent = transformToNormalPeople(letterContent, {
+      includeStory: combinedStory, // Will be undefined if story generation failed
+      preserveLegalBasis: true, // Keep citations with plain explanations
+    });
+
+    // Add human touches
+    letterContent = addHumanTouch(letterContent, "starters");
+    letterContent = addHumanTouch(letterContent, "closings");
+
+    // Replace formal account reasons with plain English
+    for (const account of context.accounts) {
+      const eoscarCode = account.detectedIssues?.[0]?.suggestedEOSCARCode || selectedEOSCARCode;
+      const plainReason = buildPlainEnglishReason(
+        eoscarCode,
+        account.creditorName,
+        account.disputeReason
+      );
+
+      // Find and replace formal dispute reason with plain English
+      const formalPattern = new RegExp(
+        `Account:\\s*${escapeRegExp(account.creditorName)}[^\\n]*\\n[^\\n]*dispute reason[^\\n]*`,
+        "gi"
+      );
+      letterContent = letterContent.replace(formalPattern, (match) => {
+        return match + `\n\n${plainReason}`;
+      });
+    }
+  }
+
+  // Helper function for regex escaping
+  function escapeRegExp(string: string): string {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
 
   // 7. Run OCR analysis
