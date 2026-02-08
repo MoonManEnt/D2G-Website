@@ -137,6 +137,207 @@ const mobileItemVariants = {
   },
 };
 
+// Cybernetic Subscription Badge Component
+function SubscriptionBadge({ tier, isCollapsed }: { tier: string; isCollapsed: boolean }) {
+  const isPro = tier === "PROFESSIONAL" || tier === "PRO";
+  const isEnterprise = tier === "ENTERPRISE";
+  const isFree = tier === "FREE" || !tier;
+
+  // Different configs based on tier
+  const config = {
+    FREE: {
+      label: "FREE",
+      shortLabel: "F",
+      bgClass: "bg-zinc-800/80",
+      borderClass: "border-zinc-600/50",
+      textClass: "text-zinc-400",
+      glowColor: "rgba(113, 113, 122, 0.3)",
+    },
+    PRO: {
+      label: "PRO",
+      shortLabel: "P",
+      bgClass: "bg-gradient-to-r from-cyan-950 via-purple-950 to-cyan-950",
+      borderClass: "border-cyan-500/50",
+      textClass: "text-cyan-400",
+      glowColor: "rgba(34, 211, 238, 0.6)",
+    },
+    ENTERPRISE: {
+      label: "ENT",
+      shortLabel: "E",
+      bgClass: "bg-gradient-to-r from-amber-950 via-yellow-950 to-amber-950",
+      borderClass: "border-amber-500/50",
+      textClass: "text-amber-400",
+      glowColor: "rgba(251, 191, 36, 0.6)",
+    },
+  };
+
+  const currentConfig = isEnterprise ? config.ENTERPRISE : isPro ? config.PRO : config.FREE;
+
+  if (isFree) {
+    // Simple badge for free tier
+    return (
+      <div className={cn("w-full flex", isCollapsed ? "justify-center" : "justify-start")}>
+        <div className={cn(
+          "px-3 py-1.5 rounded-lg text-xs font-medium",
+          currentConfig.bgClass,
+          currentConfig.textClass,
+          "border",
+          currentConfig.borderClass
+        )}>
+          {isCollapsed ? currentConfig.shortLabel : currentConfig.label}
+        </div>
+      </div>
+    );
+  }
+
+  // Cybernetic PRO/Enterprise badge
+  return (
+    <div className={cn("w-full flex", isCollapsed ? "justify-center" : "justify-start")}>
+      <motion.div
+        className="relative"
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.98 }}
+      >
+        {/* Outer glow pulse */}
+        <motion.div
+          className="absolute -inset-1 rounded-lg opacity-75 blur-sm"
+          style={{
+            background: isPro
+              ? "linear-gradient(90deg, #06b6d4, #8b5cf6, #06b6d4)"
+              : "linear-gradient(90deg, #f59e0b, #fbbf24, #f59e0b)",
+          }}
+          animate={{
+            opacity: [0.4, 0.8, 0.4],
+            scale: [1, 1.05, 1],
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+
+        {/* Main badge container */}
+        <div className={cn(
+          "relative overflow-hidden rounded-lg border",
+          currentConfig.borderClass,
+          isCollapsed ? "px-2 py-1.5" : "px-4 py-2"
+        )}>
+          {/* Animated background */}
+          <motion.div
+            className="absolute inset-0"
+            style={{
+              background: isPro
+                ? "linear-gradient(135deg, #0c4a6e 0%, #1e1b4b 50%, #0c4a6e 100%)"
+                : "linear-gradient(135deg, #451a03 0%, #422006 50%, #451a03 100%)",
+            }}
+            animate={{
+              backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+            }}
+            transition={{
+              duration: 5,
+              repeat: Infinity,
+              ease: "linear",
+            }}
+          />
+
+          {/* Scan line effect */}
+          <motion.div
+            className="absolute inset-0 overflow-hidden"
+            style={{ opacity: 0.1 }}
+          >
+            <motion.div
+              className="absolute w-full h-[2px] bg-gradient-to-r from-transparent via-white to-transparent"
+              animate={{
+                top: ["-10%", "110%"],
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+            />
+          </motion.div>
+
+          {/* Circuit pattern overlay */}
+          <div
+            className="absolute inset-0 opacity-10"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 10h20M10 0v20' stroke='%23fff' stroke-width='0.5' fill='none'/%3E%3Ccircle cx='10' cy='10' r='1' fill='%23fff'/%3E%3C/svg%3E")`,
+              backgroundSize: "10px 10px",
+            }}
+          />
+
+          {/* Content */}
+          <div className="relative flex items-center gap-2">
+            {/* Pulsing dot indicator */}
+            <motion.div
+              className={cn(
+                "w-2 h-2 rounded-full",
+                isPro ? "bg-cyan-400" : "bg-amber-400"
+              )}
+              animate={{
+                boxShadow: [
+                  `0 0 4px 0px ${currentConfig.glowColor}`,
+                  `0 0 8px 2px ${currentConfig.glowColor}`,
+                  `0 0 4px 0px ${currentConfig.glowColor}`,
+                ],
+                scale: [1, 1.2, 1],
+              }}
+              transition={{
+                duration: 1.5,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            />
+
+            {!isCollapsed && (
+              <motion.span
+                className={cn(
+                  "font-bold tracking-widest text-sm",
+                  currentConfig.textClass
+                )}
+                animate={{
+                  textShadow: [
+                    `0 0 4px ${currentConfig.glowColor}`,
+                    `0 0 12px ${currentConfig.glowColor}`,
+                    `0 0 4px ${currentConfig.glowColor}`,
+                  ],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              >
+                {currentConfig.label}
+              </motion.span>
+            )}
+          </div>
+
+          {/* Corner accents */}
+          <div className={cn(
+            "absolute top-0 left-0 w-2 h-2 border-t border-l",
+            isPro ? "border-cyan-400/60" : "border-amber-400/60"
+          )} />
+          <div className={cn(
+            "absolute top-0 right-0 w-2 h-2 border-t border-r",
+            isPro ? "border-cyan-400/60" : "border-amber-400/60"
+          )} />
+          <div className={cn(
+            "absolute bottom-0 left-0 w-2 h-2 border-b border-l",
+            isPro ? "border-cyan-400/60" : "border-amber-400/60"
+          )} />
+          <div className={cn(
+            "absolute bottom-0 right-0 w-2 h-2 border-b border-r",
+            isPro ? "border-cyan-400/60" : "border-amber-400/60"
+          )} />
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 interface SidebarProps {
   user: {
     name: string;
@@ -478,46 +679,9 @@ export function Sidebar({ user }: SidebarProps) {
           <LogoDisplay />
         </div>
 
-        {/* Subscription Badge - NEW POSITION */}
+        {/* Subscription Badge - Cybernetic PRO */}
         <div className={cn("px-3 pt-3", isCollapsed && "px-2")}>
-          <motion.div
-            className={cn(
-              "relative overflow-hidden rounded-full",
-              isCollapsed ? "w-full flex justify-center" : "w-fit"
-            )}
-            whileHover={{ scale: 1.02 }}
-          >
-            <Badge
-              className={cn(
-                "relative text-xs font-semibold tracking-wide",
-                "bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600",
-                "text-white border-0 shadow-lg",
-                isCollapsed ? "px-2 py-1" : "px-3 py-1.5"
-              )}
-            >
-              {isCollapsed ? (
-                <Sparkles className="w-3 h-3" />
-              ) : (
-                user?.subscriptionTier || "FREE"
-              )}
-              {/* Glow effect */}
-              <motion.div
-                className="absolute inset-0 rounded-full"
-                animate={{
-                  boxShadow: [
-                    "0 0 10px rgba(139, 92, 246, 0.3)",
-                    "0 0 20px rgba(139, 92, 246, 0.5)",
-                    "0 0 10px rgba(139, 92, 246, 0.3)",
-                  ],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              />
-            </Badge>
-          </motion.div>
+          <SubscriptionBadge tier={user?.subscriptionTier || "FREE"} isCollapsed={isCollapsed} />
         </div>
 
         {/* Search hint */}
