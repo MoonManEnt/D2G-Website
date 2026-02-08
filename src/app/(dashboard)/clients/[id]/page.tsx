@@ -135,8 +135,11 @@ interface ClientData {
   }>;
   disputes: Array<{
     id: string;
-    disputeStatus: string;
+    status: string;
     cra: string;
+    round: number;
+    flow: string;
+    sentDate: string | null;
     createdAt: string;
   }>;
 }
@@ -1216,9 +1219,10 @@ export default function ClientDetailPage() {
             existingDisputes={client.disputes.map((d) => ({
               id: d.id,
               cra: d.cra,
-              round: 1,
-              status: d.disputeStatus,
-              flow: "ACCURACY",
+              round: d.round,
+              status: d.status,
+              flow: d.flow,
+              sentDate: d.sentDate || undefined,
               createdAt: d.createdAt,
             }))}
             onDisputeCreated={fetchClient}
