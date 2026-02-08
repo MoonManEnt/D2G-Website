@@ -20,6 +20,7 @@ import {
   Search,
   GripVertical,
   Gavel,
+  MessageSquarePlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,7 @@ const navigation: { name: string; href: string; icon: typeof LayoutDashboard; to
   { name: "Sentry", href: "/sentry", icon: Shield, tourId: "sentry" },
   { name: "Analytics", href: "/analytics", icon: BarChart3, tourId: "analytics" },
   { name: "Litigation", href: "/litigation", icon: Gavel, tourId: "litigation" },
+  { name: "Feedback", href: "/feedback", icon: MessageSquarePlus },
   { name: "Settings", href: "/settings", icon: Settings },
   { name: "Billing", href: "/billing", icon: CreditCard },
 ];
@@ -77,6 +79,11 @@ const iconAnimations: Record<string, any> = {
   Litigation: {
     rotate: [0, -15, 15, 0],
     scale: [1, 1.15, 1],
+    transition: { duration: 0.5, ease: "easeInOut" },
+  },
+  Feedback: {
+    scale: [1, 1.2, 1],
+    rotate: [0, 10, -10, 0],
     transition: { duration: 0.5, ease: "easeInOut" },
   },
   Billing: {

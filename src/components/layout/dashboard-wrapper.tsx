@@ -11,7 +11,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { BrandingProvider } from "@/components/branding";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
-import { BetaFeedback } from "@/components/feedback/beta-feedback";
 import { CommandPalette } from "@/components/layout/command-palette";
 
 interface DashboardWrapperProps {
@@ -51,7 +50,6 @@ function DashboardContent({ children, user }: DashboardWrapperProps) {
       <WelcomeModal />
       <GuidedTour isActive={tourActive} onComplete={completeTour} />
       <CommandPalette />
-      <BetaFeedback />
     </>
   );
 }
