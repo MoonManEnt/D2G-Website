@@ -14,6 +14,7 @@ import {
   type GenerationContext,
 } from "@/lib/sentry/sentry-generator";
 import type { SentryCRA, SentryFlowType } from "@/types/sentry";
+import type { WritingMode } from "@/lib/sentry/writing-modes";
 import { sentryGenerateSchema } from "@/lib/api-validation-schemas";
 import { createLogger } from "@/lib/logger";
 const log = createLogger("sentry-generate-api");
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         { status: 400 }
       );
     }
-    const { eoscarCodeOverride, customLanguage, templateId } = parsed.data;
+    const { eoscarCodeOverride, customLanguage, templateId, writingMode } = parsed.data;
 
     if (!session?.user?.organizationId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -135,6 +136,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       templateId,
       eoscarCodeOverride,
       customLanguage,
+      writingMode: writingMode as WritingMode | undefined,
+      organizationId: session.user.organizationId,
     };
 
     // Get previous dispute info for R2+
@@ -158,7 +161,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Generate the letter
-    const generationResult = generateSentryLetter(generationContext);
+    const generationResult = await generateSentryLetter(generationContext);
 
     // Update dispute with generated content
     await prisma.sentryDispute.update({

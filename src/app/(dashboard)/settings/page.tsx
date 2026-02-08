@@ -36,7 +36,9 @@ import {
   FileText,
   Scale,
   Archive,
+  MessageSquarePlus,
 } from "lucide-react";
+import { WRITING_MODE_CONFIGS, type WritingMode } from "@/lib/sentry/writing-modes";
 import { useToast } from "@/lib/use-toast";
 import { BrandingSettings } from "@/components/branding";
 import { ProfilePictureUpload } from "@/components/profile";
@@ -78,12 +80,24 @@ export default function SettingsPage() {
   } | null>(null);
   const [isLoadingCounts, setIsLoadingCounts] = useState(false);
 
+  // Dispute settings state
+  const [defaultWritingMode, setDefaultWritingMode] = useState<WritingMode>("PROFESSIONAL");
+  const [isSavingDisputeSettings, setIsSavingDisputeSettings] = useState(false);
+
   // Initialize form with session data
   useEffect(() => {
     if (session?.user?.name) {
       setName(session.user.name);
     }
   }, [session?.user?.name]);
+
+  // Load saved writing mode preference
+  useEffect(() => {
+    const savedMode = localStorage.getItem("dispute2go_default_writing_mode");
+    if (savedMode === "PROFESSIONAL" || savedMode === "NORMAL_PEOPLE") {
+      setDefaultWritingMode(savedMode);
+    }
+  }, []);
 
   // Fetch profile picture
   useEffect(() => {
@@ -326,6 +340,10 @@ export default function SettingsPage() {
             <Archive className="w-4 h-4 mr-2" />
             Archived
           </TabsTrigger>
+          <TabsTrigger value="disputes" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <MessageSquarePlus className="w-4 h-4 mr-2" />
+            Disputes
+          </TabsTrigger>
           {(session?.user?.role === "ADMIN" || session?.user?.role === "OWNER") && (
             <TabsTrigger value="danger" className="data-[state=active]:bg-red-600 data-[state=active]:text-white text-red-400">
               <AlertTriangle className="w-4 h-4 mr-2" />
@@ -520,6 +538,150 @@ export default function SettingsPage() {
         <TabsContent value="archived" asChild>
           <motion.div variants={tabContentVariants} initial="hidden" animate="visible">
             <ArchivedClientsList />
+          </motion.div>
+        </TabsContent>
+
+        <TabsContent value="disputes" asChild>
+          <motion.div variants={tabContentVariants} initial="hidden" animate="visible">
+            <Card className="bg-card border-border backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-foreground">Dispute Settings</CardTitle>
+                <CardDescription className="text-muted-foreground">
+                  Configure default settings for Sentry dispute letter generation
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Writing Mode Selection */}
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-foreground text-lg">Default Writing Style</Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Choose the default tone and style for generated dispute letters
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {(["PROFESSIONAL", "NORMAL_PEOPLE"] as WritingMode[]).map((mode) => {
+                      const config = WRITING_MODE_CONFIGS[mode];
+                      const isSelected = defaultWritingMode === mode;
+                      return (
+                        <button
+                          key={mode}
+                          onClick={() => setDefaultWritingMode(mode)}
+                          className={`p-6 rounded-xl text-left transition-all border ${
+                            isSelected
+                              ? mode === "NORMAL_PEOPLE"
+                                ? "bg-purple-500/20 border-purple-500/50 ring-2 ring-purple-500/30"
+                                : "bg-blue-500/20 border-blue-500/50 ring-2 ring-blue-500/30"
+                              : "bg-muted border-border hover:bg-muted/80"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 mb-3">
+                            {mode === "NORMAL_PEOPLE" ? (
+                              <div className={`p-2 rounded-lg ${isSelected ? "bg-purple-500/20" : "bg-muted"}`}>
+                                <MessageSquarePlus className={`w-5 h-5 ${isSelected ? "text-purple-400" : "text-muted-foreground"}`} />
+                              </div>
+                            ) : (
+                              <div className={`p-2 rounded-lg ${isSelected ? "bg-blue-500/20" : "bg-muted"}`}>
+                                <FileText className={`w-5 h-5 ${isSelected ? "text-blue-400" : "text-muted-foreground"}`} />
+                              </div>
+                            )}
+                            <div>
+                              <span className={`font-semibold ${
+                                isSelected
+                                  ? mode === "NORMAL_PEOPLE" ? "text-purple-400" : "text-blue-400"
+                                  : "text-foreground"
+                              }`}>
+                                {config.name}
+                              </span>
+                              <span className={`ml-2 text-xs px-2 py-0.5 rounded ${
+                                isSelected
+                                  ? mode === "NORMAL_PEOPLE" ? "bg-purple-500/20 text-purple-400" : "bg-blue-500/20 text-blue-400"
+                                  : "bg-muted text-muted-foreground"
+                              }`}>
+                                {config.readingLevel}
+                              </span>
+                            </div>
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-3">
+                            {config.description}
+                          </p>
+                          <ul className="space-y-1">
+                            {config.features.map((feature, idx) => (
+                              <li key={idx} className="text-xs text-muted-foreground flex items-center gap-2">
+                                <Check className="w-3 h-3 text-emerald-400" />
+                                {feature}
+                              </li>
+                            ))}
+                          </ul>
+                          {mode === "NORMAL_PEOPLE" && (
+                            <div className="mt-4 pt-3 border-t border-border">
+                              <p className="text-xs text-purple-400 flex items-center gap-2">
+                                <Sparkles className="w-3 h-3" />
+                                AI-generated unique impact stories
+                              </p>
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex justify-end pt-4">
+                    <Button
+                      onClick={async () => {
+                        setIsSavingDisputeSettings(true);
+                        try {
+                          // Save to user preferences (in localStorage for now, could be API later)
+                          localStorage.setItem("dispute2go_default_writing_mode", defaultWritingMode);
+                          toast({
+                            title: "Settings saved",
+                            description: `Default writing style set to ${WRITING_MODE_CONFIGS[defaultWritingMode].name}`,
+                          });
+                        } finally {
+                          setIsSavingDisputeSettings(false);
+                        }
+                      }}
+                      disabled={isSavingDisputeSettings}
+                      className="bg-primary hover:bg-primary/90"
+                    >
+                      {isSavingDisputeSettings ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4 mr-2" />
+                          Save Settings
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="border-t border-border pt-6">
+                  <div className="bg-muted/50 rounded-lg p-4">
+                    <h4 className="text-sm font-medium text-foreground mb-2">About Writing Modes</h4>
+                    <div className="space-y-3 text-sm text-muted-foreground">
+                      <p>
+                        <strong className="text-blue-400">Professional Mode</strong> generates formal dispute letters with
+                        full legal citations and technical language. Best for law firms and professional credit repair companies.
+                      </p>
+                      <p>
+                        <strong className="text-purple-400">Normal People Mode</strong> generates conversational letters that
+                        sound like a real person wrote them. Uses 8th-11th grade reading level with AI-generated unique
+                        impact stories that explain how the credit error affects the consumer's life.
+                      </p>
+                      <p className="text-xs">
+                        Both modes are fully e-OSCAR compliant and include proper legal citations. You can override the
+                        default setting when creating individual disputes.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </motion.div>
         </TabsContent>
 

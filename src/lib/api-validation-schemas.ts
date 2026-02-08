@@ -147,6 +147,9 @@ export const disputeCreateAndLaunchSchema = z.object({
 // SENTRY SCHEMAS
 // =============================================================================
 
+// Writing mode enum for Sentry letters
+const writingModeEnum = z.enum(["PROFESSIONAL", "NORMAL_PEOPLE"]).optional();
+
 /**
  * POST /api/sentry - Create a new Sentry dispute
  */
@@ -158,6 +161,7 @@ export const sentryCreateSchema = z.object({
   generateLetter: z.boolean().default(true),
   eoscarCodeOverride: z.string().optional(),
   customLanguage: z.string().optional(),
+  writingMode: writingModeEnum,
 });
 
 /**
@@ -167,6 +171,7 @@ export const sentryGenerateSchema = z.object({
   eoscarCodeOverride: z.string().optional(),
   customLanguage: z.string().optional(),
   templateId: z.string().optional(),
+  writingMode: writingModeEnum,
 });
 
 /**

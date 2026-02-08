@@ -48,6 +48,22 @@ import {
   buildAccountListEntry,
 } from "./metro2-targeting";
 import { calculateSuccessProbability } from "./success-calculator";
+import {
+  type WritingMode,
+  type StoryContext,
+  type GeneratedStory,
+  transformToNormalPeople,
+  addHumanTouch,
+  buildPlainEnglishReason,
+  EOSCAR_TO_DISPUTE_TYPE,
+  HUMAN_TOUCH_PATTERNS,
+} from "./writing-modes";
+import {
+  generateImpactStory,
+  generateStoriesForAccounts,
+  combineStories,
+  generateSummaryStory,
+} from "./story-generator";
 
 // =============================================================================
 // TYPES
@@ -80,6 +96,15 @@ export interface GenerationContext {
 
   // Date options
   backdateDays?: number; // Number of days to backdate the letter (default 30 for Round 1)
+
+  // Writing mode (default: PROFESSIONAL)
+  writingMode?: WritingMode;
+
+  // Client context for story generation (Normal People mode)
+  clientContext?: StoryContext["clientContext"];
+
+  // Organization ID for LLM calls
+  organizationId?: string;
 }
 
 export interface GenerationResult {
@@ -90,6 +115,13 @@ export interface GenerationResult {
   // Template used
   templateId: string;
   templateName: string;
+
+  // Writing mode used
+  writingMode: WritingMode;
+
+  // Generated stories (Normal People mode)
+  impactStories?: GeneratedStory[];
+  combinedStory?: string;
 
   // Intelligence results
   eoscarRecommendations: EOSCARRecommendation[];
@@ -318,11 +350,13 @@ function buildVerificationChallengeSection(
 
 /**
  * Generate a Sentry dispute letter with full intelligence analysis
+ * Supports both PROFESSIONAL and NORMAL_PEOPLE writing modes
  */
-export function generateSentryLetter(
+export async function generateSentryLetter(
   context: GenerationContext
-): GenerationResult {
+): Promise<GenerationResult> {
   const warnings: string[] = [];
+  const writingMode: WritingMode = context.writingMode || "PROFESSIONAL";
 
   // 1. Select template
   const template = context.templateId
@@ -490,6 +524,68 @@ export function generateSentryLetter(
   // Store original for comparison
   const originalContent = letterContent;
 
+  // 6.5 Apply writing mode transformation (Normal People mode)
+  let impactStories: GeneratedStory[] | undefined;
+  let combinedStory: string | undefined;
+
+  if (writingMode === "NORMAL_PEOPLE") {
+    // Generate unique impact stories for accounts
+    try {
+      const storiesMap = await generateStoriesForAccounts(
+        context.accounts,
+        context.flow,
+        context.round,
+        context.clientContext,
+        context.organizationId
+      );
+
+      impactStories = Array.from(storiesMap.values());
+
+      // Combine stories for the letter
+      if (impactStories.length > 0) {
+        combinedStory = impactStories.length <= 3
+          ? combineStories(impactStories)
+          : await generateSummaryStory(
+              context.accounts.length,
+              EOSCAR_TO_DISPUTE_TYPE[selectedEOSCARCode] || "INACCURATE",
+              context.organizationId
+            );
+      }
+
+      // Transform the letter to Normal People mode
+      letterContent = transformToNormalPeople(letterContent, {
+        includeStory: combinedStory,
+        preserveLegalBasis: true, // Keep citations with plain explanations
+      });
+
+      // Add human touches
+      letterContent = addHumanTouch(letterContent, "starters");
+      letterContent = addHumanTouch(letterContent, "closings");
+
+      // Replace formal account reasons with plain English
+      for (const account of context.accounts) {
+        const eoscarCode = account.detectedIssues?.[0]?.suggestedEOSCARCode || selectedEOSCARCode;
+        const plainReason = buildPlainEnglishReason(
+          eoscarCode,
+          account.creditorName,
+          account.disputeReason
+        );
+
+        // Find and replace formal dispute reason with plain English
+        const formalPattern = new RegExp(
+          `Account:\\s*${account.creditorName}[^\\n]*\\n[^\\n]*dispute reason[^\\n]*`,
+          "gi"
+        );
+        letterContent = letterContent.replace(formalPattern, (match) => {
+          return match + `\n\n${plainReason}`;
+        });
+      }
+
+    } catch (error) {
+      warnings.push("Normal People mode story generation had issues, using fallback content");
+    }
+  }
+
   // 7. Run OCR analysis
   let ocrAnalysis = analyzeOCRRisk(letterContent);
   let ocrAutoFixApplied = false;
@@ -559,6 +655,10 @@ export function generateSentryLetter(
     templateId: template.id,
     templateName: template.name,
 
+    writingMode,
+    impactStories,
+    combinedStory,
+
     eoscarRecommendations,
     selectedEOSCARCode,
     metro2Disputes: allMetro2Disputes,
@@ -613,10 +713,10 @@ export function generateSentryPreview(
 /**
  * Regenerate a letter with new parameters
  */
-export function regenerateSentryLetter(
+export async function regenerateSentryLetter(
   originalContext: GenerationContext,
   overrides: Partial<GenerationContext>
-): GenerationResult {
+): Promise<GenerationResult> {
   const newContext: GenerationContext = {
     ...originalContext,
     ...overrides,
@@ -624,6 +724,9 @@ export function regenerateSentryLetter(
 
   return generateSentryLetter(newContext);
 }
+
+// Re-export writing mode types and utilities
+export { type WritingMode, getWritingModeConfig, getAvailableWritingModes } from "./writing-modes";
 
 /**
  * Analyze an existing letter (not generated by Sentry)

@@ -68,15 +68,7 @@ interface SentryReportSelectorProps {
   onRefreshReports: () => void;
 }
 
-type UploadStep = "idle" | "uploading" | "parsing" | "complete" | "error";
-
-const PARSING_STAGES = [
-  "Reading PDF...",
-  "Extracting bureaus...",
-  "Parsing accounts...",
-  "Analyzing issues...",
-  "Generating summary...",
-];
+type UploadStep = "idle" | "uploading" | "processing" | "complete" | "error";
 
 export function SentryReportSelector({
   clientId,
@@ -90,7 +82,7 @@ export function SentryReportSelector({
   const [uploadStep, setUploadStep] = useState<UploadStep>("idle");
   const [recentUpload, setRecentUpload] = useState<{ timestamp: Date; reportId: string } | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [parsingStage, setParsingStage] = useState(0);
+  const [accountsParsed, setAccountsParsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -125,25 +117,20 @@ export function SentryReportSelector({
         });
 
         clearInterval(progressInterval);
-        setUploadProgress(100);
 
         if (!response.ok) {
           const data = await response.json();
           throw new Error(data.error || "Upload failed");
         }
 
+        // Show processing state while server parses
+        setUploadStep("processing");
+        setUploadProgress(100);
+
         const data = await response.json();
 
-        // Start parsing animation
-        setUploadStep("parsing");
-        setParsingStage(0);
-
-        // Animate through parsing stages
-        for (let i = 0; i < PARSING_STAGES.length; i++) {
-          setParsingStage(i);
-          await new Promise((resolve) => setTimeout(resolve, 800));
-        }
-
+        // Store the actual number of accounts parsed
+        setAccountsParsed(data.accountsParsed || 0);
         setUploadStep("complete");
 
         // Create report object from response
@@ -314,25 +301,22 @@ export function SentryReportSelector({
           </div>
         )}
 
-        {/* Parsing state */}
-        {uploadStep === "parsing" && (
-          <div className="py-4">
-            <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
+        {/* Processing state - actual server-side parsing */}
+        {uploadStep === "processing" && (
+          <div className="py-6">
+            <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center relative">
+              <div className="absolute inset-0 rounded-full border-4 border-blue-500/20"></div>
+              <div className="absolute inset-0 rounded-full border-4 border-t-blue-500 animate-spin"></div>
+              <svg className="w-6 h-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
             </div>
             <p className="text-foreground font-medium mb-2">
-              {PARSING_STAGES[parsingStage]}
+              Processing Credit Report
             </p>
-            <div className="flex justify-center gap-1">
-              {PARSING_STAGES.map((_, i) => (
-                <div
-                  key={i}
-                  className={`w-2 h-2 rounded-full transition-colors ${
-                    i <= parsingStage ? "bg-blue-500" : "bg-muted"
-                  }`}
-                />
-              ))}
-            </div>
+            <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+              Sentry is extracting accounts and analyzing for disputable items across all bureaus
+            </p>
           </div>
         )}
 
@@ -354,16 +338,20 @@ export function SentryReportSelector({
                 />
               </svg>
             </div>
-            <p className="text-emerald-400 font-medium mb-3">
-              Report uploaded and parsed!
+            <p className="text-emerald-400 font-medium mb-1">
+              Report parsed successfully!
             </p>
+            {accountsParsed > 0 && (
+              <p className="text-sm text-muted-foreground mb-3">
+                Found <span className="text-foreground font-medium">{accountsParsed}</span> accounts across all bureaus
+              </p>
+            )}
 
-            {/* Amelia Sentry Engine message */}
-            <div className="mt-4 px-4 py-3 bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-purple-500/10 rounded-lg border border-purple-500/20">
+            {/* Sentry analysis message */}
+            <div className="mt-4 px-4 py-3 bg-gradient-to-r from-emerald-500/10 via-blue-500/10 to-emerald-500/10 rounded-lg border border-emerald-500/20">
               <p className="text-sm text-muted-foreground leading-relaxed">
-                <span className="text-purple-400 font-semibold">Amelia Sentry</span> is now analyzing your report.
-                Our intelligent engine will identify disputable items, detect inconsistencies across bureaus,
-                and craft strategic dispute letters tailored to maximize your success.
+                <span className="text-emerald-400 font-semibold">Sentry</span> has analyzed your report and identified
+                disputable items. Select accounts in the next step to generate AI-powered dispute letters.
               </p>
             </div>
 
@@ -380,7 +368,7 @@ export function SentryReportSelector({
                 e.stopPropagation();
                 setUploadStep("idle");
                 setUploadProgress(0);
-                setParsingStage(0);
+                setAccountsParsed(0);
                 setRecentUpload(null);
               }}
               className="mt-4 px-4 py-2 bg-muted text-muted-foreground rounded-lg text-sm hover:bg-muted transition-colors border border-input"

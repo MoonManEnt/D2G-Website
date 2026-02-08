@@ -16,6 +16,7 @@ import {
   type GenerationContext,
 } from "@/lib/sentry/sentry-generator";
 import type { SentryCRA, SentryFlowType } from "@/types/sentry";
+import type { WritingMode } from "@/lib/sentry/writing-modes";
 import { sentryCreateSchema } from "@/lib/api-validation-schemas";
 import { generateDisputeCode } from "@/lib/dispute-id-generator";
 import { checkAccountAvailability } from "@/lib/account-lock-service";
@@ -142,6 +143,7 @@ export const POST = withAuth(async (req, ctx) => {
       generateLetter,
       eoscarCodeOverride,
       customLanguage,
+      writingMode,
     } = parsed.data;
 
     // Get client info
@@ -348,10 +350,12 @@ export const POST = withAuth(async (req, ctx) => {
         })),
         eoscarCodeOverride,
         customLanguage,
+        writingMode: writingMode as WritingMode | undefined,
+        organizationId: ctx.organizationId,
       };
 
       // Generate the letter with Sentry intelligence
-      generationResult = generateSentryLetter(generationContext);
+      generationResult = await generateSentryLetter(generationContext);
 
       // Update dispute with generated content
       await prisma.sentryDispute.update({

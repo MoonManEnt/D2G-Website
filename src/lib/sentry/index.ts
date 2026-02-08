@@ -174,6 +174,32 @@ export {
   type GenerationResult,
 } from "./sentry-generator";
 
+// Writing Modes (Professional vs Normal People)
+export {
+  type WritingMode,
+  type WritingModeConfig,
+  type StoryContext,
+  type GeneratedStory,
+  WRITING_MODE_CONFIGS,
+  getWritingModeConfig,
+  getAvailableWritingModes,
+  buildPlainEnglishReason,
+  transformToNormalPeople,
+  addHumanTouch,
+  PLAIN_ENGLISH_CITATIONS,
+  PLAIN_LANGUAGE_SUBSTITUTIONS,
+  HUMAN_TOUCH_PATTERNS,
+  EOSCAR_TO_DISPUTE_TYPE,
+} from "./writing-modes";
+
+// Story Generation (AI-powered impact stories)
+export {
+  generateImpactStory,
+  generateStoriesForAccounts,
+  combineStories,
+  generateSummaryStory,
+} from "./story-generator";
+
 // Templates
 export {
   getSentryTemplates,
