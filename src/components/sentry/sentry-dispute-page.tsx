@@ -795,51 +795,152 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
         </div>
       )}
 
-      {/* Step indicator */}
-      <div className="flex items-center justify-center gap-2 flex-wrap">
-        {[
-          { key: "reports" as Step, label: "1. Select Report" },
-          { key: "select" as Step, label: "2. Select Accounts" },
-          { key: "configure" as Step, label: "3. Configure" },
-          { key: "generate" as Step, label: "4. Generate" },
-          { key: "review" as Step, label: "5. Review & Send" },
-        ].map((s) => {
-          const steps: Step[] = ["reports", "select", "configure", "generate", "review"];
-          const currentIndex = steps.indexOf(step);
-          const thisIndex = steps.indexOf(s.key);
-          const isCompleted = thisIndex < currentIndex;
-          const isCurrent = step === s.key;
+      {/* Step Navigation Bar */}
+      <div className="bg-card rounded-xl border border-border p-4">
+        <div className="flex items-center justify-between">
+          {/* Back Button */}
+          <button
+            onClick={() => {
+              const steps: Step[] = ["reports", "select", "configure", "generate", "review"];
+              const currentIndex = steps.indexOf(step);
+              if (currentIndex > 0) {
+                setStep(steps[currentIndex - 1]);
+              }
+            }}
+            disabled={step === "reports"}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              step === "reports"
+                ? "text-muted-foreground/50 cursor-not-allowed"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back
+          </button>
 
-          return (
-            <button
-              key={s.key}
-              onClick={() => {
-                if (thisIndex <= currentIndex) {
-                  setStep(s.key);
-                }
-              }}
-              disabled={thisIndex > currentIndex}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
-                isCurrent
-                  ? "bg-primary/20 text-primary"
-                  : isCompleted
-                  ? "text-emerald-400 hover:text-emerald-300"
-                  : "text-muted-foreground cursor-not-allowed"
-              }`}
-            >
-              {isCompleted && (
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              )}
-              {s.label}
-            </button>
-          );
-        })}
+          {/* Step Indicators */}
+          <div className="flex items-center gap-1">
+            {[
+              { key: "reports" as Step, label: "Report", icon: "📄" },
+              { key: "select" as Step, label: "Accounts", icon: "📋" },
+              { key: "configure" as Step, label: "Configure", icon: "⚙️" },
+              { key: "generate" as Step, label: "Generate", icon: "✨" },
+              { key: "review" as Step, label: "Review", icon: "✉️" },
+            ].map((s, index) => {
+              const steps: Step[] = ["reports", "select", "configure", "generate", "review"];
+              const currentIndex = steps.indexOf(step);
+              const thisIndex = steps.indexOf(s.key);
+              const isCompleted = thisIndex < currentIndex;
+              const isCurrent = step === s.key;
+              const isAccessible = thisIndex <= currentIndex || (currentDispute && thisIndex <= 4);
+
+              return (
+                <div key={s.key} className="flex items-center">
+                  {/* Step circle */}
+                  <button
+                    onClick={() => {
+                      if (isAccessible) {
+                        setStep(s.key);
+                      }
+                    }}
+                    disabled={!isAccessible}
+                    className={`relative flex items-center justify-center w-10 h-10 rounded-full text-sm font-medium transition-all ${
+                      isCurrent
+                        ? "bg-blue-500 text-white ring-4 ring-blue-500/20"
+                        : isCompleted
+                        ? "bg-emerald-500 text-white cursor-pointer hover:bg-emerald-600"
+                        : isAccessible
+                        ? "bg-muted text-muted-foreground cursor-pointer hover:bg-muted"
+                        : "bg-muted/50 text-muted-foreground/50 cursor-not-allowed"
+                    }`}
+                    title={s.label}
+                  >
+                    {isCompleted ? (
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path
+                          fillRule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    ) : (
+                      <span>{index + 1}</span>
+                    )}
+                  </button>
+                  {/* Connector line */}
+                  {index < 4 && (
+                    <div
+                      className={`w-8 h-0.5 mx-1 transition-colors ${
+                        isCompleted ? "bg-emerald-500" : "bg-border"
+                      }`}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Forward / Action Button */}
+          <button
+            onClick={() => {
+              const steps: Step[] = ["reports", "select", "configure", "generate", "review"];
+              const currentIndex = steps.indexOf(step);
+              if (step === "reports" && selectedReportId) {
+                handleContinueFromReports();
+              } else if (step === "select" && selectedAccountIds.length > 0) {
+                setStep("configure");
+              } else if (step === "configure") {
+                handleGenerate();
+              } else if (currentIndex < 4 && currentDispute) {
+                setStep(steps[currentIndex + 1]);
+              }
+            }}
+            disabled={
+              (step === "reports" && !selectedReportId) ||
+              (step === "select" && selectedAccountIds.length === 0) ||
+              (step === "configure" && generating) ||
+              step === "review"
+            }
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              (step === "reports" && !selectedReportId) ||
+              (step === "select" && selectedAccountIds.length === 0) ||
+              step === "review"
+                ? "bg-muted text-muted-foreground/50 cursor-not-allowed"
+                : step === "configure"
+                ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                : "bg-blue-500 text-white hover:bg-blue-600"
+            }`}
+          >
+            {step === "configure" ? (
+              generating ? "Generating..." : "Generate Letter"
+            ) : step === "review" ? (
+              "Complete"
+            ) : (
+              "Next"
+            )}
+            {step !== "review" && !generating && (
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            )}
+          </button>
+        </div>
+
+        {/* Current step label */}
+        <div className="mt-3 pt-3 border-t border-border flex items-center justify-center">
+          <span className="text-sm text-muted-foreground">
+            Step {["reports", "select", "configure", "generate", "review"].indexOf(step) + 1} of 5:{" "}
+            <span className="text-foreground font-medium">
+              {step === "reports" && "Select Credit Report"}
+              {step === "select" && "Choose Accounts to Dispute"}
+              {step === "configure" && "Configure Dispute Settings"}
+              {step === "generate" && "Review Generated Letter"}
+              {step === "review" && "Review & Launch Dispute"}
+            </span>
+          </span>
+        </div>
       </div>
 
       {/* Main content */}
@@ -864,20 +965,6 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
                 />
               </div>
 
-              {/* Continue button */}
-              <div className="flex justify-end">
-                <button
-                  onClick={handleContinueFromReports}
-                  disabled={!selectedReportId}
-                  className={`px-6 py-2 rounded-lg text-sm transition-colors ${
-                    selectedReportId
-                      ? "bg-blue-500 text-foreground hover:bg-primary"
-                      : "bg-muted text-muted-foreground cursor-not-allowed"
-                  }`}
-                >
-                  Continue with Selected Report
-                </button>
-              </div>
             </>
           )}
 
@@ -929,26 +1016,6 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
                 </div>
               )}
 
-              {/* Navigation buttons */}
-              <div className="flex justify-between">
-                <button
-                  onClick={() => setStep("reports")}
-                  className="px-4 py-2 text-sm text-muted-foreground hover:text-muted-foreground"
-                >
-                  ← Back to Reports
-                </button>
-                <button
-                  onClick={() => setStep("configure")}
-                  disabled={selectedAccountIds.length === 0}
-                  className={`px-6 py-2 rounded-lg text-sm transition-colors ${
-                    selectedAccountIds.length > 0
-                      ? "bg-blue-500 text-foreground hover:bg-primary"
-                      : "bg-muted text-muted-foreground cursor-not-allowed"
-                  }`}
-                >
-                  Continue with {selectedAccountIds.length} account(s)
-                </button>
-              </div>
             </>
           )}
 
@@ -1009,22 +1076,6 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
                 </div>
               </div>
 
-              {/* Navigation buttons */}
-              <div className="flex justify-between">
-                <button
-                  onClick={() => setStep("select")}
-                  className="px-4 py-2 text-sm text-muted-foreground hover:text-muted-foreground"
-                >
-                  ← Back
-                </button>
-                <button
-                  onClick={handleGenerate}
-                  disabled={generating}
-                  className="px-6 py-2 bg-emerald-500 text-white rounded-lg text-sm hover:bg-emerald-600 transition-colors disabled:opacity-50"
-                >
-                  {generating ? "Generating..." : "Generate Letter"}
-                </button>
-              </div>
             </>
           )}
 
@@ -1039,37 +1090,29 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
               />
 
               {/* Actions */}
-              <div className="flex justify-between">
+              <div className="flex justify-end gap-3">
                 <button
-                  onClick={() => setStep("configure")}
-                  className="px-4 py-2 text-sm text-muted-foreground hover:text-muted-foreground"
+                  onClick={handleLaunch}
+                  disabled={currentDispute.status !== "DRAFT"}
+                  className={`px-6 py-2 rounded-lg text-sm transition-colors ${
+                    currentDispute.status === "DRAFT"
+                      ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                      : "bg-muted text-muted-foreground cursor-not-allowed"
+                  }`}
                 >
-                  ← Back to Configure
+                  {currentDispute.status === "DRAFT"
+                    ? "Launch Dispute"
+                    : `Status: ${currentDispute.status}`}
                 </button>
-                <div className="flex items-center gap-3">
+                {currentDispute.status === "SENT" && (
                   <button
-                    onClick={handleLaunch}
-                    disabled={currentDispute.status !== "DRAFT"}
-                    className={`px-6 py-2 rounded-lg text-sm transition-colors ${
-                      currentDispute.status === "DRAFT"
-                        ? "bg-emerald-500 text-white hover:bg-emerald-600"
-                        : "bg-muted text-muted-foreground cursor-not-allowed"
-                    }`}
+                    onClick={() => setMailDialogOpen(true)}
+                    className="px-6 py-2 rounded-lg text-sm transition-colors bg-blue-500 text-foreground hover:bg-primary flex items-center gap-2"
                   >
-                    {currentDispute.status === "DRAFT"
-                      ? "Launch Dispute"
-                      : `Status: ${currentDispute.status}`}
+                    <Mail className="w-4 h-4" />
+                    Send via Mail
                   </button>
-                  {currentDispute.status === "SENT" && (
-                    <button
-                      onClick={() => setMailDialogOpen(true)}
-                      className="px-6 py-2 rounded-lg text-sm transition-colors bg-blue-500 text-foreground hover:bg-primary flex items-center gap-2"
-                    >
-                      <Mail className="w-4 h-4" />
-                      Send via Mail
-                    </button>
-                  )}
-                </div>
+                )}
               </div>
             </>
           )}
