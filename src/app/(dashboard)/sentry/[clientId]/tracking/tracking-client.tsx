@@ -10,9 +10,10 @@
  * - Recent activity
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { generateAnalyticsReportPDF, type AnalyticsReportData } from "@/lib/pdf-generate";
 
 // Types
 interface BureauStatus {
@@ -205,7 +206,11 @@ export function SentryTrackingClient({ clientId }: Props) {
       )}
 
       {activeTab === "analytics" && (
-        <AnalyticsView stats={data.quickStats} accounts={data.trackingMatrix} />
+        <AnalyticsView
+          stats={data.quickStats}
+          accounts={data.trackingMatrix}
+          clientName={data.client.name}
+        />
       )}
     </div>
   );
@@ -695,21 +700,97 @@ function TimelineView({ activities }: { activities: RecentActivity[] }) {
 function AnalyticsView({
   stats,
   accounts,
+  clientName,
 }: {
   stats: QuickStats;
   accounts: AccountTracking[];
+  clientName: string;
 }) {
+  const [downloading, setDownloading] = useState(false);
+
   const bureauData = [
     { name: "TransUnion", ...stats.byBureau.transunion, color: "bg-blue-500" },
     { name: "Experian", ...stats.byBureau.experian, color: "bg-purple-500" },
     { name: "Equifax", ...stats.byBureau.equifax, color: "bg-emerald-500" },
   ];
 
+  // Calculate outcomes from accounts
+  const outcomes = {
+    deleted: accounts.filter((a) => a.bestOutcome === "DELETED").length,
+    verified: accounts.filter((a) => a.bestOutcome === "VERIFIED").length,
+    updated: accounts.filter((a) => a.bestOutcome === "UPDATED").length,
+    pending: accounts.filter((a) => a.bestOutcome === "PENDING").length,
+    notStarted: accounts.filter((a) => a.bestOutcome === "NOT_STARTED").length,
+  };
+
+  const handleDownloadPDF = useCallback(async () => {
+    setDownloading(true);
+    try {
+      const reportData: AnalyticsReportData = {
+        clientName,
+        generatedDate: new Date(),
+        bureauStats: stats.byBureau,
+        totalDeleted: stats.totalDeleted,
+        totalDisputed: stats.totalDisputed,
+        awaitingResponse: stats.awaitingResponse,
+        accountsTracked: accounts.length,
+        successRate: stats.successRate,
+        outcomes,
+      };
+
+      const pdfBytes = await generateAnalyticsReportPDF(reportData);
+
+      // Create download link - convert Uint8Array to regular array for Blob compatibility
+      const blob = new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${clientName.replace(/\s+/g, "_")}_Sentry_Analytics_${new Date().toISOString().split("T")[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Failed to generate PDF:", error);
+      alert("Failed to generate PDF. Please try again.");
+    } finally {
+      setDownloading(false);
+    }
+  }, [clientName, stats, accounts, outcomes]);
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {/* Bureau Performance */}
-      <div className="bg-card rounded-xl border border-border p-6">
-        <h3 className="text-lg font-semibold text-foreground mb-4">Bureau Performance</h3>
+    <div className="space-y-6">
+      {/* Header with Download Button */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-foreground">Analytics Overview</h2>
+        <button
+          onClick={handleDownloadPDF}
+          disabled={downloading}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {downloading ? (
+            <>
+              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              <span>Generating...</span>
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span>Download PDF</span>
+            </>
+          )}
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Bureau Performance */}
+        <div className="bg-card rounded-xl border border-border p-6">
+          <h3 className="text-lg font-semibold text-foreground mb-4">Bureau Performance</h3>
         <div className="space-y-4">
           {bureauData.map((bureau) => {
             const rate = bureau.total > 0 ? Math.round((bureau.deleted / bureau.total) * 100) : 0;
@@ -777,6 +858,7 @@ function AnalyticsView({
             );
           })}
         </div>
+      </div>
       </div>
     </div>
   );

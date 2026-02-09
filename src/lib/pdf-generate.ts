@@ -1086,3 +1086,377 @@ export async function generateExhibitPackagePDF(
 
   return pdfDoc.save();
 }
+
+// ============================================================================
+// SENTRY ANALYTICS REPORT PDF
+// ============================================================================
+
+/**
+ * Analytics report data structure
+ */
+export interface AnalyticsReportData {
+  clientName: string;
+  generatedDate: Date;
+  // Bureau performance
+  bureauStats: {
+    transunion: { active: number; deleted: number; total: number };
+    experian: { active: number; deleted: number; total: number };
+    equifax: { active: number; deleted: number; total: number };
+  };
+  // Overall statistics
+  totalDeleted: number;
+  totalDisputed: number;
+  awaitingResponse: number;
+  accountsTracked: number;
+  successRate: number;
+  // Outcome breakdown
+  outcomes: {
+    deleted: number;
+    verified: number;
+    updated: number;
+    pending: number;
+    notStarted: number;
+  };
+}
+
+/**
+ * Generate a Sentry Analytics Report PDF
+ *
+ * Creates a professional PDF report showing:
+ * - Client name and report date
+ * - Bureau performance metrics with deletion rates
+ * - Overall statistics
+ * - Account outcome breakdown
+ */
+export async function generateAnalyticsReportPDF(
+  data: AnalyticsReportData
+): Promise<Uint8Array> {
+  const pdfDoc = await PDFDocument.create();
+
+  // Embed fonts
+  const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  // Add page
+  const page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+  let yPosition = PAGE_HEIGHT - MARGIN_TOP;
+
+  // Colors for the report
+  const PRIMARY_BLUE = rgb(0.18, 0.35, 0.58);
+  const EMERALD = rgb(0.2, 0.78, 0.6);
+  const AMBER = rgb(0.96, 0.62, 0.04);
+  const RED = rgb(0.87, 0.24, 0.24);
+  const PURPLE = rgb(0.58, 0.35, 0.74);
+  const LIGHT_GRAY = rgb(0.95, 0.95, 0.95);
+
+  // ========================================================================
+  // HEADER
+  // ========================================================================
+
+  page.drawText("SENTRY DISPUTE ANALYTICS REPORT", {
+    x: MARGIN_LEFT,
+    y: yPosition,
+    size: 18,
+    font: helveticaBold,
+    color: PRIMARY_BLUE,
+  });
+  yPosition -= 24;
+
+  page.drawText(`Client: ${data.clientName}`, {
+    x: MARGIN_LEFT,
+    y: yPosition,
+    size: 11,
+    font: helvetica,
+    color: DARK_GRAY,
+  });
+  yPosition -= 16;
+
+  page.drawText(`Generated: ${format(data.generatedDate, "MMMM d, yyyy 'at' h:mm a")}`, {
+    x: MARGIN_LEFT,
+    y: yPosition,
+    size: 11,
+    font: helvetica,
+    color: GRAY,
+  });
+  yPosition -= 40;
+
+  // ========================================================================
+  // BUREAU PERFORMANCE SECTION
+  // ========================================================================
+
+  page.drawText("BUREAU PERFORMANCE", {
+    x: MARGIN_LEFT,
+    y: yPosition,
+    size: 14,
+    font: helveticaBold,
+    color: BLACK,
+  });
+  yPosition -= 8;
+
+  // Underline
+  page.drawLine({
+    start: { x: MARGIN_LEFT, y: yPosition },
+    end: { x: PAGE_WIDTH - MARGIN_RIGHT, y: yPosition },
+    thickness: 1,
+    color: LIGHT_GRAY,
+  });
+  yPosition -= 24;
+
+  const bureaus = [
+    { name: "TransUnion", stats: data.bureauStats.transunion, color: rgb(0.23, 0.51, 0.86) },
+    { name: "Experian", stats: data.bureauStats.experian, color: PURPLE },
+    { name: "Equifax", stats: data.bureauStats.equifax, color: EMERALD },
+  ];
+
+  for (const bureau of bureaus) {
+    const rate = bureau.stats.total > 0
+      ? Math.round((bureau.stats.deleted / bureau.stats.total) * 100)
+      : 0;
+
+    // Bureau name and rate
+    page.drawText(bureau.name, {
+      x: MARGIN_LEFT,
+      y: yPosition,
+      size: 11,
+      font: helveticaBold,
+      color: BLACK,
+    });
+
+    page.drawText(`${rate}% deletion rate (${bureau.stats.deleted}/${bureau.stats.total} items)`, {
+      x: PAGE_WIDTH - MARGIN_RIGHT - 180,
+      y: yPosition,
+      size: 10,
+      font: helvetica,
+      color: GRAY,
+    });
+    yPosition -= 12;
+
+    // Progress bar background
+    const barWidth = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;
+    const barHeight = 8;
+    page.drawRectangle({
+      x: MARGIN_LEFT,
+      y: yPosition - barHeight,
+      width: barWidth,
+      height: barHeight,
+      color: LIGHT_GRAY,
+    });
+
+    // Progress bar fill
+    const fillWidth = (rate / 100) * barWidth;
+    if (fillWidth > 0) {
+      page.drawRectangle({
+        x: MARGIN_LEFT,
+        y: yPosition - barHeight,
+        width: fillWidth,
+        height: barHeight,
+        color: bureau.color,
+      });
+    }
+    yPosition -= 28;
+  }
+
+  yPosition -= 16;
+
+  // ========================================================================
+  // OVERALL STATISTICS SECTION
+  // ========================================================================
+
+  page.drawText("OVERALL STATISTICS", {
+    x: MARGIN_LEFT,
+    y: yPosition,
+    size: 14,
+    font: helveticaBold,
+    color: BLACK,
+  });
+  yPosition -= 8;
+
+  page.drawLine({
+    start: { x: MARGIN_LEFT, y: yPosition },
+    end: { x: PAGE_WIDTH - MARGIN_RIGHT, y: yPosition },
+    thickness: 1,
+    color: LIGHT_GRAY,
+  });
+  yPosition -= 30;
+
+  // Stats grid (2x2)
+  const statsBoxWidth = (PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT - 20) / 2;
+  const statsBoxHeight = 60;
+
+  const stats = [
+    { label: "Items Deleted", value: data.totalDeleted.toString(), color: EMERALD },
+    { label: "Total Disputed", value: data.totalDisputed.toString(), color: BLACK },
+    { label: "Awaiting Response", value: data.awaitingResponse.toString(), color: AMBER },
+    { label: "Accounts Tracked", value: data.accountsTracked.toString(), color: PRIMARY_BLUE },
+  ];
+
+  for (let i = 0; i < stats.length; i++) {
+    const col = i % 2;
+    const row = Math.floor(i / 2);
+    const boxX = MARGIN_LEFT + col * (statsBoxWidth + 20);
+    const boxY = yPosition - row * (statsBoxHeight + 10);
+
+    // Box background
+    page.drawRectangle({
+      x: boxX,
+      y: boxY - statsBoxHeight,
+      width: statsBoxWidth,
+      height: statsBoxHeight,
+      color: LIGHT_GRAY,
+    });
+
+    // Value (large)
+    page.drawText(stats[i].value, {
+      x: boxX + statsBoxWidth / 2 - helveticaBold.widthOfTextAtSize(stats[i].value, 28) / 2,
+      y: boxY - 30,
+      size: 28,
+      font: helveticaBold,
+      color: stats[i].color,
+    });
+
+    // Label
+    page.drawText(stats[i].label, {
+      x: boxX + statsBoxWidth / 2 - helvetica.widthOfTextAtSize(stats[i].label, 10) / 2,
+      y: boxY - 50,
+      size: 10,
+      font: helvetica,
+      color: GRAY,
+    });
+  }
+
+  yPosition -= 2 * (statsBoxHeight + 10) + 30;
+
+  // ========================================================================
+  // ACCOUNT OUTCOMES SECTION
+  // ========================================================================
+
+  page.drawText("ACCOUNT OUTCOMES", {
+    x: MARGIN_LEFT,
+    y: yPosition,
+    size: 14,
+    font: helveticaBold,
+    color: BLACK,
+  });
+  yPosition -= 8;
+
+  page.drawLine({
+    start: { x: MARGIN_LEFT, y: yPosition },
+    end: { x: PAGE_WIDTH - MARGIN_RIGHT, y: yPosition },
+    thickness: 1,
+    color: LIGHT_GRAY,
+  });
+  yPosition -= 30;
+
+  const outcomes = [
+    { label: "Deleted", value: data.outcomes.deleted, color: EMERALD },
+    { label: "Verified", value: data.outcomes.verified, color: RED },
+    { label: "Updated", value: data.outcomes.updated, color: rgb(0.92, 0.72, 0.2) },
+    { label: "Pending", value: data.outcomes.pending, color: AMBER },
+    { label: "Not Started", value: data.outcomes.notStarted, color: rgb(0.47, 0.53, 0.6) },
+  ];
+
+  const outcomeBoxWidth = (PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT - 40) / 5;
+
+  for (let i = 0; i < outcomes.length; i++) {
+    const boxX = MARGIN_LEFT + i * (outcomeBoxWidth + 10);
+
+    // Color bar at top
+    page.drawRectangle({
+      x: boxX,
+      y: yPosition,
+      width: outcomeBoxWidth,
+      height: 6,
+      color: outcomes[i].color,
+    });
+
+    // Value
+    const valueStr = outcomes[i].value.toString();
+    page.drawText(valueStr, {
+      x: boxX + outcomeBoxWidth / 2 - helveticaBold.widthOfTextAtSize(valueStr, 22) / 2,
+      y: yPosition - 28,
+      size: 22,
+      font: helveticaBold,
+      color: BLACK,
+    });
+
+    // Label
+    page.drawText(outcomes[i].label, {
+      x: boxX + outcomeBoxWidth / 2 - helvetica.widthOfTextAtSize(outcomes[i].label, 9) / 2,
+      y: yPosition - 44,
+      size: 9,
+      font: helvetica,
+      color: GRAY,
+    });
+  }
+
+  yPosition -= 70;
+
+  // ========================================================================
+  // SUCCESS RATE SUMMARY
+  // ========================================================================
+
+  if (data.successRate > 0) {
+    page.drawText("SUCCESS RATE", {
+      x: MARGIN_LEFT,
+      y: yPosition,
+      size: 14,
+      font: helveticaBold,
+      color: BLACK,
+    });
+    yPosition -= 8;
+
+    page.drawLine({
+      start: { x: MARGIN_LEFT, y: yPosition },
+      end: { x: PAGE_WIDTH - MARGIN_RIGHT, y: yPosition },
+      thickness: 1,
+      color: LIGHT_GRAY,
+    });
+    yPosition -= 30;
+
+    const successText = `${Math.round(data.successRate)}%`;
+    page.drawText(successText, {
+      x: MARGIN_LEFT,
+      y: yPosition,
+      size: 36,
+      font: helveticaBold,
+      color: EMERALD,
+    });
+
+    page.drawText("of disputed items have been successfully deleted or updated", {
+      x: MARGIN_LEFT + 80,
+      y: yPosition + 10,
+      size: 11,
+      font: helvetica,
+      color: DARK_GRAY,
+    });
+  }
+
+  // ========================================================================
+  // FOOTER
+  // ========================================================================
+
+  page.drawLine({
+    start: { x: MARGIN_LEFT, y: MARGIN_BOTTOM },
+    end: { x: PAGE_WIDTH - MARGIN_RIGHT, y: MARGIN_BOTTOM },
+    thickness: 0.5,
+    color: LIGHT_GRAY,
+  });
+
+  page.drawText("Generated by Sentry Dispute System", {
+    x: MARGIN_LEFT,
+    y: MARGIN_BOTTOM - 15,
+    size: 8,
+    font: helvetica,
+    color: GRAY,
+  });
+
+  page.drawText("Confidential - For Client Use Only", {
+    x: PAGE_WIDTH - MARGIN_RIGHT - 120,
+    y: MARGIN_BOTTOM - 15,
+    size: 8,
+    font: helvetica,
+    color: GRAY,
+  });
+
+  return pdfDoc.save();
+}
