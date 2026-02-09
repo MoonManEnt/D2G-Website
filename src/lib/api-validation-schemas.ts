@@ -265,6 +265,14 @@ export const sentrySuccessPredictionSchema = z.object({
   compareMode: z.boolean().optional(),
   strategy1: successPredictionRequestSchema.optional(),
   strategy2: successPredictionRequestSchema.optional(),
+  // Credit report personal info for context-aware recommendations
+  hardInquiries: z.array(z.object({
+    creditorName: z.string(),
+    date: z.string(),
+  })).optional(),
+  nameVariations: z.array(z.string()).optional(),
+  incorrectAddresses: z.array(z.string()).optional(),
+  clientLegalName: z.string().optional(),
 });
 
 /**

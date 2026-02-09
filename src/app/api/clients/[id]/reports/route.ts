@@ -43,6 +43,12 @@ interface FormattedReport {
     itemsAdded: number;
     inquiriesDropped: number;
   } | null;
+  // Personal info for context-aware recommendations
+  personalInfo?: {
+    hardInquiries: { creditorName: string; date: string }[];
+    nameVariations: string[];
+    incorrectAddresses: string[];
+  };
 }
 
 export async function GET(
@@ -105,9 +111,39 @@ export async function GET(
     });
 
     // Parse hard inquiries from reports
-    const parseInquiries = (inquiriesJson: string): Array<{ creditorName: string; inquiryDate: string; cra: string }> => {
+    const parseInquiries = (inquiriesJson: string | null): Array<{ creditorName: string; inquiryDate: string; cra: string }> => {
+      if (!inquiriesJson) return [];
       try {
         return JSON.parse(inquiriesJson) || [];
+      } catch {
+        return [];
+      }
+    };
+
+    // Parse previous names from reports
+    const parseNames = (namesJson: string | null): string[] => {
+      if (!namesJson) return [];
+      try {
+        return JSON.parse(namesJson) || [];
+      } catch {
+        return [];
+      }
+    };
+
+    // Parse previous addresses from reports
+    const parseAddresses = (addressesJson: string | null): string[] => {
+      if (!addressesJson) return [];
+      try {
+        const addresses = JSON.parse(addressesJson) || [];
+        // Convert address objects to strings if needed
+        return addresses.map((addr: unknown) => {
+          if (typeof addr === 'string') return addr;
+          if (typeof addr === 'object' && addr !== null) {
+            const a = addr as Record<string, string>;
+            return [a.street, a.city, a.state, a.zip].filter(Boolean).join(', ');
+          }
+          return String(addr);
+        });
       } catch {
         return [];
       }
@@ -208,6 +244,11 @@ export async function GET(
         };
       }
 
+      // Parse personal info for context-aware recommendations
+      const allInquiriesParsed = parseInquiries(report.hardInquiries);
+      const nameVariations = parseNames(report.previousNames);
+      const previousAddresses = parseAddresses(report.previousAddresses);
+
       return {
         id: report.id,
         filename: report.originalFile?.filename || "Unknown",
@@ -221,6 +262,15 @@ export async function GET(
         },
         summary,
         changes,
+        // Personal info for AI recommendations
+        personalInfo: {
+          hardInquiries: allInquiriesParsed.map(inq => ({
+            creditorName: inq.creditorName,
+            date: inq.inquiryDate,
+          })),
+          nameVariations,
+          incorrectAddresses: previousAddresses,
+        },
       };
     });
 

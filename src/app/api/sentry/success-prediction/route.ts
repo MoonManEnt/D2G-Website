@@ -58,6 +58,12 @@ export const POST = withAuth(async (req, ctx) => {
       compareMode,
       strategy1,
       strategy2,
+
+      // Credit report personal info for context-aware recommendations
+      hardInquiries,
+      nameVariations,
+      incorrectAddresses,
+      clientLegalName,
     } = parsed.data;
 
     // Handle comparison mode
@@ -104,7 +110,10 @@ export const POST = withAuth(async (req, ctx) => {
       );
     }
 
-    const predictionRequest: SuccessPredictionRequest = {
+    // Build extended context with personal info for context-aware recommendations
+    // The calculateSuccessProbability function accepts SuccessPredictionRequest
+    // but passes it to generateActionableRecommendations which casts to ActionableRecommendationContext
+    const predictionRequest = {
       accountAge: accountAge || 24,
       furnisherName: furnisherName || "",
       hasMetro2Targeting: hasMetro2Targeting || false,
@@ -114,7 +123,12 @@ export const POST = withAuth(async (req, ctx) => {
       hasPaymentProof: hasPaymentProof || false,
       citationAccuracyScore: citationAccuracyScore ?? 1,
       ocrSafetyScore: ocrSafetyScore ?? 70,
-    };
+      // Credit report personal info (for context-aware recommendations)
+      hardInquiries: hardInquiries || [],
+      nameVariations: nameVariations || [],
+      incorrectAddresses: incorrectAddresses || [],
+      clientLegalName: clientLegalName || "",
+    } as SuccessPredictionRequest;
 
     // Calculate full prediction
     const prediction = calculateSuccessProbability(predictionRequest);

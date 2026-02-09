@@ -76,6 +76,12 @@ interface CreditReport {
     equifax: number;
     experian: number;
   };
+  // Personal info for context-aware AI recommendations
+  personalInfo?: {
+    hardInquiries: { creditorName: string; date: string }[];
+    nameVariations: string[];
+    incorrectAddresses: string[];
+  };
 }
 
 export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
@@ -163,6 +169,7 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
           scores: r.scores,
           accountCount: r.accountCount,
           bureauBreakdown: r.bureauBreakdown,
+          personalInfo: r.personalInfo as CreditReport["personalInfo"],
         })
       );
 
@@ -268,6 +275,10 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
         // Get selected account details for analysis
         const selectedAccounts = accounts.filter(a => selectedAccountIds.includes(a.id));
 
+        // Get the selected report to access personal info
+        const selectedReport = reports.find(r => r.id === selectedReportId);
+        const personalInfo = selectedReport?.personalInfo;
+
         // Calculate average account age and get first furnisher
         const avgAccountAge = selectedAccounts.length > 0
           ? Math.round(selectedAccounts.reduce((sum, a) => {
@@ -291,7 +302,10 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
           )
         );
 
-        // Call success prediction API (e-OSCAR code will be auto-selected by generator)
+        // Get client's legal name for name comparison
+        const clientLegalName = client ? `${client.firstName} ${client.lastName}` : undefined;
+
+        // Call success prediction API with personal info for context-aware recommendations
         const res = await fetch("/api/sentry/success-prediction", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -305,6 +319,11 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
             hasPaymentProof: false,
             citationAccuracyScore: 0.85,
             ocrSafetyScore: 75,
+            // Context-aware recommendation data from credit report
+            hardInquiries: personalInfo?.hardInquiries || [],
+            nameVariations: personalInfo?.nameVariations || [],
+            incorrectAddresses: personalInfo?.incorrectAddresses || [],
+            clientLegalName,
           }),
         });
 
