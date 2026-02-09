@@ -113,6 +113,27 @@ export async function applyRecommendation(
         );
         break;
 
+      case "REMOVE_HARD_INQUIRY":
+        updatedLetterContent = applyRemoveHardInquiry(
+          currentLetterContent,
+          recommendation.payload
+        );
+        break;
+
+      case "CORRECT_NAME_SPELLING":
+        updatedLetterContent = applyCorrectNameSpelling(
+          currentLetterContent,
+          recommendation.payload
+        );
+        break;
+
+      case "REMOVE_PREVIOUS_ADDRESS":
+        updatedLetterContent = applyRemovePreviousAddress(
+          currentLetterContent,
+          recommendation.payload
+        );
+        break;
+
       default:
         return {
           success: false,
@@ -579,6 +600,120 @@ function applyRemoveCitation(
   updatedContent = updatedContent.replace(/  +/g, " ");
 
   return updatedContent;
+}
+
+// =============================================================================
+// PERSONAL INFORMATION CLEANUP HANDLERS
+// =============================================================================
+
+/**
+ * Add hard inquiry removal language to the letter
+ */
+function applyRemoveHardInquiry(
+  letterContent: string,
+  payload: unknown
+): string {
+  const hardInquiryText = `
+**Unauthorized Hard Inquiry Dispute:**
+
+I am also disputing the following unauthorized hard inquiries that appear on my credit report. Under 15 U.S.C. § 1681b, a permissible purpose is required for any entity to access my credit report. I did not authorize these inquiries and they should be removed immediately:
+
+• I request that you verify the permissible purpose for each hard inquiry listed on my report
+• If permissible purpose cannot be verified within 30 days, these inquiries must be deleted
+• Unauthorized inquiries negatively impact my credit score and constitute a violation of my rights
+
+Please investigate these hard inquiries and provide documentation of permissible purpose, or remove them from my credit file.
+`;
+
+  // Find insertion point - before the closing/signature
+  const closingIndex = letterContent.lastIndexOf("\n\nSincerely");
+  const thankYouIndex = letterContent.lastIndexOf("\n\nThank you");
+  const insertIndex = Math.max(closingIndex, thankYouIndex);
+
+  if (insertIndex !== -1) {
+    return (
+      letterContent.slice(0, insertIndex) +
+      hardInquiryText +
+      letterContent.slice(insertIndex)
+    );
+  }
+
+  // Fallback: append before end
+  return letterContent + hardInquiryText;
+}
+
+/**
+ * Add name spelling correction language to the letter
+ */
+function applyCorrectNameSpelling(
+  letterContent: string,
+  payload: unknown
+): string {
+  const nameText = `
+**Incorrect Name Variation Dispute:**
+
+My credit file contains name variations that are incorrect and do not belong to me. The presence of incorrect names may indicate a mixed file situation where another person's information has been merged with mine. Under 15 U.S.C. § 1681e(b), you are required to maintain maximum possible accuracy.
+
+I request that you:
+• Remove all name variations that do not match my legal name
+• Investigate whether any accounts associated with incorrect names belong to another consumer
+• Ensure my file is not mixed with another person's credit history
+
+My correct legal name appears on the identification documents I have enclosed.
+`;
+
+  // Find insertion point - before the closing/signature
+  const closingIndex = letterContent.lastIndexOf("\n\nSincerely");
+  const thankYouIndex = letterContent.lastIndexOf("\n\nThank you");
+  const insertIndex = Math.max(closingIndex, thankYouIndex);
+
+  if (insertIndex !== -1) {
+    return (
+      letterContent.slice(0, insertIndex) +
+      nameText +
+      letterContent.slice(insertIndex)
+    );
+  }
+
+  // Fallback: append before end
+  return letterContent + nameText;
+}
+
+/**
+ * Add previous address removal language to the letter
+ */
+function applyRemovePreviousAddress(
+  letterContent: string,
+  payload: unknown
+): string {
+  const addressText = `
+**Incorrect Address Dispute:**
+
+My credit file contains addresses where I have never resided. These incorrect addresses may indicate identity theft, a mixed file, or reporting errors. Under 15 U.S.C. § 1681e(b), you must follow reasonable procedures to ensure maximum possible accuracy.
+
+I request that you:
+• Remove all addresses where I have never lived
+• Investigate any accounts associated with these incorrect addresses
+• Verify that my current address is correctly reported
+
+The presence of addresses I've never lived at raises serious concerns about the accuracy of my credit file and whether my information has been mixed with another consumer's data.
+`;
+
+  // Find insertion point - before the closing/signature
+  const closingIndex = letterContent.lastIndexOf("\n\nSincerely");
+  const thankYouIndex = letterContent.lastIndexOf("\n\nThank you");
+  const insertIndex = Math.max(closingIndex, thankYouIndex);
+
+  if (insertIndex !== -1) {
+    return (
+      letterContent.slice(0, insertIndex) +
+      addressText +
+      letterContent.slice(insertIndex)
+    );
+  }
+
+  // Fallback: append before end
+  return letterContent + addressText;
 }
 
 // =============================================================================

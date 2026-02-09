@@ -200,7 +200,10 @@ export type RecommendationActionType =
   | "ADD_DOCUMENTATION"
   | "ADD_LEGAL_CITATION"
   | "REMOVE_INVALID_CITATION"
-  | "ADJUST_TONE";
+  | "ADJUST_TONE"
+  | "REMOVE_HARD_INQUIRY"
+  | "CORRECT_NAME_SPELLING"
+  | "REMOVE_PREVIOUS_ADDRESS";
 
 export type RecommendationStatus = "PENDING" | "APPLIED" | "DISMISSED" | "REVERTED";
 
@@ -233,7 +236,10 @@ export type RecommendationPayload =
   | AddDocumentationPayload
   | AddCitationPayload
   | RemoveCitationPayload
-  | AdjustTonePayload;
+  | AdjustTonePayload
+  | RemoveHardInquiryPayload
+  | CorrectNameSpellingPayload
+  | RemovePreviousAddressPayload;
 
 export interface EnableMetro2Payload {
   type: "ENABLE_METRO2" | "DISABLE_METRO2";
@@ -264,6 +270,24 @@ export interface AddDocumentationPayload {
   documentationType: "BUREAU_DISCREPANCY" | "PAYMENT_PROOF" | "POLICE_REPORT" | "ID_VERIFICATION";
   description: string;
   requiredFields?: string[];
+}
+
+export interface RemoveHardInquiryPayload {
+  type: "REMOVE_HARD_INQUIRY";
+  documentationType: "HARD_INQUIRY";
+  description: string;
+}
+
+export interface CorrectNameSpellingPayload {
+  type: "CORRECT_NAME_SPELLING";
+  documentationType: "NAME_CORRECTION";
+  description: string;
+}
+
+export interface RemovePreviousAddressPayload {
+  type: "REMOVE_PREVIOUS_ADDRESS";
+  documentationType: "ADDRESS_REMOVAL";
+  description: string;
 }
 
 export interface AddCitationPayload {

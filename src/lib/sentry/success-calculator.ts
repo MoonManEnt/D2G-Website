@@ -366,7 +366,8 @@ export function generateActionableRecommendations(
   );
 
   for (const factor of sortedFactors) {
-    if (factor.score >= 0.85) continue; // Already optimized
+    // Show all recommendations - let user choose which to apply
+    // (Previously filtered by score >= 0.85)
 
     switch (factor.name) {
       case "Dispute Specificity":
@@ -496,11 +497,77 @@ export function generateActionableRecommendations(
     }
   }
 
+  // Always add personal information cleanup recommendations
+  // These apply to all disputes and help clean up the credit report
+
+  // Hard Inquiry Removal
+  recommendations.push({
+    id: uuidv4(),
+    type: "REMOVE_HARD_INQUIRY",
+    title: "Challenge Unauthorized Hard Inquiries",
+    description:
+      "Add language to dispute hard inquiries that were made without your authorization. Unauthorized inquiries can lower your credit score.",
+    potentialGain: "+5-10%",
+    potentialGainValue: 0.08,
+    priority: "MEDIUM",
+    status: "PENDING",
+    payload: {
+      type: "REMOVE_HARD_INQUIRY",
+      documentationType: "HARD_INQUIRY",
+      description: "Challenge unauthorized credit inquiries",
+    },
+    previewBefore: "(No hard inquiry dispute language)",
+    previewAfter:
+      "I did not authorize the following hard inquiries on my credit report and request their immediate removal under 15 U.S.C. § 1681b(c).",
+  });
+
+  // Incorrect Name Spelling
+  recommendations.push({
+    id: uuidv4(),
+    type: "CORRECT_NAME_SPELLING",
+    title: "Correct Name Spelling Variations",
+    description:
+      "Request removal of incorrect name spellings or variations that don't belong to you. Mixed files often start with name variations.",
+    potentialGain: "+3-5%",
+    potentialGainValue: 0.04,
+    priority: "LOW",
+    status: "PENDING",
+    payload: {
+      type: "CORRECT_NAME_SPELLING",
+      documentationType: "NAME_CORRECTION",
+      description: "Remove incorrect name variations from credit file",
+    },
+    previewBefore: "(No name correction language)",
+    previewAfter:
+      "My legal name is [CLIENT NAME]. Please remove the following incorrect name variations from my credit file as they do not belong to me and may indicate a mixed file.",
+  });
+
+  // Previous Address Removal
+  recommendations.push({
+    id: uuidv4(),
+    type: "REMOVE_PREVIOUS_ADDRESS",
+    title: "Remove Outdated/Incorrect Addresses",
+    description:
+      "Request removal of addresses you've never lived at or that are outdated. Incorrect addresses can indicate mixed files or identity issues.",
+    potentialGain: "+3-5%",
+    potentialGainValue: 0.04,
+    priority: "LOW",
+    status: "PENDING",
+    payload: {
+      type: "REMOVE_PREVIOUS_ADDRESS",
+      documentationType: "ADDRESS_REMOVAL",
+      description: "Remove incorrect or outdated addresses",
+    },
+    previewBefore: "(No address correction language)",
+    previewAfter:
+      "The following addresses listed on my credit report are inaccurate and should be removed: I have never resided at these locations.",
+  });
+
   // Sort by potential gain (highest first)
   recommendations.sort((a, b) => b.potentialGainValue - a.potentialGainValue);
 
-  // Return top 4 recommendations
-  return recommendations.slice(0, 4);
+  // Return all recommendations - let user choose which to apply
+  return recommendations;
 }
 
 /**
