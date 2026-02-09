@@ -186,6 +186,7 @@ export function SentryTrackingClient({ clientId }: Props) {
             <AccountTrackingMatrix
               accounts={data.trackingMatrix}
               clientId={clientId}
+              clientName={data.client.name}
             />
           </div>
 
@@ -254,9 +255,11 @@ function QuickStatsBar({ stats }: { stats: QuickStats }) {
 function AccountTrackingMatrix({
   accounts,
   clientId,
+  clientName,
 }: {
   accounts: AccountTracking[];
   clientId: string;
+  clientName: string;
 }) {
   return (
     <div className="bg-card rounded-xl border border-border overflow-hidden">
@@ -350,6 +353,7 @@ function AccountTrackingMatrix({
                 <td className="px-4 py-3 text-center">
                   <DownloadLetterButton
                     account={account}
+                    clientName={clientName}
                   />
                 </td>
               </tr>
@@ -476,18 +480,51 @@ function OutcomeBadge({ outcome }: { outcome: AccountTracking["bestOutcome"] }) 
 // DOWNLOAD LETTER BUTTON
 // ============================================================================
 
-function DownloadLetterButton({ account }: { account: AccountTracking }) {
+function DownloadLetterButton({ account, clientName }: { account: AccountTracking; clientName: string }) {
   const [isDownloading, setIsDownloading] = useState(false);
 
-  // Find the first available dispute ID from any bureau
-  const disputeId = account.transunion.disputeId ||
-    account.experian.disputeId ||
-    account.equifax.disputeId;
+  // Find the first available dispute ID and CRA from any bureau
+  let disputeId: string | undefined;
+  let cra: string | undefined;
+  let round: number | undefined;
+
+  if (account.transunion.disputeId) {
+    disputeId = account.transunion.disputeId;
+    cra = "TRANSUNION";
+    round = account.transunion.round;
+  } else if (account.experian.disputeId) {
+    disputeId = account.experian.disputeId;
+    cra = "EXPERIAN";
+    round = account.experian.round;
+  } else if (account.equifax.disputeId) {
+    disputeId = account.equifax.disputeId;
+    cra = "EQUIFAX";
+    round = account.equifax.round;
+  }
 
   // Only show button if there's a dispute
   if (!disputeId) {
     return <span className="text-muted-foreground text-xs">-</span>;
   }
+
+  // Generate filename with client initials, round, CRA, and Sentry Mode
+  const generateFilename = () => {
+    // Get client initials (First name + Last initial)
+    let clientInitials = "Client";
+    if (clientName) {
+      const parts = clientName.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        clientInitials = `${parts[0]}_${parts[parts.length - 1].charAt(0)}`;
+      } else if (parts.length === 1) {
+        clientInitials = parts[0];
+      }
+    }
+
+    const roundStr = round ? `R${round}` : "R1";
+    const craStr = cra || "CRA";
+
+    return `${clientInitials}_${roundStr}_${craStr}_Sentry_Mode.pdf`;
+  };
 
   const handleDownload = async () => {
     setIsDownloading(true);
@@ -514,7 +551,7 @@ function DownloadLetterButton({ account }: { account: AccountTracking }) {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `${account.creditorName.replace(/\s+/g, "_")}_Dispute_Letter.pdf`;
+      link.download = generateFilename();
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

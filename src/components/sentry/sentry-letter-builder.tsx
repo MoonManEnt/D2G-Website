@@ -15,6 +15,9 @@ export function SentryLetterBuilder({
   initialContent,
   onSave,
   onGenerate,
+  clientName,
+  round,
+  cra,
 }: SentryLetterBuilderProps) {
   const [content, setContent] = useState(initialContent || "");
   const [isEditing, setIsEditing] = useState(false);
@@ -22,6 +25,26 @@ export function SentryLetterBuilder({
   const [showTemplates, setShowTemplates] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+
+  // Generate filename with client initials, round, CRA, and Sentry Mode
+  const generateFilename = useCallback(() => {
+    // Get client initials (First name + Last initial)
+    let clientInitials = "Client";
+    if (clientName) {
+      const parts = clientName.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        // First name + Last initial (e.g., "John S")
+        clientInitials = `${parts[0]}_${parts[parts.length - 1].charAt(0)}`;
+      } else if (parts.length === 1) {
+        clientInitials = parts[0];
+      }
+    }
+
+    const roundStr = round ? `R${round}` : "R1";
+    const craStr = cra || "CRA";
+
+    return `${clientInitials}_${roundStr}_${craStr}_Sentry_Mode.pdf`;
+  }, [clientName, round, cra]);
 
   // Download letter as PDF
   const handleDownloadPDF = useCallback(async () => {
@@ -37,7 +60,7 @@ export function SentryLetterBuilder({
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `Dispute_Letter_${disputeId.slice(0, 8)}_${new Date().toISOString().split("T")[0]}.pdf`;
+      link.download = generateFilename();
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -48,7 +71,7 @@ export function SentryLetterBuilder({
     } finally {
       setIsDownloading(false);
     }
-  }, [content, disputeId]);
+  }, [content, generateFilename]);
 
   // Sync content when initialContent changes (e.g., after regeneration or applying recommendations)
   useEffect(() => {

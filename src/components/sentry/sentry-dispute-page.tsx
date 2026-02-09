@@ -1114,6 +1114,9 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
                 initialContent={currentDispute.letterContent || ""}
                 onSave={handleSaveLetter}
                 onGenerate={handleRegenerate}
+                clientName={`${currentDispute.client.firstName} ${currentDispute.client.lastName}`}
+                round={currentDispute.round}
+                cra={currentDispute.cra}
               />
 
               {/* Actions */}

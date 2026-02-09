@@ -195,6 +195,10 @@ export interface SentryLetterBuilderProps {
   initialContent?: string;
   onSave: (content: string) => void;
   onGenerate: () => void | Promise<void>;
+  // PDF filename metadata
+  clientName?: string;
+  round?: number;
+  cra?: string;
 }
 
 export interface SentryAccountSelectorProps {
