@@ -1047,3 +1047,47 @@ export function getFlowRoundInfo(flow: FlowType): {
       };
   }
 }
+
+// =============================================================================
+// HUMAN-FIRST MODE EXPORTS
+// =============================================================================
+
+// Re-export human-first generator for easy access
+export {
+  generateHumanFirstLetter,
+  regenerateStory,
+  hasHumanFirstTemplate,
+  type HumanLetterGenerationInput,
+  type GeneratedHumanLetter,
+} from "./amelia-human-generator";
+
+/**
+ * Letter generation mode
+ */
+export type LetterMode = "PROFESSIONAL" | "HUMAN_FIRST";
+
+/**
+ * Generate a letter in either professional or human-first mode
+ */
+export async function generateLetterWithMode(
+  input: LetterGenerationInput & { mode?: LetterMode; organizationId?: string }
+): Promise<GeneratedLetter | import("./amelia-human-generator").GeneratedHumanLetter> {
+  const { mode = "HUMAN_FIRST", organizationId, ...letterInput } = input;
+
+  if (mode === "HUMAN_FIRST") {
+    // Use human-first generator
+    const { generateHumanFirstLetter } = await import("./amelia-human-generator");
+    return generateHumanFirstLetter({
+      client: letterInput.client,
+      accounts: letterInput.accounts,
+      cra: letterInput.cra,
+      flow: letterInput.flow,
+      round: letterInput.round,
+      lastDisputeDate: letterInput.lastDisputeDate,
+      organizationId,
+    });
+  }
+
+  // Use traditional professional generator
+  return generateLetter(letterInput);
+}

@@ -31,6 +31,10 @@ import {
   type DisputeAccount,
   type HardInquiry,
 } from "@/lib/amelia/index";
+import {
+  generateHumanFirstLetter,
+  type HumanLetterGenerationInput,
+} from "@/lib/amelia-human-generator";
 
 import {
   CRA,
@@ -495,11 +499,112 @@ function determineFlowFromAccounts(
 // UNIFIED GENERATION
 // =============================================================================
 
+// =============================================================================
+// HUMAN-FIRST GENERATION (Recommended)
+// =============================================================================
+
+/**
+ * Generate letter using Human-First approach
+ *
+ * This is the RECOMMENDED approach that:
+ * - Leads with personal story/impact
+ * - Uses simple, 8th-grade language
+ * - Puts legal stuff at the end as a footer
+ * - Sounds like a real person wrote it
+ */
+export async function generateHumanFirstLetterContent(
+  client: DisputeClientData,
+  accounts: DisputeAccountData[],
+  cra: CRA,
+  flow: DisputeFlow | undefined,
+  round: number,
+  organizationId: string,
+  lastDisputeDate?: string
+): Promise<GeneratedLetterResult> {
+  // Build client personal info
+  const clientInfo: ClientPersonalInfo = {
+    firstName: client.firstName,
+    lastName: client.lastName,
+    fullName: `${client.firstName} ${client.lastName}`,
+    addressLine1: client.addressLine1 || "",
+    addressLine2: client.addressLine2 || undefined,
+    city: client.city || "",
+    state: client.state || "",
+    zipCode: client.zipCode || "",
+    ssnLast4: client.ssnLast4 || "XXXX",
+    dateOfBirth: client.dateOfBirth
+      ? format(new Date(client.dateOfBirth), "MM/dd/yyyy")
+      : "XX/XX/XXXX",
+    phone: client.phone || undefined,
+    previousNames: [],
+    previousAddresses: [],
+    hardInquiries: [],
+  };
+
+  // Build dispute accounts
+  const disputeAccounts: DisputeAccount[] = accounts.map((acc) => {
+    const issues = parseDetectedIssues(acc.detectedIssues);
+
+    return {
+      creditorName: acc.creditorName,
+      accountNumber: acc.maskedAccountId || "XXXXXXXX****",
+      accountType: acc.accountType || undefined,
+      balance: acc.balance ? Number(acc.balance) : undefined,
+      pastDue: acc.pastDue ? Number(acc.pastDue) : undefined,
+      dateOpened: acc.dateOpened
+        ? format(new Date(acc.dateOpened), "MM/dd/yyyy")
+        : undefined,
+      dateReported: acc.dateReported
+        ? format(new Date(acc.dateReported), "MM/dd/yyyy")
+        : undefined,
+      paymentStatus: acc.paymentStatus || undefined,
+      issues: issues,
+      inaccurateCategories: [],
+    };
+  });
+
+  // Determine flow type
+  const flowType = (flow as "ACCURACY" | "COLLECTION" | "CONSENT" | "COMBO") ||
+    determineFlowFromAccounts(accounts);
+
+  // Generate human-first letter
+  const generatedLetter = await generateHumanFirstLetter({
+    client: clientInfo,
+    accounts: disputeAccounts,
+    cra: cra as unknown as import("@/types").CRA,
+    flow: flowType,
+    round,
+    lastDisputeDate,
+    organizationId,
+  });
+
+  return {
+    content: generatedLetter.content,
+    statutesCited: [generatedLetter.statute || "15 U.S.C. § 1681i"],
+    aiMetadata: {
+      type: "human_first",
+      generatedAt: new Date().toISOString(),
+      version: "1.0",
+      tone: generatedLetter.tone,
+      isBackdated: generatedLetter.isBackdated,
+      backdatedDays: generatedLetter.backdatedDays,
+      letterDate: generatedLetter.letterDate.toISOString(),
+      flow: generatedLetter.flow,
+      round: generatedLetter.round,
+      statute: generatedLetter.statute,
+      storyUsed: generatedLetter.storyUsed,
+      letterStyle: "HUMAN_FIRST",
+    },
+    title: `${cra} Human-First Dispute Letter - Round ${round}`,
+    aiGenerated: true,
+  };
+}
+
 /**
  * Generate letter using the specified strategy
  */
 export async function generateLetter(
-  type: "simple" | "ai" | "amelia",
+  type: "simple" | "ai" | "amelia" | "human_first",
   client: DisputeClientData,
   accounts: DisputeAccountData[],
   cra: CRA,
@@ -513,6 +618,7 @@ export async function generateLetter(
       previousResponses: string[];
       daysWithoutResponse?: number;
     };
+    lastDisputeDate?: string;
   }
 ): Promise<GeneratedLetterResult> {
   switch (type) {
@@ -538,6 +644,17 @@ export async function generateLetter(
         flow,
         round,
         disputeId
+      );
+
+    case "human_first":
+      return generateHumanFirstLetterContent(
+        client,
+        accounts,
+        cra,
+        flow,
+        round,
+        organizationId,
+        options?.lastDisputeDate
       );
 
     default:

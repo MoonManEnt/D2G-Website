@@ -521,11 +521,94 @@ function determineFlowFromAccounts(
 }
 
 // =============================================================================
+// HUMAN-FIRST DISPUTE CREATION (Recommended)
+// =============================================================================
+
+async function createHumanFirstDispute(
+  request: UnifiedDisputeRequest & { type: "human_first" },
+  context: CreateDisputeContext
+): Promise<UnifiedDisputeResponse> {
+  const { accounts, organizationId } = context;
+  const cra = request.cra!;
+
+  // Determine flow from accounts if not specified
+  const flow: DisputeFlow =
+    request.flow || determineFlowFromAccounts(accounts);
+
+  // Get next round
+  const round = await getNextRound(context.client.id, cra);
+
+  // Get last dispute date for follow-up reference
+  const lastDispute = await prisma.dispute.findFirst({
+    where: {
+      clientId: context.client.id,
+      cra,
+      status: { in: ["SENT", "RESPONDED"] },
+    },
+    orderBy: { sentDate: "desc" },
+    select: { sentDate: true },
+  });
+
+  const lastDisputeDate = lastDispute?.sentDate
+    ? lastDispute.sentDate.toISOString().split("T")[0]
+    : undefined;
+
+  // Create the dispute
+  const disputeInfo = await createSingleDispute(
+    "human_first",
+    context,
+    cra,
+    flow,
+    round,
+    accounts,
+    undefined,
+    undefined
+  );
+
+  // Fetch the document to get human-first metadata
+  const document = await prisma.document.findUnique({
+    where: { id: disputeInfo.documentId },
+    select: { aiMetadata: true },
+  });
+
+  let humanFirstMetadata: AIStrategyMetadata | null = null;
+  if (document?.aiMetadata) {
+    try {
+      humanFirstMetadata = JSON.parse(document.aiMetadata);
+    } catch {
+      // Ignore parse errors
+    }
+  }
+
+  return {
+    success: true,
+    type: "human_first",
+    disputes: [disputeInfo],
+    metadata: humanFirstMetadata
+      ? {
+          letterDate: humanFirstMetadata.letterDate,
+          isBackdated: humanFirstMetadata.isBackdated,
+          backdatedDays: humanFirstMetadata.backdatedDays,
+          tone: humanFirstMetadata.tone,
+          letterStyle: "HUMAN_FIRST",
+          storyUsed: humanFirstMetadata.storyUsed,
+        }
+      : undefined,
+  };
+}
+
+// =============================================================================
 // MAIN EXPORT
 // =============================================================================
 
 /**
  * Create unified dispute based on type
+ *
+ * Supported types:
+ * - "human_first" (RECOMMENDED): Story-first, simple language, legal footer at end
+ * - "amelia": Full AMELIA doctrine with backdating and personal info disputes
+ * - "ai": AI rules engine with strategy analysis
+ * - "simple": Basic template-based generation
  */
 export async function createUnifiedDispute(
   request: UnifiedDisputeRequest,
@@ -540,6 +623,9 @@ export async function createUnifiedDispute(
 
     case "amelia":
       return createAmeliaDispute(request as UnifiedDisputeRequest & { type: "amelia" }, context);
+
+    case "human_first":
+      return createHumanFirstDispute(request as UnifiedDisputeRequest & { type: "human_first" }, context);
 
     default:
       throw new Error(`Unknown dispute creation type: ${(request as { type: string }).type}`);

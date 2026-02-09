@@ -2,6 +2,7 @@
  * Unified Dispute Creation Types
  *
  * Shared types for all dispute creation flows:
+ * - human_first: Human-first story-driven letters (RECOMMENDED)
  * - simple: Template-based dispute creation
  * - ai: AI-powered strategy and letter generation
  * - amelia: AMELIA doctrine letter generation
@@ -14,8 +15,13 @@ export type DisputeFlow = "ACCURACY" | "COLLECTION" | "CONSENT" | "COMBO";
 
 /**
  * Dispute creation type determines which letter generation strategy to use
+ *
+ * - "human_first": Story-first, simple language, legal at the end (RECOMMENDED)
+ * - "amelia": Full AMELIA doctrine with backdating
+ * - "ai": AI rules engine with strategy
+ * - "simple": Basic template-based
  */
-export type DisputeCreationType = "simple" | "ai" | "amelia";
+export type DisputeCreationType = "simple" | "ai" | "amelia" | "human_first";
 
 /**
  * Base request for all dispute creation types
@@ -63,12 +69,28 @@ export interface AmeliaDisputeRequest extends BaseDisputeRequest {
 }
 
 /**
+ * Human-First dispute creation request (RECOMMENDED)
+ *
+ * Creates letters that:
+ * - Lead with personal story/impact
+ * - Use simple, 8th-grade language
+ * - Put legal stuff at the end as a footer
+ * - Sound like a real person wrote them
+ */
+export interface HumanFirstDisputeRequest extends BaseDisputeRequest {
+  type: "human_first";
+  cra: CRA; // Required
+  flow?: DisputeFlow; // Optional, auto-determined from accounts
+}
+
+/**
  * Union type for all dispute creation requests
  */
 export type UnifiedDisputeRequest =
   | SimpleDisputeRequest
   | AIDisputeRequest
-  | AmeliaDisputeRequest;
+  | AmeliaDisputeRequest
+  | HumanFirstDisputeRequest;
 
 /**
  * Client data needed for dispute letter generation
@@ -171,6 +193,10 @@ export interface AIStrategyMetadata {
     hardInquiries: string[];
   };
   ameliaVersion?: string;
+
+  // Human-First specific
+  storyUsed?: string;
+  letterStyle?: "HUMAN_FIRST" | "PROFESSIONAL";
 }
 
 /**
@@ -209,6 +235,9 @@ export interface UnifiedDisputeResponse {
     backdatedDays?: number;
     tone?: string;
     ameliaVersion?: string;
+    // Human-First specific
+    letterStyle?: "HUMAN_FIRST" | "PROFESSIONAL";
+    storyUsed?: string;
   };
   warnings?: string[];
   message?: string;
