@@ -41,7 +41,7 @@ const navigation: { name: string; href: string; icon: typeof LayoutDashboard; to
   { name: "Clients", href: "/clients", icon: Users, tourId: "clients" },
   { name: "Disputes", href: "/disputes", icon: Scale, tourId: "disputes" },
   { name: "Sentry", href: "/sentry", icon: Shield, tourId: "sentry" },
-  { name: "Analytics", href: "/analytics", icon: BarChart3, tourId: "analytics" },
+  { name: "Analytics & Reporting", href: "/analytics", icon: BarChart3, tourId: "analytics" },
   { name: "Litigation", href: "/litigation", icon: Gavel, tourId: "litigation" },
   { name: "Feedback", href: "/feedback", icon: MessageSquarePlus },
   { name: "Settings", href: "/settings", icon: Settings },
@@ -72,7 +72,7 @@ const iconAnimations: Record<string, any> = {
     filter: ["drop-shadow(0 0 0px #3b82f6)", "drop-shadow(0 0 8px #3b82f6)", "drop-shadow(0 0 0px #3b82f6)"],
     transition: { duration: 0.6, ease: "easeInOut" },
   },
-  Analytics: {
+  "Analytics & Reporting": {
     scaleY: [1, 1.2, 1],
     transition: { duration: 0.4, ease: "easeInOut" },
   },

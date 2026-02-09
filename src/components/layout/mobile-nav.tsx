@@ -15,7 +15,7 @@ const PRIMARY_TABS = [
 const MORE_TABS = [
   { href: "/responses", label: "Responses" },
   { href: "/sentry", label: "Sentry" },
-  { href: "/analytics", label: "Analytics" },
+  { href: "/analytics", label: "Analytics & Reporting" },
   { href: "/settings", label: "Settings" },
   { href: "/billing", label: "Billing" },
 ];

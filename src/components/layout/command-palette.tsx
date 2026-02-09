@@ -41,7 +41,7 @@ export function CommandPalette() {
     { id: "disputes", label: "Disputes", description: "Dispute management", icon: <FileText className="w-4 h-4" />, action: () => router.push("/disputes"), keywords: ["letters", "claims"], category: "navigation" },
     { id: "responses", label: "Responses", description: "Track CRA responses", icon: <MessageSquare className="w-4 h-4" />, action: () => router.push("/responses"), keywords: ["replies", "outcomes", "results"], category: "navigation" },
     { id: "sentry", label: "Sentry", description: "Dispute intelligence", icon: <Shield className="w-4 h-4" />, action: () => router.push("/sentry"), keywords: ["ai", "intelligence", "analysis", "oscar"], category: "navigation" },
-    { id: "analytics", label: "Analytics", description: "Performance analytics", icon: <BarChart3 className="w-4 h-4" />, action: () => router.push("/analytics"), keywords: ["stats", "reports", "metrics", "charts"], category: "navigation" },
+    { id: "analytics", label: "Analytics & Reporting", description: "Performance analytics", icon: <BarChart3 className="w-4 h-4" />, action: () => router.push("/analytics"), keywords: ["stats", "reports", "metrics", "charts"], category: "navigation" },
     { id: "settings", label: "Settings", description: "Account settings", icon: <Settings className="w-4 h-4" />, action: () => router.push("/settings"), keywords: ["preferences", "account", "profile", "config"], category: "settings" },
     { id: "billing", label: "Billing", description: "Subscription & billing", icon: <CreditCard className="w-4 h-4" />, action: () => router.push("/billing"), keywords: ["subscription", "payment", "plan", "stripe"], category: "settings" },
     // Actions

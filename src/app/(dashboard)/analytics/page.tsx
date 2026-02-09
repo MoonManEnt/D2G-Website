@@ -171,7 +171,7 @@ export default function AnalyticsPage() {
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent flex items-center gap-2">
             <BarChart3 className="w-7 h-7 text-foreground" />
-            Analytics
+            Analytics & Reporting
           </h1>
           <p className="text-muted-foreground mt-1">Business performance and insights</p>
         </div>
