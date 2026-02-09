@@ -194,9 +194,9 @@ export interface AIStrategyMetadata {
   };
   ameliaVersion?: string;
 
-  // Human-First specific
+  // Human-First / Full AI specific
   storyUsed?: string;
-  letterStyle?: "HUMAN_FIRST" | "PROFESSIONAL";
+  letterStyle?: "HUMAN_FIRST" | "PROFESSIONAL" | "FULL_AI";
 }
 
 /**
@@ -235,8 +235,8 @@ export interface UnifiedDisputeResponse {
     backdatedDays?: number;
     tone?: string;
     ameliaVersion?: string;
-    // Human-First specific
-    letterStyle?: "HUMAN_FIRST" | "PROFESSIONAL";
+    // Human-First / Full AI specific
+    letterStyle?: "HUMAN_FIRST" | "PROFESSIONAL" | "FULL_AI";
     storyUsed?: string;
   };
   warnings?: string[];

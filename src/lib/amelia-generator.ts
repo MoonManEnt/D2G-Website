@@ -1049,35 +1049,42 @@ export function getFlowRoundInfo(flow: FlowType): {
 }
 
 // =============================================================================
-// HUMAN-FIRST MODE EXPORTS
+// FULL AI MODE EXPORTS (Recommended)
 // =============================================================================
 
-// Re-export human-first generator for easy access
+// Re-export full AI generator for easy access
 export {
-  generateHumanFirstLetter,
-  regenerateStory,
-  hasHumanFirstTemplate,
-  type HumanLetterGenerationInput,
-  type GeneratedHumanLetter,
-} from "./amelia-human-generator";
+  generateFullAILetter,
+  regenerateFullAILetter,
+  type FullAILetterInput,
+  type GeneratedFullAILetter,
+} from "./amelia-full-ai-generator";
 
 /**
  * Letter generation mode
+ * - PROFESSIONAL: Traditional template-based letters with Soul Engine
+ * - FULL_AI: 100% AI-generated letters - every word unique (Recommended)
  */
-export type LetterMode = "PROFESSIONAL" | "HUMAN_FIRST";
+export type LetterMode = "PROFESSIONAL" | "FULL_AI";
 
 /**
- * Generate a letter in either professional or human-first mode
+ * Generate a letter in either professional or full AI mode
+ *
+ * FULL_AI mode (recommended) generates every part of the letter via AI:
+ * - Unique openings every time
+ * - Unique issue explanations
+ * - Unique demands and legal references
+ * - No two letters are ever the same
  */
 export async function generateLetterWithMode(
   input: LetterGenerationInput & { mode?: LetterMode; organizationId?: string }
-): Promise<GeneratedLetter | import("./amelia-human-generator").GeneratedHumanLetter> {
-  const { mode = "HUMAN_FIRST", organizationId, ...letterInput } = input;
+): Promise<GeneratedLetter | import("./amelia-full-ai-generator").GeneratedFullAILetter> {
+  const { mode = "FULL_AI", organizationId = "default", ...letterInput } = input;
 
-  if (mode === "HUMAN_FIRST") {
-    // Use human-first generator
-    const { generateHumanFirstLetter } = await import("./amelia-human-generator");
-    return generateHumanFirstLetter({
+  if (mode === "FULL_AI") {
+    // Use full AI generator - 100% unique letters
+    const { generateFullAILetter } = await import("./amelia-full-ai-generator");
+    return generateFullAILetter({
       client: letterInput.client,
       accounts: letterInput.accounts,
       cra: letterInput.cra,

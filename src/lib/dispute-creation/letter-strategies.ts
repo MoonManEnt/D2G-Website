@@ -32,9 +32,9 @@ import {
   type HardInquiry,
 } from "@/lib/amelia/index";
 import {
-  generateHumanFirstLetter,
-  type HumanLetterGenerationInput,
-} from "@/lib/amelia-human-generator";
+  generateFullAILetter,
+  type FullAILetterInput,
+} from "@/lib/amelia-full-ai-generator";
 
 import {
   CRA,
@@ -500,17 +500,19 @@ function determineFlowFromAccounts(
 // =============================================================================
 
 // =============================================================================
-// HUMAN-FIRST GENERATION (Recommended)
+// FULL AI GENERATION (Recommended)
 // =============================================================================
 
 /**
- * Generate letter using Human-First approach
+ * Generate letter using Full AI approach
  *
  * This is the RECOMMENDED approach that:
+ * - Generates the ENTIRE letter via AI - no templates
  * - Leads with personal story/impact
  * - Uses simple, 8th-grade language
- * - Puts legal stuff at the end as a footer
+ * - Every letter is 100% unique - different openings, reasons, demands
  * - Sounds like a real person wrote it
+ * - Legal compliance built into AI prompts
  */
 export async function generateHumanFirstLetterContent(
   client: DisputeClientData,
@@ -521,7 +523,7 @@ export async function generateHumanFirstLetterContent(
   organizationId: string,
   lastDisputeDate?: string
 ): Promise<GeneratedLetterResult> {
-  // Build client personal info
+  // Build client personal info for AMELIA
   const clientInfo: ClientPersonalInfo = {
     firstName: client.firstName,
     lastName: client.lastName,
@@ -567,8 +569,8 @@ export async function generateHumanFirstLetterContent(
   const flowType = (flow as "ACCURACY" | "COLLECTION" | "CONSENT" | "COMBO") ||
     determineFlowFromAccounts(accounts);
 
-  // Generate human-first letter
-  const generatedLetter = await generateHumanFirstLetter({
+  // Generate full AI letter - every part is unique
+  const generatedLetter = await generateFullAILetter({
     client: clientInfo,
     accounts: disputeAccounts,
     cra: cra as unknown as import("@/types").CRA,
@@ -580,22 +582,20 @@ export async function generateHumanFirstLetterContent(
 
   return {
     content: generatedLetter.content,
-    statutesCited: [generatedLetter.statute || "15 U.S.C. § 1681i"],
+    statutesCited: ["15 U.S.C. § 1681i", "15 U.S.C. § 1681e(b)"],
     aiMetadata: {
       type: "human_first",
       generatedAt: new Date().toISOString(),
-      version: "1.0",
+      version: "2.0",
       tone: generatedLetter.tone,
       isBackdated: generatedLetter.isBackdated,
       backdatedDays: generatedLetter.backdatedDays,
       letterDate: generatedLetter.letterDate.toISOString(),
       flow: generatedLetter.flow,
       round: generatedLetter.round,
-      statute: generatedLetter.statute,
-      storyUsed: generatedLetter.storyUsed,
       letterStyle: "HUMAN_FIRST",
     },
-    title: `${cra} Human-First Dispute Letter - Round ${round}`,
+    title: `${cra} AI-Generated Dispute Letter - Round ${round}`,
     aiGenerated: true,
   };
 }
