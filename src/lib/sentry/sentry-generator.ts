@@ -1,17 +1,14 @@
 /**
- * SENTRY LETTER GENERATOR
+ * SENTRY LETTER GENERATOR - Human First Edition
  *
- * Generates dispute letters using the Sentry intelligence engines.
- * Integrates e-OSCAR optimization, legal validation, OCR safety,
- * Metro 2 targeting, and success prediction.
+ * Generates dispute letters using story-first approach.
+ * Technical compliance (e-OSCAR, Metro 2) maintained behind the scenes.
  *
- * KEY FEATURES:
- * - Template-based generation with variable substitution
- * - Automatic Metro 2 field targeting language
- * - e-OSCAR code optimization
- * - OCR safety scoring and auto-fixing
- * - Legal citation validation
- * - Success probability calculation
+ * LETTER STRUCTURE:
+ * 1. MY STORY (2-3 sentences) - Generated first, always included
+ * 2. WHAT'S WRONG (Simple statement) - Human-readable issue
+ * 3. WHAT I NEED (Clear demand) - Straightforward ask
+ * 4. LEGAL FOOTER (Brief, at end) - Like fine print
  */
 
 import type {
@@ -19,7 +16,6 @@ import type {
   SentryFlowType,
   SentryRound,
   SentryAccountItem,
-  SentryDetectedIssue,
   Metro2FieldDispute,
   EOSCARRecommendation,
   OCRAnalysisResult,
@@ -30,9 +26,11 @@ import type {
 
 import {
   selectBestTemplate,
+  selectHumanFirstTemplate,
   getSentryTemplate,
   TEMPLATE_VARIABLES,
   type SentryTemplate,
+  type HumanFirstTemplate,
 } from "./sentry-templates";
 
 import { SENTRY_BUREAU_ADDRESSES } from "./index";
@@ -52,18 +50,17 @@ import {
   type WritingMode,
   type StoryContext,
   type GeneratedStory,
-  transformToNormalPeople,
-  addHumanTouch,
-  buildPlainEnglishReason,
   EOSCAR_TO_DISPUTE_TYPE,
-  HUMAN_TOUCH_PATTERNS,
 } from "./writing-modes";
 import {
-  generateImpactStory,
+  generateRequiredStory,
   generateStoriesForAccounts,
   combineStories,
   generateSummaryStory,
 } from "./story-generator";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("sentry-generator");
 
 // =============================================================================
 // TYPES
@@ -95,12 +92,12 @@ export interface GenerationContext {
   confirmationNumber?: string;
 
   // Date options
-  backdateDays?: number; // Number of days to backdate the letter (default 30 for Round 1)
+  backdateDays?: number;
 
-  // Writing mode (default: PROFESSIONAL)
+  // Writing mode - DEPRECATED, always uses human-first
   writingMode?: WritingMode;
 
-  // Client context for story generation (Normal People mode)
+  // Client context for story generation
   clientContext?: StoryContext["clientContext"];
 
   // Organization ID for LLM calls
@@ -110,20 +107,20 @@ export interface GenerationContext {
 export interface GenerationResult {
   // Generated letter
   letterContent: string;
-  letterContentPlain: string; // Without variable markers
+  letterContentPlain: string;
 
   // Template used
   templateId: string;
   templateName: string;
 
-  // Writing mode used
+  // Writing mode (always NORMAL_PEOPLE now)
   writingMode: WritingMode;
 
-  // Generated stories (Normal People mode)
+  // Generated stories
   impactStories?: GeneratedStory[];
   combinedStory?: string;
 
-  // Intelligence results
+  // Intelligence results (hidden from UI but kept for compliance)
   eoscarRecommendations: EOSCARRecommendation[];
   selectedEOSCARCode: string;
   metro2Disputes: Metro2FieldDispute[];
@@ -142,7 +139,7 @@ export interface GenerationResult {
 }
 
 // =============================================================================
-// VARIABLE SUBSTITUTION
+// DATE FORMATTING
 // =============================================================================
 
 function formatDate(date?: Date | string, backdateDays?: number): string {
@@ -154,7 +151,6 @@ function formatDate(date?: Date | string, backdateDays?: number): string {
     d = typeof date === "string" ? new Date(date) : date;
   }
 
-  // Apply backdate if specified
   if (backdateDays && backdateDays > 0) {
     d = new Date(d.getTime() - backdateDays * 24 * 60 * 60 * 1000);
   }
@@ -167,7 +163,6 @@ function formatDate(date?: Date | string, backdateDays?: number): string {
 }
 
 function calculateDeadlineDate(backdateDays?: number): string {
-  // Start from today minus backdate days, then add 30 days for the deadline
   const letterDate = new Date();
   if (backdateDays && backdateDays > 0) {
     letterDate.setDate(letterDate.getDate() - backdateDays);
@@ -176,318 +171,329 @@ function calculateDeadlineDate(backdateDays?: number): string {
   return formatDate(letterDate);
 }
 
-function substituteVariables(
-  content: string,
-  context: GenerationContext,
-  extras: {
-    accountList: string;
-    metro2FieldDisputes: string;
-    verificationChallenges: string;
-    eoscarCodeReason: string;
-  }
-): string {
-  const bureauAddress = SENTRY_BUREAU_ADDRESSES[context.cra];
-
-  let result = content;
-
-  // Client info
-  result = result.replace(
-    new RegExp(TEMPLATE_VARIABLES.CLIENT_NAME, "g"),
-    context.clientName
-  );
-  result = result.replace(
-    new RegExp(TEMPLATE_VARIABLES.CLIENT_ADDRESS, "g"),
-    context.clientAddress
-  );
-  result = result.replace(
-    new RegExp(TEMPLATE_VARIABLES.CLIENT_CITY_STATE_ZIP, "g"),
-    context.clientCityStateZip
-  );
-  result = result.replace(
-    new RegExp(TEMPLATE_VARIABLES.CLIENT_SSN_LAST4, "g"),
-    context.clientSSNLast4
-  );
-  result = result.replace(
-    new RegExp(TEMPLATE_VARIABLES.CLIENT_DOB, "g"),
-    context.clientDOB
-  );
-
-  // Bureau info
-  result = result.replace(
-    new RegExp(TEMPLATE_VARIABLES.BUREAU_NAME, "g"),
-    bureauAddress.name
-  );
-  result = result.replace(
-    new RegExp(TEMPLATE_VARIABLES.BUREAU_ADDRESS, "g"),
-    `${bureauAddress.address}\n${bureauAddress.city}, ${bureauAddress.state} ${bureauAddress.zip}`
-  );
-
-  // Dates - apply backdate for Round 1 letters (default 30 days)
-  const backdateDays = context.round === 1 ? (context.backdateDays ?? 30) : 0;
-  result = result.replace(
-    new RegExp(TEMPLATE_VARIABLES.CURRENT_DATE, "g"),
-    formatDate(undefined, backdateDays)
-  );
-  result = result.replace(
-    new RegExp(TEMPLATE_VARIABLES.DEADLINE_DATE, "g"),
-    calculateDeadlineDate(backdateDays)
-  );
-
-  // Account info
-  result = result.replace(
-    new RegExp(TEMPLATE_VARIABLES.ACCOUNT_LIST, "g"),
-    extras.accountList
-  );
-  result = result.replace(
-    new RegExp(TEMPLATE_VARIABLES.METRO2_FIELD_DISPUTES, "g"),
-    extras.metro2FieldDisputes
-  );
-  result = result.replace(
-    new RegExp(TEMPLATE_VARIABLES.VERIFICATION_CHALLENGES, "g"),
-    extras.verificationChallenges
-  );
-  result = result.replace(
-    new RegExp(TEMPLATE_VARIABLES.EOSCAR_CODE_REASON, "g"),
-    extras.eoscarCodeReason
-  );
-
-  // Previous dispute info
-  if (context.previousDisputeDate) {
-    result = result.replace(
-      new RegExp(TEMPLATE_VARIABLES.PREVIOUS_DISPUTE_DATE, "g"),
-      context.previousDisputeDate
-    );
-  }
-
-  // Handle confirmation number section - only include if provided
-  if (context.confirmationNumber) {
-    result = result.replace(
-      new RegExp(TEMPLATE_VARIABLES.CONFIRMATION_NUMBER_SECTION, "g"),
-      ` Reference number: ${context.confirmationNumber}.`
-    );
-    result = result.replace(
-      new RegExp(TEMPLATE_VARIABLES.CONFIRMATION_NUMBER, "g"),
-      context.confirmationNumber
-    );
-  } else {
-    // Remove the confirmation number section placeholder if no number provided
-    result = result.replace(
-      new RegExp(TEMPLATE_VARIABLES.CONFIRMATION_NUMBER_SECTION, "g"),
-      ""
-    );
-    // Also remove any standalone confirmation number placeholders
-    result = result.replace(
-      new RegExp(TEMPLATE_VARIABLES.CONFIRMATION_NUMBER, "g"),
-      "[To be provided when received]"
-    );
-  }
-
-  return result;
-}
-
 // =============================================================================
-// ACCOUNT LIST BUILDING
+// DISPUTE TYPE DETECTION
 // =============================================================================
 
-function buildAccountList(
-  accounts: SentryAccountItem[],
-  metro2Disputes: Map<string, Metro2FieldDispute[]>
-): string {
-  const lines: string[] = [];
+function detectDisputeType(account: SentryAccountItem): StoryContext["disputeType"] {
+  // Check detected issues first
+  if (account.detectedIssues && account.detectedIssues.length > 0) {
+    const primaryIssue = account.detectedIssues[0];
+    if (primaryIssue.suggestedEOSCARCode) {
+      return EOSCAR_TO_DISPUTE_TYPE[primaryIssue.suggestedEOSCARCode] || "INACCURATE";
+    }
 
-  for (const account of accounts) {
-    const disputes = metro2Disputes.get(account.id) || [];
-    const entry = buildAccountListEntry(
-      account.creditorName,
-      account.maskedAccountId,
-      disputes
-    );
-    lines.push(entry);
-  }
-
-  return lines.join("\n");
-}
-
-function buildMetro2FieldDisputeSection(
-  metro2Disputes: Map<string, Metro2FieldDispute[]>
-): string {
-  const allDisputes = Array.from(metro2Disputes.values()).flat();
-  if (allDisputes.length === 0) return "";
-
-  const lines = ["The following specific data fields are disputed:"];
-
-  for (const dispute of allDisputes) {
-    lines.push(`\n- ${dispute.field.name}: ${dispute.generatedLanguage}`);
-  }
-
-  return lines.join("");
-}
-
-function buildVerificationChallengeSection(
-  metro2Disputes: Map<string, Metro2FieldDispute[]>
-): string {
-  const allFieldCodes = new Set<string>();
-
-  for (const disputes of metro2Disputes.values()) {
-    for (const dispute of disputes) {
-      allFieldCodes.add(dispute.field.code);
+    // Infer from issue code
+    const code = primaryIssue.code.toUpperCase();
+    if (code.includes("NOT_MINE") || code.includes("IDENTITY") || code.includes("FRAUD")) {
+      return "NOT_MINE";
+    }
+    if (code.includes("PAID") || code.includes("SETTLED")) {
+      return "PAID";
+    }
+    if (code.includes("OLD") || code.includes("OBSOLETE") || code.includes("EXPIRED")) {
+      return "TOO_OLD";
+    }
+    if (code.includes("UNAUTHORIZED") || code.includes("CONSENT")) {
+      return "UNAUTHORIZED";
+    }
+    if (code.includes("DUPLICATE")) {
+      return "DUPLICATE";
+    }
+    if (code.includes("COLLECTION")) {
+      return "COLLECTION";
     }
   }
 
-  if (allFieldCodes.size === 0) return "";
+  // Check account characteristics
+  if (account.isCollection) {
+    return "COLLECTION";
+  }
 
-  const challenges = getVerificationChallenges(Array.from(allFieldCodes));
-  const lines = challenges.map(
-    (c) => `- ${c.field}: ${c.challenge}`
-  );
-
-  return lines.join("\n");
+  // Default
+  return "INACCURATE";
 }
 
 // =============================================================================
-// MAIN GENERATION FUNCTION
+// HUMAN-FIRST LETTER BUILDING
+// =============================================================================
+
+function buildHumanFirstLetter(
+  template: HumanFirstTemplate,
+  context: GenerationContext,
+  story: string,
+  issueStatement: string
+): string {
+  const bureauAddress = SENTRY_BUREAU_ADDRESSES[context.cra];
+  const backdateDays = context.round === 1 ? (context.backdateDays ?? 30) : 0;
+
+  // Build the account list (simple, human-readable)
+  const accountListSimple = context.accounts
+    .map((a) => {
+      const accountId = a.maskedAccountId ? ` (ending in ${a.maskedAccountId})` : "";
+      const balance = a.balance ? ` - showing $${a.balance.toLocaleString()}` : "";
+      return `• ${a.creditorName}${accountId}${balance}`;
+    })
+    .join("\n");
+
+  // Build letter content
+  let letter = "";
+
+  // Header - date and addresses
+  letter += `${formatDate(undefined, backdateDays)}\n\n`;
+  letter += `${context.clientName}\n`;
+  letter += `${context.clientAddress}\n`;
+  letter += `${context.clientCityStateZip}\n\n`;
+  letter += `${bureauAddress.name}\n`;
+  letter += `${bureauAddress.address}\n`;
+  letter += `${bureauAddress.city}, ${bureauAddress.state} ${bureauAddress.zip}\n\n`;
+
+  // Identification
+  letter += `My name is ${context.clientName} and my Social Security Number ends in ${context.clientSSNLast4}.\n\n`;
+
+  // MY STORY (The hook - this is what makes it human)
+  letter += `${story}\n\n`;
+
+  // WHAT'S WRONG (Simple issue statement)
+  letter += `${issueStatement}\n\n`;
+
+  // Account list
+  if (context.accounts.length > 1) {
+    letter += `I'm disputing these accounts:\n${accountListSimple}\n\n`;
+  }
+
+  // Follow-up context for R2+
+  if (context.round > 1 && template.followUpOpening) {
+    let followUp = template.followUpOpening;
+    // Replace all placeholders
+    followUp = followUp.replace(/\{\{CREDITOR_NAME\}\}/g, context.accounts[0]?.creditorName || "the creditor");
+    if (context.previousDisputeDate) {
+      followUp = followUp.replace(/\{\{PREVIOUS_DISPUTE_DATE\}\}/g, context.previousDisputeDate);
+      followUp = followUp.replace(/\{\{PREVIOUS_DATE\}\}/g, context.previousDisputeDate);
+    } else {
+      followUp = followUp.replace(/\{\{PREVIOUS_DISPUTE_DATE\}\}/g, "a previous date");
+      followUp = followUp.replace(/\{\{PREVIOUS_DATE\}\}/g, "a previous date");
+    }
+    if (context.confirmationNumber) {
+      followUp = followUp.replace(/\{\{CONFIRMATION\}\}/g, context.confirmationNumber);
+    }
+    letter += `${followUp}\n\n`;
+  }
+
+  // WHAT I NEED (Clear demand)
+  letter += `${template.demandText}\n\n`;
+
+  // Custom language if any
+  if (context.customLanguage) {
+    letter += `${context.customLanguage}\n\n`;
+  }
+
+  // Signature
+  letter += `${context.clientName}\n\n`;
+
+  // LEGAL FOOTER (at the end, like fine print)
+  letter += template.legalFooter;
+
+  return letter;
+}
+
+function selectIssueStatement(
+  template: HumanFirstTemplate,
+  disputeType: StoryContext["disputeType"],
+  account: SentryAccountItem
+): string {
+  // Get template based on dispute type
+  const templates = template.issueTemplates;
+  let statement = "";
+
+  switch (disputeType) {
+    case "NOT_MINE":
+      statement = templates.notMine;
+      break;
+    case "PAID":
+      statement = templates.paid;
+      break;
+    case "TOO_OLD":
+      statement = templates.tooOld;
+      break;
+    case "UNAUTHORIZED":
+      statement = templates.unauthorized;
+      break;
+    case "DUPLICATE":
+      statement = templates.duplicate || templates.inaccurate;
+      break;
+    case "COLLECTION":
+      statement = templates.collection;
+      break;
+    case "INACCURATE":
+    default:
+      statement = templates.inaccurate;
+  }
+
+  // Replace placeholders
+  statement = statement.replace(/\{\{CREDITOR_NAME\}\}/g, account.creditorName);
+  if (account.balance) {
+    statement = statement.replace(/\{\{BALANCE\}\}/g, `$${account.balance.toLocaleString()}`);
+  } else {
+    statement = statement.replace(/\{\{BALANCE\}\}/g, "the amount shown");
+  }
+  if (account.maskedAccountId) {
+    statement = statement.replace(/\{\{ACCOUNT_ID\}\}/g, account.maskedAccountId);
+  }
+
+  // Replace issue details with account-specific info
+  let issueDetails = "";
+  if (account.detectedIssues && account.detectedIssues.length > 0) {
+    issueDetails = account.detectedIssues[0].description;
+  } else if (account.disputeReason) {
+    issueDetails = account.disputeReason;
+  } else if (account.balance) {
+    issueDetails = `It's showing $${account.balance.toLocaleString()} but that doesn't match my records.`;
+  } else {
+    issueDetails = "The information doesn't match what I have in my records.";
+  }
+  statement = statement.replace(/\{\{ISSUE_DETAILS\}\}/g, issueDetails);
+
+  return statement;
+}
+
+// =============================================================================
+// MAIN GENERATION FUNCTION - STORY FIRST
 // =============================================================================
 
 /**
- * Generate a Sentry dispute letter with full intelligence analysis
- * Supports both PROFESSIONAL and NORMAL_PEOPLE writing modes
+ * Generate a human-first dispute letter
+ * Story is generated FIRST - it's required, not optional
  */
 export async function generateSentryLetter(
   context: GenerationContext
 ): Promise<GenerationResult> {
   const warnings: string[] = [];
-  const writingMode: WritingMode = context.writingMode || "PROFESSIONAL";
+  const writingMode: WritingMode = "NORMAL_PEOPLE"; // Always human-first now
 
-  // 1. Select template
-  const template = context.templateId
-    ? getSentryTemplate(context.templateId)
-    : selectBestTemplate(context.flow, context.round, "CRA");
+  log.info({ flow: context.flow, round: context.round, accounts: context.accounts.length }, "Generating human-first letter");
 
-  if (!template) {
-    throw new Error(
-      `No template found for flow=${context.flow} round=${context.round}`
+  // 1. GENERATE STORY FIRST (Required!)
+  // This is the heart of the human-first approach
+  let impactStories: GeneratedStory[] = [];
+  let combinedStory = "";
+
+  try {
+    const storiesMap = await generateStoriesForAccounts(
+      context.accounts,
+      context.flow,
+      context.round,
+      context.clientContext,
+      context.organizationId
     );
+
+    impactStories = Array.from(storiesMap.values());
+
+    // Combine or summarize based on account count
+    if (impactStories.length === 1) {
+      combinedStory = impactStories[0].storyParagraph;
+    } else if (impactStories.length <= 3) {
+      combinedStory = combineStories(impactStories);
+    } else {
+      // Many accounts - generate summary story
+      const primaryDisputeType = detectDisputeType(context.accounts[0]);
+      combinedStory = await generateSummaryStory(
+        context.accounts.length,
+        primaryDisputeType,
+        context.organizationId
+      );
+    }
+  } catch (error) {
+    log.error({ err: error }, "Story generation failed, using fallback");
+    // Even if AI fails, we always get a story from fallback
+    warnings.push("Story generated using template (AI unavailable)");
+
+    // Generate fallback story synchronously
+    const primaryAccount = context.accounts[0];
+    const disputeType = detectDisputeType(primaryAccount);
+
+    // Simple fallback story
+    const fallbackStories = {
+      NOT_MINE: `I was checking my credit report and found this ${primaryAccount.creditorName} account that I've never seen before. I've never done business with this company and this is affecting my credit.`,
+      PAID: `I paid off my ${primaryAccount.creditorName} account but it's still showing like I owe money. I have the receipts and this isn't right.`,
+      INACCURATE: `The information on my ${primaryAccount.creditorName} account isn't accurate. The numbers don't match what I have in my records.`,
+      TOO_OLD: `This ${primaryAccount.creditorName} account is from years ago. It should have fallen off my report by now but it's still affecting my credit.`,
+      UNAUTHORIZED: `I never authorized this ${primaryAccount.creditorName} account. Nobody asked me before opening it and I never agreed to it.`,
+      DUPLICATE: `This ${primaryAccount.creditorName} account is showing up more than once. I shouldn't be penalized twice for the same thing.`,
+      COLLECTION: `I got this collection from ${primaryAccount.creditorName} but something doesn't add up. I need this looked into.`,
+    };
+
+    combinedStory = fallbackStories[disputeType];
   }
 
-  // 2. Generate e-OSCAR recommendations for each account
+  // 2. Select human-first template (or fall back to legacy)
+  let humanTemplate: HumanFirstTemplate | undefined;
+  let legacyTemplate: SentryTemplate | undefined;
+
+  humanTemplate = selectHumanFirstTemplate(context.flow, context.round);
+
+  if (!humanTemplate) {
+    // Fall back to legacy template
+    legacyTemplate = context.templateId
+      ? getSentryTemplate(context.templateId)
+      : selectBestTemplate(context.flow, context.round, "CRA");
+
+    if (!legacyTemplate) {
+      throw new Error(`No template found for flow=${context.flow} round=${context.round}`);
+    }
+    warnings.push("Using legacy template format");
+  }
+
+  // 3. Detect primary dispute type and select issue statement
+  const primaryAccount = context.accounts[0];
+  const primaryDisputeType = detectDisputeType(primaryAccount);
+
+  // 4. E-OSCAR recommendations (hidden from user, for compliance)
   const eoscarRecommendations: EOSCARRecommendation[] = [];
   for (const account of context.accounts) {
     const recs = recommendCodesForAccount(account, context.flow);
     eoscarRecommendations.push(...recs);
   }
 
-  // Select primary e-OSCAR code (highest priority from recommendations)
   const selectedEOSCARCode: string =
     context.eoscarCodeOverride ||
     (eoscarRecommendations.length > 0
       ? eoscarRecommendations.sort((a, b) => b.confidence - a.confidence)[0].code.code
-      : template.eoscarCodeHint || "105");
+      : humanTemplate?.eoscarCodeHint || legacyTemplate?.eoscarCodeHint || "105");
 
-  const eoscarCodeReason = getCodeDescription(selectedEOSCARCode) || "";
-
-  // 3. Generate Metro 2 field disputes for each account
+  // 5. Metro 2 field disputes (hidden from user, for compliance)
   const metro2Disputes = new Map<string, Metro2FieldDispute[]>();
   const allDiscrepancies: { field: string; language: string }[] = [];
 
   for (const account of context.accounts) {
     const accountDisputes: Metro2FieldDispute[] = [];
 
-    // PRIORITY 1: Use detected issues if available for account-specific disputes
+    // Use detected issues to create field disputes
     if (account.detectedIssues && account.detectedIssues.length > 0) {
       for (const issue of account.detectedIssues) {
-        // Map detected issue to Metro 2 field
-        let fieldCode = issue.suggestedMetro2Field;
-        if (!fieldCode) {
-          // Map common issue codes to Metro 2 fields
-          if (issue.code.includes("BALANCE") || issue.code.includes("AMOUNT")) {
-            fieldCode = "BALANCE";
-          } else if (issue.code.includes("DOFD") || issue.code.includes("DELINQUENCY")) {
-            fieldCode = "DOFD";
-          } else if (issue.code.includes("STATUS") || issue.code.includes("ACCOUNT_STATUS")) {
-            fieldCode = "ACCOUNT_STATUS";
-          } else if (issue.code.includes("DATE_OPENED") || issue.code.includes("OPEN_DATE")) {
-            fieldCode = "DATE_OPENED";
-          } else if (issue.code.includes("PAYMENT") || issue.code.includes("LATE")) {
-            fieldCode = "PAYMENT_RATING";
-          } else if (issue.code.includes("COLLECTION") || issue.code.includes("CREDITOR")) {
-            fieldCode = "ORIGINAL_CREDITOR";
-          } else {
-            // Default to most relevant field
-            fieldCode = "ACCOUNT_STATUS";
-          }
-        }
+        let fieldCode = issue.suggestedMetro2Field || "ACCOUNT_STATUS";
 
-        // Get the reported value for context
-        let reportedValue: string | undefined;
-        if (fieldCode === "BALANCE" && account.balance !== undefined) {
-          reportedValue = `$${account.balance.toLocaleString()}`;
-        } else if (fieldCode === "DOFD" && account.dateOfFirstDelinquency) {
-          reportedValue = new Date(account.dateOfFirstDelinquency).toLocaleDateString();
-        } else if (fieldCode === "ACCOUNT_STATUS" && account.accountStatus) {
-          reportedValue = account.accountStatus;
+        if (!issue.suggestedMetro2Field) {
+          const code = issue.code.toUpperCase();
+          if (code.includes("BALANCE")) fieldCode = "BALANCE";
+          else if (code.includes("DATE")) fieldCode = "DOFD";
+          else if (code.includes("STATUS")) fieldCode = "ACCOUNT_STATUS";
         }
 
         const dispute = createFieldDispute(
           fieldCode,
-          reportedValue || "the currently reported value",
+          "the currently reported value",
           undefined,
-          issue.description // Use the issue description as the reason
+          issue.description
         );
 
-        if (dispute) {
-          accountDisputes.push(dispute);
-        }
-      }
-    }
-
-    // PRIORITY 2: If no detected issues, use recommended fields based on account type
-    if (accountDisputes.length === 0) {
-      const recommendedFields = getRecommendedFields(
-        account.accountType,
-        account.isCollection
-      );
-
-      // Only create disputes for fields where we have actual data
-      for (const field of recommendedFields) {
-        let reportedValue: string | undefined;
-        let correctValue: string | undefined;
-
-        if (field.code === "BALANCE" && account.balance !== undefined) {
-          reportedValue = `$${account.balance.toLocaleString()}`;
-        } else if (field.code === "DOFD" && account.dateOfFirstDelinquency) {
-          reportedValue = new Date(account.dateOfFirstDelinquency).toLocaleDateString();
-        } else if (field.code === "ACCOUNT_STATUS" && account.accountStatus) {
-          reportedValue = account.accountStatus;
-          if (account.accountStatus.toUpperCase() === "COLLECTION") {
-            correctValue = "Closed/Paid";
-          }
-        } else if (field.code === "DATE_OPENED" && account.dateOpened) {
-          reportedValue = new Date(account.dateOpened).toLocaleDateString();
-        } else if (field.code === "ORIGINAL_CREDITOR" && account.creditorName) {
-          reportedValue = account.creditorName;
-        }
-
-        // Skip fields where we don't have actual reported values
-        if (!reportedValue && !account.disputeReason) {
-          continue;
-        }
-
-        const dispute = createFieldDispute(
-          field.code,
-          reportedValue || "the currently reported value",
-          correctValue,
-          account.disputeReason
-        );
-
-        if (dispute) {
-          accountDisputes.push(dispute);
-        }
+        if (dispute) accountDisputes.push(dispute);
       }
     }
 
     metro2Disputes.set(account.id, accountDisputes);
 
-    // Detect cross-bureau discrepancies
+    // Detect discrepancies
     const discrepancies = detectFieldDiscrepancies(account);
     for (const disc of discrepancies) {
       allDiscrepancies.push({
@@ -497,142 +503,58 @@ export async function generateSentryLetter(
     }
   }
 
-  // 4. Build account list and field sections
-  const accountList = buildAccountList(context.accounts, metro2Disputes);
-  const metro2FieldDisputeSection = buildMetro2FieldDisputeSection(metro2Disputes);
-  const verificationChallenges = buildVerificationChallengeSection(metro2Disputes);
-
-  // 5. Assemble template sections
+  // 6. Build the letter
   let letterContent = "";
-  for (const section of template.sections) {
-    letterContent += section.content + "\n\n";
-  }
 
-  // Add custom language if provided
-  if (context.customLanguage) {
-    letterContent += `\nAdditional information:\n${context.customLanguage}\n`;
-  }
-
-  // 6. Substitute variables
-  letterContent = substituteVariables(letterContent, context, {
-    accountList,
-    metro2FieldDisputes: metro2FieldDisputeSection,
-    verificationChallenges,
-    eoscarCodeReason,
-  });
-
-  // Store original for comparison
-  const originalContent = letterContent;
-
-  // 6.5 Apply writing mode transformation (Normal People mode)
-  let impactStories: GeneratedStory[] | undefined;
-  let combinedStory: string | undefined;
-
-  if (writingMode === "NORMAL_PEOPLE") {
-    // Try to generate unique impact stories for accounts (optional enhancement)
-    try {
-      const storiesMap = await generateStoriesForAccounts(
-        context.accounts,
-        context.flow,
-        context.round,
-        context.clientContext,
-        context.organizationId
-      );
-
-      impactStories = Array.from(storiesMap.values());
-
-      // Combine stories for the letter
-      if (impactStories.length > 0) {
-        combinedStory = impactStories.length <= 3
-          ? combineStories(impactStories)
-          : await generateSummaryStory(
-              context.accounts.length,
-              EOSCAR_TO_DISPUTE_TYPE[selectedEOSCARCode] || "INACCURATE",
-              context.organizationId
-            );
-      }
-    } catch (error) {
-      // Story generation is optional - continue with text transformations
-      warnings.push("AI story generation unavailable, using core Normal People transformations");
+  if (humanTemplate) {
+    // Use human-first template
+    const issueStatement = selectIssueStatement(humanTemplate, primaryDisputeType, primaryAccount);
+    letterContent = buildHumanFirstLetter(humanTemplate, context, combinedStory, issueStatement);
+  } else if (legacyTemplate) {
+    // Fall back to legacy template with story injection
+    for (const section of legacyTemplate.sections) {
+      letterContent += section.content + "\n\n";
     }
 
-    // ALWAYS apply text transformations for Normal People mode (not dependent on story generation)
-    // Transform the letter to Normal People mode
-    letterContent = transformToNormalPeople(letterContent, {
-      includeStory: combinedStory, // Will be undefined if story generation failed
-      preserveLegalBasis: true, // Keep citations with plain explanations
-    });
-
-    // Add human touches
-    letterContent = addHumanTouch(letterContent, "starters");
-    letterContent = addHumanTouch(letterContent, "closings");
-
-    // Replace formal account reasons with plain English
-    for (const account of context.accounts) {
-      const eoscarCode = account.detectedIssues?.[0]?.suggestedEOSCARCode || selectedEOSCARCode;
-      const plainReason = buildPlainEnglishReason(
-        eoscarCode,
-        account.creditorName,
-        account.disputeReason
-      );
-
-      // Find and replace formal dispute reason with plain English
-      const formalPattern = new RegExp(
-        `Account:\\s*${escapeRegExp(account.creditorName)}[^\\n]*\\n[^\\n]*dispute reason[^\\n]*`,
-        "gi"
-      );
-      letterContent = letterContent.replace(formalPattern, (match) => {
-        return match + `\n\n${plainReason}`;
-      });
+    // Inject story after header
+    const headerEnd = letterContent.indexOf("\n\n\n");
+    if (headerEnd > 0) {
+      const before = letterContent.substring(0, headerEnd + 3);
+      const after = letterContent.substring(headerEnd + 3);
+      letterContent = before + combinedStory + "\n\n" + after;
     }
+
+    // Variable substitution for legacy
+    letterContent = substituteLegacyVariables(letterContent, context, metro2Disputes);
   }
 
-  // Helper function for regex escaping
-  function escapeRegExp(string: string): string {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  }
-
-  // 7. Run OCR analysis
+  // 7. OCR Safety Check (auto-apply fixes)
   let ocrAnalysis = analyzeOCRRisk(letterContent);
   let ocrAutoFixApplied = false;
 
-  // Auto-fix if score is below minimum
   if (!meetsMinimumSafety(letterContent)) {
     const { fixedContent, fixesApplied } = applyOCRFixes(letterContent);
     if (fixesApplied.length > 0) {
       letterContent = fixedContent;
       ocrAnalysis = analyzeOCRRisk(letterContent);
       ocrAutoFixApplied = true;
-      warnings.push(
-        `OCR safety fixes applied: ${fixesApplied.length} phrases replaced to reduce frivolous flagging risk`
-      );
     }
   }
 
-  // 8. Validate legal citations
+  // 8. Citation Validation
   const citationValidation = validateCitations(letterContent, "CRA");
 
-  if (!citationValidation.isValid) {
-    for (const invalid of citationValidation.invalidCitations) {
-      warnings.push(
-        `Invalid citation detected: ${invalid.statute} - ${invalid.reason}`
-      );
-    }
-  }
-
-  // 9. Calculate success probability
+  // 9. Success Prediction (simplified for user)
   const hasDiscrepancies = allDiscrepancies.length > 0;
   const avgAccountAge = context.accounts.reduce((sum, a) => {
     if (!a.dateOpened) return sum;
-    const ageMonths =
-      (new Date().getTime() - new Date(a.dateOpened).getTime()) /
-      (1000 * 60 * 60 * 24 * 30);
+    const ageMonths = (Date.now() - new Date(a.dateOpened).getTime()) / (1000 * 60 * 60 * 24 * 30);
     return sum + ageMonths;
   }, 0) / context.accounts.length;
 
   const predictionRequest: SuccessPredictionRequest = {
     accountAge: avgAccountAge || 24,
-    furnisherName: context.accounts[0]?.creditorName || "",
+    furnisherName: primaryAccount.creditorName || "",
     hasMetro2Targeting: metro2Disputes.size > 0,
     eoscarCode: selectedEOSCARCode,
     hasPoliceReport: false,
@@ -644,22 +566,15 @@ export async function generateSentryLetter(
 
   const successPrediction = calculateSuccessProbability(predictionRequest);
 
-  // Add recommendations as warnings
-  for (const rec of successPrediction.recommendations) {
-    if (!rec.includes("well-optimized")) {
-      warnings.push(`Improvement suggestion: ${rec}`);
-    }
-  }
-
   // 10. Build result
   const allMetro2Disputes = Array.from(metro2Disputes.values()).flat();
 
   return {
     letterContent,
-    letterContentPlain: letterContent, // Already substituted
+    letterContentPlain: letterContent,
 
-    templateId: template.id,
-    templateName: template.name,
+    templateId: humanTemplate?.id || legacyTemplate?.id || "unknown",
+    templateName: humanTemplate?.name || legacyTemplate?.name || "Unknown Template",
 
     writingMode,
     impactStories,
@@ -679,12 +594,95 @@ export async function generateSentryLetter(
   };
 }
 
+// =============================================================================
+// LEGACY VARIABLE SUBSTITUTION (for backward compatibility)
+// =============================================================================
+
+function substituteLegacyVariables(
+  content: string,
+  context: GenerationContext,
+  metro2Disputes: Map<string, Metro2FieldDispute[]>
+): string {
+  const bureauAddress = SENTRY_BUREAU_ADDRESSES[context.cra];
+  const backdateDays = context.round === 1 ? (context.backdateDays ?? 30) : 0;
+
+  let result = content;
+
+  // Client info
+  result = result.replace(new RegExp(TEMPLATE_VARIABLES.CLIENT_NAME, "g"), context.clientName);
+  result = result.replace(new RegExp(TEMPLATE_VARIABLES.CLIENT_ADDRESS, "g"), context.clientAddress);
+  result = result.replace(new RegExp(TEMPLATE_VARIABLES.CLIENT_CITY_STATE_ZIP, "g"), context.clientCityStateZip);
+  result = result.replace(new RegExp(TEMPLATE_VARIABLES.CLIENT_SSN_LAST4, "g"), context.clientSSNLast4);
+  result = result.replace(new RegExp(TEMPLATE_VARIABLES.CLIENT_DOB, "g"), context.clientDOB);
+
+  // Bureau info
+  result = result.replace(new RegExp(TEMPLATE_VARIABLES.BUREAU_NAME, "g"), bureauAddress.name);
+  result = result.replace(
+    new RegExp(TEMPLATE_VARIABLES.BUREAU_ADDRESS, "g"),
+    `${bureauAddress.address}\n${bureauAddress.city}, ${bureauAddress.state} ${bureauAddress.zip}`
+  );
+
+  // Dates
+  result = result.replace(new RegExp(TEMPLATE_VARIABLES.CURRENT_DATE, "g"), formatDate(undefined, backdateDays));
+  result = result.replace(new RegExp(TEMPLATE_VARIABLES.DEADLINE_DATE, "g"), calculateDeadlineDate(backdateDays));
+
+  // Account list (simple)
+  const accountList = context.accounts
+    .map((a) => `• ${a.creditorName}${a.maskedAccountId ? ` (ending ${a.maskedAccountId})` : ""}`)
+    .join("\n");
+  result = result.replace(new RegExp(TEMPLATE_VARIABLES.ACCOUNT_LIST, "g"), accountList);
+
+  // Other placeholders
+  result = result.replace(new RegExp(TEMPLATE_VARIABLES.METRO2_FIELD_DISPUTES, "g"), "");
+  result = result.replace(new RegExp(TEMPLATE_VARIABLES.VERIFICATION_CHALLENGES, "g"), "");
+  result = result.replace(new RegExp(TEMPLATE_VARIABLES.EOSCAR_CODE_REASON, "g"), "");
+
+  // Previous dispute info
+  if (context.previousDisputeDate) {
+    result = result.replace(new RegExp(TEMPLATE_VARIABLES.PREVIOUS_DISPUTE_DATE, "g"), context.previousDisputeDate);
+  }
+
+  // Confirmation number
+  if (context.confirmationNumber) {
+    result = result.replace(new RegExp(TEMPLATE_VARIABLES.CONFIRMATION_NUMBER_SECTION, "g"), ` Reference: ${context.confirmationNumber}.`);
+    result = result.replace(new RegExp(TEMPLATE_VARIABLES.CONFIRMATION_NUMBER, "g"), context.confirmationNumber);
+  } else {
+    result = result.replace(new RegExp(TEMPLATE_VARIABLES.CONFIRMATION_NUMBER_SECTION, "g"), "");
+    result = result.replace(new RegExp(TEMPLATE_VARIABLES.CONFIRMATION_NUMBER, "g"), "");
+  }
+
+  return result;
+}
+
+// =============================================================================
+// PREVIEW GENERATION
+// =============================================================================
+
 /**
- * Generate a preview without full intelligence analysis
+ * Generate a quick preview without full analysis
  */
 export function generateSentryPreview(
   context: GenerationContext
 ): { letterContent: string; templateName: string } {
+  const humanTemplate = selectHumanFirstTemplate(context.flow, context.round);
+
+  if (humanTemplate) {
+    const primaryAccount = context.accounts[0];
+    const disputeType = detectDisputeType(primaryAccount);
+
+    // Use a placeholder story for preview
+    const previewStory = "[Your personal story will appear here - how this issue is affecting your life]";
+    const issueStatement = selectIssueStatement(humanTemplate, disputeType, primaryAccount);
+
+    const letterContent = buildHumanFirstLetter(humanTemplate, context, previewStory, issueStatement);
+
+    return {
+      letterContent,
+      templateName: humanTemplate.name,
+    };
+  }
+
+  // Fall back to legacy preview
   const template = context.templateId
     ? getSentryTemplate(context.templateId)
     : selectBestTemplate(context.flow, context.round, "CRA");
@@ -698,23 +696,21 @@ export function generateSentryPreview(
     letterContent += section.content + "\n\n";
   }
 
-  // Simple account list
   const accountList = context.accounts
     .map((a) => `- ${a.creditorName} (Account ending ${a.maskedAccountId || "XXXX"})`)
     .join("\n");
 
-  letterContent = substituteVariables(letterContent, context, {
-    accountList,
-    metro2FieldDisputes: "[Metro 2 field targeting will be added]",
-    verificationChallenges: "[Verification challenges will be added]",
-    eoscarCodeReason: "[e-OSCAR code reason will be added]",
-  });
+  letterContent = letterContent.replace(new RegExp(TEMPLATE_VARIABLES.ACCOUNT_LIST, "g"), accountList);
 
   return {
     letterContent,
     templateName: template.name,
   };
 }
+
+// =============================================================================
+// REGENERATION
+// =============================================================================
 
 /**
  * Regenerate a letter with new parameters
@@ -731,11 +727,12 @@ export async function regenerateSentryLetter(
   return generateSentryLetter(newContext);
 }
 
-// Re-export writing mode types and utilities
-export { type WritingMode, getWritingModeConfig, getAvailableWritingModes } from "./writing-modes";
+// =============================================================================
+// ANALYSIS FUNCTIONS
+// =============================================================================
 
 /**
- * Analyze an existing letter (not generated by Sentry)
+ * Analyze an existing letter
  */
 export function analyzeExistingLetter(
   letterContent: string,
@@ -750,26 +747,14 @@ export function analyzeExistingLetter(
 
   const suggestions: string[] = [];
 
-  // OCR suggestions
   if (ocrAnalysis.risk === "HIGH") {
-    suggestions.push(
-      "This letter has HIGH risk of being flagged as frivolous. Consider rewriting with more professional language."
-    );
+    suggestions.push("This letter may be flagged. Consider using simpler language.");
   } else if (ocrAnalysis.risk === "MEDIUM") {
-    suggestions.push(
-      "This letter has moderate OCR risk. Consider replacing flagged phrases."
-    );
+    suggestions.push("Some phrases could be simplified for better processing.");
   }
 
-  // Citation suggestions
   if (!citationValidation.isValid) {
-    suggestions.push(
-      `Found ${citationValidation.invalidCitations.length} problematic legal citation(s). Review and correct before sending.`
-    );
-  }
-
-  for (const warning of citationValidation.warnings) {
-    suggestions.push(`Citation warning: ${warning.warning}`);
+    suggestions.push(`Found ${citationValidation.invalidCitations.length} citation issue(s) to review.`);
   }
 
   return {
@@ -780,26 +765,51 @@ export function analyzeExistingLetter(
 }
 
 /**
- * Get available templates for selection
+ * Get available templates
  */
 export function getAvailableTemplates(
   flow?: SentryFlowType,
   round?: SentryRound
 ): { id: string; name: string; description: string; flow: SentryFlowType; round: SentryRound }[] {
-  const { getSentryTemplates } = require("./sentry-templates");
-  const templates = getSentryTemplates();
+  const { getSentryTemplates, getHumanFirstTemplates } = require("./sentry-templates");
 
-  return templates
-    .filter((t: SentryTemplate) => {
-      if (flow && t.flow !== flow) return false;
-      if (round && t.round !== round) return false;
-      return true;
-    })
-    .map((t: SentryTemplate) => ({
+  // Prefer human-first templates
+  const humanTemplates = getHumanFirstTemplates() as HumanFirstTemplate[];
+  const templates: { id: string; name: string; description: string; flow: SentryFlowType; round: SentryRound }[] = [];
+
+  for (const t of humanTemplates) {
+    if (flow && t.flow !== flow) continue;
+    if (round && t.round !== round) continue;
+
+    templates.push({
       id: t.id,
       name: t.name,
       description: t.description,
       flow: t.flow,
       round: t.round,
-    }));
+    });
+  }
+
+  // If no human-first templates match, fall back to legacy
+  if (templates.length === 0) {
+    const legacyTemplates = getSentryTemplates() as SentryTemplate[];
+
+    for (const t of legacyTemplates) {
+      if (flow && t.flow !== flow) continue;
+      if (round && t.round !== round) continue;
+
+      templates.push({
+        id: t.id,
+        name: t.name,
+        description: t.description,
+        flow: t.flow,
+        round: t.round,
+      });
+    }
+  }
+
+  return templates;
 }
+
+// Re-export writing mode types
+export { type WritingMode, getWritingModeConfig, getAvailableWritingModes } from "./writing-modes";

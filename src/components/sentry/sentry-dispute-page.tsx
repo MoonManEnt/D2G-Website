@@ -24,13 +24,30 @@ import { SentryReportSelector } from "./sentry-report-selector";
 import { SentryAccountSelector } from "./sentry-account-selector";
 import { SentryLetterBuilder } from "./sentry-letter-builder";
 import { SentryAnalysisPanel } from "./sentry-analysis-panel";
-import { EOSCARCodeSelector } from "./eoscar-code-selector";
 import { SuccessProbabilityGauge } from "./success-probability-gauge";
 import { MailSendDialog } from "@/components/disputes/mail-send-dialog";
 import type { SentryCRA, SentryFlowType } from "@/types/sentry";
-import type { WritingMode } from "@/lib/sentry/writing-modes";
-import { WRITING_MODE_CONFIGS } from "@/lib/sentry/writing-modes";
 import { createLogger } from "@/lib/logger";
+
+// Human-readable flow descriptions
+const FLOW_HUMAN_LABELS: Record<SentryFlowType, { label: string; description: string }> = {
+  ACCURACY: {
+    label: "Something is wrong",
+    description: "The information on this account isn't accurate",
+  },
+  COLLECTION: {
+    label: "Collection dispute",
+    description: "This is a collection I need to challenge",
+  },
+  CONSENT: {
+    label: "I didn't authorize this",
+    description: "This account was opened without my permission",
+  },
+  COMBO: {
+    label: "Multiple issues",
+    description: "Several things are wrong with this account",
+  },
+};
 const log = createLogger("sentry-dispute-page");
 
 type Step = "reports" | "select" | "configure" | "generate" | "review";
@@ -81,8 +98,6 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
   // Configuration
   const [selectedCRA, setSelectedCRA] = useState<SentryCRA>("TRANSUNION");
   const [selectedFlow, setSelectedFlow] = useState<SentryFlowType>("ACCURACY");
-  const [selectedEOSCARCode, setSelectedEOSCARCode] = useState<string>("105");
-  const [writingMode, setWritingMode] = useState<WritingMode>("PROFESSIONAL");
 
   // Dispute and analysis
   const [currentDispute, setCurrentDispute] = useState<SentryDisputeForUI | null>(null);
@@ -259,8 +274,7 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
 
         const furnisherName = selectedAccounts[0]?.creditorName || "Unknown";
 
-        // Determine factors based on flow and e-OSCAR code
-        const hasSpecificCode = selectedEOSCARCode !== "112";
+        // Determine factors based on flow
         const hasMetro2Targeting = selectedFlow === "ACCURACY" || selectedFlow === "COLLECTION";
         // Check if any selected accounts have detected issues that may indicate discrepancies
         const hasBureauDiscrepancy = selectedAccounts.some(a =>
@@ -271,7 +285,7 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
           )
         );
 
-        // Call success prediction API
+        // Call success prediction API (e-OSCAR code will be auto-selected by generator)
         const res = await fetch("/api/sentry/success-prediction", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -279,12 +293,12 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
             accountAge: avgAccountAge,
             furnisherName,
             hasMetro2Targeting,
-            eoscarCode: selectedEOSCARCode,
+            eoscarCode: "105", // Auto-selected by generator
             hasPoliceReport: false,
             hasBureauDiscrepancy,
             hasPaymentProof: false,
-            citationAccuracyScore: 0.85, // Default good citation score
-            ocrSafetyScore: 75, // Default safe OCR score
+            citationAccuracyScore: 0.85,
+            ocrSafetyScore: 75,
           }),
         });
 
@@ -306,7 +320,7 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
     };
 
     calculateProbability();
-  }, [selectedAccountIds, selectedEOSCARCode, selectedFlow, selectedCRA, step, accounts]);
+  }, [selectedAccountIds, selectedFlow, selectedCRA, step, accounts]);
 
   // Create dispute and generate letter
   const handleGenerate = useCallback(async () => {
@@ -329,8 +343,6 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
           flow: selectedFlow,
           accountIds: selectedAccountIds,
           generateLetter: true,
-          eoscarCodeOverride: selectedEOSCARCode,
-          writingMode,
         }),
       });
 
@@ -386,7 +398,7 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
     } finally {
       setGenerating(false);
     }
-  }, [clientId, selectedCRA, selectedFlow, selectedAccountIds, selectedEOSCARCode, writingMode]);
+  }, [clientId, selectedCRA, selectedFlow, selectedAccountIds]);
 
   // Regenerate letter
   const handleRegenerate = useCallback(async () => {
@@ -399,10 +411,7 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
       const res = await fetch(`/api/sentry/${currentDispute.id}/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eoscarCodeOverride: selectedEOSCARCode,
-          writingMode,
-        }),
+        body: JSON.stringify({}),
       });
 
       if (!res.ok) {
@@ -459,7 +468,7 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
     } finally {
       setGenerating(false);
     }
-  }, [currentDispute, selectedEOSCARCode, writingMode]);
+  }, [currentDispute]);
 
   // Save letter edits
   const handleSaveLetter = useCallback(
@@ -891,31 +900,36 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
           {/* Step 3: Configuration */}
           {step === "configure" && (
             <>
-              {/* Flow selection */}
+              {/* Flow selection - Human-readable labels */}
               <div className="bg-card rounded-lg border border-border p-4">
                 <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                  Dispute Flow
+                  What's the issue?
                 </h3>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {(["ACCURACY", "COLLECTION", "CONSENT", "COMBO"] as SentryFlowType[]).map(
                     (flow) => {
                       const colors = SENTRY_FLOW_COLORS[flow];
+                      const humanLabel = FLOW_HUMAN_LABELS[flow];
                       return (
                         <button
                           key={flow}
                           onClick={() => setSelectedFlow(flow)}
-                          className={`p-3 rounded-lg text-left transition-colors ${
+                          className={`p-4 rounded-lg text-left transition-all border ${
                             selectedFlow === flow
-                              ? `${colors.bg} ${colors.border} border`
-                              : "bg-muted hover:bg-muted"
+                              ? `${colors.bg} ${colors.border} ring-2 ring-offset-2 ring-offset-background`
+                              : "bg-muted border-border hover:bg-muted/80"
                           }`}
+                          style={selectedFlow === flow ? { ['--tw-ring-color' as string]: colors.text.replace('text-', 'rgb(var(--') } : {}}
                         >
                           <span
-                            className={`text-sm font-medium ${
+                            className={`text-sm font-medium block ${
                               selectedFlow === flow ? colors.text : "text-foreground"
                             }`}
                           >
-                            {flow}
+                            {humanLabel.label}
+                          </span>
+                          <span className="text-xs text-muted-foreground mt-1 block">
+                            {humanLabel.description}
                           </span>
                         </button>
                       );
@@ -924,104 +938,21 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
                 </div>
               </div>
 
-              {/* Writing Mode Toggle */}
-              <div className="bg-card rounded-lg border border-border p-4">
-                <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                  Writing Style
-                </h3>
-                <div className="grid grid-cols-2 gap-3">
-                  {(["PROFESSIONAL", "NORMAL_PEOPLE"] as WritingMode[]).map((mode) => {
-                    const config = WRITING_MODE_CONFIGS[mode];
-                    const isSelected = writingMode === mode;
-                    return (
-                      <button
-                        key={mode}
-                        onClick={() => setWritingMode(mode)}
-                        className={`p-4 rounded-lg text-left transition-all border ${
-                          isSelected
-                            ? mode === "NORMAL_PEOPLE"
-                              ? "bg-purple-500/20 border-purple-500/50 ring-2 ring-purple-500/30"
-                              : "bg-blue-500/20 border-blue-500/50 ring-2 ring-blue-500/30"
-                            : "bg-muted border-border hover:bg-muted/80"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 mb-2">
-                          {mode === "NORMAL_PEOPLE" ? (
-                            <svg className={`w-5 h-5 ${isSelected ? "text-purple-400" : "text-muted-foreground"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
-                            </svg>
-                          ) : (
-                            <svg className={`w-5 h-5 ${isSelected ? "text-blue-400" : "text-muted-foreground"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                          )}
-                          <span className={`text-sm font-medium ${
-                            isSelected
-                              ? mode === "NORMAL_PEOPLE" ? "text-purple-400" : "text-blue-400"
-                              : "text-foreground"
-                          }`}>
-                            {config.name}
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mb-2">
-                          {config.description}
-                        </p>
-                        <div className="flex items-center gap-2 text-xs">
-                          <span className={`px-2 py-0.5 rounded ${
-                            isSelected
-                              ? mode === "NORMAL_PEOPLE" ? "bg-purple-500/20 text-purple-400" : "bg-blue-500/20 text-blue-400"
-                              : "bg-muted text-muted-foreground"
-                          }`}>
-                            {config.readingLevel}
-                          </span>
-                        </div>
-                        {mode === "NORMAL_PEOPLE" && (
-                          <div className="mt-3 pt-3 border-t border-border">
-                            <p className="text-xs text-purple-400">
-                              AI-generated unique impact stories
-                            </p>
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-                {writingMode === "NORMAL_PEOPLE" && (
-                  <div className="mt-3 p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
-                    <p className="text-xs text-purple-300">
-                      <strong>Normal People Mode:</strong> Letters will sound like a real person wrote them -
-                      conversational, relatable, with authentic stories about how the credit error is affecting their life.
-                      Still e-OSCAR compliant and legally sound.
+              {/* Info card about letter style */}
+              <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-emerald-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <p className="text-sm font-medium text-emerald-400">Human-First Letters</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Your letter will include a unique personal story about how this affects your life.
+                      Written in plain English that sounds like a real person - not a template.
                     </p>
                   </div>
-                )}
+                </div>
               </div>
-
-              {/* e-OSCAR Code */}
-              <EOSCARCodeSelector
-                recommendations={[
-                  {
-                    code: "105",
-                    name: "Disputes dates",
-                    confidence: 0.85,
-                    reasoning: "Best for date discrepancies",
-                  },
-                  {
-                    code: "106",
-                    name: "Disputes amounts",
-                    confidence: 0.7,
-                    reasoning: "Good for balance disputes",
-                  },
-                  {
-                    code: "109",
-                    name: "Disputes payment history",
-                    confidence: 0.65,
-                    reasoning: "For late payment challenges",
-                  },
-                ]}
-                selectedCode={selectedEOSCARCode}
-                onCodeSelect={setSelectedEOSCARCode}
-              />
 
               {/* Navigation buttons */}
               <div className="flex justify-between">
@@ -1093,21 +1024,18 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
         <div className="space-y-6">
           {/* Quick stats */}
           <div className="bg-card rounded-lg border border-border p-4">
-            <h3 className="text-sm font-medium text-muted-foreground mb-3">Quick Stats</h3>
+            <h3 className="text-sm font-medium text-muted-foreground mb-3">Summary</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Reports Available</span>
+                <span className="text-muted-foreground">Reports</span>
                 <span className="text-foreground">{reports.length}</span>
               </div>
               {selectedReportId && (
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Disputable Accounts</span>
+                  <span className="text-muted-foreground">Disputable</span>
                   <span className="text-foreground">{accounts.filter(a => {
-                    // Match the criteria from /api/accounts/negative
-                    // Account is disputable if ANY of these are true:
                     if (a.isCollection) return true;
                     if (a.detectedIssues && a.detectedIssues.length > 0) return true;
-                    // Check paymentStatus for negative indicators
                     const payStatus = (a.paymentStatus || "").toLowerCase();
                     if (payStatus.includes("late") ||
                         payStatus.includes("delinquent") ||
@@ -1116,31 +1044,21 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
                         payStatus.includes("collection") ||
                         payStatus.includes("past due")) return true;
                     return false;
-                  }).length}</span>
+                  }).length} accounts</span>
                 </div>
               )}
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Selected Accounts</span>
-                <span className="text-foreground">{selectedAccountIds.length}</span>
+                <span className="text-muted-foreground">Selected</span>
+                <span className="text-foreground">{selectedAccountIds.length} accounts</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Bureau</span>
                 <span className={SENTRY_CRA_COLORS[selectedCRA].text}>{selectedCRA}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Flow</span>
+                <span className="text-muted-foreground">Issue Type</span>
                 <span className={SENTRY_FLOW_COLORS[selectedFlow].text}>
-                  {selectedFlow}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">e-OSCAR Code</span>
-                <span className="text-foreground">{selectedEOSCARCode}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Writing Style</span>
-                <span className={writingMode === "NORMAL_PEOPLE" ? "text-purple-400" : "text-blue-400"}>
-                  {WRITING_MODE_CONFIGS[writingMode].name}
+                  {FLOW_HUMAN_LABELS[selectedFlow].label}
                 </span>
               </div>
             </div>
@@ -1160,7 +1078,7 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
             />
           )}
 
-          {/* Success gauge (if not in analysis) - Powered by Amelia Sentry Engine */}
+          {/* Success gauge (if not in analysis) */}
           {!analysis && step !== "reports" && step !== "select" && (
             <SuccessProbabilityGauge
               probability={successProbability.probability}
@@ -1168,8 +1086,8 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
               recommendations={successProbability.recommendations.length > 0
                 ? successProbability.recommendations
                 : [
-                    "Add Metro 2 field targeting for +15% potential",
-                    "Use specific e-OSCAR codes instead of generic 112",
+                    "Your story makes the letter more compelling",
+                    "Include any supporting documents you have",
                   ]}
               breakdown={successProbability.breakdown}
             />

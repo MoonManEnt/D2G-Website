@@ -148,6 +148,7 @@ export const disputeCreateAndLaunchSchema = z.object({
 // =============================================================================
 
 // Writing mode enum for Sentry letters
+// DEPRECATED: writingMode is ignored - all letters now use human-first style
 const writingModeEnum = z.enum(["PROFESSIONAL", "NORMAL_PEOPLE"]).optional();
 
 /**

@@ -2,13 +2,13 @@
  * SENTRY STORY GENERATOR
  *
  * AI-powered generator for unique real-life impact stories.
- * CRITICAL: Every story must be NEW, UNIQUE, and UNUSED.
+ * Stories are REQUIRED in every letter - this is the core of human-first letters.
  *
  * Stories are generated on-the-fly using Claude to ensure:
  * - Infinite variety (no repeats ever)
  * - Authentic human voice (8th-11th grade reading level)
  * - Thematic alignment with dispute type
- * - e-OSCAR compliance maintained
+ * - Round-based frustration escalation
  */
 
 import { completeLLM } from "@/lib/llm-orchestrator";
@@ -16,7 +16,6 @@ import { createLogger } from "@/lib/logger";
 import {
   type StoryContext,
   type GeneratedStory,
-  buildStoryGenerationPrompt,
   EOSCAR_TO_DISPUTE_TYPE,
 } from "./writing-modes";
 import type { SentryFlowType, SentryAccountItem } from "@/types/sentry";
@@ -27,18 +26,15 @@ const log = createLogger("sentry-story-generator");
 // STORY CACHE (prevents duplicates within session)
 // =============================================================================
 
-// In-memory cache of recently generated story hashes
-// This prevents accidental duplicates within a user session
 const recentStoryHashes = new Set<string>();
 const MAX_CACHE_SIZE = 1000;
 
 function hashStory(story: string): string {
-  // Simple hash for story deduplication
   let hash = 0;
   for (let i = 0; i < story.length; i++) {
     const char = story.charCodeAt(i);
     hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
+    hash = hash & hash;
   }
   return hash.toString(36);
 }
@@ -49,11 +45,9 @@ function isStoryUnique(story: string): boolean {
     return false;
   }
 
-  // Clean cache if too large
   if (recentStoryHashes.size >= MAX_CACHE_SIZE) {
     const entries = Array.from(recentStoryHashes);
     recentStoryHashes.clear();
-    // Keep last 500
     entries.slice(-500).forEach((h) => recentStoryHashes.add(h));
   }
 
@@ -62,18 +56,108 @@ function isStoryUnique(story: string): boolean {
 }
 
 // =============================================================================
-// STORY GENERATION
+// LIFE SITUATION TEMPLATES
 // =============================================================================
 
 /**
- * Generate a unique impact story for the given context
- * Uses AI to ensure every story is fresh and authentic
+ * Real-life situations that credit issues affect
+ * Used to make stories relatable and authentic
+ */
+const LIFE_SITUATIONS = {
+  car: [
+    "My car broke down last month and I've been taking the bus to work.",
+    "I need a reliable car to get my kids to school and activities.",
+    "My transmission went out and I can't afford to fix it.",
+    "I've been borrowing my sister's car but she needs it back.",
+    "I work night shifts and there's no bus that late.",
+  ],
+  house: [
+    "I've been saving for a house for three years now.",
+    "My family has outgrown our apartment.",
+    "I'm tired of throwing money away on rent.",
+    "My landlord is selling and we have to move.",
+    "I just want a place my kids can call home.",
+  ],
+  apartment: [
+    "I got denied for an apartment last week because of my credit.",
+    "Every landlord runs a credit check and I keep getting rejected.",
+    "I'm sleeping on my cousin's couch because I can't find a place.",
+    "My lease is up next month and I can't renew.",
+    "I need to move closer to work but no one will approve me.",
+  ],
+  job: [
+    "My job does background checks and credit is part of it.",
+    "I got passed over for a promotion because of my credit report.",
+    "I'm trying to get a security clearance for a better job.",
+    "The company I want to work for runs credit checks.",
+    "I can't advance my career with this on my report.",
+  ],
+  family: [
+    "I have two kids depending on me.",
+    "I'm trying to provide for my family.",
+    "My mom is sick and I'm helping with her bills too.",
+    "I'm a single parent doing this alone.",
+    "I need to get this fixed for my family's future.",
+  ],
+  business: [
+    "I'm trying to start a small business.",
+    "I need a business loan to expand my shop.",
+    "I want to leave my job and work for myself.",
+    "Banks won't give me a business line of credit.",
+    "I have a great business idea but can't get funding.",
+  ],
+  general: [
+    "I've been working so hard to get my credit together.",
+    "Every time I make progress, something else shows up.",
+    "I feel like I'm stuck and can't move forward.",
+    "I just want to live a normal life without this stress.",
+    "I'm tired of being held back by credit problems.",
+  ],
+};
+
+/**
+ * Round-based frustration openings
+ */
+const ROUND_FRUSTRATION = {
+  1: [
+    "I just found out about this and I don't understand how it got there.",
+    "I was checking my credit and noticed something wrong.",
+    "I never knew about this until I tried to apply for something.",
+    "I just discovered this problem on my credit report.",
+  ],
+  2: [
+    "I already sent you a letter about this but nothing changed.",
+    "I disputed this before and it's still showing up wrong.",
+    "This is my second time writing about the same issue.",
+    "I thought this was fixed but it's still on my report.",
+  ],
+  3: [
+    "This is the third time I'm writing about this same problem.",
+    "I've been dealing with this for months now.",
+    "I don't know what else I need to do to get this fixed.",
+    "I'm getting really frustrated that this isn't resolved yet.",
+  ],
+  4: [
+    "I've written multiple times and nothing has been done.",
+    "I'm at my wit's end with this situation.",
+    "I've tried everything to get this resolved.",
+    "This has been going on way too long and I need it fixed now.",
+  ],
+};
+
+// =============================================================================
+// STORY GENERATION - AI POWERED
+// =============================================================================
+
+/**
+ * Generate a unique impact story using AI
+ * Falls back to template-based stories if AI fails
  */
 export async function generateImpactStory(
   context: StoryContext,
   organizationId?: string
 ): Promise<GeneratedStory> {
-  const prompt = buildStoryGenerationPrompt(context);
+  const prompt = buildEnhancedPrompt(context);
 
   let attempts = 0;
   const maxAttempts = 3;
@@ -83,13 +167,10 @@ export async function generateImpactStory(
 
     try {
       const response = await completeLLM({
-        taskType: "CHAT", // Using chat for creative generation
+        taskType: "CHAT",
         organizationId: organizationId || "default",
-        systemPrompt: `You generate authentic, human-sounding personal stories about credit report problems.
-Write like a regular person, not an AI. Use simple words. Sound frustrated but not dramatic.
-Every response must be completely unique - never repeat patterns or phrases.
-2-3 sentences maximum. No labels, just the story.`,
-        prompt: prompt + `\n\nAttempt ${attempts}: Generate something completely different from any previous response.`,
+        systemPrompt: buildSystemPrompt(context.round),
+        prompt: prompt + `\n\n[Attempt ${attempts}: Create something completely fresh]`,
       });
 
       const storyText = response.content.trim();
@@ -100,21 +181,20 @@ Every response must be completely unique - never repeat patterns or phrases.
         continue;
       }
 
-      // Validate reading level (rough check)
+      // Validate reading level
       const wordCount = storyText.split(/\s+/).length;
       const avgWordLength = storyText.replace(/\s/g, "").length / wordCount;
 
-      // If average word length > 6, it might be too formal
       if (avgWordLength > 6.5) {
-        log.warn({ avgWordLength }, "Story might be too formal, retrying");
+        log.warn({ avgWordLength }, "Story too formal, retrying");
         continue;
       }
 
-      // Extract emotional hook (first sentence typically)
+      // Extract emotional hook
       const sentences = storyText.split(/[.!?]+/).filter((s) => s.trim());
       const emotionalHook = sentences[0]?.trim() || storyText.substring(0, 100);
 
-      // Generate "why it matters" follow-up
+      // Generate follow-up
       const whyItMatters = await generateWhyItMatters(context, storyText, organizationId);
 
       return {
@@ -127,18 +207,79 @@ Every response must be completely unique - never repeat patterns or phrases.
       log.error({ err: error, attempts }, "Story generation attempt failed");
 
       if (attempts >= maxAttempts) {
-        // Fall back to template-based story
         return generateFallbackStory(context);
       }
     }
   }
 
-  // Should never reach here, but TypeScript needs it
   return generateFallbackStory(context);
 }
 
 /**
- * Generate the "why it matters" explanation
+ * Build system prompt with round-appropriate frustration level
+ */
+function buildSystemPrompt(round: number): string {
+  const frustrationLevel = Math.min(round, 4);
+
+  const frustrationInstructions = {
+    1: "Sound hopeful but concerned. This is new to them.",
+    2: "Sound frustrated but still reasonable. They've tried once.",
+    3: "Sound really frustrated and tired. They've been at this for a while.",
+    4: "Sound exhausted and fed up. They've tried everything.",
+  };
+
+  return `You write authentic personal stories about credit report problems.
+
+CRITICAL RULES:
+- Write like a REAL PERSON, not an AI
+- 8th-11th grade reading level (simple words!)
+- 2-3 sentences MAX
+- ${frustrationInstructions[frustrationLevel as 1|2|3|4]}
+- Include a specific life impact (car, house, job, family)
+- Sound frustrated but never aggressive or threatening
+- NO perfect grammar - regular people don't write perfectly
+- NO fancy vocabulary - use everyday words
+- Every response must be UNIQUE`;
+}
+
+/**
+ * Build enhanced prompt with life situation context
+ */
+function buildEnhancedPrompt(context: StoryContext): string {
+  const disputeDescriptions: Record<StoryContext["disputeType"], string> = {
+    NOT_MINE: "an account that isn't theirs at all",
+    PAID: "an account showing unpaid when they paid it",
+    INACCURATE: "wrong information on an account",
+    TOO_OLD: "an account too old to legally be reported",
+    UNAUTHORIZED: "an account they never authorized",
+    DUPLICATE: "the same account showing multiple times",
+    COLLECTION: "a collection they don't recognize",
+  };
+
+  const roundContext = {
+    1: "just discovered the problem",
+    2: "already disputed once with no result",
+    3: "frustrated after multiple attempts",
+    4: "exhausted and desperate after many tries",
+  };
+
+  // Pick a random life situation
+  const situations = Object.values(LIFE_SITUATIONS).flat();
+  const randomSituation = situations[Math.floor(Math.random() * situations.length)];
+
+  return `Write a short personal story about someone dealing with ${disputeDescriptions[context.disputeType]}.
+
+Account: ${context.creditorName}
+${context.balance ? `Amount: $${context.balance.toLocaleString()}` : ""}
+Situation: They've ${roundContext[context.round as 1|2|3|4] || roundContext[1]}.
+
+The person's life situation (weave this in naturally): "${randomSituation}"
+
+Write their story in 2-3 sentences. Just the story, no labels:`;
+}
+
+/**
+ * Generate the "why it matters" follow-up
  */
 async function generateWhyItMatters(
   context: StoryContext,
@@ -149,14 +290,13 @@ async function generateWhyItMatters(
     const response = await completeLLM({
       taskType: "CHAT",
       organizationId: organizationId || "default",
-      systemPrompt: `You write one simple sentence explaining why a credit error matters to a regular person.
-Use plain English. 8th grade reading level. No fancy words.`,
-      prompt: `The person's story: "${story}"
+      systemPrompt: `Write ONE simple sentence about why fixing a credit error matters.
+Plain English. 8th grade level. Start with "I need this fixed because" or "This matters because".`,
+      prompt: `Their story: "${story}"
+Dispute about: ${context.disputeType.replace(/_/g, " ").toLowerCase()}
+Account: ${context.creditorName}
 
-The dispute is about: ${context.disputeType.replace(/_/g, " ").toLowerCase()}
-Account with: ${context.creditorName}
-
-Write ONE sentence explaining why fixing this matters to them. Start with "This matters because" or "I need this fixed because".`,
+Write ONE sentence:`,
     });
 
     return response.content.trim();
@@ -168,63 +308,108 @@ Write ONE sentence explaining why fixing this matters to them. Start with "This 
 
 function getDefaultWhyItMatters(disputeType: StoryContext["disputeType"]): string {
   const defaults: Record<StoryContext["disputeType"], string> = {
-    NOT_MINE: "I need this fixed because someone else's mistakes are affecting my life.",
+    NOT_MINE: "I need this fixed because someone else's mistakes are ruining my credit.",
     PAID: "I need this fixed because I paid what I owed and I deserve credit for that.",
-    INACCURATE: "I need this fixed because wrong information is making my credit look worse than it is.",
-    TOO_OLD: "I need this fixed because this old account shouldn't even be on my report anymore.",
-    UNAUTHORIZED: "I need this fixed because I never agreed to this and it shouldn't be on my record.",
-    DUPLICATE: "I need this fixed because the same thing is showing up multiple times and hurting my score.",
-    COLLECTION: "I need this fixed because I shouldn't have to deal with collections for something that isn't right.",
+    INACCURATE: "I need this fixed because wrong info is making my credit look worse than it is.",
+    TOO_OLD: "I need this fixed because this old account should have fallen off years ago.",
+    UNAUTHORIZED: "I need this fixed because I never agreed to this account.",
+    DUPLICATE: "I need this fixed because the same account is hitting me twice.",
+    COLLECTION: "I need this fixed because this collection shouldn't be on my report.",
   };
 
-  return defaults[disputeType] || "I need this fixed so I can move on with my life.";
+  return defaults[disputeType] || "I need this fixed so I can move forward with my life.";
 }
 
+// =============================================================================
+// FALLBACK STORIES - HIGH QUALITY TEMPLATES
+// =============================================================================
+
 /**
- * Fallback story when AI generation fails
- * Uses randomized templates to maintain some variety
+ * Generate a quality fallback story when AI is unavailable
+ * These are diverse, authentic-sounding templates
  */
 function generateFallbackStory(context: StoryContext): GeneratedStory {
-  const templates: Record<StoryContext["disputeType"], string[]> = {
-    NOT_MINE: [
-      `I was looking at my credit report and found this ${context.creditorName} account that I've never seen before. I've never done business with them and I don't know how this got on my report. It's affecting my ability to get approved for things I actually need.`,
-      `Someone must have mixed up my file because this ${context.creditorName} account is definitely not mine. I've been trying to build my credit and this is holding me back for no reason.`,
-    ],
-    PAID: [
-      `I paid off this ${context.creditorName} account a while back and I even kept my receipts. But it's still showing like I owe money and that's not right. It's making it hard for me to get approved for anything.`,
-      `This ${context.creditorName} account says I still owe money but I paid this off. I did what I was supposed to do and my credit shouldn't suffer for it.`,
-    ],
-    INACCURATE: [
-      `The information showing for this ${context.creditorName} account is wrong. The numbers don't match what I have in my records and it's making my credit look worse than it should.`,
-      `I noticed the details on this ${context.creditorName} account aren't accurate. I keep good records and I know what I owe - this isn't it.`,
-    ],
-    TOO_OLD: [
-      `This ${context.creditorName} account is from years ago and it shouldn't even be on my report anymore. I thought these things are supposed to fall off after 7 years.`,
-      `I've been working on my credit for years and this old ${context.creditorName} account is still showing up. It's been way too long for this to still be affecting me.`,
-    ],
-    UNAUTHORIZED: [
-      `I never authorized this ${context.creditorName} account and I don't know why it's on my credit. Nobody asked me if they could open this and I never agreed to it.`,
-      `This ${context.creditorName} account was opened without my permission. I would never have agreed to this and it needs to come off my report.`,
-    ],
-    DUPLICATE: [
-      `This ${context.creditorName} account is showing up more than once on my report. It's the same thing listed multiple times and it's hurting my score for no reason.`,
-      `I noticed ${context.creditorName} is reporting the same account twice. I shouldn't be penalized twice for the same thing.`,
-    ],
-    COLLECTION: [
-      `This collection from ${context.creditorName} doesn't look right to me. I don't recognize what this is supposed to be for and I need answers before this stays on my credit.`,
-      `I got a collection from ${context.creditorName} on my report but something doesn't add up. I need this looked into because it's hurting my credit.`,
-    ],
-  };
+  const round = Math.min(context.round, 4) as 1|2|3|4;
 
-  const disputeTemplates = templates[context.disputeType] || templates.INACCURATE;
-  const storyText = disputeTemplates[Math.floor(Math.random() * disputeTemplates.length)];
+  // Get round-appropriate frustration opener
+  const frustrationOpeners = ROUND_FRUSTRATION[round];
+  const opener = frustrationOpeners[Math.floor(Math.random() * frustrationOpeners.length)];
+
+  // Get a life situation
+  const lifeCategory = getRandomLifeCategory();
+  const lifeSituations = LIFE_SITUATIONS[lifeCategory];
+  const situation = lifeSituations[Math.floor(Math.random() * lifeSituations.length)];
+
+  // Get dispute-specific middle
+  const disputeStatements = getFallbackDisputeStatements(context);
+  const disputeStatement = disputeStatements[Math.floor(Math.random() * disputeStatements.length)];
+
+  // Combine into a natural story
+  const storyText = `${opener} ${disputeStatement} ${situation}`;
 
   return {
     storyParagraph: storyText,
-    emotionalHook: storyText.split(".")[0] + ".",
+    emotionalHook: opener + " " + disputeStatement.split(".")[0] + ".",
     whyItMatters: getDefaultWhyItMatters(context.disputeType),
-    storyHash: hashStory(storyText + Date.now()), // Add timestamp to prevent caching
+    storyHash: hashStory(storyText + Date.now()),
   };
+}
+
+function getRandomLifeCategory(): keyof typeof LIFE_SITUATIONS {
+  const categories = Object.keys(LIFE_SITUATIONS) as (keyof typeof LIFE_SITUATIONS)[];
+  return categories[Math.floor(Math.random() * categories.length)];
+}
+
+function getFallbackDisputeStatements(context: StoryContext): string[] {
+  const { creditorName, disputeType, balance } = context;
+  const balanceStr = balance ? `$${balance.toLocaleString()}` : "money";
+
+  const statements: Record<StoryContext["disputeType"], string[]> = {
+    NOT_MINE: [
+      `This ${creditorName} account isn't mine - I've never had any business with them.`,
+      `I don't know where this ${creditorName} account came from, it's definitely not mine.`,
+      `Someone else's ${creditorName} account ended up on my credit somehow.`,
+      `I've never even heard of ${creditorName} until I saw this on my report.`,
+    ],
+    PAID: [
+      `I paid off ${creditorName} but it's still showing like I owe ${balanceStr}.`,
+      `This ${creditorName} account was paid in full, I have the receipts.`,
+      `${creditorName} says I still owe ${balanceStr} but that's not true, I paid this.`,
+      `I settled up with ${creditorName} ages ago but my credit still shows a balance.`,
+    ],
+    INACCURATE: [
+      `The ${creditorName} account has wrong information - the numbers don't match my records.`,
+      `${creditorName} is reporting ${balanceStr} but that's not the right amount.`,
+      `Something's off with how ${creditorName} is showing on my credit.`,
+      `The details on this ${creditorName} account aren't accurate at all.`,
+    ],
+    TOO_OLD: [
+      `This ${creditorName} thing is from years ago - it should be gone by now.`,
+      `${creditorName} has been on my report way longer than 7 years.`,
+      `I thought old accounts like this ${creditorName} one fall off eventually.`,
+      `This ${creditorName} account is ancient, why is it still affecting me?`,
+    ],
+    UNAUTHORIZED: [
+      `I never authorized this ${creditorName} account - nobody asked me.`,
+      `Someone opened this ${creditorName} account without my permission.`,
+      `I never agreed to any account with ${creditorName}.`,
+      `This ${creditorName} account was opened without my consent.`,
+    ],
+    DUPLICATE: [
+      `${creditorName} is showing up twice and hurting my score double.`,
+      `The same ${creditorName} account is listed multiple times.`,
+      `I shouldn't be penalized twice for one ${creditorName} account.`,
+      `${creditorName} appears more than once - that can't be right.`,
+    ],
+    COLLECTION: [
+      `I don't recognize this collection from ${creditorName} at all.`,
+      `${creditorName} sent this to collections but I never got any notice.`,
+      `This ${creditorName} collection doesn't look right to me.`,
+      `I got a collection from ${creditorName} but something's wrong here.`,
+    ],
+  };
+
+  return statements[disputeType] || statements.INACCURATE;
 }
 
 // =============================================================================
@@ -232,8 +417,8 @@ function generateFallbackStory(context: StoryContext): GeneratedStory {
 // =============================================================================
 
 /**
- * Generate stories for multiple accounts at once
- * Ensures variety across all stories in a single letter
+ * Generate stories for multiple accounts
+ * Ensures variety across all stories
  */
 export async function generateStoriesForAccounts(
   accounts: SentryAccountItem[],
@@ -244,9 +429,7 @@ export async function generateStoriesForAccounts(
 ): Promise<Map<string, GeneratedStory>> {
   const stories = new Map<string, GeneratedStory>();
 
-  // Generate stories in parallel but with slight variation in prompts
   const storyPromises = accounts.map(async (account, index) => {
-    // Determine dispute type from e-OSCAR code or detected issues
     let disputeType: StoryContext["disputeType"] = "INACCURATE";
 
     if (account.detectedIssues && account.detectedIssues.length > 0) {
@@ -256,22 +439,17 @@ export async function generateStoriesForAccounts(
       }
     }
 
-    // Vary client context per account to get different story angles
-    const variedContext: StoryContext["clientContext"] = clientContext
-      ? { ...clientContext }
-      : undefined;
-
     const context: StoryContext = {
       disputeType,
       creditorName: account.creditorName,
       accountType: account.accountType,
       balance: account.balance,
-      clientContext: variedContext,
+      clientContext: clientContext ? { ...clientContext } : undefined,
       flow,
       round,
     };
 
-    // Add delay between requests to avoid rate limiting
+    // Stagger requests to avoid rate limiting
     await new Promise((resolve) => setTimeout(resolve, index * 100));
 
     const story = await generateImpactStory(context, organizationId);
@@ -292,7 +470,7 @@ export async function generateStoriesForAccounts(
 // =============================================================================
 
 /**
- * Combine multiple account stories into a cohesive narrative
+ * Combine multiple stories into one narrative
  */
 export function combineStories(
   stories: GeneratedStory[],
@@ -306,18 +484,16 @@ export function combineStories(
     return stories[0].storyParagraph;
   }
 
-  // For multiple accounts, create a combined narrative
-  const opener = "All of these accounts are causing me problems. ";
-  const combined = stories.map((s) => s.emotionalHook).join(" Also, ");
+  // For multiple accounts, create combined narrative
+  const opener = "These accounts are all causing me problems. ";
+  const combined = stories.map((s) => s.emotionalHook).join(" And ");
 
   let result = opener + combined;
 
-  // Add a general "why it matters" if space allows
-  if (result.length < maxLength - 100) {
-    result += " I just want my credit to show what's actually true so I can move forward with my life.";
+  if (result.length < maxLength - 80) {
+    result += " I just want my credit to show the truth so I can move on.";
   }
 
-  // Trim if too long
   if (result.length > maxLength) {
     result = result.substring(0, maxLength - 3) + "...";
   }
@@ -326,7 +502,7 @@ export function combineStories(
 }
 
 /**
- * Generate a summary story when there are many accounts
+ * Generate summary story for many accounts
  */
 export async function generateSummaryStory(
   accountCount: number,
@@ -337,16 +513,37 @@ export async function generateSummaryStory(
     const response = await completeLLM({
       taskType: "CHAT",
       organizationId: organizationId || "default",
-      systemPrompt: `Write a brief, authentic statement from someone dealing with multiple credit report errors.
-Sound like a real, frustrated but reasonable person. 8th-11th grade reading level.
-2-3 sentences max.`,
-      prompt: `The person has ${accountCount} accounts they're disputing, mainly about ${primaryDisputeType.replace(/_/g, " ").toLowerCase()}.
-Write their frustration about having so many problems on their credit report. Make it sound human.`,
+      systemPrompt: `Write a brief statement from someone with multiple credit errors.
+Sound like a real, frustrated but reasonable person. 8th-11th grade level. 2-3 sentences.`,
+      prompt: `The person has ${accountCount} accounts to dispute, mainly about ${primaryDisputeType.replace(/_/g, " ").toLowerCase()}.
+Write their frustration in 2-3 sentences:`,
     });
 
     return response.content.trim();
   } catch (error) {
     log.error({ err: error }, "Failed to generate summary story");
-    return `I have ${accountCount} accounts on my credit report that aren't right. It's exhausting trying to fix all of this, but I need my credit to be accurate. Each one of these is affecting my ability to get approved for things I need.`;
+    return `I have ${accountCount} accounts that aren't right on my credit report. This is stressful and it's holding me back from things I need. I just want everything to be accurate.`;
+  }
+}
+
+// =============================================================================
+// REQUIRED STORY GENERATION - MAIN EXPORT
+// =============================================================================
+
+/**
+ * Generate a required story for a dispute letter
+ * This ALWAYS returns a story - never fails
+ */
+export async function generateRequiredStory(
+  context: StoryContext,
+  organizationId?: string
+): Promise<GeneratedStory> {
+  try {
+    // Try AI generation first
+    return await generateImpactStory(context, organizationId);
+  } catch (error) {
+    // ALWAYS fall back to quality template
+    log.warn({ err: error }, "Using fallback story generation");
+    return generateFallbackStory(context);
   }
 }

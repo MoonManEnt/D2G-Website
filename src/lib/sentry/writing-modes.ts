@@ -1,18 +1,17 @@
 /**
  * SENTRY WRITING MODES
  *
- * Configurable writing styles for dispute letters:
- * - PROFESSIONAL: Legal/formal tone (default, existing behavior)
- * - NORMAL_PEOPLE: Conversational, 8th-11th grade reading level,
- *   sounds like a real person wrote it (NOT AI, NOT English teacher)
+ * As of v2.0, NORMAL_PEOPLE is the ONLY mode used.
+ * All letters are human-first with story-driven content.
  *
- * Normal People mode features:
- * - Colloquial, everyday language
- * - 8th-11th grade reading level
- * - Real-life impact stories (AI-generated, infinite, unique)
- * - Legal citations translated to plain English
- * - Intentional human imperfections in grammar
- * - Must STILL pass e-OSCAR compliance
+ * PROFESSIONAL mode is DEPRECATED - kept for backward compatibility only.
+ *
+ * Human-first letters feature:
+ * - Story first (2-3 sentences about real-life impact)
+ * - Simple language (8th-11th grade reading level)
+ * - Clear demands in plain English
+ * - Legal footer at the end (like fine print)
+ * - e-OSCAR compliance maintained behind the scenes
  */
 
 import type { SentryFlowType, SentryCRA } from "@/types/sentry";
@@ -33,30 +32,27 @@ export interface WritingModeConfig {
 }
 
 export const WRITING_MODE_CONFIGS: Record<WritingMode, WritingModeConfig> = {
+  // DEPRECATED - kept for backward compatibility
   PROFESSIONAL: {
     mode: "PROFESSIONAL",
-    name: "Professional",
-    description: "Formal legal language with proper citations",
-    readingLevel: "College/Professional",
-    tone: "Formal, legal, structured",
-    features: [
-      "Full legal citations with statute numbers",
-      "Formal business letter format",
-      "Technical credit reporting terminology",
-      "Structured demands and timelines",
-    ],
+    name: "Professional (Deprecated)",
+    description: "No longer used - all letters use human-first style",
+    readingLevel: "N/A",
+    tone: "Deprecated",
+    features: ["Deprecated - use NORMAL_PEOPLE"],
   },
+  // DEFAULT - All letters now use this mode
   NORMAL_PEOPLE: {
     mode: "NORMAL_PEOPLE",
-    name: "Normal People",
-    description: "Conversational tone that sounds like a real person wrote it",
+    name: "Human-First",
+    description: "Story-driven letters that sound like a real person",
     readingLevel: "8th-11th grade",
-    tone: "Conversational, relatable, human",
+    tone: "Conversational, relatable, authentic",
     features: [
-      "Plain English explanations of rights",
-      "Real-life impact stories",
-      "Colloquial everyday language",
-      "Authentic human voice",
+      "Personal impact story leads the letter",
+      "Plain English - no legal jargon",
+      "Clear, simple demands",
+      "Legal footer at the end (like fine print)",
     ],
   },
 };
