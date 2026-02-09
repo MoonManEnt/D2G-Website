@@ -603,26 +603,32 @@ function applyRemoveCitation(
 }
 
 // =============================================================================
-// PERSONAL INFORMATION CLEANUP HANDLERS
+// PERSONAL INFORMATION CLEANUP HANDLERS (HUMAN-FIRST TONE)
 // =============================================================================
 
 /**
- * Add hard inquiry removal language to the letter
+ * Add hard inquiry removal language to the letter - HUMAN FIRST
  */
 function applyRemoveHardInquiry(
   letterContent: string,
   payload: unknown
 ): string {
+  const p = payload as { hardInquiries?: { creditorName: string; date: string }[] };
+
+  // Build the list of specific inquiries if provided
+  let inquiryList = "";
+  if (p.hardInquiries && p.hardInquiries.length > 0) {
+    inquiryList = p.hardInquiries
+      .map(inq => `  - ${inq.creditorName} (${inq.date})`)
+      .join("\n");
+  }
+
   const hardInquiryText = `
-**Unauthorized Hard Inquiry Dispute:**
+While reviewing my credit report, I also noticed some hard inquiries that I never authorized. I don't remember applying for credit with these companies, and seeing them on my report is concerning:
 
-I am also disputing the following unauthorized hard inquiries that appear on my credit report. Under 15 U.S.C. § 1681b, a permissible purpose is required for any entity to access my credit report. I did not authorize these inquiries and they should be removed immediately:
+${inquiryList || "  - [The unauthorized inquiries listed on my report]"}
 
-• I request that you verify the permissible purpose for each hard inquiry listed on my report
-• If permissible purpose cannot be verified within 30 days, these inquiries must be deleted
-• Unauthorized inquiries negatively impact my credit score and constitute a violation of my rights
-
-Please investigate these hard inquiries and provide documentation of permissible purpose, or remove them from my credit file.
+I never gave permission for these credit checks. They're hurting my score and I need them removed. Please look into who pulled my credit and why - if there's no valid reason, take them off my report.
 `;
 
   // Find insertion point - before the closing/signature
@@ -638,28 +644,36 @@ Please investigate these hard inquiries and provide documentation of permissible
     );
   }
 
-  // Fallback: append before end
   return letterContent + hardInquiryText;
 }
 
 /**
- * Add name spelling correction language to the letter
+ * Add name spelling correction language to the letter - HUMAN FIRST
  */
 function applyCorrectNameSpelling(
   letterContent: string,
   payload: unknown
 ): string {
+  const p = payload as { nameVariations?: string[]; clientLegalName?: string };
+
+  // Build the list of wrong names if provided
+  let nameList = "";
+  if (p.nameVariations && p.nameVariations.length > 0) {
+    nameList = p.nameVariations
+      .map(name => `  - "${name}"`)
+      .join("\n");
+  }
+
+  const legalName = p.clientLegalName || "[my legal name]";
+
   const nameText = `
-**Incorrect Name Variation Dispute:**
+There's another problem I need to address. My credit file has names on it that aren't mine:
 
-My credit file contains name variations that are incorrect and do not belong to me. The presence of incorrect names may indicate a mixed file situation where another person's information has been merged with mine. Under 15 U.S.C. § 1681e(b), you are required to maintain maximum possible accuracy.
+${nameList || "  - [The incorrect name variations on my report]"}
 
-I request that you:
-• Remove all name variations that do not match my legal name
-• Investigate whether any accounts associated with incorrect names belong to another consumer
-• Ensure my file is not mixed with another person's credit history
+My real name is ${legalName} - that's what's on my driver's license and all my documents. These other names make me worried that someone else's information got mixed into my file. This happens more than people think, and it can really mess things up.
 
-My correct legal name appears on the identification documents I have enclosed.
+Please remove these wrong names and make sure my file only has my actual name on it.
 `;
 
   // Find insertion point - before the closing/signature
@@ -675,28 +689,34 @@ My correct legal name appears on the identification documents I have enclosed.
     );
   }
 
-  // Fallback: append before end
   return letterContent + nameText;
 }
 
 /**
- * Add previous address removal language to the letter
+ * Add previous address removal language to the letter - HUMAN FIRST
  */
 function applyRemovePreviousAddress(
   letterContent: string,
   payload: unknown
 ): string {
+  const p = payload as { incorrectAddresses?: string[] };
+
+  // Build the list of wrong addresses if provided
+  let addressList = "";
+  if (p.incorrectAddresses && p.incorrectAddresses.length > 0) {
+    addressList = p.incorrectAddresses
+      .map(addr => `  - ${addr}`)
+      .join("\n");
+  }
+
   const addressText = `
-**Incorrect Address Dispute:**
+I also see addresses on my credit report that I've never lived at:
 
-My credit file contains addresses where I have never resided. These incorrect addresses may indicate identity theft, a mixed file, or reporting errors. Under 15 U.S.C. § 1681e(b), you must follow reasonable procedures to ensure maximum possible accuracy.
+${addressList || "  - [The incorrect addresses on my report]"}
 
-I request that you:
-• Remove all addresses where I have never lived
-• Investigate any accounts associated with these incorrect addresses
-• Verify that my current address is correctly reported
+I have no idea why these addresses are showing up. I've never lived there, never received mail there, nothing. This is really concerning because it might mean my credit file is mixed up with someone else's, or worse, someone could be using my information.
 
-The presence of addresses I've never lived at raises serious concerns about the accuracy of my credit file and whether my information has been mixed with another consumer's data.
+Please take these addresses off my report. They don't belong to me and they shouldn't be there.
 `;
 
   // Find insertion point - before the closing/signature
@@ -712,7 +732,6 @@ The presence of addresses I've never lived at raises serious concerns about the 
     );
   }
 
-  // Fallback: append before end
   return letterContent + addressText;
 }
 

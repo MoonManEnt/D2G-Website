@@ -244,6 +244,7 @@ CRITICAL RULES:
 
 /**
  * Build enhanced prompt with life situation context
+ * Includes randomization to ensure every regeneration is unique
  */
 function buildEnhancedPrompt(context: StoryContext): string {
   const disputeDescriptions: Record<StoryContext["disputeType"], string> = {
@@ -267,15 +268,55 @@ function buildEnhancedPrompt(context: StoryContext): string {
   const situations = Object.values(LIFE_SITUATIONS).flat();
   const randomSituation = situations[Math.floor(Math.random() * situations.length)];
 
-  return `Write a short personal story about someone dealing with ${disputeDescriptions[context.disputeType]}.
+  // Random story angles to force variety on each regeneration
+  const storyAngles = [
+    "Focus on the emotional toll and sleepless nights",
+    "Focus on the family impact and how it affects loved ones",
+    "Focus on the financial stress and daily struggles",
+    "Focus on the embarrassment and shame of being denied",
+    "Focus on the dreams being put on hold",
+    "Focus on the unfairness and frustration of being wrongly blamed",
+    "Focus on the time wasted dealing with this problem",
+    "Focus on the impact on their children's future",
+  ];
+  const randomAngle = storyAngles[Math.floor(Math.random() * storyAngles.length)];
+
+  // Random pain points for deeper variety
+  const painPoints = [
+    "They've been turned down multiple times because of this",
+    "They had to borrow money from family because of this",
+    "Their kids have noticed the stress this is causing",
+    "They can't sleep at night worrying about this",
+    "They've had to cancel plans and postpone dreams",
+    "They feel helpless and don't know where to turn",
+    "They've spent hours on the phone getting nowhere",
+    "This has affected their relationship and home life",
+  ];
+  const randomPain = painPoints[Math.floor(Math.random() * painPoints.length)];
+
+  // Random opening styles
+  const openingStyles = [
+    "Start with their immediate problem",
+    "Start with what they're trying to achieve",
+    "Start with how long they've been dealing with this",
+    "Start with a specific denial or rejection they faced",
+    "Start with how this is affecting their daily life",
+  ];
+  const randomOpening = openingStyles[Math.floor(Math.random() * openingStyles.length)];
+
+  return `Write a COMPLETELY UNIQUE personal story about someone dealing with ${disputeDescriptions[context.disputeType]}.
 
 Account: ${context.creditorName}
 ${context.balance ? `Amount: $${context.balance.toLocaleString()}` : ""}
 Situation: They've ${roundContext[context.round as 1|2|3|4] || roundContext[1]}.
 
-The person's life situation (weave this in naturally): "${randomSituation}"
+CREATIVE DIRECTION (follow these to make it unique):
+- ${randomOpening}
+- ${randomAngle}
+- Pain point to include: "${randomPain}"
+- Life situation: "${randomSituation}"
 
-Write their story in 2-3 sentences. Just the story, no labels:`;
+Write 2-3 sentences that feel REAL and DIFFERENT. No templates. No generic phrases. Just raw human frustration:`;
 }
 
 /**

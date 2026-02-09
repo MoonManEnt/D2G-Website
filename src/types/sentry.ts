@@ -276,18 +276,22 @@ export interface RemoveHardInquiryPayload {
   type: "REMOVE_HARD_INQUIRY";
   documentationType: "HARD_INQUIRY";
   description: string;
+  hardInquiries?: { creditorName: string; date: string }[];
 }
 
 export interface CorrectNameSpellingPayload {
   type: "CORRECT_NAME_SPELLING";
   documentationType: "NAME_CORRECTION";
   description: string;
+  nameVariations?: string[];
+  clientLegalName?: string;
 }
 
 export interface RemovePreviousAddressPayload {
   type: "REMOVE_PREVIOUS_ADDRESS";
   documentationType: "ADDRESS_REMOVAL";
   description: string;
+  incorrectAddresses?: string[];
 }
 
 export interface AddCitationPayload {

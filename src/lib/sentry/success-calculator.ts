@@ -348,6 +348,11 @@ export interface ActionableRecommendationContext extends SuccessPredictionReques
   currentEoscarCodes?: { accountId: string; code: string }[];
   ocrFindings?: { original: string; replacement: string; location?: string }[];
   availableMetro2Fields?: string[];
+  // Credit report personal info for context-aware recommendations
+  hardInquiries?: { creditorName: string; date: string; }[];
+  nameVariations?: string[]; // Incorrect name spellings found
+  incorrectAddresses?: string[]; // Addresses that don't belong to client
+  clientLegalName?: string;
 }
 
 /**
@@ -497,71 +502,85 @@ export function generateActionableRecommendations(
     }
   }
 
-  // Always add personal information cleanup recommendations
-  // These apply to all disputes and help clean up the credit report
+  // ==========================================================================
+  // CONTEXT-AWARE RECOMMENDATIONS
+  // Only show these if there's actual data from the credit report
+  // ==========================================================================
 
-  // Hard Inquiry Removal
-  recommendations.push({
-    id: uuidv4(),
-    type: "REMOVE_HARD_INQUIRY",
-    title: "Challenge Unauthorized Hard Inquiries",
-    description:
-      "Add language to dispute hard inquiries that were made without your authorization. Unauthorized inquiries can lower your credit score.",
-    potentialGain: "+5-10%",
-    potentialGainValue: 0.08,
-    priority: "MEDIUM",
-    status: "PENDING",
-    payload: {
+  // Hard Inquiry Removal - ONLY if there are actual hard inquiries
+  if (extContext.hardInquiries && extContext.hardInquiries.length > 0) {
+    const inquiryNames = extContext.hardInquiries.map(i => i.creditorName).join(", ");
+    recommendations.push({
+      id: uuidv4(),
       type: "REMOVE_HARD_INQUIRY",
-      documentationType: "HARD_INQUIRY",
-      description: "Challenge unauthorized credit inquiries",
-    },
-    previewBefore: "(No hard inquiry dispute language)",
-    previewAfter:
-      "I did not authorize the following hard inquiries on my credit report and request their immediate removal under 15 U.S.C. § 1681b(c).",
-  });
+      title: `Challenge ${extContext.hardInquiries.length} Unauthorized Hard Inquiries`,
+      description:
+        `Found ${extContext.hardInquiries.length} hard inquiries (${inquiryNames}) that you may not have authorized. Adding dispute language for these.`,
+      potentialGain: "+5-10%",
+      potentialGainValue: 0.08,
+      priority: "MEDIUM",
+      status: "PENDING",
+      payload: {
+        type: "REMOVE_HARD_INQUIRY",
+        documentationType: "HARD_INQUIRY",
+        description: "Challenge unauthorized credit inquiries",
+        hardInquiries: extContext.hardInquiries,
+      },
+      previewBefore: "(No hard inquiry dispute in letter)",
+      previewAfter:
+        `"I noticed some hard inquiries that I never authorized... ${extContext.hardInquiries[0]?.creditorName}... I never gave permission for these credit checks."`,
+    });
+  }
 
-  // Incorrect Name Spelling
-  recommendations.push({
-    id: uuidv4(),
-    type: "CORRECT_NAME_SPELLING",
-    title: "Correct Name Spelling Variations",
-    description:
-      "Request removal of incorrect name spellings or variations that don't belong to you. Mixed files often start with name variations.",
-    potentialGain: "+3-5%",
-    potentialGainValue: 0.04,
-    priority: "LOW",
-    status: "PENDING",
-    payload: {
+  // Incorrect Name Spelling - ONLY if there are name variations
+  if (extContext.nameVariations && extContext.nameVariations.length > 0) {
+    const wrongNames = extContext.nameVariations.join(", ");
+    recommendations.push({
+      id: uuidv4(),
       type: "CORRECT_NAME_SPELLING",
-      documentationType: "NAME_CORRECTION",
-      description: "Remove incorrect name variations from credit file",
-    },
-    previewBefore: "(No name correction language)",
-    previewAfter:
-      "My legal name is [CLIENT NAME]. Please remove the following incorrect name variations from my credit file as they do not belong to me and may indicate a mixed file.",
-  });
+      title: `Remove ${extContext.nameVariations.length} Incorrect Name Variations`,
+      description:
+        `Found names that don't belong to you: ${wrongNames}. This could indicate a mixed file.`,
+      potentialGain: "+3-5%",
+      potentialGainValue: 0.04,
+      priority: "LOW",
+      status: "PENDING",
+      payload: {
+        type: "CORRECT_NAME_SPELLING",
+        documentationType: "NAME_CORRECTION",
+        description: "Remove incorrect name variations from credit file",
+        nameVariations: extContext.nameVariations,
+        clientLegalName: extContext.clientLegalName,
+      },
+      previewBefore: "(No name correction in letter)",
+      previewAfter:
+        `"My credit file has names on it that aren't mine: ${extContext.nameVariations[0]}... My real name is ${extContext.clientLegalName || '[your name]'}..."`,
+    });
+  }
 
-  // Previous Address Removal
-  recommendations.push({
-    id: uuidv4(),
-    type: "REMOVE_PREVIOUS_ADDRESS",
-    title: "Remove Outdated/Incorrect Addresses",
-    description:
-      "Request removal of addresses you've never lived at or that are outdated. Incorrect addresses can indicate mixed files or identity issues.",
-    potentialGain: "+3-5%",
-    potentialGainValue: 0.04,
-    priority: "LOW",
-    status: "PENDING",
-    payload: {
+  // Previous Address Removal - ONLY if there are incorrect addresses
+  if (extContext.incorrectAddresses && extContext.incorrectAddresses.length > 0) {
+    recommendations.push({
+      id: uuidv4(),
       type: "REMOVE_PREVIOUS_ADDRESS",
-      documentationType: "ADDRESS_REMOVAL",
-      description: "Remove incorrect or outdated addresses",
-    },
-    previewBefore: "(No address correction language)",
-    previewAfter:
-      "The following addresses listed on my credit report are inaccurate and should be removed: I have never resided at these locations.",
-  });
+      title: `Remove ${extContext.incorrectAddresses.length} Incorrect Addresses`,
+      description:
+        `Found addresses you've never lived at. These could indicate identity issues or a mixed file.`,
+      potentialGain: "+3-5%",
+      potentialGainValue: 0.04,
+      priority: "LOW",
+      status: "PENDING",
+      payload: {
+        type: "REMOVE_PREVIOUS_ADDRESS",
+        documentationType: "ADDRESS_REMOVAL",
+        description: "Remove incorrect or outdated addresses",
+        incorrectAddresses: extContext.incorrectAddresses,
+      },
+      previewBefore: "(No address dispute in letter)",
+      previewAfter:
+        `"I also see addresses on my credit report that I've never lived at... I have no idea why these addresses are showing up."`,
+    });
+  }
 
   // Sort by potential gain (highest first)
   recommendations.sort((a, b) => b.potentialGainValue - a.potentialGainValue);
