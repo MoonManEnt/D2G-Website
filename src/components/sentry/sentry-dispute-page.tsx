@@ -114,6 +114,7 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
     probability: number;
     confidence: "HIGH" | "MEDIUM" | "LOW";
     recommendations: string[];
+    actionableRecommendations?: ActionableRecommendationUI[];
     breakdown?: Array<{
       name: string;
       score: number;
@@ -125,6 +126,7 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
     probability: 0.55,
     confidence: "MEDIUM",
     recommendations: [],
+    actionableRecommendations: [],
   });
 
   // Load client data
@@ -313,6 +315,12 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
               probability: data.prediction.probability,
               confidence: data.prediction.confidence,
               recommendations: data.prediction.recommendations || [],
+              actionableRecommendations: data.prediction.actionableRecommendations?.map(
+                (rec: ActionableRecommendationUI) => ({
+                  ...rec,
+                  status: rec.status || "PENDING",
+                })
+              ) || [],
               breakdown: data.prediction.breakdown,
             });
           }
@@ -1188,6 +1196,10 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
                     "Include any supporting documents you have",
                   ]}
               breakdown={successProbability.breakdown}
+              actionableRecommendations={successProbability.actionableRecommendations}
+              onApplyRecommendation={currentDispute ? handleApplyRecommendation : undefined}
+              onRevertRecommendation={currentDispute ? handleRevertRecommendation : undefined}
+              onResetRecommendations={currentDispute ? handleResetRecommendations : undefined}
             />
           )}
         </div>

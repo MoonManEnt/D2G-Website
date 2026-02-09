@@ -146,8 +146,11 @@ export const POST = withAuth(async (req, ctx) => {
           improvementPotential: factor.score < 0.7 ? "HIGH" : factor.score < 0.9 ? "MEDIUM" : "LOW",
         })),
 
-        // Recommendations
+        // Recommendations (text)
         recommendations: prediction.recommendations,
+
+        // Actionable recommendations (clickable with Apply buttons)
+        actionableRecommendations: prediction.actionableRecommendations || [],
 
         // Potential improvement
         potentialImprovement: {
