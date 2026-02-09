@@ -12,6 +12,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 // Types
 interface BureauStatus {
@@ -266,17 +267,41 @@ function AccountTrackingMatrix({
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Account
               </th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                TransUnion
+              <th className="px-4 py-3 text-center">
+                <div className="flex items-center justify-center">
+                  <Image
+                    src="/logos/transunion.svg"
+                    alt="TransUnion"
+                    width={80}
+                    height={24}
+                    className="h-5 w-auto opacity-80"
+                  />
+                </div>
+              </th>
+              <th className="px-4 py-3 text-center">
+                <div className="flex items-center justify-center">
+                  <Image
+                    src="/logos/experian.svg"
+                    alt="Experian"
+                    width={80}
+                    height={24}
+                    className="h-5 w-auto opacity-80"
+                  />
+                </div>
+              </th>
+              <th className="px-4 py-3 text-center">
+                <div className="flex items-center justify-center">
+                  <Image
+                    src="/logos/equifax.svg"
+                    alt="Equifax"
+                    width={80}
+                    height={24}
+                    className="h-5 w-auto opacity-80"
+                  />
+                </div>
               </th>
               <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Experian
-              </th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Equifax
-              </th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Best
+                Status
               </th>
             </tr>
           </thead>

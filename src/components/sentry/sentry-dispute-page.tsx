@@ -105,6 +105,10 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
   const [generating, setGenerating] = useState(false);
   const [mailDialogOpen, setMailDialogOpen] = useState(false);
 
+  // Reset dialog
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
+
   // Success probability state (dynamic calculation by Amelia Sentry Engine)
   const [successProbability, setSuccessProbability] = useState<{
     probability: number;
@@ -470,6 +474,47 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
     }
   }, [currentDispute]);
 
+  // Reset client disputes
+  const handleResetClient = useCallback(async () => {
+    try {
+      setResetting(true);
+      setError(null);
+
+      const res = await fetch("/api/sentry/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId,
+          confirmReset: true,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to reset");
+      }
+
+      const data = await res.json();
+
+      // Reset local state
+      setCurrentDispute(null);
+      setAnalysis(null);
+      setStep("reports");
+      setSelectedAccountIds([]);
+
+      // Show success message
+      alert(`Successfully reset ${data.disputesArchived} dispute(s). Starting fresh.`);
+
+      // Reload reports to refresh the page
+      loadReports();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to reset");
+    } finally {
+      setResetting(false);
+      setResetDialogOpen(false);
+    }
+  }, [clientId, loadReports]);
+
   // Save letter edits
   const handleSaveLetter = useCallback(
     async (content: string) => {
@@ -706,6 +751,16 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
           )}
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setResetDialogOpen(true)}
+            className="px-4 py-2 text-sm font-medium bg-red-500/10 text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/20 transition-colors flex items-center gap-2"
+            title="Reset all disputes for this client"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Reset Client
+          </button>
           <a
             href={`/sentry/${clientId}/tracking`}
             className="px-4 py-2 text-sm font-medium bg-muted text-foreground rounded-lg hover:bg-muted transition-colors flex items-center gap-2"
@@ -1108,6 +1163,70 @@ export function SentryDisputePage({ clientId }: SentryDisputePageProps) {
             // Optionally refresh dispute data
           }}
         />
+      )}
+
+      {/* Reset Confirmation Dialog */}
+      {resetDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => !resetting && setResetDialogOpen(false)}
+          />
+          <div className="relative bg-card border border-border rounded-xl p-6 max-w-md w-full mx-4 shadow-xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-red-500/20 rounded-lg">
+                <svg className="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-foreground">Reset Client Disputes</h3>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              This will archive all existing disputes for{" "}
+              <span className="font-medium text-foreground">
+                {client ? `${client.firstName} ${client.lastName}` : "this client"}
+              </span>{" "}
+              and reset them to Round 1. This action cannot be undone.
+            </p>
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 mb-6">
+              <p className="text-xs text-amber-400">
+                <strong>What happens:</strong>
+              </p>
+              <ul className="text-xs text-muted-foreground mt-1 space-y-1">
+                <li>• All current disputes will be archived</li>
+                <li>• Client returns to Round 1 starting point</li>
+                <li>• Credit reports and accounts are preserved</li>
+                <li>• Tracking history is maintained for records</li>
+              </ul>
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setResetDialogOpen(false)}
+                disabled={resetting}
+                className="px-4 py-2 text-sm font-medium bg-muted text-foreground rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleResetClient}
+                disabled={resetting}
+                className="px-4 py-2 text-sm font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {resetting ? (
+                  <>
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Resetting...
+                  </>
+                ) : (
+                  "Reset Client"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
