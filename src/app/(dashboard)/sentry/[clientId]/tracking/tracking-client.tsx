@@ -308,6 +308,9 @@ function AccountTrackingMatrix({
               <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Status
               </th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                PDF
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -343,6 +346,11 @@ function AccountTrackingMatrix({
                 </td>
                 <td className="px-4 py-3 text-center">
                   <OutcomeBadge outcome={account.bestOutcome} />
+                </td>
+                <td className="px-4 py-3 text-center">
+                  <DownloadLetterButton
+                    account={account}
+                  />
                 </td>
               </tr>
             ))}
@@ -461,6 +469,83 @@ function OutcomeBadge({ outcome }: { outcome: AccountTracking["bestOutcome"] }) 
     <span className={`inline-flex px-2 py-1 text-xs font-medium rounded ${bg} ${text}`}>
       {label}
     </span>
+  );
+}
+
+// ============================================================================
+// DOWNLOAD LETTER BUTTON
+// ============================================================================
+
+function DownloadLetterButton({ account }: { account: AccountTracking }) {
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  // Find the first available dispute ID from any bureau
+  const disputeId = account.transunion.disputeId ||
+    account.experian.disputeId ||
+    account.equifax.disputeId;
+
+  // Only show button if there's a dispute
+  if (!disputeId) {
+    return <span className="text-muted-foreground text-xs">-</span>;
+  }
+
+  const handleDownload = async () => {
+    setIsDownloading(true);
+    try {
+      // Fetch the dispute to get the letter content
+      const response = await fetch(`/api/sentry/${disputeId}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch dispute");
+      }
+      const data = await response.json();
+      const letterContent = data.dispute?.letterContent;
+
+      if (!letterContent) {
+        alert("No letter content available for this dispute.");
+        return;
+      }
+
+      // Generate PDF
+      const { generateSimpleLetterPDF } = await import("@/lib/pdf-generate");
+      const pdfBytes = await generateSimpleLetterPDF(letterContent, {
+        title: "Dispute Letter",
+        date: new Date(),
+        footer: `Dispute ID: ${disputeId}`,
+      });
+
+      // Download
+      const blob = new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${account.creditorName.replace(/\s+/g, "_")}_Dispute_Letter.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Failed to download letter:", error);
+      alert("Failed to download letter. Please try again.");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleDownload}
+      disabled={isDownloading}
+      className="inline-flex items-center justify-center p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded transition-colors disabled:opacity-50"
+      title="Download Letter PDF"
+    >
+      {isDownloading ? (
+        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+      ) : (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      )}
+    </button>
   );
 }
 
