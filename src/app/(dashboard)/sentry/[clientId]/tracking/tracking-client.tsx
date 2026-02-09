@@ -505,13 +505,9 @@ function DownloadLetterButton({ account }: { account: AccountTracking }) {
         return;
       }
 
-      // Generate PDF
+      // Generate clean PDF without headers/footers for manual mailing
       const { generateSimpleLetterPDF } = await import("@/lib/pdf-generate");
-      const pdfBytes = await generateSimpleLetterPDF(letterContent, {
-        title: "Dispute Letter",
-        date: new Date(),
-        footer: `Dispute ID: ${disputeId}`,
-      });
+      const pdfBytes = await generateSimpleLetterPDF(letterContent, {});
 
       // Download
       const blob = new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });

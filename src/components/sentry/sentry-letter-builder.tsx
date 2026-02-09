@@ -29,11 +29,8 @@ export function SentryLetterBuilder({
 
     setIsDownloading(true);
     try {
-      const pdfBytes = await generateSimpleLetterPDF(content, {
-        title: "Dispute Letter",
-        date: new Date(),
-        footer: `Dispute ID: ${disputeId}`,
-      });
+      // Generate clean PDF without headers/footers for manual mailing
+      const pdfBytes = await generateSimpleLetterPDF(content, {});
 
       // Create download link
       const blob = new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });
