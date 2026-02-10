@@ -346,14 +346,46 @@ export function detectAccountBlocks(
 
   // Account section markers
   const accountSectionStart = /ACCOUNTS|Account Information|Trade Lines/i;
-  const sectionEnd = /INQUIRIES|Public Records|Personal Information|Summary/i;
+  const sectionEnd = /^(?:INQUIRIES|Hard Inquiries|Soft Inquiries|Public Records|Personal Information|Account Summary)$/i;
+
+  // Field labels that indicate we're still within an account block
+  const accountFieldPatterns = [
+    /^Account\s*(?:#|Number|Type|Status)/i,
+    /^Balance\s*:/i,
+    /^Credit\s*Limit/i,
+    /^High\s*(?:Credit|Balance)/i,
+    /^Past\s*Due/i,
+    /^Monthly\s*Payment/i,
+    /^Date\s*(Opened|Reported|Last)/i,
+    /^Last\s*(Reported|Activity)/i,
+    /^Payment\s*Status/i,
+    /^Bureau\s*Code/i,
+    /^Responsibility/i,
+    /^Comments?/i,
+    /^Remarks?/i,
+    /^No\.\s*of\s*Months/i,
+    /^Terms/i,
+    /Two-Year\s*payment/i,
+    /^Month\s+/i,
+    /^Year\s+/i,
+    /^TransUnion\s+Experian\s+Equifax/i, // Column header within account
+  ];
+
+  // Page break indicators (should NOT end an account block)
+  const pageBreakPatterns = [
+    /^Page\s+\d+/i,
+    /^\d+\s*of\s*\d+$/,
+    /^-{10,}$/,
+    /^={10,}$/,
+    /^\s*$/,
+  ];
 
   let inAccountSection = false;
   let currentBlockStart = -1;
   let currentCreditor = "";
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+    const line = lines[i].trim();
 
     // Check for account section start
     if (accountSectionStart.test(line)) {
@@ -361,7 +393,7 @@ export function detectAccountBlocks(
       continue;
     }
 
-    // Check for section end
+    // Check for section end (must be exact match, not partial)
     if (inAccountSection && sectionEnd.test(line)) {
       // Close current block if open
       if (currentBlockStart >= 0) {
@@ -378,26 +410,45 @@ export function detectAccountBlocks(
 
     if (!inAccountSection) continue;
 
+    // Skip page breaks and empty lines - they don't end account blocks
+    const isPageBreak = pageBreakPatterns.some(p => p.test(line));
+    if (isPageBreak) continue;
+
+    // Check if this line is an account field (continuation of current account)
+    const isAccountField = accountFieldPatterns.some(p => p.test(line));
+    if (isAccountField && currentBlockStart >= 0) {
+      // This is part of the current account, continue
+      continue;
+    }
+
     // Detect new account block - typically starts with creditor name
-    // Creditor names are usually all caps or title case at start of line
-    const creditorPattern = /^([A-Z][A-Z0-9\s&',.-]+(?:BANK|FINANCIAL|CREDIT|CARD|AUTO|MORTGAGE|LOAN|SERVICES?|LLC|INC|CORP|NA|FSB)?)/i;
+    // Creditor names are usually all caps at start of line, followed by bureau header or account data
+    const creditorPattern = /^([A-Z][A-Z0-9\s&',.\/-]{2,}?)(?:\s*$|\s+TransUnion|\s+Account)/i;
     const creditorMatch = line.match(creditorPattern);
 
-    if (creditorMatch && line.length > 10) {
-      // Potential new account block
-      const potentialCreditor = creditorMatch[1].trim();
+    // Also check for simple creditor name on its own line
+    const simpleCreditorPattern = /^([A-Z][A-Z0-9\s&',.\/-]+(?:BANK|BK|FINANCIAL|FIN|CREDIT|COLL|AUTO|MORTGAGE|LOAN|SERVICES?|LLC|INC|CORP|NA|FSB|FCU|CU)?)$/i;
+    const simpleMatch = line.match(simpleCreditorPattern);
 
-      // Validate it's a creditor name (not a field label)
+    const matchResult = creditorMatch || simpleMatch;
+
+    if (matchResult && line.length > 3) {
+      const potentialCreditor = matchResult[1].trim().toUpperCase();
+
+      // Validate it's a creditor name (not a field label or section header)
       const fieldLabels = [
         "ACCOUNT", "BALANCE", "LIMIT", "STATUS", "DATE", "PAYMENT",
-        "TYPE", "TERMS", "CREDIT", "HIGH", "PAST"
+        "TYPE", "TERMS", "CREDIT", "HIGH", "PAST", "MONTHLY", "NO.",
+        "COMMENTS", "REMARKS", "TRANSUNION", "EXPERIAN", "EQUIFAX",
+        "MONTH", "YEAR", "TWO-YEAR", "PERSONAL", "INQUIRIES", "PUBLIC"
       ];
 
       const isFieldLabel = fieldLabels.some(
-        label => potentialCreditor.toUpperCase().startsWith(label)
+        label => potentialCreditor.startsWith(label)
       );
 
-      if (!isFieldLabel && potentialCreditor.length > 3) {
+      // Must be at least 3 chars and not a field label
+      if (!isFieldLabel && potentialCreditor.length >= 3) {
         // Close previous block
         if (currentBlockStart >= 0) {
           blocks.push({
@@ -443,38 +494,124 @@ export function parsePaymentHistory(
     EQUIFAX: [],
   };
 
-  // Look for payment history section
+  // Look for payment history section - IdentityIQ uses "Two-Year payment history"
   const historyStart = blockLines.findIndex(
-    line => /Payment History|Payment Pattern|Pay Status/i.test(line)
+    line => /Two-Year\s*payment|Payment History|Payment Pattern|Pay Status/i.test(line)
   );
 
   if (historyStart < 0) return result;
 
-  // Payment codes are typically on lines after the header
-  // Format: CCCCCCC1111222... for each bureau
-  const paymentCodePattern = /^[C0-9X\-\s]+$/;
+  // IdentityIQ format has labeled rows:
+  // Month: Feb Jan Dec Nov...
+  // Year: 26 26 25 25...
+  // TransUnion: CO CO CO...
+  // Experian: CO CO CO... 180 150 120 90 60 30 OK...
+  // Equifax: (empty)
 
-  for (let i = historyStart + 1; i < Math.min(historyStart + 10, blockLines.length); i++) {
+  // Payment status codes we recognize
+  const validCodes = ["OK", "CO", "C", "30", "60", "90", "120", "150", "180", "-", "X", "0", "1", "2", "3", "4", "5", "6", "9"];
+
+  for (let i = historyStart + 1; i < Math.min(historyStart + 20, blockLines.length); i++) {
     const line = blockLines[i];
 
-    // Extract values for each bureau column
-    const tuValue = extractColumnValue(line, boundaries, "TRANSUNION");
-    const exValue = extractColumnValue(line, boundaries, "EXPERIAN");
-    const eqValue = extractColumnValue(line, boundaries, "EQUIFAX");
+    // Check if this line is labeled with a bureau name
+    if (/^\s*TransUnion\s*/i.test(line)) {
+      // Extract payment codes after "TransUnion"
+      const codes = extractPaymentCodes(line.replace(/^\s*TransUnion\s*/i, ""), validCodes);
+      if (codes.length > 0) {
+        result.TRANSUNION.push(...codes);
+      }
+    } else if (/^\s*Experian\s*/i.test(line)) {
+      const codes = extractPaymentCodes(line.replace(/^\s*Experian\s*/i, ""), validCodes);
+      if (codes.length > 0) {
+        result.EXPERIAN.push(...codes);
+      }
+    } else if (/^\s*Equifax\s*/i.test(line)) {
+      const codes = extractPaymentCodes(line.replace(/^\s*Equifax\s*/i, ""), validCodes);
+      if (codes.length > 0) {
+        result.EQUIFAX.push(...codes);
+      }
+    }
 
-    // Parse codes
-    if (paymentCodePattern.test(tuValue)) {
-      result.TRANSUNION.push(...tuValue.split("").filter(c => c !== " "));
-    }
-    if (paymentCodePattern.test(exValue)) {
-      result.EXPERIAN.push(...exValue.split("").filter(c => c !== " "));
-    }
-    if (paymentCodePattern.test(eqValue)) {
-      result.EQUIFAX.push(...eqValue.split("").filter(c => c !== " "));
+    // Also try column-based extraction for older format
+    // Payment codes are typically on lines with mostly codes
+    const paymentCodeLine = /^[OCXK0-9\-\s]+$/i;
+    if (paymentCodeLine.test(line.trim()) && line.trim().length > 5) {
+      const tuValue = extractColumnValue(line, boundaries, "TRANSUNION");
+      const exValue = extractColumnValue(line, boundaries, "EXPERIAN");
+      const eqValue = extractColumnValue(line, boundaries, "EQUIFAX");
+
+      const tuCodes = extractPaymentCodes(tuValue, validCodes);
+      const exCodes = extractPaymentCodes(exValue, validCodes);
+      const eqCodes = extractPaymentCodes(eqValue, validCodes);
+
+      if (tuCodes.length > 0 && result.TRANSUNION.length === 0) {
+        result.TRANSUNION.push(...tuCodes);
+      }
+      if (exCodes.length > 0 && result.EXPERIAN.length === 0) {
+        result.EXPERIAN.push(...exCodes);
+      }
+      if (eqCodes.length > 0 && result.EQUIFAX.length === 0) {
+        result.EQUIFAX.push(...eqCodes);
+      }
     }
   }
 
   return result;
+}
+
+/**
+ * Extract payment codes from a string.
+ * Handles both space-separated and continuous formats.
+ */
+function extractPaymentCodes(text: string, validCodes: string[]): string[] {
+  if (!text) return [];
+
+  const codes: string[] = [];
+
+  // First try space-separated parsing (e.g., "CO CO CO 180 150 120 90 60 30 OK")
+  const parts = text.trim().split(/\s+/);
+
+  for (const part of parts) {
+    const upper = part.toUpperCase();
+    // Check if it's a valid code
+    if (validCodes.includes(upper)) {
+      codes.push(upper);
+    } else if (/^\d{1,3}$/.test(part)) {
+      // Numeric codes like 30, 60, 90, 120, 150, 180
+      codes.push(part);
+    }
+  }
+
+  // If no codes found via space-separation, try character-by-character for old format
+  if (codes.length === 0) {
+    const cleaned = text.replace(/\s/g, "").toUpperCase();
+    for (let i = 0; i < cleaned.length; i++) {
+      const char = cleaned[i];
+      if (char === "C" || char === "O" || char === "K" || char === "X" || char === "-") {
+        // Single-char codes: C=Current, O=Open, K=OK, X=Unknown
+        if (char === "C" && cleaned[i + 1] === "O") {
+          codes.push("CO");
+          i++; // Skip next char
+        } else if (char === "O" && cleaned[i + 1] === "K") {
+          codes.push("OK");
+          i++;
+        } else {
+          codes.push(char);
+        }
+      } else if (/\d/.test(char)) {
+        // Numeric - could be 1-digit (1,2,3...) or multi-digit (30,60,90,120,150,180)
+        let num = char;
+        while (i + 1 < cleaned.length && /\d/.test(cleaned[i + 1])) {
+          i++;
+          num += cleaned[i];
+        }
+        codes.push(num);
+      }
+    }
+  }
+
+  return codes;
 }
 
 /**
@@ -517,28 +654,44 @@ export function parseAccountBlock(
   };
 
   // Field patterns and their property mappings
+  // IMPORTANT: More specific patterns should come before general ones
+  // Patterns match the label prefix (before the column data), allowing for leading whitespace
   const fieldMappings: Array<{
     pattern: RegExp;
     field: keyof PositionParsedAccount;
     parser: (val: string) => string | number | null;
   }> = [
-    { pattern: /Account\s*(?:#|Number|Num)/i, field: "accountNumber", parser: (v) => v },
-    { pattern: /Account\s*Type/i, field: "accountType", parser: (v) => v },
-    { pattern: /Bureau\s*Code|Type\s*Code/i, field: "bureauCode", parser: (v) => v },
-    { pattern: /Responsibility|Account\s*Owner/i, field: "responsibility", parser: (v) => v },
-    { pattern: /Balance(?:\s*Owed)?/i, field: "balance", parser: parseDollarAmount },
-    { pattern: /Credit\s*Limit|Limit/i, field: "creditLimit", parser: parseDollarAmount },
-    { pattern: /High\s*(?:Balance|Credit)/i, field: "highBalance", parser: parseDollarAmount },
-    { pattern: /Past\s*Due|Amount\s*Past\s*Due/i, field: "pastDue", parser: parseDollarAmount },
-    { pattern: /Monthly\s*Payment|Payment\s*Amount/i, field: "monthlyPayment", parser: parseDollarAmount },
-    { pattern: /Date\s*Opened|Open\s*Date/i, field: "dateOpened", parser: parseDate },
-    { pattern: /Date\s*Reported|Reported/i, field: "dateReported", parser: parseDate },
-    { pattern: /Last\s*Activity|Activity\s*Date/i, field: "lastActivityDate", parser: parseDate },
-    { pattern: /Date\s*of\s*First\s*Delinquency|DOFD|First\s*Delinq/i, field: "dateOfFirstDelinquency", parser: parseDate },
-    { pattern: /Date\s*of\s*Last\s*Payment|Last\s*Payment\s*Date/i, field: "dateOfLastPayment", parser: parseDate },
-    { pattern: /Payment\s*Status|Pay\s*Status/i, field: "paymentStatus", parser: (v) => v },
-    { pattern: /Account\s*Status|Status/i, field: "accountStatus", parser: (v) => v },
-    { pattern: /Comments?|Remarks?/i, field: "comments", parser: (v) => v },
+    // Account identification
+    { pattern: /^\s*Account\s*(?:#|Number|Num)\s*:/i, field: "accountNumber", parser: (v) => v },
+    { pattern: /^\s*Account\s*Type\s*-?\s*Detail/i, field: "accountType", parser: (v) => v }, // More specific first
+    { pattern: /^\s*Account\s*Type\s*:/i, field: "accountType", parser: (v) => v },
+    { pattern: /^\s*Bureau\s*Code\s*:/i, field: "bureauCode", parser: (v) => v },
+    { pattern: /^\s*Responsibility\s*:/i, field: "responsibility", parser: (v) => v },
+
+    // Financial amounts
+    { pattern: /^\s*Balance\s*:/i, field: "balance", parser: parseDollarAmount },
+    { pattern: /^\s*Credit\s*Limit\s*:/i, field: "creditLimit", parser: parseDollarAmount },
+    { pattern: /^\s*High\s*(?:Balance|Credit)\s*:/i, field: "highBalance", parser: parseDollarAmount },
+    { pattern: /^\s*Past\s*Due\s*:/i, field: "pastDue", parser: parseDollarAmount },
+    { pattern: /^\s*Monthly\s*Payment\s*:/i, field: "monthlyPayment", parser: parseDollarAmount },
+
+    // Dates - multiple patterns for different formats
+    { pattern: /^\s*Date\s*Opened\s*:/i, field: "dateOpened", parser: parseDate },
+    { pattern: /^\s*Last\s*Reported\s*:/i, field: "dateReported", parser: parseDate }, // IdentityIQ uses "Last Reported"
+    { pattern: /^\s*Date\s*Reported\s*:/i, field: "dateReported", parser: parseDate },
+    { pattern: /^\s*Date\s*Last\s*Active\s*:/i, field: "lastActivityDate", parser: parseDate },
+    { pattern: /^\s*Last\s*Activity\s*:/i, field: "lastActivityDate", parser: parseDate },
+    { pattern: /^\s*Date\s*of\s*First\s*Delinquency/i, field: "dateOfFirstDelinquency", parser: parseDate },
+    { pattern: /^\s*DOFD\s*:/i, field: "dateOfFirstDelinquency", parser: parseDate },
+    { pattern: /^\s*Date\s*of\s*Last\s*Payment\s*:/i, field: "dateOfLastPayment", parser: parseDate },
+
+    // Status fields
+    { pattern: /^\s*Payment\s*Status\s*:/i, field: "paymentStatus", parser: (v) => v },
+    { pattern: /^\s*Account\s*Status\s*:/i, field: "accountStatus", parser: (v) => v },
+
+    // Comments/remarks
+    { pattern: /^\s*Comments?\s*:/i, field: "comments", parser: (v) => v },
+    { pattern: /^\s*Remarks?\s*:/i, field: "comments", parser: (v) => v },
   ];
 
   // Parse each line for field values
