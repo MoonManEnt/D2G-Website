@@ -112,3 +112,16 @@ export {
   type HybridParseOptions,
   type HybridParseResult,
 } from "./hybrid-parser";
+
+// HTML Parsers (for copy/paste from credit monitoring sites)
+export {
+  parseHTMLCreditReport,
+  detectCreditReportSource,
+  isValidCreditReportHTML,
+  type CreditReportSource,
+  type HTMLParseResult,
+  type ParsedAccount as HTMLParsedAccount,
+  type ParsedCreditScore as HTMLParsedCreditScore,
+  type ParsedPersonalInfo as HTMLParsedPersonalInfo,
+  type ParsedInquiry as HTMLParsedInquiry,
+} from "./html-parsers";

@@ -4,6 +4,13 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { v4 as uuid } from "uuid";
 import { parseCreditReport } from "@/lib/credit-report";
+import {
+  parseHTMLCreditReport,
+  detectCreditReportSource,
+  isValidCreditReportHTML,
+  type HTMLParseResult,
+  type ParsedAccount,
+} from "@/lib/credit-report/html-parsers";
 import { createLogger } from "@/lib/logger";
 const log = createLogger("reports-parse-content-api");
 
@@ -67,35 +74,65 @@ export async function POST(req: NextRequest) {
 
     // Process content based on type
     let textToParse = content;
+    let htmlParseResult: HTMLParseResult | null = null;
+    let useDirectHTMLParsing = false;
 
     if (contentType === "html") {
-      // Extract text from HTML - basic extraction
-      // Remove script and style tags
-      textToParse = content
-        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-        // Replace common HTML entities
-        .replace(/&nbsp;/g, " ")
-        .replace(/&amp;/g, "&")
-        .replace(/&lt;/g, "<")
-        .replace(/&gt;/g, ">")
-        .replace(/&quot;/g, '"')
-        // Replace tags with spaces/newlines
-        .replace(/<br\s*\/?>/gi, "\n")
-        .replace(/<\/p>/gi, "\n\n")
-        .replace(/<\/div>/gi, "\n")
-        .replace(/<\/tr>/gi, "\n")
-        .replace(/<\/td>/gi, "\t")
-        .replace(/<\/th>/gi, "\t")
-        .replace(/<[^>]+>/g, " ")
-        // Clean up whitespace
-        .replace(/\s+/g, " ")
-        .replace(/\n\s+/g, "\n")
-        .trim();
+      // Detect the credit report source
+      const source = detectCreditReportSource(content);
+      log.info({ source, contentLength: content.length }, "Detected HTML source");
+
+      // Try format-specific parsing first
+      if (isValidCreditReportHTML(content)) {
+        htmlParseResult = parseHTMLCreditReport(content);
+
+        log.info(
+          {
+            source: htmlParseResult.source,
+            accountsFound: htmlParseResult.accounts.length,
+            scoresFound: htmlParseResult.scores.length,
+            success: htmlParseResult.success,
+          },
+          "HTML parsing result"
+        );
+
+        // If we got good results from format-specific parsing, use them directly
+        if (htmlParseResult.success && htmlParseResult.accounts.length > 0) {
+          useDirectHTMLParsing = true;
+          textToParse = htmlParseResult.rawText; // Keep for reference
+        } else {
+          // Fall back to AI parsing with extracted text
+          textToParse = htmlParseResult.rawText;
+        }
+      } else {
+        // Basic text extraction for unknown formats
+        textToParse = content
+          .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+          .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+          .replace(/&nbsp;/g, " ")
+          .replace(/&amp;/g, "&")
+          .replace(/&lt;/g, "<")
+          .replace(/&gt;/g, ">")
+          .replace(/&quot;/g, '"')
+          .replace(/<br\s*\/?>/gi, "\n")
+          .replace(/<\/p>/gi, "\n\n")
+          .replace(/<\/div>/gi, "\n")
+          .replace(/<\/tr>/gi, "\n")
+          .replace(/<\/td>/gi, "\t")
+          .replace(/<\/th>/gi, "\t")
+          .replace(/<[^>]+>/g, " ")
+          .replace(/\s+/g, " ")
+          .replace(/\n\s+/g, "\n")
+          .trim();
+      }
 
       log.info(
-        { originalLength: content.length, extractedLength: textToParse.length },
-        "Extracted text from HTML"
+        {
+          originalLength: content.length,
+          extractedLength: textToParse.length,
+          useDirectParsing: useDirectHTMLParsing,
+        },
+        "Processed HTML content"
       );
     } else if (contentType === "json") {
       // For JSON, try to extract meaningful text
@@ -169,41 +206,137 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Parse the content using our unified parser
-    const parseResult = await parseCreditReport(textToParse, {
-      enableOCR: false, // No OCR needed for pasted text
-      preferAI: true,
-      organizationId,
-      detectIssues: true,
-    });
+    // Determine which parsing path to use
+    let accountsToSave: ParsedAccount[] = [];
+    let parseConfidence = 0.7;
+    let parseErrors: string[] = [];
 
-    if (!parseResult.success || !parseResult.report) {
-      // Update report status to failed
+    if (useDirectHTMLParsing && htmlParseResult) {
+      // Use format-specific HTML parsing results directly
+      accountsToSave = htmlParseResult.accounts;
+      parseConfidence = 0.85;
+      parseErrors = htmlParseResult.errors;
+
+      // Save credit scores if extracted
+      for (const score of htmlParseResult.scores) {
+        try {
+          await prisma.creditScore.create({
+            data: {
+              cra: score.bureau,
+              score: score.score,
+              scoreType: score.scoreType || "VANTAGESCORE",
+              scoreDate: new Date(),
+              reportId: report.id,
+              clientId,
+            },
+          });
+        } catch (err) {
+          log.warn({ err, score }, "Failed to save credit score");
+        }
+      }
+
+      log.info(
+        {
+          source: htmlParseResult.source,
+          accountCount: accountsToSave.length,
+          scoreCount: htmlParseResult.scores.length,
+        },
+        "Using direct HTML parsing results"
+      );
+    } else {
+      // Fall back to AI parsing
+      const parseResult = await parseCreditReport(textToParse, {
+        enableOCR: false, // No OCR needed for pasted text
+        preferAI: true,
+        organizationId,
+        detectIssues: true,
+      });
+
+      if (!parseResult.success || !parseResult.report) {
+        // Update report status to failed
+        await prisma.creditReport.update({
+          where: { id: report.id },
+          data: {
+            parseStatus: "FAILED",
+            parseError: parseResult.metadata.errors.join("; ") || "Failed to parse content",
+          },
+        });
+
+        return NextResponse.json(
+          {
+            error: "Failed to parse credit report content",
+            details: parseResult.metadata.errors,
+          },
+          { status: 422 }
+        );
+      }
+
+      // Convert AI parse results to our account format
+      accountsToSave = parseResult.report.accounts.map((acc) => {
+        // Convert payment history to our format if needed
+        let paymentHistory: { date: string; status: string }[] | undefined;
+        if (acc.paymentHistory && Array.isArray(acc.paymentHistory)) {
+          paymentHistory = acc.paymentHistory.map((entry) => {
+            if (typeof entry === "string") {
+              return { date: "", status: entry };
+            }
+            // AI parser uses month/year format
+            const entryAny = entry as { month?: string; year?: string; status?: string; statusCode?: string };
+            const dateStr = entryAny.month && entryAny.year
+              ? `${entryAny.month} ${entryAny.year}`
+              : "";
+            return {
+              date: dateStr,
+              status: String(entryAny.status || entryAny.statusCode || ""),
+            };
+          });
+        }
+
+        return {
+          creditorName: acc.creditorName,
+          accountNumber: acc.accountNumber,
+          accountType: acc.accountType || "OTHER",
+          accountStatus: acc.accountStatus || acc.status || "UNKNOWN",
+          bureau: acc.bureau as "TRANSUNION" | "EXPERIAN" | "EQUIFAX",
+          balance: acc.balance,
+          creditLimit: acc.creditLimit,
+          highBalance: acc.highBalance,
+          pastDue: acc.pastDue,
+          monthlyPayment: acc.monthlyPayment,
+          dateOpened: acc.dateOpened,
+          dateReported: acc.dateReported,
+          lastActivityDate: acc.lastActivityDate,
+          paymentStatus: acc.paymentStatus,
+          paymentHistory,
+          responsibility: acc.responsibility,
+          extractionConfidence: acc.extractionConfidence || 0.7,
+        };
+      });
+      parseConfidence = parseResult.metadata.confidence;
+      parseErrors = parseResult.metadata.errors;
+    }
+
+    if (accountsToSave.length === 0) {
       await prisma.creditReport.update({
         where: { id: report.id },
         data: {
           parseStatus: "FAILED",
-          parseError: parseResult.metadata.errors.join("; ") || "Failed to parse content",
+          parseError: "No accounts found in the content",
         },
       });
 
       return NextResponse.json(
-        {
-          error: "Failed to parse credit report content",
-          details: parseResult.metadata.errors,
-        },
+        { error: "No accounts found in the credit report content" },
         { status: 422 }
       );
     }
 
     // Save parsed accounts
     let accountsParsed = 0;
-    for (const account of parseResult.report.accounts) {
+    for (const account of accountsToSave) {
       try {
         // Generate fingerprint
-        const fingerprint =
-          account.fingerprint ||
-          `${account.creditorName}:${account.accountNumber}:${account.bureau}`;
+        const fingerprint = `${account.creditorName}:${account.accountNumber}:${account.bureau}`;
 
         // Check for existing account with same fingerprint
         const existing = await prisma.accountItem.findFirst({
@@ -222,7 +355,7 @@ export async function POST(req: NextRequest) {
               fingerprint,
               cra: account.bureau,
               accountType: account.accountType || "OTHER",
-              accountStatus: account.accountStatus || account.status || "UNKNOWN",
+              accountStatus: account.accountStatus || "UNKNOWN",
               balance: account.balance,
               pastDue: account.pastDue,
               creditLimit: account.creditLimit,
@@ -238,14 +371,9 @@ export async function POST(req: NextRequest) {
                 ? JSON.stringify(account.paymentHistory)
                 : null,
               responsibility: account.responsibility,
-              isAuthorizedUser: account.isAuthorizedUser || false,
-              disputeNotations: account.disputeNotation,
-              hasBeenPreviouslyDisputed: account.hasBeenPreviouslyDisputed || false,
-              dateOfFirstDelinquency: account.dateOfFirstDelinquency
-                ? new Date(account.dateOfFirstDelinquency)
-                : null,
-              bureauCode: account.bureauCode,
-              sequenceIndex: account.sequenceIndex || 0,
+              isAuthorizedUser: false,
+              hasBeenPreviouslyDisputed: false,
+              sequenceIndex: accountsParsed,
               confidenceScore: Math.round((account.extractionConfidence || 0.7) * 100),
               confidenceLevel:
                 (account.extractionConfidence || 0.7) >= 0.8
@@ -271,8 +399,10 @@ export async function POST(req: NextRequest) {
       data: {
         parseStatus: "COMPLETED",
         pageCount: 1,
-        extractionMethod: "TEXT",
-        extractionConfidence: parseResult.metadata.confidence,
+        extractionMethod: useDirectHTMLParsing ? "HTML" : "TEXT",
+        extractionConfidence: parseConfidence,
+        // Store source type if detected
+        sourceType: htmlParseResult?.source || "PASTED",
       },
     });
 
@@ -286,7 +416,9 @@ export async function POST(req: NextRequest) {
       {
         reportId: report.id,
         accountsParsed,
-        confidence: parseResult.metadata.confidence,
+        confidence: parseConfidence,
+        source: htmlParseResult?.source || "AI",
+        scoresFound: htmlParseResult?.scores.length || 0,
       },
       "Pasted content parsed successfully"
     );
@@ -297,12 +429,8 @@ export async function POST(req: NextRequest) {
         status: "COMPLETED",
         message: `Content parsed successfully. ${accountsParsed} accounts found.`,
         accountsParsed,
-        issuesSummary: parseResult.issues.length > 0
-          ? {
-              total: parseResult.issues.length,
-              highPriority: parseResult.issues.filter((i) => i.severity === "HIGH").length,
-            }
-          : null,
+        source: htmlParseResult?.source || "AI_PARSED",
+        scoresFound: htmlParseResult?.scores.length || 0,
       },
       { status: 201 }
     );

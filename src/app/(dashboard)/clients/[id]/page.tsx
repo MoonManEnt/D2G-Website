@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   ArrowLeft,
   User,
@@ -50,6 +51,7 @@ import {
   History,
   Eye,
   EyeOff,
+  ClipboardPaste,
 } from "lucide-react";
 import { ScoreChart, AddScoreModal } from "@/components/credit-scores";
 import { useToast } from "@/lib/use-toast";
@@ -473,6 +475,11 @@ export default function ClientDetailPage() {
   const [reportToDelete, setReportToDelete] = useState<{ id: string; filename: string } | null>(null);
   const [deletingReport, setDeletingReport] = useState(false);
 
+  // Paste report state
+  const [pasteDialogOpen, setPasteDialogOpen] = useState(false);
+  const [pastedContent, setPastedContent] = useState("");
+  const [pasting, setPasting] = useState(false);
+
   const fetchClient = useCallback(async () => {
     try {
       const res = await fetch(`/api/clients/${clientId}`, { cache: "no-store" });
@@ -798,6 +805,63 @@ export default function ClientDetailPage() {
     }
   };
 
+  const handlePasteReport = async () => {
+    if (!pastedContent.trim()) {
+      toast({
+        title: "No Content",
+        description: "Please paste your credit report content first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setPasting(true);
+    try {
+      // Detect if it's HTML or plain text
+      const isHTML = pastedContent.includes("<") && pastedContent.includes(">");
+      const contentType = isHTML ? "html" : "json";
+
+      const res = await fetch("/api/reports/parse-content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId,
+          content: pastedContent,
+          contentType,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        toast({
+          title: "Report Parsed Successfully",
+          description: `${data.accountsParsed} accounts found from ${data.source || "pasted content"}.`,
+        });
+        setPasteDialogOpen(false);
+        setPastedContent("");
+        // Refresh client data
+        fetchClient();
+        fetchCreditScores();
+        fetchDNA();
+      } else {
+        const error = await res.json();
+        toast({
+          title: "Parse Failed",
+          description: error.error || "Could not parse the pasted content.",
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while parsing.",
+        variant: "destructive",
+      });
+    } finally {
+      setPasting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96 lg:ml-64">
@@ -846,6 +910,14 @@ export default function ClientDetailPage() {
             <Edit className="w-4 h-4" />
             Edit
           </Button>
+          <Button
+            variant="outline"
+            onClick={() => setPasteDialogOpen(true)}
+            className="gap-2 bg-transparent border-input hover:bg-card text-foreground"
+          >
+            <ClipboardPaste className="w-4 h-4" />
+            Paste Report
+          </Button>
           <label>
             <input
               type="file"
@@ -861,7 +933,7 @@ export default function ClientDetailPage() {
                 ) : (
                   <Upload className="w-4 h-4" />
                 )}
-                Upload Report
+                Upload PDF
               </span>
             </Button>
           </label>
@@ -2005,6 +2077,78 @@ export default function ClientDetailPage() {
                 <>
                   <Trash2 className="w-4 h-4 mr-2" />
                   Delete Client
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Paste Report Dialog */}
+      <Dialog open={pasteDialogOpen} onOpenChange={(open) => {
+        setPasteDialogOpen(open);
+        if (!open) setPastedContent("");
+      }}>
+        <DialogContent className="bg-card border-border max-w-3xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="text-foreground flex items-center gap-2">
+              <ClipboardPaste className="w-5 h-5 text-purple-400" />
+              Paste Credit Report
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Copy your credit report from IdentityIQ, MyScoreIQ, or MyFreeScoreNow and paste it below.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="p-4 bg-purple-500/10 border border-purple-500/20 rounded-lg">
+              <p className="text-purple-300 text-sm font-medium mb-2">How to paste your report:</p>
+              <ol className="text-purple-300/80 text-sm list-decimal list-inside space-y-1">
+                <li>Log into your credit monitoring site (IdentityIQ, MyScoreIQ, etc.)</li>
+                <li>Navigate to your full credit report page</li>
+                <li>Select all content (Ctrl+A / Cmd+A) and copy (Ctrl+C / Cmd+C)</li>
+                <li>Paste the content below (Ctrl+V / Cmd+V)</li>
+              </ol>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-foreground">Pasted Content</Label>
+              <Textarea
+                value={pastedContent}
+                onChange={(e) => setPastedContent(e.target.value)}
+                placeholder="Paste your credit report HTML or text content here..."
+                className="bg-muted border-input text-foreground min-h-[300px] font-mono text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                {pastedContent.length > 0
+                  ? `${pastedContent.length.toLocaleString()} characters pasted`
+                  : "No content pasted yet"}
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setPasteDialogOpen(false);
+                setPastedContent("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handlePasteReport}
+              disabled={pasting || pastedContent.length < 100}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              {pasting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Parsing...
+                </>
+              ) : (
+                <>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Parse Report
                 </>
               )}
             </Button>
