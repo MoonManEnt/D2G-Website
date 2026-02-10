@@ -289,7 +289,7 @@ function AccountTrackingMatrix({
               <th className="px-4 py-3 text-center">
                 <div className="flex items-center justify-center">
                   <Image
-                    src="/logos/experian.svg"
+                    src="/logos/experian.webp"
                     alt="Experian"
                     width={80}
                     height={24}

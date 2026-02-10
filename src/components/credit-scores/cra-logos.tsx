@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 interface LogoProps {
   className?: string;
   width?: number;
@@ -54,41 +56,18 @@ function TransUnionLogo({ className, width = 130, height = 32 }: LogoProps) {
 }
 
 /**
- * Experian - navy wordmark with colored rounded squares
- * Official brand colors: navy #1D2C5E, purple #6B2574, blue #5F82B9, magenta #C5197D
- * Uses lighter navy (#4A5FC1) on dark backgrounds for visibility
+ * Experian - official logo image
  */
 function ExperianLogo({ className, width = 130, height = 32 }: LogoProps) {
   return (
-    <svg
-      viewBox="0 0 320 80"
+    <Image
+      src="/logos/experian.webp"
+      alt="Experian"
       width={width}
       height={height}
       className={className}
-      aria-label="Experian"
-      role="img"
-    >
-      {/* Colored squares */}
-      <rect x="2" y="28" width="18" height="18" rx="4" fill="#6B2574" />
-      <rect x="24" y="6" width="18" height="18" rx="4" fill="#5F82B9" />
-      <rect x="46" y="16" width="14" height="14" rx="3" fill="#C5197D" />
-      <rect x="24" y="50" width="18" height="18" rx="4" fill="#C5197D" />
-      {/* Wordmark - use brighter navy for dark mode visibility */}
-      <text
-        x="68" y="60"
-        fontFamily="'Segoe UI', Arial, Helvetica, sans-serif"
-        fontWeight="700"
-        fontSize="52"
-        fill="#4A5FC1"
-        letterSpacing="-0.5"
-        className="dark:fill-[#7B8FE0] fill-[#1D2C5E]"
-      >
-        experian
-      </text>
-      <text x="306" y="60" fontFamily="Arial, sans-serif" fontSize="10" fill="#4A5FC1" className="dark:fill-[#7B8FE0] fill-[#1D2C5E]">
-        TM
-      </text>
-    </svg>
+      style={{ objectFit: "contain" }}
+    />
   );
 }
 

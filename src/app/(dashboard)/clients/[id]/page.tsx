@@ -51,7 +51,8 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
-import { ScoreChart, AddScoreModal } from "@/components/credit-scores";
+import { ScoreChart, AddScoreModal, OrbitalViz } from "@/components/credit-scores";
+import { GlassCard, AnimNum, Reveal, ProgressRing, StatusBadge, SeverityBadge, StatCard } from "@/components/ui/glass-card";
 import { useToast } from "@/lib/use-toast";
 import { DisputeCommandCenter } from "@/components/disputes/dispute-command-center";
 import { AmeliaChatDrawer } from "@/components/amelia/amelia-chat-drawer";
@@ -812,233 +813,373 @@ export default function ClientDetailPage() {
 
   return (
     <div className="flex flex-col h-full min-h-0 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => router.push("/clients")}
-            className="p-2 hover:bg-card rounded-lg transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5 text-muted-foreground" />
-          </button>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-              <span className="text-foreground font-semibold text-lg">
-                {client.firstName.charAt(0)}{client.lastName.charAt(0)}
-              </span>
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">
-                {client.firstName} {client.lastName}
-              </h1>
-              <p className="text-muted-foreground text-sm">
-                Client since {safeFormatDate(client.createdAt)}
-              </p>
+      {/* Header - Redesigned */}
+      <Reveal delay={50}>
+        <div className="flex items-center justify-between py-2">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.push("/clients")}
+              className="w-10 h-10 rounded-xl border border-border bg-card/50 hover:bg-card flex items-center justify-center transition-all hover:-translate-x-0.5"
+            >
+              <ArrowLeft className="w-4 h-4 text-muted-foreground" />
+            </button>
+            <div className="flex items-center gap-3.5">
+              {/* Gradient Avatar */}
+              <div className="w-[52px] h-[52px] rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 dark:from-amber-400 dark:to-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/25">
+                <span className="text-black font-extrabold text-lg tracking-tight">
+                  {client.firstName.charAt(0)}{client.lastName.charAt(0)}
+                </span>
+              </div>
+              <div>
+                <div className="flex items-center gap-2.5">
+                  <h1 className="text-xl font-bold text-foreground tracking-tight">
+                    {client.firstName} {client.lastName}
+                  </h1>
+                  {/* Status Indicator */}
+                  <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-lg shadow-emerald-400/50 animate-pulse" />
+                </div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-[11px] text-muted-foreground font-mono tracking-wide">
+                    Since {safeFormatDate(client.createdAt, "Unknown").replace(/\//g, ".")}
+                  </span>
+                  <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
+                  <span className="text-[10px] text-amber-500 dark:text-amber-400 font-mono font-semibold tracking-wide">
+                    ACTIVE
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setEditDialogOpen(true)}
-            className="gap-2 bg-transparent border-input hover:bg-card text-foreground"
-          >
-            <Edit className="w-4 h-4" />
-            Edit
-          </Button>
-          <label>
-            <input
-              type="file"
-              accept=".pdf"
-              onChange={handleFileUpload}
-              className="hidden"
-              disabled={uploading}
-            />
-            <Button asChild disabled={uploading} className="gap-2 bg-purple-600 hover:bg-purple-700">
-              <span>
-                {uploading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Upload className="w-4 h-4" />
-                )}
-                Upload Report
-              </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setEditDialogOpen(true)}
+              className="gap-2 bg-card/50 border-border hover:bg-card hover:border-border/80 text-muted-foreground hover:text-foreground text-sm"
+            >
+              <Edit className="w-3.5 h-3.5" />
+              Edit
             </Button>
-          </label>
-          <Button
-            variant="outline"
-            className="gap-2 text-red-400 border-red-500/30 hover:bg-red-500/10 hover:text-red-300 bg-transparent"
-            onClick={() => setDeleteDialogOpen(true)}
-          >
-            <Trash2 className="w-4 h-4" />
-            Delete
-          </Button>
+            <label>
+              <input
+                type="file"
+                accept=".pdf"
+                onChange={handleFileUpload}
+                className="hidden"
+                disabled={uploading}
+              />
+              <Button
+                asChild
+                disabled={uploading}
+                className="gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-semibold shadow-lg shadow-amber-500/20 hover:-translate-y-0.5 transition-all text-sm"
+              >
+                <span>
+                  {uploading ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Upload className="w-3.5 h-3.5" />
+                  )}
+                  Upload PDF
+                </span>
+              </Button>
+            </label>
+            <Button
+              variant="outline"
+              size="icon"
+              className="text-red-400 border-red-500/30 hover:bg-red-500/10 hover:text-red-300 bg-transparent"
+              onClick={() => setDeleteDialogOpen(true)}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
-      </div>
+      </Reveal>
 
-      {/* Summary Stats */}
+      {/* Summary Stats - Redesigned */}
       {summary && (
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-          <Card className="bg-card border-border">
-            <CardContent className="p-4 text-center">
-              <FileText className="w-6 h-6 mx-auto text-muted-foreground" />
-              <p className="text-2xl font-bold text-foreground mt-2">{summary.totalReports}</p>
-              <p className="text-xs text-muted-foreground">Reports</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-card border-border">
-            <CardContent className="p-4 text-center">
-              <User className="w-6 h-6 mx-auto text-muted-foreground" />
-              <p className="text-2xl font-bold text-foreground mt-2">{summary.totalAccounts}</p>
-              <p className="text-xs text-muted-foreground">Creditors</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-card border-border">
-            <CardContent className="p-4 text-center">
-              <AlertTriangle className="w-6 h-6 mx-auto text-amber-400" />
-              <p className="text-2xl font-bold text-amber-400 mt-2">{summary.negativeItems}</p>
-              <p className="text-xs text-muted-foreground">Negative Items</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-card border-border">
-            <CardContent className="p-4 text-center">
-              <ShieldAlert className="w-6 h-6 mx-auto text-red-400" />
-              <p className="text-2xl font-bold text-red-400 mt-2">{summary.highSeverityIssues}</p>
-              <p className="text-xs text-muted-foreground">High Severity</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-card border-border">
-            <CardContent className="p-4 text-center">
-              <Scale className="w-6 h-6 mx-auto text-muted-foreground" />
-              <p className="text-2xl font-bold text-foreground mt-2">{summary.totalDisputes}</p>
-              <p className="text-xs text-muted-foreground">Disputes</p>
-            </CardContent>
-          </Card>
-        </div>
+        <Reveal delay={150}>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <GlassCard className="p-4 text-center">
+              <div className="text-base opacity-30 mb-2 font-mono">◫</div>
+              <p className="text-2xl font-extrabold text-violet-400 leading-none">
+                <AnimNum value={summary.totalReports} delay={300} />
+              </p>
+              <p className="text-[9px] text-muted-foreground mt-2 tracking-[0.15em] uppercase font-mono">Reports</p>
+            </GlassCard>
+            <GlassCard className="p-4 text-center">
+              <div className="text-base opacity-30 mb-2 font-mono">⊞</div>
+              <p className="text-2xl font-extrabold text-foreground leading-none">
+                <AnimNum value={summary.totalAccounts} delay={370} />
+              </p>
+              <p className="text-[9px] text-muted-foreground mt-2 tracking-[0.15em] uppercase font-mono">Creditors</p>
+            </GlassCard>
+            <GlassCard className="p-4 text-center" glowColor="#fbbf24">
+              <div className="absolute top-0 left-0 right-0 h-[2px] opacity-50" style={{ background: "linear-gradient(90deg, transparent, #fbbf24, transparent)" }} />
+              <div className="text-base opacity-30 mb-2 font-mono">△</div>
+              <p className="text-2xl font-extrabold text-amber-400 leading-none">
+                <AnimNum value={summary.negativeItems} delay={440} />
+              </p>
+              <p className="text-[9px] text-muted-foreground mt-2 tracking-[0.15em] uppercase font-mono">Negative</p>
+            </GlassCard>
+            <GlassCard className="p-4 text-center" glowColor="#f43f5e">
+              <div className="absolute top-0 left-0 right-0 h-[2px] opacity-50" style={{ background: "linear-gradient(90deg, transparent, #f43f5e, transparent)" }} />
+              <div className="text-base opacity-30 mb-2 font-mono">⊘</div>
+              <p className="text-2xl font-extrabold text-rose-400 leading-none">
+                <AnimNum value={summary.highSeverityIssues} delay={510} />
+              </p>
+              <p className="text-[9px] text-muted-foreground mt-2 tracking-[0.15em] uppercase font-mono">High Severity</p>
+            </GlassCard>
+            <GlassCard className="p-4 text-center">
+              <div className="text-base opacity-30 mb-2 font-mono">⬡</div>
+              <p className="text-2xl font-extrabold text-muted-foreground leading-none">
+                <AnimNum value={summary.totalDisputes} delay={580} />
+              </p>
+              <p className="text-[9px] text-muted-foreground mt-2 tracking-[0.15em] uppercase font-mono">Disputes</p>
+            </GlassCard>
+          </div>
+        </Reveal>
       )}
 
-      {/* Contact Information */}
-      <Card className="bg-card border-border">
-        <CardContent className="p-6">
+      {/* Contact Information - Redesigned */}
+      <Reveal delay={250}>
+        <GlassCard className="p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-foreground">Contact Information</h2>
+            <span className="text-[10px] font-semibold tracking-[0.15em] text-muted-foreground font-mono uppercase">
+              Client Details
+            </span>
             <button
               onClick={() => setEditDialogOpen(true)}
-              className="p-2 hover:bg-muted rounded-lg transition-colors"
+              className="px-2.5 py-1 rounded-lg border border-border hover:border-muted-foreground/30 text-[10px] font-mono text-muted-foreground hover:text-foreground transition-all"
             >
-              <ExternalLink className="w-4 h-4 text-muted-foreground" />
+              EDIT
             </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="flex items-start gap-3">
-              <Mail className="w-4 h-4 text-muted-foreground mt-1" />
-              <div>
-                <p className="text-xs text-muted-foreground mb-0.5">Email</p>
-                <p className="text-foreground">{client.email || "Not provided"}</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <Phone className="w-4 h-4 text-muted-foreground mt-1" />
-              <div>
-                <p className="text-xs text-muted-foreground mb-0.5">Phone</p>
-                <p className="text-foreground">{client.phone || "Not provided"}</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <MapPin className="w-4 h-4 text-muted-foreground mt-1" />
-              <div>
-                <p className="text-xs text-muted-foreground mb-0.5">Address</p>
-                <p className="text-foreground">
-                  {client.addressLine1 ? (
-                    <>
-                      {client.addressLine1}
-                      {client.addressLine2 && <><br />{client.addressLine2}</>}
-                      <br />
-                      {client.city && `${client.city}, `}
-                      {client.state && `${client.state} `}
-                      {client.zipCode}
-                    </>
-                  ) : (
-                    "Not provided"
-                  )}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <Calendar className="w-4 h-4 text-muted-foreground mt-1" />
-              <div>
-                <p className="text-xs text-muted-foreground mb-0.5">Date of Birth</p>
-                <p className="text-foreground">
-                  {client.dateOfBirth
-                    ? safeFormatDate(client.dateOfBirth)
-                    : "Not provided"}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <Shield className="w-4 h-4 text-muted-foreground mt-1" />
-              <div>
-                <p className="text-xs text-muted-foreground mb-0.5">SSN Last 4</p>
+          <div className="space-y-0">
+            {[
+              { key: "Email", value: client.email || "Not provided" },
+              { key: "Phone", value: client.phone || "Not provided" },
+              { key: "Address", value: client.addressLine1
+                ? `${client.addressLine1}${client.city ? `, ${client.city}` : ""}${client.state ? ` ${client.state}` : ""} ${client.zipCode || ""}`
+                : "Not provided" },
+              { key: "DOB", value: client.dateOfBirth ? safeFormatDate(client.dateOfBirth) : "Not provided" },
+              { key: "SSN", value: client.ssnLast4
+                ? (showSSN ? `•••-••-${client.ssnLast4}` : "•••-••-••••")
+                : "Not provided",
+                showToggle: !!client.ssnLast4 },
+            ].map((item, i) => (
+              <div
+                key={item.key}
+                className={`flex justify-between items-center py-3 ${i > 0 ? "border-t border-border" : ""}`}
+              >
+                <span className="text-[11px] text-muted-foreground font-mono tracking-wide w-16 flex-shrink-0">
+                  {item.key}
+                </span>
                 <div className="flex items-center gap-2">
-                  <p className="text-foreground font-mono">
-                    {client.ssnLast4
-                      ? showSSN
-                        ? `***-**-${client.ssnLast4}`
-                        : "•••-••-••••"
-                      : "Not provided"}
-                  </p>
-                  {client.ssnLast4 && (
+                  <span className="text-[13px] text-muted-foreground text-right">
+                    {item.key === "SSN" ? (
+                      <span className="font-mono">{item.value}</span>
+                    ) : (
+                      item.value
+                    )}
+                  </span>
+                  {item.showToggle && (
                     <button
                       onClick={() => setShowSSN(!showSSN)}
-                      className="p-1.5 rounded-md hover:bg-muted transition-colors"
-                      title={showSSN ? "Hide last 4" : "Show last 4"}
+                      className="p-1 rounded hover:bg-muted transition-colors"
                     >
                       {showSSN ? (
-                        <EyeOff className="w-3.5 h-3.5 text-muted-foreground hover:text-muted-foreground" />
+                        <EyeOff className="w-3 h-3 text-muted-foreground" />
                       ) : (
-                        <Eye className="w-3.5 h-3.5 text-muted-foreground hover:text-muted-foreground" />
+                        <Eye className="w-3 h-3 text-muted-foreground" />
                       )}
                     </button>
                   )}
                 </div>
               </div>
-            </div>
+            ))}
           </div>
-        </CardContent>
-      </Card>
+        </GlassCard>
+      </Reveal>
 
-      {/* Tabs */}
-      <Tabs defaultValue="negative" className="flex-1 flex flex-col min-h-0">
-        <TabsList className="bg-card border border-border p-1 flex-shrink-0">
-          <TabsTrigger value="negative" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <AlertTriangle className="w-4 h-4" />
-            Negative Items ({summary?.negativeItems || 0})
-          </TabsTrigger>
-          <TabsTrigger value="reports" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <FileText className="w-4 h-4" />
-            Reports ({client.reports.length})
-          </TabsTrigger>
-          <TabsTrigger value="disputes" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <Scale className="w-4 h-4" />
-            Disputes ({client.disputes.length})
-          </TabsTrigger>
-          <TabsTrigger value="scores" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <TrendingUp className="w-4 h-4" />
-            Credit Scores
-          </TabsTrigger>
-          <TabsTrigger value="dna" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <Dna className="w-4 h-4" />
-            Credit DNA
-          </TabsTrigger>
-          <TabsTrigger value="readiness" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <Target className="w-4 h-4" />
-            Readiness
-          </TabsTrigger>
-          <TabsTrigger value="litigation" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <Scale className="w-4 h-4" />
-            Litigation
-          </TabsTrigger>
-        </TabsList>
+      {/* Tabs - Redesigned */}
+      <Reveal delay={300}>
+        <Tabs defaultValue="overview" className="flex-1 flex flex-col min-h-0">
+          <TabsList className="bg-transparent border-b border-border p-0 h-auto flex-shrink-0 gap-0.5 overflow-x-auto">
+            <TabsTrigger
+              value="overview"
+              className="gap-1.5 px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-amber-500 dark:data-[state=active]:border-amber-400 data-[state=active]:text-amber-600 dark:data-[state=active]:text-amber-400 data-[state=active]:bg-amber-500/10 text-muted-foreground hover:text-foreground text-sm font-medium transition-all -mb-px"
+            >
+              <span className="opacity-40 text-xs">◎</span>
+              Overview
+            </TabsTrigger>
+            <TabsTrigger
+              value="negative"
+              className="gap-1.5 px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-amber-500 dark:data-[state=active]:border-amber-400 data-[state=active]:text-amber-600 dark:data-[state=active]:text-amber-400 data-[state=active]:bg-amber-500/10 text-muted-foreground hover:text-foreground text-sm font-medium transition-all -mb-px"
+            >
+              <span className="opacity-40 text-xs">△</span>
+              Negative Items
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-muted data-[state=active]:bg-amber-500/20 font-mono">
+                {summary?.negativeItems || 0}
+              </span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="reports"
+              className="gap-1.5 px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-amber-500 dark:data-[state=active]:border-amber-400 data-[state=active]:text-amber-600 dark:data-[state=active]:text-amber-400 data-[state=active]:bg-amber-500/10 text-muted-foreground hover:text-foreground text-sm font-medium transition-all -mb-px"
+            >
+              <span className="opacity-40 text-xs">◫</span>
+              Reports
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-muted data-[state=active]:bg-amber-500/20 font-mono">
+                {client.reports.length}
+              </span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="disputes"
+              className="gap-1.5 px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-amber-500 dark:data-[state=active]:border-amber-400 data-[state=active]:text-amber-600 dark:data-[state=active]:text-amber-400 data-[state=active]:bg-amber-500/10 text-muted-foreground hover:text-foreground text-sm font-medium transition-all -mb-px"
+            >
+              <span className="opacity-40 text-xs">⬡</span>
+              Disputes
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-muted data-[state=active]:bg-amber-500/20 font-mono">
+                {client.disputes.length}
+              </span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="scores"
+              className="gap-1.5 px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-amber-500 dark:data-[state=active]:border-amber-400 data-[state=active]:text-amber-600 dark:data-[state=active]:text-amber-400 data-[state=active]:bg-amber-500/10 text-muted-foreground hover:text-foreground text-sm font-medium transition-all -mb-px"
+            >
+              <span className="opacity-40 text-xs">◉</span>
+              Scores
+            </TabsTrigger>
+            <TabsTrigger
+              value="dna"
+              className="gap-1.5 px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-amber-500 dark:data-[state=active]:border-amber-400 data-[state=active]:text-amber-600 dark:data-[state=active]:text-amber-400 data-[state=active]:bg-amber-500/10 text-muted-foreground hover:text-foreground text-sm font-medium transition-all -mb-px"
+            >
+              <span className="opacity-40 text-xs">❖</span>
+              Credit DNA
+            </TabsTrigger>
+            <TabsTrigger
+              value="readiness"
+              className="gap-1.5 px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-amber-500 dark:data-[state=active]:border-amber-400 data-[state=active]:text-amber-600 dark:data-[state=active]:text-amber-400 data-[state=active]:bg-amber-500/10 text-muted-foreground hover:text-foreground text-sm font-medium transition-all -mb-px"
+            >
+              <span className="opacity-40 text-xs">◈</span>
+              Readiness
+            </TabsTrigger>
+            <TabsTrigger
+              value="litigation"
+              className="gap-1.5 px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-amber-500 dark:data-[state=active]:border-amber-400 data-[state=active]:text-amber-600 dark:data-[state=active]:text-amber-400 data-[state=active]:bg-amber-500/10 text-muted-foreground hover:text-foreground text-sm font-medium transition-all -mb-px"
+            >
+              <span className="opacity-40 text-xs">⚖</span>
+              Litigation
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Overview Tab - NEW */}
+          <TabsContent value="overview" className="mt-6 flex-1 overflow-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Credit Pulse - Left side with scores */}
+              <GlassCard className="p-6" glowColor="#fbbf24">
+                <div className="flex flex-col h-full">
+                  <div className="text-[10px] font-semibold tracking-[0.15em] text-muted-foreground font-mono mb-4">
+                    CREDIT PULSE
+                  </div>
+                  <div className="flex items-baseline gap-3 mb-6">
+                    <span className="text-5xl font-extrabold text-amber-500 dark:text-amber-400 leading-none">
+                      <AnimNum
+                        value={scoreStats?.latest ? Math.round(Object.values(scoreStats.latest).reduce((a, b) => a + b, 0) / Object.values(scoreStats.latest).length) : 0}
+                        delay={400}
+                      />
+                    </span>
+                    <span className="text-sm text-muted-foreground font-mono">avg score</span>
+                  </div>
+                  {/* Bureau mini scores */}
+                  <div className="flex gap-4 mb-6">
+                    {scoreStats?.latest && Object.entries(scoreStats.latest).map(([bureau, score], i) => (
+                      <div key={bureau} className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${
+                          bureau === "TRANSUNION" ? "bg-cyan-400" :
+                          bureau === "EXPERIAN" ? "bg-violet-400" :
+                          "bg-rose-400"
+                        }`} />
+                        <span className="text-[11px] text-muted-foreground font-mono">{bureau.slice(0, 2)}</span>
+                        <span className={`text-sm font-bold ${
+                          score < 580 ? "text-red-400" :
+                          score < 670 ? "text-amber-400" :
+                          score < 740 ? "text-emerald-400" :
+                          "text-cyan-400"
+                        }`}>{score}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Health metrics */}
+                  <div className="flex gap-2 flex-wrap mt-auto">
+                    {dnaProfile && [
+                      { label: "Health", value: dnaProfile.overallHealthScore, color: "#06b6d4" },
+                      { label: "Potential", value: dnaProfile.improvementPotential, color: "#34d399" },
+                      { label: "Urgency", value: dnaProfile.urgencyScore, color: "#fbbf24" },
+                    ].map((m, i) => (
+                      <div key={m.label} className="flex items-center gap-2 px-3 py-2 bg-card/50 dark:bg-white/[0.03] rounded-xl border border-border">
+                        <ProgressRing value={m.value} max={100} size={32} strokeWidth={2.5} color={m.color} delay={600 + i * 150} />
+                        <div>
+                          <div className="text-[9px] text-muted-foreground font-mono tracking-wide">{m.label}</div>
+                          <div className="text-sm font-bold" style={{ color: m.color }}>{m.value}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </GlassCard>
+
+              {/* Orbital Viz - Right side */}
+              <GlassCard className="p-0 flex items-center justify-center min-h-[360px]">
+                <OrbitalViz
+                  scores={scoreStats?.latest ? Object.entries(scoreStats.latest).map(([bureau, score]) => ({
+                    bureau: bureau.toUpperCase(),
+                    score
+                  })) : [
+                    { bureau: "TRANSUNION", score: 0 },
+                    { bureau: "EXPERIAN", score: 0 },
+                    { bureau: "EQUIFAX", score: 0 }
+                  ]}
+                  delay={300}
+                />
+              </GlassCard>
+
+              {/* DNA Snapshot */}
+              {dnaProfile && (
+                <GlassCard className="p-5 lg:col-span-2">
+                  <div className="text-[10px] font-semibold tracking-[0.15em] text-muted-foreground font-mono mb-4">
+                    CREDIT DNA
+                  </div>
+                  <div className="flex items-center gap-4 p-3 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/5 border border-emerald-500/20 mb-4">
+                    <span className="text-2xl">🧬</span>
+                    <div>
+                      <div className="text-lg font-bold text-emerald-500 dark:text-emerald-400">
+                        {getDNAClassificationLabel(dnaProfile.classification)}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {getDNAClassificationDescription(dnaProfile.classification)}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {[
+                      { label: "File Thickness", badge: dnaProfile.fileThickness.thickness.replace("_", " "), color: "#06b6d4" },
+                      { label: "Derogatory", badge: dnaProfile.derogatoryProfile.severity, color: "#ef4444" },
+                      { label: "Utilization", badge: dnaProfile.utilization.status, color: "#34d399" },
+                      { label: "Inquiries", badge: dnaProfile.inquiryAnalysis.status, color: "#fbbf24" },
+                      { label: "Positive", badge: dnaProfile.positiveFactors.strength, color: "#34d399" },
+                      { label: "Dispute Ready", badge: dnaProfile.disputeReadiness.complexity.replace("_", " "), color: "#f43f5e" },
+                    ].map((d) => (
+                      <div key={d.label} className="flex justify-between items-center p-2.5 rounded-lg bg-card/50 dark:bg-white/[0.02] border border-border">
+                        <span className="text-[11px] text-muted-foreground">{d.label}</span>
+                        <span className="text-[9px] font-bold tracking-wider font-mono" style={{ color: d.color }}>
+                          {d.badge}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </GlassCard>
+              )}
+            </div>
+          </TabsContent>
 
         {/* Negative Items Tab */}
         <TabsContent value="negative" className="mt-4 flex-1 overflow-auto">
@@ -1810,7 +1951,8 @@ export default function ClientDetailPage() {
             </Link>
           </div>
         </TabsContent>
-      </Tabs>
+        </Tabs>
+      </Reveal>
 
       {/* Add Score Modal */}
       <AddScoreModal
