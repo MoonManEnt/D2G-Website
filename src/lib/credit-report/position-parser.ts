@@ -747,10 +747,9 @@ export function parseInquiries(
 
   log.info({ inquiryStart, inquiryEnd }, "Found inquiry section");
 
-  // Pattern for inquiry lines: CREDITOR NAME followed by dates
-  // Dates can appear in any of the three bureau columns
-  const datePattern = /\b(\d{1,2}\/\d{1,2}\/\d{4})\b/g;
-  const bureaus: Bureau[] = ["TRANSUNION", "EXPERIAN", "EQUIFAX"];
+  // IdentityIQ inquiries can be in two formats:
+  // Format 1 (table): CREDITOR | Type | Date | Bureau (bureau name at end)
+  // Format 2 (3-col): CREDITOR with dates in TransUnion/Experian/Equifax columns
 
   for (let i = inquiryStart + 1; i < inquiryEnd; i++) {
     const line = lines[i];
@@ -758,21 +757,77 @@ export function parseInquiries(
     // Skip empty lines and headers
     if (!line.trim() || /^[-=\s]+$/.test(line)) continue;
     if (/TransUnion\s+Experian\s+Equifax/i.test(line)) continue;
+    if (/Creditor\s+Name|Type\s+of\s+Business|Date\s+of|Credit\s+Bureau/i.test(line)) continue;
 
-    // Look for creditor name at start of line
+    // Try Format 1: Table with bureau name at end
+    // Pattern: CREDITOR NAME ... DATE ... BUREAU_NAME
+    const tableMatch = line.match(
+      /^([A-Z][A-Z0-9\s\/&'.,\-]+?)\s+(?:[A-Za-z\s,]+\s+)?(\d{1,2}\/\d{1,2}\/\d{2,4})\s+(?:.*\s+)?(TransUnion|Experian|Equifax)\s*$/i
+    );
+
+    if (tableMatch) {
+      const creditorName = tableMatch[1].trim().toUpperCase();
+      const dateStr = tableMatch[2];
+      const bureauName = tableMatch[3].toUpperCase();
+
+      // Skip if it's a section header
+      if (/^(INQUIR|CREDIT|TOTAL|SOFT|HARD)/i.test(creditorName)) continue;
+
+      const parsedDate = parseDate(dateStr);
+      if (parsedDate && creditorName.length >= 3) {
+        const bureau: Bureau = bureauName === "TRANSUNION" ? "TRANSUNION" :
+                               bureauName === "EXPERIAN" ? "EXPERIAN" : "EQUIFAX";
+        inquiries.push({
+          inquirerName: creditorName,
+          inquiryDate: parsedDate,
+          inquiryType: "HARD",
+          bureau,
+        });
+        continue;
+      }
+    }
+
+    // Try alternate table format: look for bureau at end with date before it
+    const altMatch = line.match(
+      /^(.+?)\s+(\d{1,2}\/\d{1,2}\/\d{2,4})\s+(TransUnion|Experian|Equifax)\s*$/i
+    );
+
+    if (altMatch) {
+      let creditorName = altMatch[1].trim().toUpperCase();
+      // Remove business type if present (usually after hyphen or multiple spaces)
+      creditorName = creditorName.replace(/\s{2,}.*$/, "").replace(/\s+-\s+.*$/, "");
+      const dateStr = altMatch[2];
+      const bureauName = altMatch[3].toUpperCase();
+
+      if (/^(INQUIR|CREDIT|TOTAL|SOFT|HARD|CREDITOR)/i.test(creditorName)) continue;
+
+      const parsedDate = parseDate(dateStr);
+      if (parsedDate && creditorName.length >= 3) {
+        const bureau: Bureau = bureauName === "TRANSUNION" ? "TRANSUNION" :
+                               bureauName === "EXPERIAN" ? "EXPERIAN" : "EQUIFAX";
+        inquiries.push({
+          inquirerName: creditorName,
+          inquiryDate: parsedDate,
+          inquiryType: "HARD",
+          bureau,
+        });
+        continue;
+      }
+    }
+
+    // Try Format 2: 3-column layout with dates in bureau columns
     const creditorMatch = line.match(/^([A-Z][A-Z0-9\s\/&'.,\-]+?)(?=\s+\d{1,2}\/|\s{3,}|\s*$)/i);
     if (!creditorMatch) continue;
 
     const creditorName = creditorMatch[1].trim().toUpperCase();
-
-    // Skip if it's a section header or too short
     if (creditorName.length < 3) continue;
     if (/^(INQUIR|CREDIT|TRANSUNION|EXPERIAN|EQUIFAX|TOTAL|SOFT|HARD)/i.test(creditorName)) continue;
 
     // Extract values for each bureau column
+    const bureaus: Bureau[] = ["TRANSUNION", "EXPERIAN", "EQUIFAX"];
     for (const bureau of bureaus) {
       const value = extractColumnValue(line, boundaries, bureau);
-      const dateMatch = value.match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
+      const dateMatch = value.match(/(\d{1,2}\/\d{1,2}\/\d{2,4})/);
 
       if (dateMatch) {
         const parsedDate = parseDate(dateMatch[1]);

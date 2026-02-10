@@ -12,7 +12,15 @@ import { parseWithAI, parseWithAIChunked } from "./ai-parser";
 import { detectReportFormat, type ReportFormat } from "./format-detector";
 import { analyzeForIssues, getIssueSummary, type DetectedIssue } from "./issue-analyzer";
 import { validateParsedReport, calculateConfidence, type ValidationResult } from "./validation";
-import type { ParsedCreditReport } from "./extraction-schema";
+import type { ParsedCreditReport, CreditAccount, CreditInquiry, Bureau, AccountType, AccountStatus } from "./extraction-schema";
+import {
+  parseWithPositions,
+  isIdentityIQFormat,
+  type PositionParsedAccount,
+  type PositionParseResult,
+  type BureauValue,
+  type ParsedInquiry,
+} from "./position-parser";
 import { createLogger } from "../logger";
 const log = createLogger("unified-parser");
 
@@ -224,18 +232,48 @@ export async function parseCreditReport(
 
     // Detect report format
     const formatDetection = detectReportFormat(extractedText);
+    const isIdentityIQ = formatDetection.format === "IDENTITY_IQ" || isIdentityIQFormat(extractedText);
+
     log.info({
       format: formatDetection.format,
       confidence: formatDetection.confidence,
+      isIdentityIQ,
     }, "Report format detected");
 
-    // Parse with AI
-    if (!preferAI) {
-      // Future: Could add regex fallback here
+    // For IdentityIQ reports, use position-based parsing for accurate per-bureau data
+    let positionParseResult: PositionParseResult | null = null;
+    let positionAccounts: CreditAccount[] = [];
+    let positionInquiries: CreditInquiry[] = [];
+
+    if (isIdentityIQ) {
+      log.info("Using position-based parsing for IdentityIQ format");
+      try {
+        positionParseResult = await parseWithPositions(extractedText);
+        if (positionParseResult.success) {
+          if (positionParseResult.accounts.length > 0) {
+            positionAccounts = convertPositionAccountsToCreditAccounts(positionParseResult.accounts);
+          }
+          if (positionParseResult.inquiries.length > 0) {
+            positionInquiries = convertPositionInquiriesToCreditInquiries(positionParseResult.inquiries);
+          }
+          log.info({
+            positionAccountBlocks: positionParseResult.accounts.length,
+            creditAccounts: positionAccounts.length,
+            positionInquiries: positionInquiries.length,
+            validationValid: positionParseResult.validationResult.isValid,
+          }, "Position parsing complete");
+        }
+      } catch (posError) {
+        log.warn({ err: posError }, "Position parsing failed, falling back to AI only");
+      }
+    }
+
+    // Also run AI parsing (provides consumer info, inquiries, and fills gaps)
+    if (!preferAI && positionAccounts.length === 0) {
       return createFailedResult("AI_REQUIRED", "Non-AI parsing not yet implemented", startTime);
     }
 
-    const parseResult = await parseWithAIChunked({
+    const aiParseResult = await parseWithAIChunked({
       rawText: extractedText,
       reportFormat: formatDetection.format,
       organizationId,
@@ -245,9 +283,48 @@ export async function parseCreditReport(
     });
 
     log.info({
+      aiAccountCount: aiParseResult.accounts.length,
+      inquiryCount: aiParseResult.inquiries.length,
+    }, "AI parsing complete");
+
+    // Merge results: position-parsed data takes priority for IdentityIQ
+    let finalAccounts: CreditAccount[];
+    let finalInquiries: CreditInquiry[];
+
+    if (positionAccounts.length > 0) {
+      finalAccounts = mergeAccountSources(positionAccounts, aiParseResult.accounts);
+      warnings.push(`Used position-based parsing for ${positionAccounts.length} account entries across bureaus`);
+    } else {
+      finalAccounts = aiParseResult.accounts;
+    }
+
+    if (positionInquiries.length > 0) {
+      finalInquiries = mergeInquirySources(positionInquiries, aiParseResult.inquiries);
+      warnings.push(`Used position-based parsing for ${positionInquiries.length} inquiries`);
+    } else {
+      finalInquiries = aiParseResult.inquiries;
+    }
+
+    // Build final parse result
+    const parseResult: ParsedCreditReport = {
+      consumer: aiParseResult.consumer,
+      bureaus: aiParseResult.bureaus,
+      accounts: finalAccounts,
+      inquiries: finalInquiries,
+      publicRecords: aiParseResult.publicRecords,
+      metadata: {
+        ...aiParseResult.metadata,
+        parseConfidence: positionAccounts.length > 0
+          ? Math.max(aiParseResult.metadata.parseConfidence, 0.85)
+          : aiParseResult.metadata.parseConfidence,
+      },
+    };
+
+    log.info({
       accountCount: parseResult.accounts.length,
       inquiryCount: parseResult.inquiries.length,
-    }, "AI parsing complete");
+      usedPositionParsing: positionAccounts.length > 0,
+    }, "Parsing complete");
 
     // Validate the parsed report
     const validation = validateParsedReport(parseResult);
@@ -305,6 +382,188 @@ export async function parseCreditReport(
 
     return createFailedResult("PARSE_ERROR", errorMessage, startTime, warnings);
   }
+}
+
+/**
+ * Convert PositionParsedAccount (with per-bureau BureauValue fields) to CreditAccount[] array.
+ * Creates one CreditAccount per bureau that has data.
+ */
+function convertPositionAccountsToCreditAccounts(
+  positionAccounts: PositionParsedAccount[]
+): CreditAccount[] {
+  const accounts: CreditAccount[] = [];
+  const bureaus: Bureau[] = ["TRANSUNION", "EXPERIAN", "EQUIFAX"];
+
+  for (const posAccount of positionAccounts) {
+    for (const bureau of bureaus) {
+      // Check if this bureau has meaningful data (at least account number or balance)
+      const hasData =
+        posAccount.accountNumber[bureau] ||
+        posAccount.balance[bureau] !== null ||
+        posAccount.accountStatus[bureau] ||
+        posAccount.paymentStatus[bureau] ||
+        posAccount.highBalance[bureau] !== null;
+
+      if (!hasData) continue;
+
+      // Map account type
+      const rawType = posAccount.accountType[bureau] || "";
+      let accountType: AccountType = "OTHER";
+      if (/credit\s*card|revolving|visa|mastercard|amex/i.test(rawType)) {
+        accountType = "CREDIT_CARD";
+      } else if (/install/i.test(rawType)) {
+        accountType = "INSTALLMENT";
+      } else if (/mortgage|home\s*loan/i.test(rawType)) {
+        accountType = "MORTGAGE";
+      } else if (/auto|car|vehicle/i.test(rawType)) {
+        accountType = "AUTO_LOAN";
+      } else if (/student/i.test(rawType)) {
+        accountType = "STUDENT_LOAN";
+      } else if (/collect/i.test(rawType)) {
+        accountType = "COLLECTION";
+      } else if (/medical/i.test(rawType)) {
+        accountType = "MEDICAL";
+      }
+
+      // Map account status
+      const rawStatus = posAccount.accountStatus[bureau] || posAccount.paymentStatus[bureau] || "";
+      let accountStatus: AccountStatus = "UNKNOWN";
+      if (/charge[\s-]*off/i.test(rawStatus)) {
+        accountStatus = "CHARGE_OFF";
+      } else if (/collect/i.test(rawStatus)) {
+        accountStatus = "COLLECTION";
+      } else if (/foreclos/i.test(rawStatus)) {
+        accountStatus = "FORECLOSURE";
+      } else if (/repos/i.test(rawStatus)) {
+        accountStatus = "REPOSSESSION";
+      } else if (/transfer/i.test(rawStatus)) {
+        accountStatus = "TRANSFERRED";
+      } else if (/defer/i.test(rawStatus)) {
+        accountStatus = "DEFERRED";
+      } else if (/closed/i.test(rawStatus)) {
+        accountStatus = "CLOSED";
+      } else if (/paid/i.test(rawStatus)) {
+        accountStatus = "PAID";
+      } else if (/open|current|as\s*agreed/i.test(rawStatus)) {
+        accountStatus = "OPEN";
+      } else if (/delinq|late|past\s*due/i.test(rawStatus)) {
+        // Delinquent accounts are still open but with issues
+        accountStatus = "OPEN";
+      }
+
+      // Build payment history array
+      const paymentHistory = posAccount.paymentHistory[bureau] || [];
+
+      // Detect issues from payment status
+      const paymentStatusRaw = posAccount.paymentStatus[bureau] || "";
+      const hasLatePayments = /late|30|60|90|120|150|180/i.test(paymentStatusRaw);
+
+      // Create the CreditAccount entry
+      const creditAccount: CreditAccount = {
+        id: `pos-${posAccount.creditorName.replace(/\s+/g, "-")}-${bureau}-${posAccount.sequenceIndex}`,
+        creditorName: posAccount.creditorName,
+        accountNumber: posAccount.accountNumber[bureau] || "****",
+        accountType,
+        accountStatus,
+        bureau,
+        balance: posAccount.balance[bureau] ?? undefined,
+        creditLimit: posAccount.creditLimit[bureau] ?? undefined,
+        highBalance: posAccount.highBalance[bureau] ?? undefined,
+        pastDue: posAccount.pastDue[bureau] ?? undefined,
+        monthlyPayment: posAccount.monthlyPayment[bureau] ?? undefined,
+        dateOpened: posAccount.dateOpened[bureau] ?? undefined,
+        dateReported: posAccount.dateReported[bureau] ?? undefined,
+        lastActivityDate: posAccount.lastActivityDate[bureau] ?? undefined,
+        paymentStatus: posAccount.paymentStatus[bureau] ?? undefined,
+        paymentHistory: paymentHistory.length > 0 ? paymentHistory : undefined,
+        responsibility: posAccount.responsibility[bureau] ?? undefined,
+        comments: posAccount.comments[bureau] ?? undefined,
+        // Enhanced fields
+        dateOfFirstDelinquency: posAccount.dateOfFirstDelinquency[bureau] ?? undefined,
+        bureauCode: posAccount.bureauCode[bureau] ?? undefined,
+        sequenceIndex: posAccount.sequenceIndex,
+        extractionConfidence: 0.9, // Position parsing is high confidence
+        fingerprint: `${posAccount.creditorName}:${posAccount.accountNumber[bureau] || ""}:${bureau}:${posAccount.sequenceIndex}`,
+      };
+
+      accounts.push(creditAccount);
+    }
+  }
+
+  log.info({ positionAccounts: positionAccounts.length, creditAccounts: accounts.length }, "Converted position accounts");
+  return accounts;
+}
+
+/**
+ * Merge position-parsed accounts with AI-parsed accounts.
+ * Position parser provides accurate per-bureau data, AI parser fills gaps.
+ */
+function mergeAccountSources(
+  positionAccounts: CreditAccount[],
+  aiAccounts: CreditAccount[]
+): CreditAccount[] {
+  // Start with position-parsed accounts (more accurate for IdentityIQ)
+  const merged = [...positionAccounts];
+  const positionKeys = new Set(
+    positionAccounts.map((a) => `${a.creditorName.toUpperCase()}:${a.bureau}`)
+  );
+
+  // Add AI accounts that aren't already covered by position parsing
+  for (const aiAccount of aiAccounts) {
+    const key = `${aiAccount.creditorName.toUpperCase()}:${aiAccount.bureau}`;
+    if (!positionKeys.has(key)) {
+      merged.push(aiAccount);
+    }
+  }
+
+  log.info(
+    { position: positionAccounts.length, ai: aiAccounts.length, merged: merged.length },
+    "Merged account sources"
+  );
+  return merged;
+}
+
+/**
+ * Convert position-parsed inquiries to CreditInquiry format.
+ */
+function convertPositionInquiriesToCreditInquiries(
+  positionInquiries: ParsedInquiry[]
+): CreditInquiry[] {
+  return positionInquiries.map((inquiry) => ({
+    inquirerName: inquiry.inquirerName,
+    inquiryDate: inquiry.inquiryDate,
+    inquiryType: inquiry.inquiryType,
+    bureau: inquiry.bureau,
+  }));
+}
+
+/**
+ * Merge position-parsed inquiries with AI-parsed inquiries.
+ * Position parser provides accurate per-bureau inquiry data.
+ */
+function mergeInquirySources(
+  positionInquiries: CreditInquiry[],
+  aiInquiries: CreditInquiry[]
+): CreditInquiry[] {
+  // Start with position-parsed inquiries (more accurate for 3-column format)
+  const merged = [...positionInquiries];
+  const positionKeys = new Set(
+    positionInquiries.map((i) => `${i.inquirerName.toUpperCase()}:${i.inquiryDate}:${i.bureau}`)
+  );
+
+  // Add AI inquiries that aren't already covered
+  for (const aiInquiry of aiInquiries) {
+    const key = `${aiInquiry.inquirerName.toUpperCase()}:${aiInquiry.inquiryDate}:${aiInquiry.bureau}`;
+    if (!positionKeys.has(key)) {
+      merged.push(aiInquiry);
+    }
+  }
+
+  log.info(
+    { position: positionInquiries.length, ai: aiInquiries.length, merged: merged.length },
+    "Merged inquiry sources"
+  );
+  return merged;
 }
 
 /**

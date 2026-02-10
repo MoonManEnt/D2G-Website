@@ -61,6 +61,29 @@ IMPORTANT FOR IDENTITYIQ 3-BUREAU REPORTS:
 - Payment history shows codes like "OK", "30", "60", "90", "120" - extract ALL of them
 - Account status can be: CURRENT, PAID, CLOSED, CHARGE OFF, COLLECTION, etc.
 - Look for "Date of First Delinquency" (DOFD) for collections
+
+PER-BUREAU DATA EXTRACTION (CRITICAL):
+For EACH account, extract these fields FOR EACH BUREAU that has data:
+- Account #: The masked account number (e.g., "8A5799****")
+- Account Type: Credit Card, Installment, Mortgage, Collection, etc.
+- Account Status: Open, Closed, Paid, Charge Off, etc.
+- Balance: Current balance amount ($0.00 is valid data, don't skip it)
+- High Credit/High Balance: The highest balance or credit limit used
+- Credit Limit: The credit limit if applicable
+- Past Due: Amount past due
+- Payment Status: Current, Late 30/60/90/120 Days, etc.
+- Date Opened: When the account was opened
+- Date Reported: When last reported to bureau
+
+EXAMPLE - For an account "AUSTINCAPBK" showing:
+  TransUnion column: Account Status: Closed, Balance: $0, High Credit: $5,000, Payment Status: Late 60 Days
+  Experian column: Account Status: Paid, Balance: $0, High Credit: $5,000, Payment Status: Late 60 Days
+  Equifax column: - (no data)
+
+Create TWO account objects:
+1. { creditorName: "AUSTINCAPBK", bureau: "TRANSUNION", accountStatus: "CLOSED", balance: 0, highBalance: 5000, paymentStatus: "Late 60 Days" }
+2. { creditorName: "AUSTINCAPBK", bureau: "EXPERIAN", accountStatus: "PAID", balance: 0, highBalance: 5000, paymentStatus: "Late 60 Days" }
+DO NOT create a third object for Equifax since it shows "-" (no data).
 `;
 }
 
