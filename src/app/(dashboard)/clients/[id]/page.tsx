@@ -468,6 +468,11 @@ export default function ClientDetailPage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [showSSN, setShowSSN] = useState(true); // Default to showing last 4
 
+  // Report deletion state
+  const [deleteReportDialogOpen, setDeleteReportDialogOpen] = useState(false);
+  const [reportToDelete, setReportToDelete] = useState<{ id: string; filename: string } | null>(null);
+  const [deletingReport, setDeletingReport] = useState(false);
+
   const fetchClient = useCallback(async () => {
     try {
       const res = await fetch(`/api/clients/${clientId}`, { cache: "no-store" });
@@ -751,6 +756,45 @@ export default function ClientDetailPage() {
       setDeleting(false);
       setDeleteDialogOpen(false);
       setDeleteConfirmText("");
+    }
+  };
+
+  const handleDeleteReport = async () => {
+    if (!reportToDelete) return;
+
+    setDeletingReport(true);
+    try {
+      const res = await fetch(`/api/reports/${reportToDelete.id}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        toast({
+          title: "Report Deleted",
+          description: "The report and its associated accounts have been removed.",
+        });
+        // Refresh client data to update negative items and reports list
+        fetchClient();
+        fetchCreditScores();
+        fetchDNA();
+      } else {
+        const data = await res.json();
+        toast({
+          title: "Delete Failed",
+          description: data.error || "Could not delete report",
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingReport(false);
+      setDeleteReportDialogOpen(false);
+      setReportToDelete(null);
     }
   };
 
@@ -1189,6 +1233,20 @@ export default function ClientDetailPage() {
                                   Download
                                 </Button>
                               )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1.5 bg-transparent border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                                onClick={() => {
+                                  setReportToDelete({
+                                    id: report.id,
+                                    filename: report.originalFile?.filename || "Credit Report",
+                                  });
+                                  setDeleteReportDialogOpen(true);
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
                             </div>
                           </div>
                         </CardContent>
@@ -1947,6 +2005,65 @@ export default function ClientDetailPage() {
                 <>
                   <Trash2 className="w-4 h-4 mr-2" />
                   Delete Client
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Report Confirmation Dialog */}
+      <Dialog open={deleteReportDialogOpen} onOpenChange={(open) => {
+        setDeleteReportDialogOpen(open);
+        if (!open) setReportToDelete(null);
+      }}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="text-foreground flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-red-400" />
+              Delete Report
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Are you sure you want to delete this report? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+              <p className="text-red-400 text-sm font-medium">
+                {reportToDelete?.filename}
+              </p>
+              <p className="text-red-400/80 text-sm mt-2">
+                Deleting this report will also remove all parsed accounts and data associated with it.
+                The Negative Items list will update to reflect remaining reports.
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setDeleteReportDialogOpen(false);
+                setReportToDelete(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteReport}
+              disabled={deletingReport}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deletingReport ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Report
                 </>
               )}
             </Button>
