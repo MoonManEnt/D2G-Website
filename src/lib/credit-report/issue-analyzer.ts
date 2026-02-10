@@ -292,6 +292,114 @@ const ACCOUNT_ISSUE_RULES: IssueRule[] = [
     recommendedAction: "Dispute inaccurate payment history",
   },
 
+  // Late payments on open accounts (derogatory but account still open)
+  {
+    code: "LATE002",
+    category: "ACCURACY",
+    severity: "HIGH",
+    title: "Derogatory Late Payments",
+    statute: "15 USC 1681e(b)",
+    check: (account) => {
+      // Check for late payments (30, 60, 90, 120+ days) in payment history
+      if (!account.paymentHistory) return false;
+
+      const lateCodes = ["30", "60", "90", "120", "150", "180", "CO"];
+      const lateEntries = account.paymentHistory.filter((p) => {
+        const code = typeof p === "string" ? p : p.status;
+        return lateCodes.includes(code);
+      });
+
+      // Flag if there are any 60+ day late payments
+      const serious = lateEntries.some((p) => {
+        const code = typeof p === "string" ? p : p.status;
+        return ["60", "90", "120", "150", "180", "CO"].includes(code);
+      });
+
+      return serious;
+    },
+    getDescription: (account) => {
+      const lateCodes = ["30", "60", "90", "120", "150", "180", "CO"];
+      const lateCount = account.paymentHistory?.filter((p) => {
+        const code = typeof p === "string" ? p : p.status;
+        return lateCodes.includes(code);
+      }).length || 0;
+
+      const worstLate = account.paymentHistory?.reduce((worst, p) => {
+        const code = typeof p === "string" ? p : p.status;
+        const codeNum = code === "CO" ? 180 : parseInt(code) || 0;
+        return Math.max(worst, codeNum);
+      }, 0) || 0;
+
+      return `Account has ${lateCount} late payment(s) including ${worstLate === 180 ? "charge-off" : worstLate + "-day late"}`;
+    },
+    getEvidence: (account) => {
+      const lateCodes = ["30", "60", "90", "120", "150", "180", "CO"];
+      const lates = account.paymentHistory
+        ?.filter((p) => {
+          const code = typeof p === "string" ? p : p.status;
+          return lateCodes.includes(code);
+        })
+        .map((p) => {
+          if (typeof p === "string") return p;
+          return `${p.month}/${p.year}: ${p.status}`;
+        })
+        .join(", ");
+      return `Late payments: ${lates}`;
+    },
+    recommendedFlow: "ACCURACY",
+    recommendedAction: "Dispute inaccurate late payment reporting - request verification",
+  },
+
+  // Collection accounts flagged as negative
+  {
+    code: "COL004",
+    category: "COLLECTION",
+    severity: "HIGH",
+    title: "Collection Account",
+    statute: "15 USC 1681e(b)",
+    check: (account) => {
+      // Check if this is a collection account by type, status, or creditor name
+      if (account.accountType === "COLLECTION") return true;
+      if (account.accountStatus === "COLLECTION") return true;
+
+      // Check creditor name for collection agency indicators
+      const name = account.creditorName.toUpperCase();
+      const collectionIndicators = [
+        "COLLECTION", "COLL", "CA ", "C/A",
+        "CREDIT COLL", "CREDIT COLLECTION",
+        "PORTFOLIO", "MIDLAND", "CONVERGENT",
+        "ENHANCED RECOVERY", "ERC", "NCO", "IC SYSTEM"
+      ];
+
+      return collectionIndicators.some(ind => name.includes(ind));
+    },
+    getDescription: (account) =>
+      `Collection account from ${account.creditorName} with balance of $${account.balance?.toLocaleString() || "0"}`,
+    getEvidence: (account) =>
+      `Account: ${account.creditorName}, Status: ${account.accountStatus || account.status}, Balance: $${account.balance || 0}`,
+    recommendedFlow: "COLLECTION",
+    recommendedAction: "Request debt validation and verify original creditor documentation",
+  },
+
+  // Charge-off accounts
+  {
+    code: "CHG002",
+    category: "ACCURACY",
+    severity: "HIGH",
+    title: "Charge-Off Account",
+    statute: "15 USC 1681e(b)",
+    check: (account) => {
+      const status = (account.accountStatus || account.status || "").toUpperCase();
+      return status === "CHARGE_OFF" || status === "CHARGE OFF" || status === "CHARGED OFF" || status === "CO";
+    },
+    getDescription: (account) =>
+      `Charge-off account ${account.creditorName} with balance of $${account.balance?.toLocaleString() || "0"}`,
+    getEvidence: (account) =>
+      `Account: ${account.creditorName}, Status: ${account.accountStatus || account.status}, Balance: $${account.balance || 0}`,
+    recommendedFlow: "ACCURACY",
+    recommendedAction: "Dispute charge-off reporting accuracy and request complete account documentation",
+  },
+
   // CONSENT ISSUES
   {
     code: "CON001",

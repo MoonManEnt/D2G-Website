@@ -23,7 +23,13 @@ const log = createLogger("ai-parser");
 
 // Retry configuration
 const MAX_RETRIES = 2;
-const CHUNK_SIZE = 30000; // Characters per chunk for very long reports
+const CHUNK_SIZE = 80000; // Characters per chunk for very long reports (increased for IdentityIQ)
+const ACCOUNT_BOUNDARY_PATTERNS = [
+  /\n(?=[A-Z][A-Z0-9\s&',.-]{2,50}(?:BANK|FINANCIAL|CREDIT|CARD|AUTO|MORTGAGE|LOAN|SERVICES?|LLC|INC|CORP|NA|FSB|COLLECTION|COLL)\s*\n)/gi,
+  /\n(?=Account\s*(?:#|Number|:))/gi,
+  /\n(?=Creditor(?:\s+Name)?:)/gi,
+  /\n-{20,}\n/g, // Separator lines
+];
 
 /**
  * Build the system prompt for credit report parsing.
@@ -37,15 +43,24 @@ ${formatInstructions}
 
 CRITICAL RULES:
 1. Output ONLY valid JSON - no explanations, no markdown, just the JSON object
-2. Parse ALL accounts found in the report
-3. For three-bureau reports, create SEPARATE account entries for each bureau
+2. Parse ALL accounts found in the report - do not skip any
+3. For three-bureau reports (IdentityIQ format with columns), create SEPARATE account entries for each bureau that has data
 4. If data is missing or unclear, use null instead of guessing
-5. Extract payment history month by month when available
-6. Identify collection accounts by looking for "collection", "CA", or collection agency names
-7. Flag charge-offs by looking for "charge-off", "CO", or $0 balance with derogatory status
+5. Extract payment history month by month when available - include ALL late payments (30, 60, 90, 120 days)
+6. Identify collection accounts by looking for "collection", "CA", "COLL", "CREDIT COLL", or collection agency names
+7. Flag charge-offs by looking for "charge-off", "CO", "CHARGED OFF", or $0 balance with derogatory status
 8. Convert all currency values to numbers (no $ or commas)
 9. Convert all dates to YYYY-MM-DD format
 10. Include the confidence score (0-1) based on data quality and completeness
+
+IMPORTANT FOR IDENTITYIQ 3-BUREAU REPORTS:
+- Data is organized in THREE columns: TransUnion | Experian | Equifax
+- Each creditor/account appears ONCE but has data in up to 3 columns
+- Look for creditor names like: CREDIT COLL, DEPTEDNELNET, MERRICK BK, AVA FINANCE, AUSTINCAPBK, POSSIBLEFINA
+- Create a SEPARATE account object for each bureau that has data for that creditor
+- Payment history shows codes like "OK", "30", "60", "90", "120" - extract ALL of them
+- Account status can be: CURRENT, PAID, CLOSED, CHARGE OFF, COLLECTION, etc.
+- Look for "Date of First Delinquency" (DOFD) for collections
 `;
 }
 
@@ -248,8 +263,47 @@ export async function parseWithAI(request: AIParseRequest): Promise<ParsedCredit
 }
 
 /**
+ * Find a good split point that doesn't break in the middle of an account.
+ * Looks for account boundaries, section headers, or page breaks.
+ */
+function findAccountBoundary(text: string, startFrom: number): number {
+  // Look backwards from the target position to find a clean break
+  const searchWindow = text.slice(Math.max(0, startFrom - 5000), startFrom);
+
+  // Try to find section breaks first (most reliable)
+  const sectionBreaks = [
+    /\n-{20,}\n/g, // Separator lines
+    /\n(?=ACCOUNT\s+(?:HISTORY|INFORMATION|DETAILS))/gi,
+    /\n(?=Account\s+#\s*:)/gi,
+    /\n\n(?=[A-Z][A-Z0-9\s&',./-]{2,40}\s*\n)/g, // Double newline before account name
+  ];
+
+  for (const pattern of sectionBreaks) {
+    const matches = [...searchWindow.matchAll(pattern)];
+    if (matches.length > 0) {
+      const lastMatch = matches[matches.length - 1];
+      return Math.max(0, startFrom - 5000) + (lastMatch.index || 0);
+    }
+  }
+
+  // Fall back to any double newline
+  const doubleNewline = searchWindow.lastIndexOf("\n\n");
+  if (doubleNewline !== -1) {
+    return Math.max(0, startFrom - 5000) + doubleNewline;
+  }
+
+  // Last resort: single newline
+  const singleNewline = searchWindow.lastIndexOf("\n");
+  if (singleNewline !== -1) {
+    return Math.max(0, startFrom - 5000) + singleNewline;
+  }
+
+  return startFrom;
+}
+
+/**
  * Parse a very large credit report in chunks.
- * Used when the report text exceeds the context window.
+ * Uses intelligent chunking to avoid splitting mid-account.
  */
 export async function parseWithAIChunked(request: AIParseRequest): Promise<ParsedCreditReport> {
   const { rawText } = request;
@@ -261,22 +315,31 @@ export async function parseWithAIChunked(request: AIParseRequest): Promise<Parse
 
   log.info({ totalLength: rawText.length, chunkSize: CHUNK_SIZE }, "Parsing large report in chunks");
 
-  // Split into chunks at page boundaries if possible
+  // Split into chunks at account boundaries
   const chunks: string[] = [];
-  let currentChunk = "";
+  let position = 0;
 
-  const lines = rawText.split("\n");
-  for (const line of lines) {
-    if (currentChunk.length + line.length > CHUNK_SIZE) {
-      chunks.push(currentChunk);
-      currentChunk = line;
-    } else {
-      currentChunk += "\n" + line;
+  while (position < rawText.length) {
+    // Calculate target end position
+    const targetEnd = Math.min(position + CHUNK_SIZE, rawText.length);
+
+    // If we're at the end, just take the rest
+    if (targetEnd >= rawText.length) {
+      chunks.push(rawText.slice(position));
+      break;
     }
+
+    // Find a good boundary to split at
+    const boundaryPos = findAccountBoundary(rawText, targetEnd);
+
+    // Ensure we make progress (at least take something)
+    const endPos = boundaryPos > position ? boundaryPos : targetEnd;
+
+    chunks.push(rawText.slice(position, endPos));
+    position = endPos;
   }
-  if (currentChunk) {
-    chunks.push(currentChunk);
-  }
+
+  log.info({ chunks: chunks.length, avgChunkSize: Math.round(rawText.length / chunks.length) }, "Created chunks");
 
   // Parse each chunk
   const chunkResults: ParsedCreditReport[] = [];

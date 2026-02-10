@@ -191,10 +191,14 @@ const FORMAT_HINTS: Record<ReportFormat, FormatHints> = {
     hasScores: true,
     commonFeatures: [
       "Three-column layout: TransUnion | Experian | Equifax",
-      "Two-year payment history grid",
-      "Creditor name followed by Account #:",
-      "VantageScore 3.0 credit scores",
-      "Hard inquiries section",
+      "Two-year payment history grid with codes (OK, 30, 60, 90, 120)",
+      "Creditor name in ALL CAPS followed by Account #:",
+      "VantageScore 3.0 credit scores at top",
+      "Hard inquiries section at end",
+      "Account Summary showing total accounts per bureau",
+      "Account History section with detailed payment history",
+      "Collections shown as 'CREDIT COLL', 'COLLECTION' etc",
+      "Charge-offs shown as 'CHARGE OFF' or 'CHARGED OFF'",
     ],
   },
   ANNUAL_CREDIT_REPORT: {
@@ -436,9 +440,17 @@ ${hints.commonFeatures.map((f) => `- ${f}`).join("\n")}
     instructions += `
 THREE-COLUMN LAYOUT RULES:
 - Each account appears once but has data for all three bureaus
-- Create SEPARATE account entries for each bureau
+- Create SEPARATE account entries for each bureau that has data
 - Match data by column position (1=TransUnion, 2=Experian, 3=Equifax)
-- Some fields may show "-" or be empty for certain bureaus
+- Some fields may show "-" or be empty for certain bureaus - skip those bureaus
+- Parse ALL accounts - common creditors include:
+  * CREDIT COLL (collection accounts)
+  * DEPTEDNELNET (student loans - may have 120-day lates)
+  * MERRICK BK (credit cards - may be charge-offs)
+  * AVA FINANCE, AUSTINCAPBK, POSSIBLEFINA (loans with late history)
+- Payment history codes: OK=current, 30/60/90/120=days late, CO=charge-off
+- Account types: Credit Card, Installment, Mortgage, Collection, Student Loan
+- Look for "Date of First Delinquency" for collection age calculation
 `;
   }
 
