@@ -1,18 +1,30 @@
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { put, del } from "@vercel/blob";
 import { createHash } from "crypto";
 import fs from "fs/promises";
 import path from "path";
 import { createLogger } from "./logger";
 const log = createLogger("storage");
 
-// Storage provider type
-export type StorageProvider = "local" | "s3" | "r2";
+// Storage provider type - now includes vercel-blob
+export type StorageProvider = "local" | "s3" | "r2" | "vercel-blob";
+
+// Detect if running on Vercel
+const isVercel = process.env.VERCEL === "1";
 
 // Get current storage provider from env
 export function getStorageProvider(): StorageProvider {
-  const provider = process.env.STORAGE_PROVIDER || "local";
-  if (provider === "s3" || provider === "r2") return provider;
+  const provider = process.env.STORAGE_PROVIDER;
+
+  // Explicit provider set
+  if (provider === "s3" || provider === "r2" || provider === "vercel-blob") return provider;
+
+  // Auto-detect: use vercel-blob when on Vercel, local otherwise
+  if (!provider && isVercel && process.env.BLOB_READ_WRITE_TOKEN) {
+    return "vercel-blob";
+  }
+
   return "local";
 }
 
@@ -111,7 +123,21 @@ export async function uploadFile(
   const checksum = calculateChecksum(buffer);
   const size = buffer.length;
 
-  // Try cloud storage first
+  // Vercel Blob storage
+  if (provider === "vercel-blob") {
+    try {
+      const blob = await put(key, buffer, {
+        access: "public",
+        contentType,
+      });
+      log.info({ key, url: blob.url }, "File uploaded to Vercel Blob");
+      return { key, url: blob.url, provider: "vercel-blob", checksum, size };
+    } catch (error) {
+      log.error({ err: error }, "Vercel Blob upload failed, falling back to local");
+    }
+  }
+
+  // S3/R2 cloud storage
   const s3Client = getS3Client();
 
   if (s3Client) {
@@ -169,8 +195,35 @@ export async function uploadFile(
 
 /**
  * Get a file from storage
+ * @param key - For Vercel Blob, this should be the full URL. For S3/R2/local, this is the key/path.
  */
 export async function getFile(key: string): Promise<StorageFile | null> {
+  const provider = getStorageProvider();
+
+  // Vercel Blob - key is the full URL
+  if (provider === "vercel-blob" || key.startsWith("https://")) {
+    try {
+      const url = key.startsWith("https://") ? key : key;
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch from Vercel Blob: ${response.status}`);
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const contentType = response.headers.get("content-type") || "application/octet-stream";
+
+      return {
+        key,
+        buffer,
+        contentType,
+        size: buffer.length,
+      };
+    } catch (error) {
+      log.error({ err: error }, "Vercel Blob get failed, trying other providers");
+    }
+  }
+
+  // S3/R2 cloud storage
   const s3Client = getS3Client();
 
   if (s3Client) {
@@ -217,8 +270,23 @@ export async function getFile(key: string): Promise<StorageFile | null> {
 
 /**
  * Delete a file from storage
+ * @param key - For Vercel Blob, this should be the full URL. For S3/R2/local, this is the key/path.
  */
 export async function deleteFile(key: string): Promise<boolean> {
+  const provider = getStorageProvider();
+
+  // Vercel Blob - key is the full URL
+  if (provider === "vercel-blob" || key.startsWith("https://")) {
+    try {
+      await del(key);
+      log.info({ key }, "File deleted from Vercel Blob");
+      return true;
+    } catch (error) {
+      log.error({ err: error }, "Vercel Blob delete failed");
+    }
+  }
+
+  // S3/R2 cloud storage
   const s3Client = getS3Client();
 
   if (s3Client) {
@@ -281,11 +349,20 @@ export async function fileExists(key: string): Promise<boolean> {
 
 /**
  * Get a signed URL for temporary file access
+ * @param key - For Vercel Blob, this should be the full URL (returned as-is). For S3/R2, this is the key.
  */
 export async function getSignedFileUrl(
   key: string,
   expiresIn: number = 3600
 ): Promise<string | null> {
+  const provider = getStorageProvider();
+
+  // Vercel Blob URLs are already public, return as-is
+  if (provider === "vercel-blob" || key.startsWith("https://")) {
+    return key;
+  }
+
+  // S3/R2 - generate signed URL
   const s3Client = getS3Client();
 
   if (s3Client) {

@@ -5,7 +5,7 @@ import { withAuth } from "@/lib/api-middleware";
 import { z } from "zod";
 import path from "path";
 import fs from "fs";
-import { parseAndAnalyzeReport } from "@/lib/report-parser";
+import { addJob } from "@/lib/queue";
 import { createLogger } from "@/lib/logger";
 const log = createLogger("reports-api");
 
@@ -67,14 +67,17 @@ export const GET = withAuth(async (req, { organizationId }) => {
  * consistency with manual re-parse operations.
  */
 export const POST = withAuth<UploadReportBody>(async (req, { session, body, organizationId }) => {
-  // Note: Subscription check removed for beta testing
-  // In production, uncomment to restrict FREE tier:
-  // if (session.user.subscriptionTier === "FREE") {
-  //   return NextResponse.json(
-  //     { error: "Report upload requires Pro subscription" },
-  //     { status: 403 }
-  //   );
-  // }
+  // Subscription check - FREE tier cannot upload reports
+  if (session.user.subscriptionTier === "FREE") {
+    return NextResponse.json(
+      {
+        error: "Report upload requires a paid subscription",
+        code: "SUBSCRIPTION_REQUIRED",
+        upgradeUrl: "/settings/billing"
+      },
+      { status: 403 }
+    );
+  }
 
   const { clientId, blobUrl, fileName, reportDate } = body;
   log.info({ data: { clientId, fileName, blobUrl } }, "[REPORTS] Processing upload");
@@ -192,37 +195,29 @@ export const POST = withAuth<UploadReportBody>(async (req, { session, body, orga
     return { storedFile, report };
   });
 
-  // Auto-trigger parsing using the shared utility
-  // This runs outside the transaction since it can be retried independently
-  const parseResult = await parseAndAnalyzeReport({
+  // Enqueue background parsing job
+  // This returns immediately so the upload doesn't block on parsing
+  const jobId = await addJob("parse-credit-report", {
     reportId: report.id,
     organizationId,
     clientId,
     actorId: session.user.id,
-    actorEmail: session.user.email,
-    pdfBuffer, // Use in-memory buffer for efficiency
+    actorEmail: session.user.email || "",
+    storagePath: blobUrl,
+    fileBuffer: pdfBuffer.toString("base64"), // Pass buffer for immediate processing
+    useAIParsing: false,
+    fileType: "PDF",
   });
 
-  // Fetch final report state
-  const finalReport = await prisma.creditReport.findUnique({
-    where: { id: report.id },
-    select: {
-      id: true,
-      parseStatus: true,
-      parseError: true,
-      pageCount: true,
-      _count: { select: { accounts: true } },
-    },
-  });
+  log.info({ reportId: report.id, jobId }, "[REPORTS] Parse job enqueued");
 
+  // Return immediately with pending status
+  // Client should poll /api/reports/[id] or /api/reports/[id]/parse for status
   return NextResponse.json({
     id: report.id,
-    status: finalReport?.parseStatus || "PENDING",
-    message: parseResult.success
-      ? `Report uploaded and parsed successfully. ${parseResult.accountsParsed} accounts found.`
-      : `Report uploaded but parsing failed: ${parseResult.error}`,
-    accountsParsed: parseResult.accountsParsed,
-    pageCount: parseResult.pageCount,
-    issuesSummary: parseResult.issuesSummary,
-  }, { status: 201 });
+    status: "PENDING",
+    message: "Report uploaded successfully. Parsing in progress...",
+    jobId,
+    pollUrl: `/api/reports/${report.id}/parse`,
+  }, { status: 202 }); // 202 Accepted - processing started
 }, { schema: uploadReportSchema });

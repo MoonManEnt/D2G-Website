@@ -1,46 +1,11 @@
 import prisma from "@/lib/prisma";
-import { sendEmail } from "@/lib/email";
-import { emailVerificationTemplate, BrandingConfig } from "@/lib/email-templates";
+import { sendEmail, getOrganizationBranding } from "@/lib/email";
+import { emailVerificationTemplate } from "@/lib/email-templates";
 import crypto from "crypto";
 import { createLogger } from "./logger";
 const log = createLogger("email-verification");
 
 const APP_URL = process.env.APP_URL || "http://localhost:3000";
-
-/**
- * Get branding config for an organization
- */
-async function getOrganizationBranding(
-  organizationId?: string
-): Promise<Partial<BrandingConfig> | undefined> {
-  if (!organizationId) return undefined;
-
-  try {
-    const org = await prisma.organization.findUnique({
-      where: { id: organizationId },
-      select: {
-        name: true,
-        primaryColor: true,
-        logoUrl: true,
-        supportEmail: true,
-        websiteUrl: true,
-      },
-    });
-
-    if (!org) return undefined;
-
-    return {
-      companyName: org.name,
-      primaryColor: org.primaryColor || "#7c3aed",
-      logoUrl: org.logoUrl || undefined,
-      supportEmail: org.supportEmail || process.env.DEFAULT_SUPPORT_EMAIL || "support@dispute2go.com",
-      websiteUrl: org.websiteUrl || APP_URL,
-    };
-  } catch (error) {
-    log.error({ err: error }, "Error fetching organization branding");
-    return undefined;
-  }
-}
 
 /**
  * Send a verification email to a user.

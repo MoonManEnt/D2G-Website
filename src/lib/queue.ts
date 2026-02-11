@@ -19,7 +19,13 @@ export interface JobData {
   "parse-credit-report": {
     reportId: string;
     organizationId: string;
-    filePath: string;
+    clientId: string;
+    actorId: string;
+    actorEmail: string;
+    storagePath: string;
+    fileBuffer?: string; // Base64 encoded buffer for in-memory processing
+    useAIParsing?: boolean;
+    fileType?: "PDF" | "PNG" | "JPG" | "JPEG" | "WEBP";
   };
   "generate-dispute-letter": {
     disputeId: string;
@@ -54,6 +60,15 @@ function isQueueEnabled(): boolean {
   return !!process.env.REDIS_URL;
 }
 
+// Enforce Redis in production
+function enforceRedisInProduction(): void {
+  if (process.env.NODE_ENV === "production" && !isQueueEnabled()) {
+    const errorMsg = "CRITICAL: REDIS_URL not configured in production. Background job queue requires Redis for reliable processing. Set REDIS_URL environment variable.";
+    log.error(errorMsg);
+    throw new Error(errorMsg);
+  }
+}
+
 // Get Redis connection options
 function getRedisConnection() {
   const url = process.env.REDIS_URL || "redis://localhost:6379";
@@ -74,8 +89,11 @@ function getRedisConnection() {
  * Call this on server startup
  */
 export async function initializeQueues(): Promise<void> {
+  // In production, Redis is required - fail fast if not configured
+  enforceRedisInProduction();
+
   if (!isQueueEnabled()) {
-    log.info("Redis not configured. Background jobs will run synchronously.");
+    log.warn("Redis not configured. Background jobs will run synchronously (development only).");
     return;
   }
 
@@ -213,91 +231,91 @@ async function processJob<T extends JobType>(
 // ============================================
 
 async function handleParseCreditReport(data: JobData["parse-credit-report"]) {
-  const { parseIdentityIQReport, analyzeAccountsForIssues } = await import("./parser");
   const prisma = (await import("./prisma")).default;
 
   try {
-    // Mark as processing
-    await prisma.creditReport.update({
-      where: { id: data.reportId },
-      data: { parseStatus: "PROCESSING" },
-    });
+    log.info({ reportId: data.reportId, useAI: data.useAIParsing }, "[QUEUE] Starting background parse job");
 
-    // Get the report and its stored file content
-    const report = await prisma.creditReport.findUnique({
-      where: { id: data.reportId },
-      include: {
-        client: true,
-        originalFile: true,
-      },
-    });
+    // Get buffer from storage or from passed-in base64
+    let pdfBuffer: Buffer | undefined;
 
-    if (!report) {
-      throw new Error("Report not found");
+    if (data.fileBuffer) {
+      // Buffer was passed directly (for recently uploaded files)
+      pdfBuffer = Buffer.from(data.fileBuffer, "base64");
+    } else if (data.storagePath) {
+      // Fetch from storage
+      const { getFile } = await import("./storage");
+      const file = await getFile(data.storagePath);
+      if (file) {
+        pdfBuffer = file.buffer;
+      }
     }
 
-    // Get the raw text content from storage
-    // This requires fetching and extracting text from the stored file
-    const { getFile } = await import("./storage");
-    const file = await getFile(report.originalFile.storagePath);
-    if (!file) {
-      throw new Error("Report file not found in storage");
+    if (!pdfBuffer && data.storagePath) {
+      // Try fetching from URL (for Vercel Blob or cloud storage)
+      if (data.storagePath.startsWith("http")) {
+        const response = await fetch(data.storagePath);
+        if (response.ok) {
+          const arrayBuffer = await response.arrayBuffer();
+          pdfBuffer = Buffer.from(arrayBuffer);
+        }
+      }
     }
 
-    // Parse the report content
-    const reportText = file.buffer.toString("utf-8");
-    const parseResult = await parseIdentityIQReport(reportText);
-
-    if (!parseResult.success) {
-      throw new Error(parseResult.errors?.join(", ") || "Failed to parse report");
+    if (!pdfBuffer) {
+      throw new Error("Could not retrieve file buffer from storage");
     }
 
-    // Analyze accounts for issues
-    const accountsWithIssues = analyzeAccountsForIssues(parseResult.accounts || []);
+    // Use the unified parser (handles both legacy and AI parsing)
+    let parseResult;
 
-    // Store parsed accounts
-    for (const account of accountsWithIssues) {
-      await prisma.accountItem.create({
-        data: {
-          reportId: data.reportId,
-          clientId: report.clientId,
-          organizationId: report.organizationId,
-          cra: account.cra || "UNKNOWN",
-          maskedAccountId: account.maskedAccountId || "UNKNOWN",
-          fingerprint: account.fingerprint || `${report.id}-${account.maskedAccountId}`,
-          creditorName: account.creditorName || "Unknown Creditor",
-          accountType: account.accountType,
-          accountStatus: account.accountStatus,
-          dateOpened: account.dateOpened ? new Date(account.dateOpened) : null,
-          balance: account.balance,
-          creditLimit: account.creditLimit,
-          paymentStatus: account.paymentStatus,
-          confidenceScore: account.confidenceScore,
-          issueCount: account.issues?.length || 0,
-          detectedIssues: account.issues ? JSON.stringify(account.issues) : null,
-          isDisputable: account.isDisputable,
-          suggestedFlow: account.suggestedFlow,
-        },
+    if (data.useAIParsing || (data.fileType && data.fileType !== "PDF")) {
+      // Use AI parser for images or when explicitly requested
+      const { parseAndAnalyzeReportAI } = await import("./report-parser");
+      parseResult = await parseAndAnalyzeReportAI({
+        reportId: data.reportId,
+        organizationId: data.organizationId,
+        clientId: data.clientId,
+        actorId: data.actorId,
+        actorEmail: data.actorEmail,
+        fileBuffer: pdfBuffer,
+        fileType: data.fileType || "PDF",
+      });
+    } else {
+      // Use standard PDF parser
+      const { parseAndAnalyzeReport } = await import("./report-parser");
+      parseResult = await parseAndAnalyzeReport({
+        reportId: data.reportId,
+        organizationId: data.organizationId,
+        clientId: data.clientId,
+        actorId: data.actorId,
+        actorEmail: data.actorEmail,
+        pdfBuffer,
       });
     }
 
-    // Update report as parsed
-    await prisma.creditReport.update({
-      where: { id: data.reportId },
-      data: {
-        parseStatus: "COMPLETED",
-      },
-    });
+    log.info({
+      reportId: data.reportId,
+      success: parseResult.success,
+      accounts: parseResult.accountsParsed,
+    }, "[QUEUE] Parse job completed");
 
-    // Get parsed account count for notification
-    const accountCount = accountsWithIssues.length;
+    // Send SMS notification if client has phone
+    if (parseResult.success) {
+      const report = await prisma.creditReport.findUnique({
+        where: { id: data.reportId },
+        include: { client: { select: { phone: true } } },
+      });
 
-    // Send SMS notification if phone available
-    if (report.client?.phone) {
-      const { sendReportUploadedSMS } = await import("./sms");
-      await sendReportUploadedSMS(report.client.phone, accountCount);
+      if (report?.client?.phone) {
+        const { sendReportUploadedSMS } = await import("./sms");
+        await sendReportUploadedSMS(report.client.phone, parseResult.accountsParsed);
+      }
     }
   } catch (error) {
+    log.error({ err: error, reportId: data.reportId }, "[QUEUE] Parse job failed");
+
+    // Mark as failed (parseAndAnalyzeReport already does this, but as a safety net)
     await prisma.creditReport.update({
       where: { id: data.reportId },
       data: {
@@ -305,7 +323,8 @@ async function handleParseCreditReport(data: JobData["parse-credit-report"]) {
         parseError: error instanceof Error ? error.message : "Unknown error",
       },
     });
-    throw error;
+
+    throw error; // Re-throw for retry logic
   }
 }
 

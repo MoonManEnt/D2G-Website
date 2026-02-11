@@ -32,8 +32,8 @@ interface EmailTemplate {
   text: string;
 }
 
-// Get branding config for an organization
-async function getOrganizationBranding(
+// Get branding config for an organization (exported for reuse)
+export async function getOrganizationBranding(
   organizationId?: string
 ): Promise<Partial<BrandingConfig> | undefined> {
   if (!organizationId) return undefined;

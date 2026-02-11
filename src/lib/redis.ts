@@ -16,9 +16,13 @@ let isConnected = false;
 function createRedisClient(): Redis | null {
   if (!REDIS_URL && !REDIS_HOST) {
     if (process.env.NODE_ENV === "production") {
-      log.error("REDIS NOT CONFIGURED IN PRODUCTION - cache is per-instance only. Set REDIS_URL for shared caching.");
+      // In production, Redis is REQUIRED for proper scaling
+      const errorMsg = "CRITICAL: REDIS_URL not configured in production. Redis is required for background jobs, rate limiting, and caching. Set REDIS_URL environment variable.";
+      log.error(errorMsg);
+      // Throw in production to fail fast and prevent silent degradation
+      throw new Error(errorMsg);
     }
-    log.warn("Redis not configured, using in-memory fallback");
+    log.warn("Redis not configured, using in-memory fallback (development only)");
     return null;
   }
 

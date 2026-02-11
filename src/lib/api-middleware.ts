@@ -4,7 +4,16 @@ import { authOptions } from "@/lib/auth";
 import { z } from "zod";
 import { Session } from "next-auth";
 import { prisma } from "@/lib/prisma";
-import { SubscriptionTier } from "@/types";
+import {
+  SubscriptionTier,
+  FREE_TIER_FLAGS,
+  STARTER_TIER_FLAGS,
+  PROFESSIONAL_TIER_FLAGS,
+  ENTERPRISE_TIER_FLAGS,
+  FeatureFlags,
+} from "@/types";
+import { notifySubscriptionLimit, NotificationService } from "@/lib/notifications";
+import { cacheGet, cacheSet } from "@/lib/redis";
 import { createLogger } from "./logger";
 const log = createLogger("api-middleware");
 
@@ -47,6 +56,39 @@ interface ApiOptions<TBody> {
 // SUBSCRIPTION LIMITS BY TIER
 // =============================================================================
 
+// Feature flags map by tier - SINGLE SOURCE OF TRUTH from types/index.ts
+const TIER_FLAGS: Record<SubscriptionTier, FeatureFlags> = {
+  [SubscriptionTier.FREE]: FREE_TIER_FLAGS,
+  [SubscriptionTier.STARTER]: STARTER_TIER_FLAGS,
+  [SubscriptionTier.PROFESSIONAL]: PROFESSIONAL_TIER_FLAGS,
+  [SubscriptionTier.ENTERPRISE]: ENTERPRISE_TIER_FLAGS,
+};
+
+// Rate limits per tier (only thing not in FeatureFlags)
+const RATE_LIMITS: Record<SubscriptionTier, number> = {
+  [SubscriptionTier.FREE]: 30,
+  [SubscriptionTier.STARTER]: 60,
+  [SubscriptionTier.PROFESSIONAL]: 100,
+  [SubscriptionTier.ENTERPRISE]: 300,
+};
+
+// Derive features array from flags
+function getFeaturesList(flags: FeatureFlags): string[] {
+  const features: string[] = [];
+  if (flags.canUploadReports) features.push("upload_reports");
+  if (flags.canGenerateLetters) features.push("manual_letters");
+  if (flags.canUseAILetters) features.push("ai_letters");
+  if (flags.canUseBulkDisputes) features.push("bulk_disputes");
+  if (flags.canUseCFPB) features.push("cfpb");
+  if (flags.canUseLitigationScanner) features.push("litigation_scanner");
+  if (flags.canUseCreditDNA) features.push("credit_dna");
+  if (flags.canUseWhiteLabel) features.push("white_label");
+  if (flags.canUseEvidence) features.push("evidence");
+  if (flags.canUseAPI) features.push("api");
+  return features;
+}
+
+// Derived limits from FeatureFlags - ensures single source of truth
 export const SUBSCRIPTION_LIMITS: Record<SubscriptionTier, {
   disputes: { monthly: number };
   letters: { monthly: number };
@@ -56,48 +98,33 @@ export const SUBSCRIPTION_LIMITS: Record<SubscriptionTier, {
   storage: { bytes: number };
   rateLimit: { perMinute: number };
   features: string[];
-}> = {
-  [SubscriptionTier.FREE]: {
-    disputes: { monthly: 15 },
-    letters: { monthly: 15 },
-    clients: { total: 5 },
-    reports: { monthly: 10 },
-    teamSeats: { total: 1 },
-    storage: { bytes: 524288000 },
-    rateLimit: { perMinute: 30 },
-    features: ["basic_disputes", "manual_letters", "basic_evidence"],
-  },
-  [SubscriptionTier.STARTER]: {
-    disputes: { monthly: 100 },
-    letters: { monthly: 100 },
-    clients: { total: 50 },
-    reports: { monthly: 50 },
-    teamSeats: { total: 5 },
-    storage: { bytes: 5368709120 },
-    rateLimit: { perMinute: 60 },
-    features: ["basic_disputes", "manual_letters", "ai_letters", "bulk_disputes", "credit_dna", "full_evidence"],
-  },
-  [SubscriptionTier.PROFESSIONAL]: {
-    disputes: { monthly: 400 },
-    letters: { monthly: 400 },
-    clients: { total: 250 },
-    reports: { monthly: 200 },
-    teamSeats: { total: 15 },
-    storage: { bytes: 26843545600 },
-    rateLimit: { perMinute: 100 },
-    features: ["basic_disputes", "manual_letters", "ai_letters", "bulk_disputes", "cfpb", "litigation_scanner", "credit_dna", "white_label", "full_evidence"],
-  },
-  [SubscriptionTier.ENTERPRISE]: {
-    disputes: { monthly: -1 },
-    letters: { monthly: -1 },
-    clients: { total: -1 },
-    reports: { monthly: -1 },
-    teamSeats: { total: -1 },
-    storage: { bytes: 107374182400 },
-    rateLimit: { perMinute: 300 },
-    features: ["*"],
-  },
-};
+}> = Object.fromEntries(
+  Object.values(SubscriptionTier).map((tier) => {
+    const flags = TIER_FLAGS[tier];
+    return [
+      tier,
+      {
+        disputes: { monthly: flags.maxDisputesPerMonth },
+        letters: { monthly: flags.maxLettersPerMonth },
+        clients: { total: flags.maxClients },
+        reports: { monthly: flags.maxReportsPerMonth },
+        teamSeats: { total: flags.maxTeamSeats },
+        storage: { bytes: flags.storageQuotaBytes },
+        rateLimit: { perMinute: RATE_LIMITS[tier] },
+        features: getFeaturesList(flags),
+      },
+    ];
+  })
+) as Record<SubscriptionTier, {
+  disputes: { monthly: number };
+  letters: { monthly: number };
+  clients: { total: number };
+  reports: { monthly: number };
+  teamSeats: { total: number };
+  storage: { bytes: number };
+  rateLimit: { perMinute: number };
+  features: string[];
+}>;
 
 // =============================================================================
 // HELPER FUNCTIONS
@@ -172,7 +199,7 @@ async function checkUsageLimit(
   organizationId: string,
   tier: SubscriptionTier,
   type: UsageLimitType
-): Promise<{ allowed: boolean; current: number; limit: number }> {
+): Promise<{ allowed: boolean; current: number; limit: number; percentage: number }> {
   const tierLimits = SUBSCRIPTION_LIMITS[tier];
   const limit =
     type === "clients"
@@ -181,15 +208,69 @@ async function checkUsageLimit(
 
   // -1 means unlimited
   if (limit === -1) {
-    return { allowed: true, current: 0, limit: -1 };
+    return { allowed: true, current: 0, limit: -1, percentage: 0 };
   }
 
   const current = await getMonthlyUsage(organizationId, type);
+  const percentage = Math.round((current / limit) * 100);
+
   return {
     allowed: current < limit,
     current,
     limit,
+    percentage,
   };
+}
+
+/**
+ * Send usage limit notifications when thresholds are crossed
+ * Uses caching to prevent duplicate notifications within 24 hours
+ */
+async function checkAndNotifyUsageThresholds(
+  organizationId: string,
+  userId: string,
+  type: UsageLimitType,
+  percentage: number
+): Promise<void> {
+  // Only notify at 80% and 100% thresholds
+  if (percentage < 80) return;
+
+  const threshold = percentage >= 100 ? 100 : 80;
+  const cacheKey = `usage-notify:${organizationId}:${type}:${threshold}`;
+
+  // Check if we've already notified for this threshold (within 24 hours)
+  const alreadyNotified = await cacheGet(cacheKey);
+  if (alreadyNotified) return;
+
+  try {
+    // Send notification
+    await notifySubscriptionLimit(userId, type, percentage);
+
+    // Also notify org admins if this is a limit reached (100%)
+    if (percentage >= 100) {
+      const admins = await prisma.user.findMany({
+        where: {
+          organizationId,
+          role: { in: ["ADMIN", "OWNER"] },
+          id: { not: userId }, // Don't double-notify the current user
+          isActive: true,
+        },
+        select: { id: true },
+      });
+
+      await Promise.all(
+        admins.map((admin) => notifySubscriptionLimit(admin.id, type, percentage))
+      );
+    }
+
+    // Cache to prevent duplicate notifications for 24 hours
+    await cacheSet(cacheKey, "1", 86400);
+
+    log.info({ organizationId, type, percentage, threshold }, "[USAGE] Sent usage limit notification");
+  } catch (error) {
+    // Don't fail the request if notification fails
+    log.error({ err: error, organizationId, type }, "[USAGE] Failed to send usage notification");
+  }
 }
 
 /**
@@ -306,6 +387,17 @@ export function withAuth<TBody = unknown>(
             if (options.checkLimit) {
                 const usage = await checkUsageLimit(organizationId, subscriptionTier, options.checkLimit);
 
+                // Send notifications when approaching or hitting limits
+                if (usage.percentage >= 80) {
+                    // Fire and forget - don't block the request
+                    checkAndNotifyUsageThresholds(
+                        organizationId,
+                        session.user.id,
+                        options.checkLimit,
+                        usage.percentage
+                    ).catch(() => {}); // Swallow errors silently
+                }
+
                 if (!usage.allowed) {
                     return NextResponse.json(
                         {
@@ -315,6 +407,7 @@ export function withAuth<TBody = unknown>(
                             current: usage.current,
                             limit: usage.limit,
                             currentTier: subscriptionTier,
+                            upgradeUrl: "/settings/billing",
                             message: `You've reached your monthly ${options.checkLimit} limit (${usage.current}/${usage.limit}). Upgrade for more.`,
                         },
                         { status: 429 }

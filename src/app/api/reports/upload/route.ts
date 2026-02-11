@@ -3,15 +3,10 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { v4 as uuid } from "uuid";
-import path from "path";
-import fs from "fs";
-import { parseAndAnalyzeReport, parseAndAnalyzeReportAI } from "@/lib/report-parser";
-import { put } from "@vercel/blob";
+import { addJob } from "@/lib/queue";
 import { createLogger } from "@/lib/logger";
+import { uploadFile, generateFileKey, getStorageProvider } from "@/lib/storage";
 const log = createLogger("reports-upload-api");
-
-// Detect if running on Vercel (production)
-const isVercel = process.env.VERCEL === "1";
 
 // Supported file types for credit report uploads
 const SUPPORTED_MIME_TYPES = [
@@ -55,14 +50,17 @@ export async function POST(req: NextRequest) {
 
     const { id: userId, email: userEmail, organizationId, subscriptionTier } = session.user;
 
-    // Note: Subscription check removed for beta testing
-    // In production, uncomment to restrict FREE tier:
-    // if (subscriptionTier === "FREE") {
-    //   return NextResponse.json(
-    //     { error: "Report upload requires Pro subscription" },
-    //     { status: 403 }
-    //   );
-    // }
+    // Subscription check - FREE tier cannot upload reports
+    if (subscriptionTier === "FREE") {
+      return NextResponse.json(
+        {
+          error: "Report upload requires a paid subscription",
+          code: "SUBSCRIPTION_REQUIRED",
+          upgradeUrl: "/settings/billing"
+        },
+        { status: 403 }
+      );
+    }
 
     // Parse form data
     const formData = await req.formData();
@@ -109,35 +107,23 @@ export async function POST(req: NextRequest) {
     const fileBuffer = Buffer.from(arrayBuffer);
     const fileSize = fileBuffer.length;
 
-    // Generate unique filename
+    // Generate unique filename using unified storage
     const fileId = uuid();
     const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
-    const blobName = `reports/${fileId}-${safeFileName}`;
+    const storageKey = `reports/${fileId}-${safeFileName}`;
 
-    let relativePath: string;
-    let storageType: "LOCAL" | "VERCEL_BLOB";
+    // Upload using unified storage API
+    const uploadResult = await uploadFile(fileBuffer, storageKey, mimeType);
+    const relativePath = uploadResult.url;
+    const storageType = uploadResult.provider === "local" ? "LOCAL" :
+                        uploadResult.provider === "vercel-blob" ? "VERCEL_BLOB" : "BLOB";
 
-    if (isVercel) {
-      // Production: Use Vercel Blob storage
-      const blob = await put(blobName, fileBuffer, {
-        access: "public",
-        contentType: mimeType,
-      });
-      relativePath = blob.url;
-      storageType = "VERCEL_BLOB";
-      log.info({ url: blob.url }, "[UPLOAD] File saved to Vercel Blob");
-    } else {
-      // Local: Use filesystem
-      const uploadsDir = path.join(process.cwd(), "uploads", "reports");
-      if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
-      }
-      const storagePath = path.join(uploadsDir, `${fileId}-${safeFileName}`);
-      relativePath = `uploads/reports/${fileId}-${safeFileName}`;
-      storageType = "LOCAL";
-      fs.writeFileSync(storagePath, fileBuffer);
-      log.info({ storagePath, fileType }, "[UPLOAD] File saved to");
-    }
+    log.info({
+      key: storageKey,
+      url: relativePath,
+      provider: uploadResult.provider,
+      fileType
+    }, "[UPLOAD] File saved via unified storage");
 
     // Create database records in transaction
     const { storedFile, report } = await prisma.$transaction(async (tx) => {
@@ -187,52 +173,31 @@ export async function POST(req: NextRequest) {
       return { storedFile, report };
     });
 
-    // Auto-trigger parsing - use AI parser for images or when requested
-    let parseResult;
-    if (useAIParsing) {
-      log.info({ useAI: true, isImage, fileType }, "[UPLOAD] Using AI-powered parsing");
-      parseResult = await parseAndAnalyzeReportAI({
-        reportId: report.id,
-        organizationId,
-        clientId,
-        actorId: userId,
-        actorEmail: userEmail || "",
-        fileBuffer,
-        fileType,
-      });
-    } else {
-      parseResult = await parseAndAnalyzeReport({
-        reportId: report.id,
-        organizationId,
-        clientId,
-        actorId: userId,
-        actorEmail: userEmail || "",
-        pdfBuffer: fileBuffer,
-      });
-    }
-
-    // Fetch final report state
-    const finalReport = await prisma.creditReport.findUnique({
-      where: { id: report.id },
-      select: {
-        id: true,
-        parseStatus: true,
-        parseError: true,
-        pageCount: true,
-        _count: { select: { accounts: true } },
-      },
+    // Enqueue background parsing job
+    // This returns immediately so the upload doesn't block on parsing
+    const jobId = await addJob("parse-credit-report", {
+      reportId: report.id,
+      organizationId,
+      clientId,
+      actorId: userId,
+      actorEmail: userEmail || "",
+      storagePath: relativePath,
+      fileBuffer: fileBuffer.toString("base64"), // Pass buffer for immediate processing
+      useAIParsing,
+      fileType,
     });
 
+    log.info({ reportId: report.id, jobId, useAI: useAIParsing }, "[UPLOAD] Parse job enqueued");
+
+    // Return immediately with pending status
+    // Client should poll /api/reports/[id] or /api/reports/[id]/parse for status
     return NextResponse.json({
       id: report.id,
-      status: finalReport?.parseStatus || "PENDING",
-      message: parseResult.success
-        ? `Report uploaded and parsed successfully. ${parseResult.accountsParsed} accounts found.`
-        : `Report uploaded but parsing failed: ${parseResult.error}`,
-      accountsParsed: parseResult.accountsParsed,
-      pageCount: parseResult.pageCount,
-      issuesSummary: parseResult.issuesSummary,
-    }, { status: 201 });
+      status: "PENDING",
+      message: "Report uploaded successfully. Parsing in progress...",
+      jobId,
+      pollUrl: `/api/reports/${report.id}/parse`,
+    }, { status: 202 }); // 202 Accepted - processing started
 
   } catch (error) {
     log.error({ err: error }, "Upload error");
