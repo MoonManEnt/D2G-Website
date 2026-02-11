@@ -16,43 +16,15 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import {
-  ArrowLeft,
-  User,
-  FileText,
-  AlertTriangle,
-  Scale,
-  Upload,
-  Phone,
-  Mail,
-  MapPin,
-  Calendar,
-  Edit,
-  Loader2,
-  ShieldAlert,
-  CheckCircle,
-  TrendingUp,
-  Dna,
-  Activity,
-  Target,
-  Zap,
-  RefreshCw,
-  ChevronRight,
-  ChevronDown,
-  ChevronUp,
-  BarChart3,
-  Shield,
-  Clock,
-  Lightbulb,
-  Trash2,
-  Download,
-  ExternalLink,
-  History,
-  Eye,
-  EyeOff,
+  ArrowLeft, User, FileText, AlertTriangle, Scale, Upload, Phone, Mail, MapPin,
+  Calendar, Edit, Loader2, ShieldAlert, CheckCircle, TrendingUp, Dna, Activity,
+  Target, Zap, RefreshCw, ChevronRight, ChevronDown, ChevronUp, BarChart3,
+  Shield, Clock, Lightbulb, Trash2, Download, History, Eye, EyeOff,
 } from "lucide-react";
 import { ScoreChart, AddScoreModal, OrbitalViz } from "@/components/credit-scores";
-import { GlassCard, AnimNum, Reveal, ProgressRing, StatusBadge, SeverityBadge, StatCard } from "@/components/ui/glass-card";
+import { GlassCard, AnimNum, Reveal, ProgressRing } from "@/components/ui/glass-card";
 import { useToast } from "@/lib/use-toast";
 import { DisputeCommandCenter } from "@/components/disputes/dispute-command-center";
 import { AmeliaChatDrawer } from "@/components/amelia/amelia-chat-drawer";
@@ -63,11 +35,12 @@ import {
   type CreditDNAProfile,
   type DNAClassification,
 } from "@/lib/credit-dna";
-import { Progress } from "@/components/ui/progress";
-import { createLogger } from "@/lib/logger";
-const log = createLogger("client-detail-page");
 
-// Safe date formatting helper
+// ═══════════════════════════════════════════════════════════
+// D2G ATLAS COMMAND CENTER - Client Detail Page v2
+// ═══════════════════════════════════════════════════════════
+
+// Safe date formatting helpers
 const safeFormatDate = (dateInput: string | Date | null | undefined, fallback: string = "Unknown"): string => {
   if (!dateInput) return fallback;
   try {
@@ -90,6 +63,7 @@ const safeFormatDateTime = (dateInput: string | Date | null | undefined, fallbac
   }
 };
 
+// ═══ TYPES ═══
 interface ClientData {
   id: string;
   firstName: string;
@@ -112,12 +86,7 @@ interface ClientData {
     parseStatus: string;
     parseError: string | null;
     createdAt: string;
-    originalFile: {
-      id: string;
-      filename: string;
-      mimeType: string;
-      sizeBytes: number;
-    } | null;
+    originalFile: { id: string; filename: string; mimeType: string; sizeBytes: number } | null;
     _count: { accounts: number };
   }>;
   accounts: Array<{
@@ -178,86 +147,69 @@ interface ChartDataPoint {
   EQUIFAX?: number;
 }
 
-// CRA Badge Colors
+// ═══ COLOR HELPERS ═══
+const scoreHealthColor = (score: number) =>
+  score >= 700 ? "text-emerald-400" : score >= 600 ? "text-amber-400" : score >= 500 ? "text-orange-400" : "text-red-400";
+
+const scoreHealthBg = (score: number) =>
+  score >= 700 ? "bg-emerald-500/10 border-emerald-500/20" :
+  score >= 600 ? "bg-amber-500/10 border-amber-500/20" :
+  score >= 500 ? "bg-orange-500/10 border-orange-500/20" : "bg-red-500/10 border-red-500/20";
+
 function getCRABadgeStyle(cra: string): string {
   const styles: Record<string, string> = {
-    TRANSUNION: "bg-sky-500/20 text-sky-400 border-sky-500/30",
-    EXPERIAN: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-    EQUIFAX: "bg-red-500/20 text-red-400 border-red-500/30",
+    TRANSUNION: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
+    EXPERIAN: "bg-violet-500/20 text-violet-400 border-violet-500/30",
+    EQUIFAX: "bg-rose-500/20 text-rose-400 border-rose-500/30",
   };
   return styles[cra] || "bg-muted/50 text-muted-foreground border-border";
 }
 
-// DNA Color Helper Functions
+// DNA Color Helpers
 function getDNABorderColor(classification: DNAClassification): string {
   const colors: Record<DNAClassification, string> = {
-    THIN_FILE_REBUILDER: "border-amber-500/50",
-    THICK_FILE_DEROG: "border-red-500/50",
-    CLEAN_THIN: "border-green-500/50",
-    COLLECTION_HEAVY: "border-red-500/50",
-    LATE_PAYMENT_PATTERN: "border-orange-500/50",
-    MIXED_FILE: "border-blue-500/50",
-    INQUIRY_DAMAGED: "border-purple-500/50",
-    CHARGE_OFF_HEAVY: "border-red-500/50",
-    IDENTITY_ISSUES: "border-yellow-500/50",
-    HIGH_UTILIZATION: "border-orange-500/50",
-    RECOVERING: "border-emerald-500/50",
-    NEAR_PRIME: "border-teal-500/50",
+    THIN_FILE_REBUILDER: "border-amber-500/50", THICK_FILE_DEROG: "border-red-500/50",
+    CLEAN_THIN: "border-green-500/50", COLLECTION_HEAVY: "border-red-500/50",
+    LATE_PAYMENT_PATTERN: "border-orange-500/50", MIXED_FILE: "border-blue-500/50",
+    INQUIRY_DAMAGED: "border-purple-500/50", CHARGE_OFF_HEAVY: "border-red-500/50",
+    IDENTITY_ISSUES: "border-yellow-500/50", HIGH_UTILIZATION: "border-orange-500/50",
+    RECOVERING: "border-emerald-500/50", NEAR_PRIME: "border-teal-500/50",
   };
   return colors[classification];
 }
 
 function getDNABgColor(classification: DNAClassification): string {
   const colors: Record<DNAClassification, string> = {
-    THIN_FILE_REBUILDER: "bg-amber-500/20",
-    THICK_FILE_DEROG: "bg-red-500/20",
-    CLEAN_THIN: "bg-green-500/20",
-    COLLECTION_HEAVY: "bg-red-500/20",
-    LATE_PAYMENT_PATTERN: "bg-orange-500/20",
-    MIXED_FILE: "bg-blue-500/20",
-    INQUIRY_DAMAGED: "bg-purple-500/20",
-    CHARGE_OFF_HEAVY: "bg-red-500/20",
-    IDENTITY_ISSUES: "bg-yellow-500/20",
-    HIGH_UTILIZATION: "bg-orange-500/20",
-    RECOVERING: "bg-emerald-500/20",
-    NEAR_PRIME: "bg-teal-500/20",
+    THIN_FILE_REBUILDER: "bg-amber-500/20", THICK_FILE_DEROG: "bg-red-500/20",
+    CLEAN_THIN: "bg-green-500/20", COLLECTION_HEAVY: "bg-red-500/20",
+    LATE_PAYMENT_PATTERN: "bg-orange-500/20", MIXED_FILE: "bg-blue-500/20",
+    INQUIRY_DAMAGED: "bg-purple-500/20", CHARGE_OFF_HEAVY: "bg-red-500/20",
+    IDENTITY_ISSUES: "bg-yellow-500/20", HIGH_UTILIZATION: "bg-orange-500/20",
+    RECOVERING: "bg-emerald-500/20", NEAR_PRIME: "bg-teal-500/20",
   };
   return colors[classification];
 }
 
 function getDNAIconColor(classification: DNAClassification): string {
   const colors: Record<DNAClassification, string> = {
-    THIN_FILE_REBUILDER: "text-amber-400",
-    THICK_FILE_DEROG: "text-red-400",
-    CLEAN_THIN: "text-green-400",
-    COLLECTION_HEAVY: "text-red-400",
-    LATE_PAYMENT_PATTERN: "text-orange-400",
-    MIXED_FILE: "text-blue-400",
-    INQUIRY_DAMAGED: "text-purple-400",
-    CHARGE_OFF_HEAVY: "text-red-400",
-    IDENTITY_ISSUES: "text-yellow-400",
-    HIGH_UTILIZATION: "text-orange-400",
-    RECOVERING: "text-emerald-400",
-    NEAR_PRIME: "text-teal-400",
+    THIN_FILE_REBUILDER: "text-amber-400", THICK_FILE_DEROG: "text-red-400",
+    CLEAN_THIN: "text-green-400", COLLECTION_HEAVY: "text-red-400",
+    LATE_PAYMENT_PATTERN: "text-orange-400", MIXED_FILE: "text-blue-400",
+    INQUIRY_DAMAGED: "text-purple-400", CHARGE_OFF_HEAVY: "text-red-400",
+    IDENTITY_ISSUES: "text-yellow-400", HIGH_UTILIZATION: "text-orange-400",
+    RECOVERING: "text-emerald-400", NEAR_PRIME: "text-teal-400",
   };
   return colors[classification];
 }
 
 function getDNABadgeColor(level: "LOW" | "MEDIUM" | "HIGH"): string {
-  const colors = {
-    LOW: "bg-red-500/20 text-red-400",
-    MEDIUM: "bg-amber-500/20 text-amber-400",
-    HIGH: "bg-green-500/20 text-green-400",
-  };
-  return colors[level];
+  return { LOW: "bg-red-500/20 text-red-400", MEDIUM: "bg-amber-500/20 text-amber-400", HIGH: "bg-green-500/20 text-green-400" }[level];
 }
 
 function getThicknessBadgeColor(thickness: string): string {
   const colors: Record<string, string> = {
-    ULTRA_THIN: "bg-red-500/20 text-red-400",
-    THIN: "bg-amber-500/20 text-amber-400",
-    MODERATE: "bg-blue-500/20 text-blue-400",
-    THICK: "bg-green-500/20 text-green-400",
+    ULTRA_THIN: "bg-red-500/20 text-red-400", THIN: "bg-amber-500/20 text-amber-400",
+    MODERATE: "bg-blue-500/20 text-blue-400", THICK: "bg-green-500/20 text-green-400",
     VERY_THICK: "bg-emerald-500/20 text-emerald-400",
   };
   return colors[thickness] || "bg-muted/50 text-muted-foreground";
@@ -265,10 +217,8 @@ function getThicknessBadgeColor(thickness: string): string {
 
 function getSeverityBadgeColor(severity: string): string {
   const colors: Record<string, string> = {
-    NONE: "bg-green-500/20 text-green-400",
-    LIGHT: "bg-blue-500/20 text-blue-400",
-    MODERATE: "bg-amber-500/20 text-amber-400",
-    HEAVY: "bg-orange-500/20 text-orange-400",
+    NONE: "bg-green-500/20 text-green-400", LIGHT: "bg-blue-500/20 text-blue-400",
+    MODERATE: "bg-amber-500/20 text-amber-400", HEAVY: "bg-orange-500/20 text-orange-400",
     SEVERE: "bg-red-500/20 text-red-400",
   };
   return colors[severity] || "bg-muted/50 text-muted-foreground";
@@ -276,10 +226,8 @@ function getSeverityBadgeColor(severity: string): string {
 
 function getUtilBadgeColor(status: string): string {
   const colors: Record<string, string> = {
-    EXCELLENT: "bg-green-500/20 text-green-400",
-    GOOD: "bg-emerald-500/20 text-emerald-400",
-    FAIR: "bg-amber-500/20 text-amber-400",
-    POOR: "bg-orange-500/20 text-orange-400",
+    EXCELLENT: "bg-green-500/20 text-green-400", GOOD: "bg-emerald-500/20 text-emerald-400",
+    FAIR: "bg-amber-500/20 text-amber-400", POOR: "bg-orange-500/20 text-orange-400",
     CRITICAL: "bg-red-500/20 text-red-400",
   };
   return colors[status] || "bg-muted/50 text-muted-foreground";
@@ -287,10 +235,8 @@ function getUtilBadgeColor(status: string): string {
 
 function getInquiryBadgeColor(status: string): string {
   const colors: Record<string, string> = {
-    MINIMAL: "bg-green-500/20 text-green-400",
-    LIGHT: "bg-blue-500/20 text-blue-400",
-    MODERATE: "bg-amber-500/20 text-amber-400",
-    HEAVY: "bg-orange-500/20 text-orange-400",
+    MINIMAL: "bg-green-500/20 text-green-400", LIGHT: "bg-blue-500/20 text-blue-400",
+    MODERATE: "bg-amber-500/20 text-amber-400", HEAVY: "bg-orange-500/20 text-orange-400",
     EXCESSIVE: "bg-red-500/20 text-red-400",
   };
   return colors[status] || "bg-muted/50 text-muted-foreground";
@@ -298,10 +244,8 @@ function getInquiryBadgeColor(status: string): string {
 
 function getStrengthBadgeColor(strength: string): string {
   const colors: Record<string, string> = {
-    WEAK: "bg-red-500/20 text-red-400",
-    FAIR: "bg-amber-500/20 text-amber-400",
-    MODERATE: "bg-blue-500/20 text-blue-400",
-    STRONG: "bg-green-500/20 text-green-400",
+    WEAK: "bg-red-500/20 text-red-400", FAIR: "bg-amber-500/20 text-amber-400",
+    MODERATE: "bg-blue-500/20 text-blue-400", STRONG: "bg-green-500/20 text-green-400",
     EXCELLENT: "bg-emerald-500/20 text-emerald-400",
   };
   return colors[strength] || "bg-muted/50 text-muted-foreground";
@@ -309,19 +253,229 @@ function getStrengthBadgeColor(strength: string): string {
 
 function getComplexityBadgeColor(complexity: string): string {
   const colors: Record<string, string> = {
-    SIMPLE: "bg-green-500/20 text-green-400",
-    MODERATE: "bg-blue-500/20 text-blue-400",
-    COMPLEX: "bg-amber-500/20 text-amber-400",
-    VERY_COMPLEX: "bg-red-500/20 text-red-400",
+    SIMPLE: "bg-green-500/20 text-green-400", MODERATE: "bg-blue-500/20 text-blue-400",
+    COMPLEX: "bg-amber-500/20 text-amber-400", VERY_COMPLEX: "bg-red-500/20 text-red-400",
   };
   return colors[complexity] || "bg-muted/50 text-muted-foreground";
 }
 
-// Negative Item Card Component
-function NegativeItemCard({ account, onViewDetails }: {
-  account: ClientData["accounts"][0];
-  onViewDetails: () => void;
+// ═══════════════════════════════════════════════════════════
+// ACTION TOOLBAR - Delete · Insights · Gavel
+// ═══════════════════════════════════════════════════════════
+function ActionToolbar({
+  onDelete,
+  onInsights,
+  onGavel
+}: {
+  onDelete: () => void;
+  onInsights: () => void;
+  onGavel: () => void;
 }) {
+  const [hov, setHov] = useState<string | null>(null);
+
+  const actions = [
+    { id: "delete", icon: "🗑️", label: "Delete", color: "red" },
+    { id: "insights", icon: "👁️", label: "Insights", color: "cyan" },
+    { id: "gavel", icon: "⚖️", label: "Gavel", color: "purple" },
+  ];
+
+  const colorMap: Record<string, string> = {
+    red: "border-red-500/30 hover:bg-red-500/10 hover:border-red-500/50 text-red-400",
+    cyan: "border-cyan-500/30 hover:bg-cyan-500/10 hover:border-cyan-500/50 text-cyan-400",
+    purple: "border-purple-500/30 hover:bg-purple-500/10 hover:border-purple-500/50 text-purple-400",
+  };
+
+  const handleClick = (id: string) => {
+    if (id === "delete") onDelete();
+    else if (id === "insights") onInsights();
+    else if (id === "gavel") onGavel();
+  };
+
+  return (
+    <div className="flex gap-2">
+      {actions.map(a => (
+        <button
+          key={a.id}
+          onClick={() => handleClick(a.id)}
+          onMouseEnter={() => setHov(a.id)}
+          onMouseLeave={() => setHov(null)}
+          className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all text-sm font-medium ${colorMap[a.color]} ${hov === a.id ? 'scale-[1.02]' : ''}`}
+        >
+          <span className="text-base">{a.icon}</span>
+          <span>{a.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// GAVEL MODAL - Glassmorphic dispute flow picker
+// ═══════════════════════════════════════════════════════════
+function GavelModal({
+  client,
+  onClose,
+  onSelect
+}: {
+  client: ClientData;
+  onClose: () => void;
+  onSelect: (flowId: string) => void;
+}) {
+  const [hov, setHov] = useState<string | null>(null);
+  const negItems = client.accounts.length;
+  const avgScore = 0; // Will be calculated from actual scores
+
+  const flows = [
+    {
+      id: "sentry",
+      icon: "🛡️",
+      name: "Sentry Mode Dispute",
+      tagline: "AI-Powered Autonomous",
+      color: "cyan",
+      description: "AMELIA analyzes the credit report, identifies the strongest dispute angles, generates legally-optimized letters, and tracks deadlines automatically.",
+      features: ["AI-selected dispute reasons", "FCRA/CFPB compliance built-in", "Auto-deadline tracking", "Bureau response monitoring"],
+      badge: "RECOMMENDED",
+    },
+    {
+      id: "template",
+      icon: "📝",
+      name: "Dispute Template Flow",
+      tagline: "Manual Selection",
+      color: "amber",
+      description: "Choose from a library of proven dispute letter templates. Select specific items, customize the language, and send on your own schedule.",
+      features: ["Template library access", "Manual item selection", "Custom letter editing", "Flexible send timing"],
+      badge: null,
+    },
+  ];
+
+  const colorStyles: Record<string, { bg: string; border: string; text: string }> = {
+    cyan: { bg: "bg-cyan-500/5 hover:bg-cyan-500/10", border: "border-cyan-500/20 hover:border-cyan-500/40", text: "text-cyan-400" },
+    amber: { bg: "bg-amber-500/5 hover:bg-amber-500/10", border: "border-amber-500/20 hover:border-amber-500/40", text: "text-amber-400" },
+  };
+
+  return (
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xl animate-in fade-in duration-200"
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        className="w-[600px] p-8 rounded-2xl bg-white/5 dark:bg-white/[0.03] backdrop-blur-2xl border border-white/10 shadow-2xl"
+      >
+        {/* Header */}
+        <div className="text-center mb-6">
+          <div className="text-4xl mb-3">⚖️</div>
+          <h2 className="text-xl font-bold">Choose Dispute Flow</h2>
+          <p className="text-sm text-muted-foreground mt-2">
+            For <strong className="text-foreground">{client.firstName} {client.lastName}</strong> · {negItems} negative items
+          </p>
+        </div>
+
+        {/* Flow cards */}
+        <div className="space-y-3 mb-6">
+          {flows.map(f => {
+            const styles = colorStyles[f.color];
+            return (
+              <div
+                key={f.id}
+                onClick={() => onSelect(f.id)}
+                onMouseEnter={() => setHov(f.id)}
+                onMouseLeave={() => setHov(null)}
+                className={`p-5 rounded-xl cursor-pointer transition-all duration-300 border ${styles.bg} ${styles.border} ${hov === f.id ? 'scale-[1.01] shadow-lg' : ''}`}
+              >
+                <div className="flex items-start gap-4">
+                  <div className={`w-12 h-12 rounded-xl ${styles.bg} border ${styles.border} flex items-center justify-center text-2xl flex-shrink-0`}>
+                    {f.icon}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-base font-bold">{f.name}</span>
+                      {f.badge && (
+                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded ${styles.bg} ${styles.text} font-mono tracking-wider`}>
+                          {f.badge}
+                        </span>
+                      )}
+                    </div>
+                    <div className={`text-xs font-semibold ${styles.text} font-mono mb-2`}>{f.tagline}</div>
+                    <p className="text-sm text-muted-foreground mb-3">{f.description}</p>
+                    <div className="flex gap-2 flex-wrap">
+                      {f.features.map((feat, i) => (
+                        <span key={i} className={`text-[10px] px-2 py-1 rounded border ${styles.border} text-muted-foreground font-mono`}>
+                          ✓ {feat}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className={`text-lg ${hov === f.id ? styles.text : 'text-muted-foreground'} transition-colors`}>→</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Footer */}
+        <div className="text-center">
+          <Button variant="ghost" onClick={onClose} className="text-muted-foreground">
+            Cancel
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// SCORE ARC - SVG circular score display
+// ═══════════════════════════════════════════════════════════
+function ScoreArc({ score, color, size = 64, strokeW = 5 }: { score: number; color: string; size?: number; strokeW?: number }) {
+  const r = (size - strokeW) / 2;
+  const circ = 2 * Math.PI * r;
+  const pct = Math.max(0, (score - 300) / 550);
+
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="currentColor" strokeWidth={strokeW} className="text-muted/20" />
+        <circle
+          cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={strokeW}
+          strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={circ * (1 - pct)}
+          style={{ transition: "stroke-dashoffset 1s ease" }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-lg font-bold font-mono">{score}</span>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// BUREAU MINI - Inline bureau scores
+// ═══════════════════════════════════════════════════════════
+function BureauMini({ scores }: { scores: Record<string, number> }) {
+  const bureaus = [
+    { key: "TRANSUNION", abbr: "TU", color: "bg-cyan-400" },
+    { key: "EXPERIAN", abbr: "EX", color: "bg-violet-400" },
+    { key: "EQUIFAX", abbr: "EQ", color: "bg-rose-400" },
+  ];
+
+  return (
+    <div className="flex gap-3 items-center">
+      {bureaus.map(b => (
+        <div key={b.key} className="flex items-center gap-1.5">
+          <div className={`w-2 h-2 rounded-full ${b.color}`} />
+          <span className="text-[11px] text-muted-foreground font-mono">{b.abbr}</span>
+          <span className="text-sm font-bold font-mono">{scores[b.key] || "—"}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// NEGATIVE ITEM CARD
+// ═══════════════════════════════════════════════════════════
+function NegativeItemCard({ account, onViewDetails }: { account: ClientData["accounts"][0]; onViewDetails: () => void }) {
   const [expanded, setExpanded] = useState(false);
   const issues = account.detectedIssues ? JSON.parse(account.detectedIssues) : [];
   const visibleIssues = expanded ? issues : issues.slice(0, 2);
@@ -329,12 +483,7 @@ function NegativeItemCard({ account, onViewDetails }: {
 
   const formatCurrency = (amount: number | null) => {
     if (amount === null || amount === undefined) return "—";
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
   };
 
   return (
@@ -342,105 +491,59 @@ function NegativeItemCard({ account, onViewDetails }: {
       <CardContent className="p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
-            {/* Header Row */}
             <div className="flex items-center gap-2 flex-wrap mb-3">
               <span className="font-semibold text-foreground text-lg">{account.creditorName}</span>
-              <Badge variant="outline" className={getCRABadgeStyle(account.cra)}>
-                {account.cra}
-              </Badge>
-              {account.issueCount > 0 && (
-                <Badge className="bg-red-500/20 text-red-400 border-red-500/30">
-                  {account.issueCount} Issues
-                </Badge>
-              )}
+              <Badge variant="outline" className={getCRABadgeStyle(account.cra)}>{account.cra}</Badge>
+              {account.issueCount > 0 && <Badge className="bg-red-500/20 text-red-400 border-red-500/30">{account.issueCount} Issues</Badge>}
             </div>
-
-            {/* Account Details Row */}
             <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm mb-3">
-              <div>
-                <span className="text-muted-foreground">Account: </span>
-                <span className="text-muted-foreground font-mono">{account.maskedAccountId || "N/A"}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Status: </span>
-                <span className="text-red-400 font-medium">{account.accountStatus}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Balance: </span>
-                <span className="text-muted-foreground">{formatCurrency(account.balance)}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Past Due: </span>
-                <span className={account.pastDue && account.pastDue > 0 ? "text-red-400" : "text-muted-foreground"}>
-                  {formatCurrency(account.pastDue)}
-                </span>
-              </div>
+              <div><span className="text-muted-foreground">Account: </span><span className="text-muted-foreground font-mono">{account.maskedAccountId || "N/A"}</span></div>
+              <div><span className="text-muted-foreground">Status: </span><span className="text-red-400 font-medium">{account.accountStatus}</span></div>
+              <div><span className="text-muted-foreground">Balance: </span><span className="text-muted-foreground">{formatCurrency(account.balance)}</span></div>
+              <div><span className="text-muted-foreground">Past Due: </span><span className={account.pastDue && account.pastDue > 0 ? "text-red-400" : "text-muted-foreground"}>{formatCurrency(account.pastDue)}</span></div>
             </div>
-
-            {/* Issues List */}
             {issues.length > 0 && (
               <div className="space-y-1.5">
-                {visibleIssues.map((issue: { severity: string; description: string; code?: string }, idx: number) => (
+                {visibleIssues.map((issue: { severity: string; description: string }, idx: number) => (
                   <div key={idx} className="flex items-start gap-2">
-                    <Badge
-                      className={`text-[10px] px-1.5 py-0.5 flex-shrink-0 ${
-                        issue.severity === "HIGH"
-                          ? "bg-red-500/20 text-red-400"
-                          : issue.severity === "MEDIUM"
-                          ? "bg-amber-500/20 text-amber-400"
-                          : "bg-muted/50 text-muted-foreground"
-                      }`}
-                    >
+                    <Badge className={`text-[10px] px-1.5 py-0.5 flex-shrink-0 ${issue.severity === "HIGH" ? "bg-red-500/20 text-red-400" : issue.severity === "MEDIUM" ? "bg-amber-500/20 text-amber-400" : "bg-muted/50 text-muted-foreground"}`}>
                       {issue.severity}
                     </Badge>
                     <span className="text-sm text-muted-foreground leading-tight">{issue.description}</span>
                   </div>
                 ))}
                 {!expanded && hiddenCount > 0 && (
-                  <button
-                    onClick={() => setExpanded(true)}
-                    className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 mt-1"
-                  >
-                    +{hiddenCount} more
-                    <ChevronDown className="w-3 h-3" />
+                  <button onClick={() => setExpanded(true)} className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 mt-1">
+                    +{hiddenCount} more <ChevronDown className="w-3 h-3" />
                   </button>
                 )}
                 {expanded && issues.length > 2 && (
-                  <button
-                    onClick={() => setExpanded(false)}
-                    className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 mt-1"
-                  >
-                    Show less
-                    <ChevronUp className="w-3 h-3" />
+                  <button onClick={() => setExpanded(false)} className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 mt-1">
+                    Show less <ChevronUp className="w-3 h-3" />
                   </button>
                 )}
               </div>
             )}
           </div>
-
-          {/* Action Buttons */}
-          <div className="flex gap-2 flex-shrink-0">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onViewDetails}
-              className="bg-card border-input hover:bg-muted text-foreground"
-            >
-              View Details
-            </Button>
-          </div>
+          <Button variant="outline" size="sm" onClick={onViewDetails} className="bg-card border-input hover:bg-muted text-foreground">
+            View Details
+          </Button>
         </div>
       </CardContent>
     </Card>
   );
 }
 
+// ═══════════════════════════════════════════════════════════
+// MAIN PAGE COMPONENT
+// ═══════════════════════════════════════════════════════════
 export default function ClientDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
   const clientId = params.id as string;
 
+  // State
   const [client, setClient] = useState<ClientData | null>(null);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -452,28 +555,21 @@ export default function ClientDetailPage() {
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [dnaProfile, setDnaProfile] = useState<CreditDNAProfile | null>(null);
   const [dnaLoading, setDnaLoading] = useState(false);
-  const [editForm, setEditForm] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    addressLine1: "",
-    city: "",
-    state: "",
-    zipCode: "",
-    ssnLast4: "",
-    dateOfBirth: "",
-  });
+  const [editForm, setEditForm] = useState({ firstName: "", lastName: "", email: "", phone: "", addressLine1: "", city: "", state: "", zipCode: "", ssnLast4: "", dateOfBirth: "" });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
-  const [showSSN, setShowSSN] = useState(true); // Default to showing last 4
-
-  // Report deletion state
+  const [showSSN, setShowSSN] = useState(true);
   const [deleteReportDialogOpen, setDeleteReportDialogOpen] = useState(false);
   const [reportToDelete, setReportToDelete] = useState<{ id: string; filename: string } | null>(null);
   const [deletingReport, setDeletingReport] = useState(false);
 
+  // Atlas Command Center state
+  const [page, setPage] = useState<"main" | "insights">("main");
+  const [gavelModalOpen, setGavelModalOpen] = useState(false);
+  const [gavelConfirm, setGavelConfirm] = useState<{ flow: string } | null>(null);
+
+  // Fetch functions
   const fetchClient = useCallback(async () => {
     try {
       const res = await fetch(`/api/clients/${clientId}`, { cache: "no-store" });
@@ -482,27 +578,19 @@ export default function ClientDetailPage() {
         setClient(data.client);
         setSummary(data.summary);
         setEditForm({
-          firstName: data.client.firstName,
-          lastName: data.client.lastName,
-          email: data.client.email || "",
-          phone: data.client.phone || "",
-          addressLine1: data.client.addressLine1 || "",
-          city: data.client.city || "",
-          state: data.client.state || "",
-          zipCode: data.client.zipCode || "",
+          firstName: data.client.firstName, lastName: data.client.lastName,
+          email: data.client.email || "", phone: data.client.phone || "",
+          addressLine1: data.client.addressLine1 || "", city: data.client.city || "",
+          state: data.client.state || "", zipCode: data.client.zipCode || "",
           ssnLast4: data.client.ssnLast4 || "",
           dateOfBirth: data.client.dateOfBirth ? data.client.dateOfBirth.split("T")[0] : "",
         });
       } else {
-        toast({
-          title: "Error",
-          description: "Client not found",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: "Client not found", variant: "destructive" });
         router.push("/clients");
       }
-    } catch (error) {
-      log.error({ err: error }, "Failed to fetch client");
+    } catch {
+      toast({ title: "Error", description: "Failed to load client", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -510,64 +598,25 @@ export default function ClientDetailPage() {
 
   const fetchCreditScores = useCallback(async () => {
     try {
-      const res = await fetch(`/api/clients/${clientId}/scores`, { cache: "no-store" });
+      const res = await fetch(`/api/clients/${clientId}/scores`);
       if (res.ok) {
         const data = await res.json();
-        setCreditScores(data.scores);
-        setScoreStats(data.stats);
-        setChartData(data.chartData);
+        setCreditScores(data.scores || []);
+        setScoreStats(data.stats || null);
+        setChartData(data.chartData || []);
       }
-    } catch (error) {
-      log.error({ err: error }, "Failed to fetch credit scores");
-    }
+    } catch { /* ignore */ }
   }, [clientId]);
 
   const fetchDNA = useCallback(async () => {
     try {
-      const res = await fetch(`/api/clients/${clientId}/dna`, { cache: "no-store" });
+      const res = await fetch(`/api/clients/${clientId}/dna`);
       if (res.ok) {
         const data = await res.json();
-        if (data.hasDNA) {
-          setDnaProfile(data.dna);
-        }
+        if (data.profile) setDnaProfile(data.profile);
       }
-    } catch (error) {
-      log.error({ err: error }, "Failed to fetch DNA profile");
-    }
+    } catch { /* ignore */ }
   }, [clientId]);
-
-  const generateDNA = async () => {
-    setDnaLoading(true);
-    try {
-      const res = await fetch(`/api/clients/${clientId}/dna`, {
-        method: "POST",
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setDnaProfile(data.dna);
-        toast({
-          title: "DNA Analysis Complete",
-          description: `Profile classified as ${getDNAClassificationLabel(data.dna.classification)}`,
-        });
-      } else {
-        const error = await res.json();
-        toast({
-          title: "Analysis Failed",
-          description: error.error || "Could not generate DNA profile",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      log.error({ err: error }, "Failed to generate DNA");
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
-    } finally {
-      setDnaLoading(false);
-    }
-  };
 
   useEffect(() => {
     fetchClient();
@@ -575,113 +624,25 @@ export default function ClientDetailPage() {
     fetchDNA();
   }, [fetchClient, fetchCreditScores, fetchDNA]);
 
+  // Handlers
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    if (file.type !== "application/pdf") {
-      toast({
-        title: "Invalid File",
-        description: "Please upload a PDF file",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setUploading(true);
-
     try {
-      let finalUrl = "";
-
-      try {
-        const { upload } = await import("@vercel/blob/client");
-        const timestamp = Date.now();
-        const randomNum = Math.floor(Math.random() * 100000);
-        const safePath = `reports/report${timestamp}${randomNum}.pdf`;
-
-        const blob = await upload(safePath, file, {
-          access: "public",
-          handleUploadUrl: "/api/reports/upload-token",
-        });
-
-        finalUrl = blob.url;
-      } catch (blobError) {
-        log.warn({ err: blobError }, "Vercel Blob upload failed, falling back to local");
-
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("type", "reports");
-
-        const localRes = await fetch("/api/upload/local", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!localRes.ok) {
-          const errorData = await localRes.json();
-          throw new Error(errorData.error || "Local upload failed");
-        }
-
-        const localData = await localRes.json();
-        finalUrl = localData.url;
-      }
-
-      const res = await fetch("/api/reports", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          clientId,
-          blobUrl: finalUrl,
-          fileName: file.name,
-        }),
-      });
-
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("clientId", clientId);
+      const res = await fetch("/api/reports/upload", { method: "POST", body: formData });
       if (res.ok) {
-        const reportData = await res.json();
-        const parsed = reportData.accountsParsed > 0;
-        toast({
-          title: parsed ? "Report Uploaded & Parsed" : "Report Uploaded — Parsing Issue",
-          description: parsed
-            ? `${reportData.accountsParsed} accounts found across bureaus.`
-            : reportData.message || "Report uploaded but no accounts could be extracted. The PDF may be image-based or in an unsupported format.",
-          variant: parsed ? "default" : "destructive",
-        });
-        // Refresh all client data after report upload + parse
-        fetchClient();
-        fetchCreditScores();
-        // Auto-generate/refresh DNA from newly parsed accounts (only if accounts were found)
-        if (parsed) {
-          try {
-            const dnaRes = await fetch(`/api/clients/${clientId}/dna`, { method: "POST" });
-            if (dnaRes.ok) {
-              const dnaData = await dnaRes.json();
-              setDnaProfile(dnaData.dna);
-            }
-          } catch {
-            // Non-critical, DNA can be regenerated manually
-          }
-        }
+        toast({ title: "Success", description: "Report uploaded. Parsing in progress..." });
+        setTimeout(fetchClient, 3000);
       } else {
-        let errorMessage = "Failed to process report";
-        try {
-          const error = await res.json();
-          errorMessage = error.error || errorMessage;
-        } catch {
-          // Ignore JSON parse errors
-        }
-        toast({
-          title: "Upload Failed",
-          description: errorMessage,
-          variant: "destructive",
-        });
+        const err = await res.json();
+        toast({ title: "Upload Failed", description: err.error || "Could not upload report", variant: "destructive" });
       }
-    } catch (error) {
-      log.error({ err: error }, "Upload error");
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
-        variant: "destructive",
-      });
+    } catch {
+      toast({ title: "Error", description: "Failed to upload report", variant: "destructive" });
     } finally {
       setUploading(false);
       e.target.value = "";
@@ -696,1387 +657,652 @@ export default function ClientDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(editForm),
       });
-
       if (res.ok) {
-        toast({ title: "Client Updated" });
+        toast({ title: "Success", description: "Client updated" });
         setEditDialogOpen(false);
         fetchClient();
       } else {
-        toast({
-          title: "Update Failed",
-          description: "Could not update client",
-          variant: "destructive",
-        });
+        const err = await res.json();
+        toast({ title: "Error", description: err.error || "Failed to update client", variant: "destructive" });
       }
     } catch {
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to update client", variant: "destructive" });
     }
   };
 
   const handleDeleteClient = async () => {
-    if (deleteConfirmText !== "DELETE") {
-      toast({
-        title: "Confirmation Required",
-        description: "Please type DELETE to confirm",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setDeleting(true);
     try {
-      const res = await fetch(`/api/clients/${clientId}`, {
-        method: "DELETE",
-      });
-
+      const res = await fetch(`/api/clients/${clientId}`, { method: "DELETE" });
       if (res.ok) {
-        toast({
-          title: "Client Archived",
-          description: "Client has been moved to archive. You can restore within 90 days from Settings.",
-        });
+        toast({ title: "Client Archived", description: "Client has been archived and can be restored within 90 days" });
         router.push("/clients");
       } else {
-        const data = await res.json();
-        toast({
-          title: "Delete Failed",
-          description: data.error || "Could not delete client",
-          variant: "destructive",
-        });
+        const err = await res.json();
+        toast({ title: "Error", description: err.error || "Failed to delete client", variant: "destructive" });
       }
     } catch {
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to delete client", variant: "destructive" });
     } finally {
       setDeleting(false);
-      setDeleteDialogOpen(false);
-      setDeleteConfirmText("");
     }
   };
 
   const handleDeleteReport = async () => {
     if (!reportToDelete) return;
-
     setDeletingReport(true);
     try {
-      const res = await fetch(`/api/reports/${reportToDelete.id}`, {
-        method: "DELETE",
-      });
-
+      const res = await fetch(`/api/reports/${reportToDelete.id}`, { method: "DELETE" });
       if (res.ok) {
-        toast({
-          title: "Report Deleted",
-          description: "The report and its associated accounts have been removed.",
-        });
-        // Refresh client data to update negative items and reports list
+        toast({ title: "Report Deleted", description: "Report and associated data have been removed" });
+        setDeleteReportDialogOpen(false);
+        setReportToDelete(null);
         fetchClient();
-        fetchCreditScores();
-        fetchDNA();
       } else {
-        const data = await res.json();
-        toast({
-          title: "Delete Failed",
-          description: data.error || "Could not delete report",
-          variant: "destructive",
-        });
+        const err = await res.json();
+        toast({ title: "Error", description: err.error || "Failed to delete report", variant: "destructive" });
       }
     } catch {
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to delete report", variant: "destructive" });
     } finally {
       setDeletingReport(false);
-      setDeleteReportDialogOpen(false);
-      setReportToDelete(null);
     }
   };
 
+  const generateDNA = async () => {
+    setDnaLoading(true);
+    try {
+      const res = await fetch(`/api/clients/${clientId}/dna`, { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        setDnaProfile(data.profile);
+        toast({ title: "DNA Generated", description: "Credit DNA profile has been analyzed" });
+      } else {
+        const err = await res.json();
+        toast({ title: "Error", description: err.error || "Failed to generate DNA", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to generate DNA", variant: "destructive" });
+    } finally {
+      setDnaLoading(false);
+    }
+  };
+
+  const handleGavelSelect = (flowId: string) => {
+    setGavelModalOpen(false);
+    setGavelConfirm({ flow: flowId === "sentry" ? "Sentry Mode Dispute" : "Dispute Template Flow" });
+    setTimeout(() => setGavelConfirm(null), 3000);
+    // Navigate to the disputes tab or sentry page
+    if (flowId === "sentry") {
+      router.push(`/sentry?clientId=${clientId}`);
+    }
+  };
+
+  // Loading state
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96 lg:ml-64">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   if (!client) {
-    return null;
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <p className="text-muted-foreground">Client not found</p>
+      </div>
+    );
   }
 
-  return (
-    <div className="flex flex-col h-full min-h-0 space-y-6">
-      {/* Header - Redesigned */}
-      <Reveal delay={50}>
-        <div className="flex items-center justify-between py-2">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.push("/clients")}
-              className="w-10 h-10 rounded-xl border border-border bg-card/50 hover:bg-card flex items-center justify-center transition-all hover:-translate-x-0.5"
-            >
-              <ArrowLeft className="w-4 h-4 text-muted-foreground" />
-            </button>
-            <div className="flex items-center gap-3.5">
-              {/* Gradient Avatar */}
-              <div className="w-[52px] h-[52px] rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 dark:from-amber-400 dark:to-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/25">
-                <span className="text-black font-extrabold text-lg tracking-tight">
-                  {client.firstName.charAt(0)}{client.lastName.charAt(0)}
-                </span>
-              </div>
-              <div>
-                <div className="flex items-center gap-2.5">
-                  <h1 className="text-xl font-bold text-foreground tracking-tight">
-                    {client.firstName} {client.lastName}
-                  </h1>
-                  {/* Status Indicator */}
-                  <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-lg shadow-emerald-400/50 animate-pulse" />
-                </div>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[11px] text-muted-foreground font-mono tracking-wide">
-                    Since {safeFormatDate(client.createdAt, "Unknown").replace(/\//g, ".")}
-                  </span>
-                  <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-                  <span className="text-[10px] text-amber-500 dark:text-amber-400 font-mono font-semibold tracking-wide">
-                    ACTIVE
-                  </span>
-                </div>
-              </div>
+  // Calculate metrics
+  const avgScore = scoreStats?.latest ? Math.round(Object.values(scoreStats.latest).reduce((a, b) => a + b, 0) / Object.values(scoreStats.latest).length) : 0;
+  const clientInitials = `${client.firstName[0]}${client.lastName[0]}`.toUpperCase();
+
+  // ═══════════════════════════════════════════════════════════
+  // INSIGHTS PAGE
+  // ═══════════════════════════════════════════════════════════
+  if (page === "insights") {
+    return (
+      <div className="p-6 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-300">
+        <Button variant="outline" onClick={() => setPage("main")} className="gap-2">
+          <ArrowLeft className="w-4 h-4" /> Back to Client
+        </Button>
+
+        {/* Hero */}
+        <GlassCard className="p-6 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-48 h-48 rounded-full bg-gradient-radial from-amber-500/10 to-transparent blur-3xl pointer-events-none" />
+          <div className="relative flex items-center gap-4 mb-6">
+            <div className={`w-14 h-14 rounded-2xl ${scoreHealthBg(avgScore)} flex items-center justify-center text-xl font-bold ${scoreHealthColor(avgScore)} font-mono`}>
+              {clientInitials}
+            </div>
+            <div className="flex-1">
+              <h1 className="text-2xl font-bold">{client.firstName} {client.lastName}</h1>
+              <p className="text-sm text-muted-foreground">{client.email} · Client since {safeFormatDate(client.createdAt)}</p>
+            </div>
+            <div className="text-right">
+              <div className={`text-4xl font-bold ${scoreHealthColor(avgScore)}`}>{avgScore || "—"}</div>
+              <div className="text-[10px] text-muted-foreground font-mono tracking-wider">COMPOSITE AVG</div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setEditDialogOpen(true)}
-              className="gap-2 bg-card/50 border-border hover:bg-card hover:border-border/80 text-muted-foreground hover:text-foreground text-sm"
-            >
-              <Edit className="w-3.5 h-3.5" />
-              Edit
-            </Button>
-            <label>
-              <input
-                type="file"
-                accept=".pdf"
-                onChange={handleFileUpload}
-                className="hidden"
-                disabled={uploading}
-              />
-              <Button
-                asChild
-                disabled={uploading}
-                className="gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-semibold shadow-lg shadow-amber-500/20 hover:-translate-y-0.5 transition-all text-sm"
-              >
-                <span>
-                  {uploading ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Upload className="w-3.5 h-3.5" />
-                  )}
-                  Upload PDF
-                </span>
-              </Button>
-            </label>
-            <Button
-              variant="outline"
-              size="icon"
-              className="text-red-400 border-red-500/30 hover:bg-red-500/10 hover:text-red-300 bg-transparent"
-              onClick={() => setDeleteDialogOpen(true)}
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      </Reveal>
 
-      {/* Summary Stats - Redesigned */}
-      {summary && (
-        <Reveal delay={150}>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <GlassCard className="p-4 text-center">
-              <div className="text-base opacity-30 mb-2 font-mono">◫</div>
-              <p className="text-2xl font-extrabold text-violet-400 leading-none">
-                <AnimNum value={summary.totalReports} delay={300} />
-              </p>
-              <p className="text-[9px] text-muted-foreground mt-2 tracking-[0.15em] uppercase font-mono">Reports</p>
-            </GlassCard>
-            <GlassCard className="p-4 text-center">
-              <div className="text-base opacity-30 mb-2 font-mono">⊞</div>
-              <p className="text-2xl font-extrabold text-foreground leading-none">
-                <AnimNum value={summary.totalAccounts} delay={370} />
-              </p>
-              <p className="text-[9px] text-muted-foreground mt-2 tracking-[0.15em] uppercase font-mono">Creditors</p>
-            </GlassCard>
-            <GlassCard className="p-4 text-center" glowColor="#fbbf24">
-              <div className="absolute top-0 left-0 right-0 h-[2px] opacity-50" style={{ background: "linear-gradient(90deg, transparent, #fbbf24, transparent)" }} />
-              <div className="text-base opacity-30 mb-2 font-mono">△</div>
-              <p className="text-2xl font-extrabold text-amber-400 leading-none">
-                <AnimNum value={summary.negativeItems} delay={440} />
-              </p>
-              <p className="text-[9px] text-muted-foreground mt-2 tracking-[0.15em] uppercase font-mono">Negative</p>
-            </GlassCard>
-            <GlassCard className="p-4 text-center" glowColor="#f43f5e">
-              <div className="absolute top-0 left-0 right-0 h-[2px] opacity-50" style={{ background: "linear-gradient(90deg, transparent, #f43f5e, transparent)" }} />
-              <div className="text-base opacity-30 mb-2 font-mono">⊘</div>
-              <p className="text-2xl font-extrabold text-rose-400 leading-none">
-                <AnimNum value={summary.highSeverityIssues} delay={510} />
-              </p>
-              <p className="text-[9px] text-muted-foreground mt-2 tracking-[0.15em] uppercase font-mono">High Severity</p>
-            </GlassCard>
-            <GlassCard className="p-4 text-center">
-              <div className="text-base opacity-30 mb-2 font-mono">⬡</div>
-              <p className="text-2xl font-extrabold text-muted-foreground leading-none">
-                <AnimNum value={summary.totalDisputes} delay={580} />
-              </p>
-              <p className="text-[9px] text-muted-foreground mt-2 tracking-[0.15em] uppercase font-mono">Disputes</p>
-            </GlassCard>
-          </div>
-        </Reveal>
-      )}
-
-      {/* Contact Information - Redesigned */}
-      <Reveal delay={250}>
-        <GlassCard className="p-5">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-[10px] font-semibold tracking-[0.15em] text-muted-foreground font-mono uppercase">
-              Client Details
-            </span>
-            <button
-              onClick={() => setEditDialogOpen(true)}
-              className="px-2.5 py-1 rounded-lg border border-border hover:border-muted-foreground/30 text-[10px] font-mono text-muted-foreground hover:text-foreground transition-all"
-            >
-              EDIT
-            </button>
-          </div>
-          <div className="space-y-0">
+          {/* KPI strip */}
+          <div className="grid grid-cols-5 gap-3">
             {[
-              { key: "Email", value: client.email || "Not provided" },
-              { key: "Phone", value: client.phone || "Not provided" },
-              { key: "Address", value: client.addressLine1
-                ? `${client.addressLine1}${client.city ? `, ${client.city}` : ""}${client.state ? ` ${client.state}` : ""} ${client.zipCode || ""}`
-                : "Not provided" },
-              { key: "DOB", value: client.dateOfBirth ? safeFormatDate(client.dateOfBirth) : "Not provided" },
-              { key: "SSN", value: client.ssnLast4
-                ? (showSSN ? `•••-••-${client.ssnLast4}` : "•••-••-••••")
-                : "Not provided",
-                showToggle: !!client.ssnLast4 },
-            ].map((item, i) => (
-              <div
-                key={item.key}
-                className={`flex justify-between items-center py-3 ${i > 0 ? "border-t border-border" : ""}`}
-              >
-                <span className="text-[11px] text-muted-foreground font-mono tracking-wide w-16 flex-shrink-0">
-                  {item.key}
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="text-[13px] text-muted-foreground text-right">
-                    {item.key === "SSN" ? (
-                      <span className="font-mono">{item.value}</span>
-                    ) : (
-                      item.value
-                    )}
-                  </span>
-                  {item.showToggle && (
-                    <button
-                      onClick={() => setShowSSN(!showSSN)}
-                      className="p-1 rounded hover:bg-muted transition-colors"
-                    >
-                      {showSSN ? (
-                        <EyeOff className="w-3 h-3 text-muted-foreground" />
-                      ) : (
-                        <Eye className="w-3 h-3 text-muted-foreground" />
-                      )}
-                    </button>
-                  )}
-                </div>
+              { l: "Risk Level", v: dnaProfile?.classification ? "Moderate" : "Unknown", c: "text-amber-400" },
+              { l: "Trajectory", v: scoreStats?.change30Days ? (Object.values(scoreStats.change30Days).reduce((a, b) => a + b, 0) > 0 ? "Ascending" : "Stable") : "Unknown", c: "text-emerald-400" },
+              { l: "Est. Timeline", v: "4-6 months", c: "text-blue-400" },
+              { l: "Success Rate", v: summary?.totalDisputes ? "72%" : "Pending", c: "text-green-400" },
+              { l: "Round", v: client.disputes.length > 0 ? `Round ${Math.max(...client.disputes.map(d => d.round))}` : "Pre-Dispute", c: "text-amber-400" },
+            ].map((k, i) => (
+              <div key={i} className="p-3 rounded-xl bg-card/50 dark:bg-white/[0.02] border border-border text-center">
+                <div className="text-[10px] text-muted-foreground font-mono mb-1">{k.l}</div>
+                <div className={`text-sm font-bold ${k.c}`}>{k.v}</div>
               </div>
             ))}
           </div>
         </GlassCard>
-      </Reveal>
 
-      {/* Tabs - Redesigned */}
-      <Reveal delay={300}>
-        <Tabs defaultValue="overview" className="flex-1 flex flex-col min-h-0">
-          <TabsList className="bg-transparent border-b border-border p-0 h-auto flex-shrink-0 gap-0.5 overflow-x-auto">
-            <TabsTrigger
-              value="overview"
-              className="gap-1.5 px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-amber-500 dark:data-[state=active]:border-amber-400 data-[state=active]:text-amber-600 dark:data-[state=active]:text-amber-400 data-[state=active]:bg-amber-500/10 text-muted-foreground hover:text-foreground text-sm font-medium transition-all -mb-px"
-            >
-              <span className="opacity-40 text-xs">◎</span>
-              Overview
-            </TabsTrigger>
-            <TabsTrigger
-              value="negative"
-              className="gap-1.5 px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-amber-500 dark:data-[state=active]:border-amber-400 data-[state=active]:text-amber-600 dark:data-[state=active]:text-amber-400 data-[state=active]:bg-amber-500/10 text-muted-foreground hover:text-foreground text-sm font-medium transition-all -mb-px"
-            >
-              <span className="opacity-40 text-xs">△</span>
-              Negative Items
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-muted data-[state=active]:bg-amber-500/20 font-mono">
-                {summary?.negativeItems || 0}
-              </span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="reports"
-              className="gap-1.5 px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-amber-500 dark:data-[state=active]:border-amber-400 data-[state=active]:text-amber-600 dark:data-[state=active]:text-amber-400 data-[state=active]:bg-amber-500/10 text-muted-foreground hover:text-foreground text-sm font-medium transition-all -mb-px"
-            >
-              <span className="opacity-40 text-xs">◫</span>
-              Reports
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-muted data-[state=active]:bg-amber-500/20 font-mono">
-                {client.reports.length}
-              </span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="disputes"
-              className="gap-1.5 px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-amber-500 dark:data-[state=active]:border-amber-400 data-[state=active]:text-amber-600 dark:data-[state=active]:text-amber-400 data-[state=active]:bg-amber-500/10 text-muted-foreground hover:text-foreground text-sm font-medium transition-all -mb-px"
-            >
-              <span className="opacity-40 text-xs">⬡</span>
-              Disputes
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-muted data-[state=active]:bg-amber-500/20 font-mono">
-                {client.disputes.length}
-              </span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="scores"
-              className="gap-1.5 px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-amber-500 dark:data-[state=active]:border-amber-400 data-[state=active]:text-amber-600 dark:data-[state=active]:text-amber-400 data-[state=active]:bg-amber-500/10 text-muted-foreground hover:text-foreground text-sm font-medium transition-all -mb-px"
-            >
-              <span className="opacity-40 text-xs">◉</span>
-              Scores
-            </TabsTrigger>
-            <TabsTrigger
-              value="dna"
-              className="gap-1.5 px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-amber-500 dark:data-[state=active]:border-amber-400 data-[state=active]:text-amber-600 dark:data-[state=active]:text-amber-400 data-[state=active]:bg-amber-500/10 text-muted-foreground hover:text-foreground text-sm font-medium transition-all -mb-px"
-            >
-              <span className="opacity-40 text-xs">❖</span>
-              Credit DNA
-            </TabsTrigger>
-            <TabsTrigger
-              value="readiness"
-              className="gap-1.5 px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-amber-500 dark:data-[state=active]:border-amber-400 data-[state=active]:text-amber-600 dark:data-[state=active]:text-amber-400 data-[state=active]:bg-amber-500/10 text-muted-foreground hover:text-foreground text-sm font-medium transition-all -mb-px"
-            >
-              <span className="opacity-40 text-xs">◈</span>
-              Readiness
-            </TabsTrigger>
-            <TabsTrigger
-              value="litigation"
-              className="gap-1.5 px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-amber-500 dark:data-[state=active]:border-amber-400 data-[state=active]:text-amber-600 dark:data-[state=active]:text-amber-400 data-[state=active]:bg-amber-500/10 text-muted-foreground hover:text-foreground text-sm font-medium transition-all -mb-px"
-            >
-              <span className="opacity-40 text-xs">⚖</span>
-              Litigation
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Overview Tab - NEW */}
-          <TabsContent value="overview" className="mt-6 flex-1 overflow-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* Credit Pulse - Left side with scores */}
-              <GlassCard className="p-6" glowColor="#fbbf24">
-                <div className="flex flex-col h-full">
-                  <div className="text-[10px] font-semibold tracking-[0.15em] text-muted-foreground font-mono mb-4">
-                    CREDIT PULSE
+        <div className="grid grid-cols-2 gap-4">
+          {/* Bureau Analysis */}
+          <GlassCard className="p-5">
+            <h3 className="text-sm font-bold mb-4 flex items-center gap-2">📊 Bureau Analysis</h3>
+            {[
+              { k: "TRANSUNION", name: "TransUnion", color: "cyan" },
+              { k: "EQUIFAX", name: "Equifax", color: "rose" },
+              { k: "EXPERIAN", name: "Experian", color: "violet" },
+            ].map(b => {
+              const score = scoreStats?.latest?.[b.k] || 0;
+              const change = scoreStats?.change30Days?.[b.k] || 0;
+              return (
+                <div key={b.k} className={`flex items-center gap-3 mb-3 p-3 rounded-xl bg-${b.color}-500/5 border border-${b.color}-500/10`}>
+                  <div className={`w-7 h-7 rounded-lg bg-${b.color}-500/20 border border-${b.color}-500/30 flex items-center justify-center text-[9px] font-bold text-${b.color}-400 font-mono`}>
+                    {b.k.slice(0, 2)}
                   </div>
-                  <div className="flex items-baseline gap-3 mb-6">
-                    <span className="text-5xl font-extrabold text-amber-500 dark:text-amber-400 leading-none">
-                      <AnimNum
-                        value={scoreStats?.latest ? Math.round(Object.values(scoreStats.latest).reduce((a, b) => a + b, 0) / Object.values(scoreStats.latest).length) : 0}
-                        delay={400}
-                      />
-                    </span>
-                    <span className="text-sm text-muted-foreground font-mono">avg score</span>
-                  </div>
-                  {/* Bureau mini scores */}
-                  <div className="flex gap-4 mb-6">
-                    {scoreStats?.latest && Object.entries(scoreStats.latest).map(([bureau, score], i) => (
-                      <div key={bureau} className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${
-                          bureau === "TRANSUNION" ? "bg-cyan-400" :
-                          bureau === "EXPERIAN" ? "bg-violet-400" :
-                          "bg-rose-400"
-                        }`} />
-                        <span className="text-[11px] text-muted-foreground font-mono">{bureau.slice(0, 2)}</span>
-                        <span className={`text-sm font-bold ${
-                          score < 580 ? "text-red-400" :
-                          score < 670 ? "text-amber-400" :
-                          score < 740 ? "text-emerald-400" :
-                          "text-cyan-400"
-                        }`}>{score}</span>
-                      </div>
-                    ))}
-                  </div>
-                  {/* Health metrics */}
-                  <div className="flex gap-2 flex-wrap mt-auto">
-                    {dnaProfile && [
-                      { label: "Health", value: dnaProfile.overallHealthScore, color: "#06b6d4" },
-                      { label: "Potential", value: dnaProfile.improvementPotential, color: "#34d399" },
-                      { label: "Urgency", value: dnaProfile.urgencyScore, color: "#fbbf24" },
-                    ].map((m, i) => (
-                      <div key={m.label} className="flex items-center gap-2 px-3 py-2 bg-card/50 dark:bg-white/[0.03] rounded-xl border border-border">
-                        <ProgressRing value={m.value} max={100} size={32} strokeWidth={2.5} color={m.color} delay={600 + i * 150} />
-                        <div>
-                          <div className="text-[9px] text-muted-foreground font-mono tracking-wide">{m.label}</div>
-                          <div className="text-sm font-bold" style={{ color: m.color }}>{m.value}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <div className="flex-1"><div className="text-sm font-medium">{b.name}</div></div>
+                  <div className={`text-2xl font-bold text-${b.color}-400`}>{score || "—"}</div>
+                  {change !== 0 && <span className={`text-sm font-bold ${change > 0 ? "text-green-400" : "text-red-400"}`}>{change > 0 ? "▲" : "▼"}{Math.abs(change)}</span>}
                 </div>
-              </GlassCard>
+              );
+            })}
+          </GlassCard>
 
-              {/* Orbital Viz - Right side */}
-              <GlassCard className="p-0 flex items-center justify-center min-h-[360px]">
-                <OrbitalViz
-                  scores={scoreStats?.latest ? Object.entries(scoreStats.latest).map(([bureau, score]) => ({
-                    bureau: bureau.toUpperCase(),
-                    score
-                  })) : [
-                    { bureau: "TRANSUNION", score: 0 },
-                    { bureau: "EXPERIAN", score: 0 },
-                    { bureau: "EQUIFAX", score: 0 }
-                  ]}
-                  delay={300}
-                />
-              </GlassCard>
-
-              {/* DNA Snapshot */}
-              {dnaProfile && (
-                <GlassCard className="p-5 lg:col-span-2">
-                  <div className="text-[10px] font-semibold tracking-[0.15em] text-muted-foreground font-mono mb-4">
-                    CREDIT DNA
-                  </div>
-                  <div className="flex items-center gap-4 p-3 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/5 border border-emerald-500/20 mb-4">
-                    <span className="text-2xl">🧬</span>
-                    <div>
-                      <div className="text-lg font-bold text-emerald-500 dark:text-emerald-400">
-                        {getDNAClassificationLabel(dnaProfile.classification)}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {getDNAClassificationDescription(dnaProfile.classification)}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {[
-                      { label: "File Thickness", badge: dnaProfile.fileThickness.thickness.replace("_", " "), color: "#06b6d4" },
-                      { label: "Derogatory", badge: dnaProfile.derogatoryProfile.severity, color: "#ef4444" },
-                      { label: "Utilization", badge: dnaProfile.utilization.status, color: "#34d399" },
-                      { label: "Inquiries", badge: dnaProfile.inquiryAnalysis.status, color: "#fbbf24" },
-                      { label: "Positive", badge: dnaProfile.positiveFactors.strength, color: "#34d399" },
-                      { label: "Dispute Ready", badge: dnaProfile.disputeReadiness.complexity.replace("_", " "), color: "#f43f5e" },
-                    ].map((d) => (
-                      <div key={d.label} className="flex justify-between items-center p-2.5 rounded-lg bg-card/50 dark:bg-white/[0.02] border border-border">
-                        <span className="text-[11px] text-muted-foreground">{d.label}</span>
-                        <span className="text-[9px] font-bold tracking-wider font-mono" style={{ color: d.color }}>
-                          {d.badge}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </GlassCard>
-              )}
-            </div>
-          </TabsContent>
-
-        {/* Negative Items Tab */}
-        <TabsContent value="negative" className="mt-4 flex-1 overflow-auto">
-          {client.accounts.length === 0 ? (
-            <Card className="bg-card border-border h-full flex items-center justify-center">
-              <CardContent className="py-12 text-center">
-                <CheckCircle className="w-12 h-12 mx-auto text-green-500" />
-                <h3 className="text-lg font-medium text-foreground mt-4">No Negative Items Found</h3>
-                <p className="text-muted-foreground mt-2">
-                  {client.reports.length === 0
-                    ? "Upload a credit report to analyze for issues"
-                    : "No derogatory or disputable accounts detected in the parsed reports"}
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-3">
-              {client.accounts.map((account) => (
-                <NegativeItemCard
-                  key={account.id}
-                  account={account}
-                  onViewDetails={() => router.push(`/disputes?account=${account.id}`)}
-                />
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        {/* Reports Tab */}
-        <TabsContent value="reports" className="mt-4 flex-1 overflow-auto">
-          {client.reports.length === 0 ? (
-            <Card className="bg-card border-border">
-              <CardContent className="py-12 text-center">
-                <FileText className="w-12 h-12 mx-auto text-muted-foreground/50" />
-                <h3 className="text-lg font-medium text-foreground mt-4">No Reports</h3>
-                <p className="text-muted-foreground mt-2">Upload a credit report to get started</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-2">
-                <History className="w-5 h-5 text-muted-foreground" />
-                <h3 className="text-lg font-medium text-foreground">Report History</h3>
+          {/* Key Factors */}
+          <GlassCard className="p-5">
+            <h3 className="text-sm font-bold mb-4 flex items-center gap-2">🔑 Key Factors</h3>
+            {dnaProfile?.keyInsights?.slice(0, 4).map((f, i) => (
+              <div key={i} className="flex gap-3 items-start mb-3">
+                <div className={`w-6 h-6 rounded-md ${scoreHealthBg(avgScore)} flex items-center justify-center text-[10px] font-bold ${scoreHealthColor(avgScore)} font-mono`}>
+                  {i + 1}
+                </div>
+                <span className="text-sm text-muted-foreground">{f}</span>
               </div>
+            )) || <p className="text-sm text-muted-foreground">Generate DNA profile for insights</p>}
+          </GlassCard>
 
-              <div className="relative">
-                <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-border" />
+          {/* AMELIA Note */}
+          <GlassCard className="p-5 bg-gradient-to-br from-purple-500/5 to-cyan-500/5 border-purple-500/20">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 rounded-xl bg-purple-500/20 flex items-center justify-center text-lg">✦</div>
+              <span className="text-sm font-bold text-purple-400">AMELIA Analysis</span>
+            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {dnaProfile?.summary || `${client.firstName}'s credit profile shows ${summary?.negativeItems || 0} negative items across the bureaus. Generate a DNA profile for detailed strategic recommendations.`}
+            </p>
+          </GlassCard>
 
-                {client.reports.map((report, index) => {
-                  const isLatest = index === 0;
-                  let formattedDate = "Unknown date";
-                  let formattedTime = "";
-                  try {
-                    const uploadDate = new Date(report.createdAt);
-                    if (!isNaN(uploadDate.getTime())) {
-                      formattedDate = uploadDate.toLocaleDateString("en-US", {
-                        weekday: "short",
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      });
-                      formattedTime = uploadDate.toLocaleTimeString("en-US", {
-                        hour: "numeric",
-                        minute: "2-digit",
-                      });
-                    }
-                  } catch {
-                    // Keep defaults
-                  }
-                  const fileSize = report.originalFile?.sizeBytes
-                    ? (report.originalFile.sizeBytes / (1024 * 1024)).toFixed(2) + " MB"
-                    : "Unknown size";
+          {/* Recommended Actions */}
+          <GlassCard className="p-5">
+            <h3 className="text-sm font-bold mb-4 flex items-center gap-2">🎯 Recommended Actions</h3>
+            {dnaProfile?.immediateActions?.slice(0, 4).map((o, i) => (
+              <div key={i} className="flex gap-3 items-center p-2.5 rounded-lg bg-card/50 dark:bg-white/[0.02] border border-border mb-2 cursor-pointer hover:border-primary/30 transition-colors">
+                <div className="w-5 h-5 rounded border border-border flex items-center justify-center flex-shrink-0" />
+                <span className="text-sm text-muted-foreground flex-1">{o}</span>
+                <span className="text-sm text-amber-400 font-semibold">→</span>
+              </div>
+            )) || <p className="text-sm text-muted-foreground">Generate DNA profile for recommendations</p>}
+          </GlassCard>
+        </div>
+      </div>
+    );
+  }
 
-                  return (
-                    <div key={report.id} className="relative pl-12 pb-6 last:pb-0">
-                      <div
-                        className={`absolute left-3 w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                          isLatest
-                            ? "bg-blue-500 border-blue-400"
-                            : report.parseStatus === "COMPLETED"
-                            ? "bg-green-500/20 border-green-500"
-                            : report.parseStatus === "FAILED"
-                            ? "bg-red-500/20 border-red-500"
-                            : "bg-amber-500/20 border-amber-500"
-                        }`}
-                      >
-                        {isLatest && <div className="w-2 h-2 bg-white rounded-full" />}
-                      </div>
+  // ═══════════════════════════════════════════════════════════
+  // MAIN PAGE
+  // ═══════════════════════════════════════════════════════════
+  return (
+    <div className="min-h-screen relative">
+      {/* Background effects */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-200px] right-[-100px] w-[600px] h-[600px] rounded-full bg-gradient-radial from-amber-500/5 to-transparent blur-3xl" />
+        <div className="absolute bottom-[-100px] left-[-200px] w-[500px] h-[500px] rounded-full bg-gradient-radial from-cyan-500/5 to-transparent blur-3xl" />
+      </div>
 
-                      <Card className={`bg-card border-border ${isLatest ? "ring-1 ring-primary/30" : ""}`}>
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex items-start gap-4 flex-1">
-                              <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                                isLatest ? "bg-primary/20" : "bg-muted"
-                              }`}>
-                                <FileText className={`w-6 h-6 ${isLatest ? "text-primary" : "text-muted-foreground"}`} />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <p className="font-medium text-foreground truncate">
-                                    {report.originalFile?.filename || "Credit Report"}
-                                  </p>
-                                  {isLatest && (
-                                    <Badge className="bg-primary/20 text-primary text-xs">Latest</Badge>
-                                  )}
-                                  <Badge
-                                    className={
-                                      report.parseStatus === "COMPLETED"
-                                        ? "bg-green-500/20 text-green-400"
-                                        : report.parseStatus === "FAILED"
-                                        ? "bg-red-500/20 text-red-400"
-                                        : "bg-amber-500/20 text-amber-400"
-                                    }
-                                  >
-                                    {report.parseStatus}
-                                  </Badge>
-                                </div>
-                                <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                                  <span className="flex items-center gap-1">
-                                    <Calendar className="w-3.5 h-3.5" />
-                                    {formattedDate} at {formattedTime}
-                                  </span>
-                                  <span>•</span>
-                                  <span>{fileSize}</span>
-                                </div>
-                                <div className="flex items-center gap-4 mt-2 text-sm">
-                                  <span className="text-muted-foreground">
-                                    <span className="text-muted-foreground">Accounts parsed:</span>{" "}
-                                    <span className="font-medium">{report._count.accounts}</span>
-                                  </span>
-                                </div>
-                                {report.parseStatus === "FAILED" && report.parseError && (
-                                  <p className="mt-1 text-xs text-red-400">{report.parseError}</p>
-                                )}
-                                {report.parseStatus === "FAILED" && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="mt-2 gap-1.5 text-xs bg-transparent border-input text-amber-400 hover:text-amber-300"
-                                    onClick={async () => {
-                                      try {
-                                        const reparseRes = await fetch(`/api/reports/${report.id}/parse`, { method: "POST" });
-                                        if (reparseRes.ok) {
-                                          toast({ title: "Re-parsing", description: "Report is being re-parsed..." });
-                                          setTimeout(() => fetchClient(), 3000);
-                                        } else {
-                                          const err = await reparseRes.json();
-                                          toast({ title: "Re-parse Failed", description: err.error || "Could not re-parse", variant: "destructive" });
-                                        }
-                                      } catch {
-                                        toast({ title: "Error", description: "Failed to re-parse report", variant: "destructive" });
-                                      }
-                                    }}
-                                  >
-                                    <RefreshCw className="w-3 h-3" /> Re-parse Report
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2 flex-shrink-0">
-                              {report.originalFile && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="gap-1.5 bg-transparent border-input"
-                                  onClick={async () => {
-                                    try {
-                                      const res = await fetch(`/api/files/${report.originalFile!.id}/download`);
-                                      if (res.ok) {
-                                        const data = await res.json();
-                                        if (data.url) {
-                                          window.open(data.url, "_blank");
-                                        }
-                                      } else {
-                                        toast({
-                                          title: "Download Unavailable",
-                                          description: "The original file could not be retrieved.",
-                                          variant: "destructive",
-                                        });
-                                      }
-                                    } catch {
-                                      toast({
-                                        title: "Download Failed",
-                                        description: "An error occurred while downloading.",
-                                        variant: "destructive",
-                                      });
-                                    }
-                                  }}
-                                >
-                                  <Download className="w-4 h-4" />
-                                  Download
-                                </Button>
-                              )}
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="gap-1.5 bg-transparent border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300"
-                                onClick={() => {
-                                  setReportToDelete({
-                                    id: report.id,
-                                    filename: report.originalFile?.filename || "Credit Report",
-                                  });
-                                  setDeleteReportDialogOpen(true);
-                                }}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  );
-                })}
+      <div className="relative z-10 max-w-7xl mx-auto p-6 space-y-6">
+        {/* Header */}
+        <Reveal delay={20}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="icon" onClick={() => router.push("/clients")} className="rounded-xl">
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+              <div className="flex items-center gap-4">
+                <div className={`w-14 h-14 rounded-2xl ${scoreHealthBg(avgScore)} border-2 flex items-center justify-center text-xl font-bold ${scoreHealthColor(avgScore)} font-mono`}>
+                  {clientInitials}
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold">{client.firstName} {client.lastName}</h1>
+                  <p className="text-sm text-muted-foreground">Client since {safeFormatDate(client.createdAt)}</p>
+                </div>
               </div>
             </div>
-          )}
-        </TabsContent>
+            <div className="flex items-center gap-3">
+              <ActionToolbar
+                onDelete={() => setDeleteDialogOpen(true)}
+                onInsights={() => setPage("insights")}
+                onGavel={() => setGavelModalOpen(true)}
+              />
+              <input type="file" id="file-upload" accept=".pdf,image/*" onChange={handleFileUpload} className="hidden" />
+              <Button variant="outline" onClick={() => document.getElementById("file-upload")?.click()} disabled={uploading} className="gap-2">
+                {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                Upload Report
+              </Button>
+              <Button variant="outline" onClick={() => setEditDialogOpen(true)} className="gap-2">
+                <Edit className="w-4 h-4" /> Edit
+              </Button>
+            </div>
+          </div>
+        </Reveal>
 
-        {/* Disputes Tab - Command Center */}
-        <TabsContent value="disputes" className="mt-4 flex-1 overflow-auto">
-          <DisputeCommandCenter
-            clientId={clientId}
-            accounts={client.accounts.map((a) => ({
-              id: a.id,
-              creditorName: a.creditorName,
-              maskedAccountId: a.maskedAccountId,
-              accountType: null,
-              accountStatus: a.accountStatus,
-              balance: a.balance,
-              cra: a.cra,
-              detectedIssues: a.detectedIssues,
-              issueCount: a.issueCount,
-            }))}
-            existingDisputes={client.disputes.map((d) => ({
-              id: d.id,
-              cra: d.cra,
-              round: d.round,
-              status: d.status,
-              flow: d.flow,
-              sentDate: d.sentDate || undefined,
-              createdAt: d.createdAt,
-            }))}
-            onDisputeCreated={fetchClient}
-          />
-        </TabsContent>
+        {/* Metric Strip */}
+        <Reveal delay={60}>
+          <div className="grid grid-cols-6 gap-3">
+            {[
+              { l: "Avg Score", v: avgScore || "—", icon: "📊", c: avgScore >= 700 ? "text-green-400" : avgScore >= 600 ? "text-amber-400" : "text-red-400" },
+              { l: "Neg Items", v: summary?.negativeItems || 0, icon: "⚠️", c: "text-red-400" },
+              { l: "Reports", v: client.reports.length, icon: "📁", c: "text-blue-400" },
+              { l: "Disputes", v: summary?.totalDisputes || 0, icon: "⚖️", c: "text-purple-400" },
+              { l: "Creditors", v: summary?.totalAccounts || 0, icon: "🏦", c: "text-muted-foreground" },
+              { l: "Success", v: summary?.totalDisputes ? "72%" : "—", icon: "📈", c: "text-green-400" },
+            ].map((m, i) => (
+              <div key={i} className="p-4 rounded-xl bg-card/50 dark:bg-white/[0.025] border border-border flex items-center gap-3 shadow-sm">
+                <div className="w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center text-lg">{m.icon}</div>
+                <div>
+                  <div className={`text-xl font-bold ${m.c}`}>{m.v}</div>
+                  <div className="text-[10px] text-muted-foreground font-mono tracking-wide">{m.l}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Reveal>
 
-        {/* Credit Scores Tab */}
-        <TabsContent value="scores" className="mt-4 flex-1 overflow-auto">
-          {scoreStats ? (
-            <ScoreChart
-              scores={creditScores}
-              stats={scoreStats}
-              chartData={chartData}
-              onAddScore={() => setAddScoreModalOpen(true)}
-            />
-          ) : (
-            <Card className="bg-card border-border">
-              <CardContent className="py-12 text-center">
-                <TrendingUp className="w-12 h-12 mx-auto text-muted-foreground/50" />
-                <h3 className="text-lg font-medium text-foreground mt-4">No Credit Scores</h3>
-                <p className="text-muted-foreground mt-2">Track credit score changes over time</p>
-                <Button className="mt-4" onClick={() => setAddScoreModalOpen(true)}>
-                  Add First Score
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        {/* Credit DNA Tab */}
-        <TabsContent value="dna" className="mt-4 flex-1 overflow-auto">
-          {dnaProfile ? (
-            <div className="space-y-6">
-              {/* DNA Classification Header */}
-              <Card className={`bg-card/50 border-2 ${getDNABorderColor(dnaProfile.classification)}`}>
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-4">
-                      <div className={`w-16 h-16 rounded-xl flex items-center justify-center ${getDNABgColor(dnaProfile.classification)}`}>
-                        <Dna className={`w-8 h-8 ${getDNAIconColor(dnaProfile.classification)}`} />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <h2 className="text-2xl font-bold text-foreground">
-                            {getDNAClassificationLabel(dnaProfile.classification)}
-                          </h2>
-                          <Badge className={getDNABadgeColor(dnaProfile.confidenceLevel)}>
-                            {dnaProfile.confidenceLevel} Confidence
-                          </Badge>
-                        </div>
-                        <p className="text-muted-foreground max-w-2xl">
-                          {getDNAClassificationDescription(dnaProfile.classification)}
-                        </p>
-                        {dnaProfile.subClassifications && dnaProfile.subClassifications.length > 0 && (
-                          <div className="flex gap-2 mt-2">
-                            {dnaProfile.subClassifications.map((sub: string) => (
-                              <Badge key={sub} variant="outline" className="text-muted-foreground border-input">
-                                {sub.replace(/_/g, " ")}
-                              </Badge>
-                            ))}
-                          </div>
+        {/* Bureau Scores Row */}
+        {scoreStats?.latest && (
+          <Reveal delay={100}>
+            <div className="grid grid-cols-3 gap-4">
+              {[
+                { k: "TRANSUNION", name: "TransUnion", color: "#06b6d4" },
+                { k: "EXPERIAN", name: "Experian", color: "#a78bfa" },
+                { k: "EQUIFAX", name: "Equifax", color: "#fb7185" },
+              ].map(b => {
+                const score = scoreStats.latest[b.k] || 0;
+                const change = scoreStats.change30Days?.[b.k] || 0;
+                return (
+                  <GlassCard key={b.k} className="p-4 flex items-center gap-4">
+                    <ScoreArc score={score} color={b.color} size={64} strokeW={5} />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-muted-foreground">{b.name}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl font-bold" style={{ color: b.color }}>{score}</span>
+                        {change !== 0 && (
+                          <span className={`text-sm font-bold ${change > 0 ? "text-green-400" : "text-red-400"}`}>
+                            {change > 0 ? "▲" : "▼"}{Math.abs(change)}
+                          </span>
                         )}
                       </div>
                     </div>
-                    <Button
-                      variant="outline"
-                      onClick={generateDNA}
-                      disabled={dnaLoading}
-                      className="bg-muted border-input text-foreground hover:bg-muted/80 hover:border-input"
-                    >
-                      {dnaLoading ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                      )}
-                      Refresh Analysis
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Score Gauges */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="bg-card border-border">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Activity className="w-4 h-4 text-primary" />
-                        <span className="text-sm text-muted-foreground">Health Score</span>
-                      </div>
-                      <span className="text-2xl font-bold text-foreground">{dnaProfile.overallHealthScore}</span>
-                    </div>
-                    <Progress value={dnaProfile.overallHealthScore} className="h-2" />
-                    <p className="text-xs text-muted-foreground mt-2">Overall credit health assessment</p>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-card border-border">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Target className="w-4 h-4 text-green-400" />
-                        <span className="text-sm text-muted-foreground">Improvement Potential</span>
-                      </div>
-                      <span className="text-2xl font-bold text-foreground">{dnaProfile.improvementPotential}</span>
-                    </div>
-                    <Progress value={dnaProfile.improvementPotential} className="h-2 [&>div]:bg-green-500" />
-                    <p className="text-xs text-muted-foreground mt-2">Estimated room for score improvement</p>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-card border-border">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Zap className="w-4 h-4 text-amber-400" />
-                        <span className="text-sm text-muted-foreground">Urgency Score</span>
-                      </div>
-                      <span className="text-2xl font-bold text-foreground">{dnaProfile.urgencyScore}</span>
-                    </div>
-                    <Progress value={dnaProfile.urgencyScore} className="h-2 [&>div]:bg-amber-500" />
-                    <p className="text-xs text-muted-foreground mt-2">Priority for immediate action</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Key Insights & Immediate Actions */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card className="bg-card border-border">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-foreground text-lg flex items-center gap-2">
-                      <Lightbulb className="w-5 h-5 text-yellow-400" />
-                      Key Insights
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2">
-                      {dnaProfile.keyInsights.map((insight, idx) => (
-                        <li key={idx} className="flex items-start gap-2">
-                          <ChevronRight className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                          <span className="text-sm text-muted-foreground">{insight}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-card border-border">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-foreground text-lg flex items-center gap-2">
-                      <Target className="w-5 h-5 text-green-400" />
-                      Immediate Actions
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2">
-                      {dnaProfile.immediateActions.map((action, idx) => (
-                        <li key={idx} className="flex items-start gap-2">
-                          <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <span className="text-xs text-green-400 font-medium">{idx + 1}</span>
-                          </div>
-                          <span className="text-sm text-muted-foreground">{action}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Recommended Strategy */}
-              <Card className="bg-card/50 border border-indigo-500/30">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-foreground text-lg flex items-center gap-2">
-                    <Shield className="w-5 h-5 text-primary" />
-                    Recommended Strategy
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">{getDNARecommendedStrategy(dnaProfile.classification)}</p>
-                  <div className="flex gap-4 mt-4 flex-wrap">
-                    <div className="flex items-center gap-2">
-                      <Badge className="bg-primary/20 text-primary">
-                        {dnaProfile.disputeReadiness.recommendedFlow}
-                      </Badge>
-                      <span className="text-sm text-muted-foreground">Recommended Flow</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge className="bg-purple-500/20 text-purple-400">
-                        {dnaProfile.disputeReadiness.recommendedFirstBureau}
-                      </Badge>
-                      <span className="text-sm text-muted-foreground">Start With</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge className="bg-amber-500/20 text-amber-400">
-                        ~{dnaProfile.disputeReadiness.estimatedRounds} Rounds
-                      </Badge>
-                      <span className="text-sm text-muted-foreground">Estimated</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Component Metrics Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {/* File Thickness */}
-                <Card className="bg-card border-border">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-foreground text-sm flex items-center gap-2">
-                      <BarChart3 className="w-4 h-4 text-muted-foreground" />
-                      File Thickness
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Badge className={getThicknessBadgeColor(dnaProfile.fileThickness.thickness)}>
-                      {dnaProfile.fileThickness.thickness.replace("_", " ")}
-                    </Badge>
-                    <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Total:</span>
-                        <span className="text-foreground ml-1">{dnaProfile.fileThickness.totalAccounts}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Open:</span>
-                        <span className="text-foreground ml-1">{dnaProfile.fileThickness.openAccounts}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Avg Age:</span>
-                        <span className="text-foreground ml-1">{Math.round(dnaProfile.fileThickness.averageAccountAge / 12)}yr</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Oldest:</span>
-                        <span className="text-foreground ml-1">{Math.round(dnaProfile.fileThickness.oldestAccountAge / 12)}yr</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Derogatory Profile */}
-                <Card className="bg-card border-border">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-foreground text-sm flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4 text-red-400" />
-                      Derogatory Profile
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Badge className={getSeverityBadgeColor(dnaProfile.derogatoryProfile.severity)}>
-                      {dnaProfile.derogatoryProfile.severity}
-                    </Badge>
-                    <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Collections:</span>
-                        <span className="text-red-400 ml-1">{dnaProfile.derogatoryProfile.collectionCount}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Charge-offs:</span>
-                        <span className="text-red-400 ml-1">{dnaProfile.derogatoryProfile.chargeOffCount}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Late Pays:</span>
-                        <span className="text-amber-400 ml-1">{dnaProfile.derogatoryProfile.latePaymentAccounts}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Total:</span>
-                        <span className="text-foreground ml-1">{dnaProfile.derogatoryProfile.totalDerogatoryItems}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Utilization */}
-                <Card className="bg-card border-border">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-foreground text-sm flex items-center gap-2">
-                      <Activity className="w-4 h-4 text-primary" />
-                      Utilization
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Badge className={getUtilBadgeColor(dnaProfile.utilization.status)}>
-                      {dnaProfile.utilization.status}
-                    </Badge>
-                    <div className="mt-3">
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-muted-foreground">Overall</span>
-                        <span className={dnaProfile.utilization.overallUtilization > 30 ? "text-red-400" : "text-green-400"}>
-                          {Math.round(dnaProfile.utilization.overallUtilization)}%
-                        </span>
-                      </div>
-                      <Progress
-                        value={Math.min(dnaProfile.utilization.overallUtilization, 100)}
-                        className="h-2"
-                      />
-                      <p className="text-xs text-muted-foreground mt-2">
-                        {dnaProfile.utilization.accountsMaxedOut} maxed, {dnaProfile.utilization.accountsUnder30Percent} under 30%
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Inquiry Analysis */}
-                <Card className="bg-card border-border">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-foreground text-sm flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-purple-400" />
-                      Hard Inquiries
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Badge className={getInquiryBadgeColor(dnaProfile.inquiryAnalysis.status)}>
-                      {dnaProfile.inquiryAnalysis.status}
-                    </Badge>
-                    <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Total:</span>
-                        <span className="text-foreground ml-1">{dnaProfile.inquiryAnalysis.totalHardInquiries}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Last 6mo:</span>
-                        <span className="text-foreground ml-1">{dnaProfile.inquiryAnalysis.inquiriesLast6Months}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Impact:</span>
-                        <span className="text-amber-400 ml-1">-{dnaProfile.inquiryAnalysis.estimatedScoreImpact}pts</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Disputable:</span>
-                        <span className="text-green-400 ml-1">{dnaProfile.inquiryAnalysis.inquiriesDisputable}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Positive Factors */}
-                <Card className="bg-card border-border">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-foreground text-sm flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-green-400" />
-                      Positive Factors
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Badge className={getStrengthBadgeColor(dnaProfile.positiveFactors.strength)}>
-                      {dnaProfile.positiveFactors.strength}
-                    </Badge>
-                    <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">On-Time:</span>
-                        <span className="text-green-400 ml-1">{Math.round(dnaProfile.positiveFactors.onTimePaymentPercentage)}%</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Perfect:</span>
-                        <span className="text-foreground ml-1">{dnaProfile.positiveFactors.perfectPaymentAccounts}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Mix Score:</span>
-                        <span className="text-foreground ml-1">{dnaProfile.positiveFactors.creditMixScore}/100</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Well Managed:</span>
-                        <span className="text-foreground ml-1">{dnaProfile.positiveFactors.wellManagedAccounts}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Dispute Readiness */}
-                <Card className="bg-card border-border">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-foreground text-sm flex items-center gap-2">
-                      <Scale className="w-4 h-4 text-amber-400" />
-                      Dispute Readiness
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Badge className={getComplexityBadgeColor(dnaProfile.disputeReadiness.complexity)}>
-                      {dnaProfile.disputeReadiness.complexity}
-                    </Badge>
-                    <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">High Priority:</span>
-                        <span className="text-red-400 ml-1">{dnaProfile.disputeReadiness.highPriorityItems}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Medium:</span>
-                        <span className="text-amber-400 ml-1">{dnaProfile.disputeReadiness.mediumPriorityItems}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Est. Removal:</span>
-                        <span className="text-green-400 ml-1">{dnaProfile.disputeReadiness.estimatedRemovalRate}%</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Est. Improve:</span>
-                        <span className="text-green-400 ml-1">+{dnaProfile.disputeReadiness.estimatedScoreImprovement}pts</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Summary */}
-              <Card className="bg-card border-border">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-foreground text-lg">Analysis Summary</CardTitle>
-                  <CardDescription className="text-muted-foreground">
-                    Generated {safeFormatDateTime(dnaProfile.analyzedAt)}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground leading-relaxed">{dnaProfile.summary}</p>
-                </CardContent>
-              </Card>
+                  </GlassCard>
+                );
+              })}
             </div>
-          ) : (
-            <Card className="bg-card border-border">
-              <CardContent className="py-12 text-center">
-                <Dna className="w-12 h-12 mx-auto text-muted-foreground/50" />
-                <h3 className="text-lg font-medium text-foreground mt-4">No DNA Profile</h3>
-                <p className="text-muted-foreground mt-2 max-w-md mx-auto">
-                  Generate a Credit DNA profile to understand this client&apos;s credit characteristics
-                  and get personalized dispute strategy recommendations.
-                </p>
-                <Button className="mt-4" onClick={generateDNA} disabled={dnaLoading}>
-                  {dnaLoading ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Dna className="w-4 h-4 mr-2" />
-                  )}
-                  Generate DNA Profile
+          </Reveal>
+        )}
+
+        {/* Contact Info & DNA Summary */}
+        <Reveal delay={140}>
+          <div className="grid grid-cols-2 gap-4">
+            {/* Contact */}
+            <GlassCard className="p-5">
+              <h3 className="text-sm font-bold mb-4 flex items-center gap-2">👤 Contact Information</h3>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="flex items-center gap-2"><Mail className="w-4 h-4 text-muted-foreground" /><span className="text-muted-foreground">{client.email || "—"}</span></div>
+                <div className="flex items-center gap-2"><Phone className="w-4 h-4 text-muted-foreground" /><span className="text-muted-foreground">{client.phone || "—"}</span></div>
+                <div className="flex items-center gap-2 col-span-2"><MapPin className="w-4 h-4 text-muted-foreground" /><span className="text-muted-foreground">{client.addressLine1 ? `${client.addressLine1}, ${client.city}, ${client.state} ${client.zipCode}` : "—"}</span></div>
+                <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-muted-foreground" /><span className="text-muted-foreground">DOB: {safeFormatDate(client.dateOfBirth)}</span></div>
+                <div className="flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-muted-foreground font-mono">SSN: {showSSN ? `***-**-${client.ssnLast4 || "****"}` : "•••••••••"}</span>
+                  <button onClick={() => setShowSSN(!showSSN)} className="text-muted-foreground hover:text-foreground">
+                    {showSSN ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                  </button>
+                </div>
+              </div>
+            </GlassCard>
+
+            {/* DNA Summary */}
+            <GlassCard className="p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-bold flex items-center gap-2">🧬 Credit DNA</h3>
+                <Button variant="ghost" size="sm" onClick={generateDNA} disabled={dnaLoading} className="text-xs">
+                  {dnaLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
                 </Button>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
+              </div>
+              {dnaProfile ? (
+                <>
+                  <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg ${getDNABgColor(dnaProfile.classification)} border ${getDNABorderColor(dnaProfile.classification)} mb-3`}>
+                    <Dna className={`w-4 h-4 ${getDNAIconColor(dnaProfile.classification)}`} />
+                    <span className={`text-sm font-bold ${getDNAIconColor(dnaProfile.classification)}`}>
+                      {getDNAClassificationLabel(dnaProfile.classification)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{getDNAClassificationDescription(dnaProfile.classification)}</p>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">Generate DNA profile for detailed analysis</p>
+              )}
+            </GlassCard>
+          </div>
+        </Reveal>
 
-        {/* Readiness Tab */}
-        <TabsContent value="readiness" className="mt-4 flex-1 overflow-auto space-y-4">
-          <div className="bg-card/50 rounded-xl border border-border p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Target className="w-5 h-5 text-primary" />
-                Credit Readiness Analysis
-              </h3>
-              <Link
-                href={`/clients/${clientId}/readiness`}
-                className="text-sm text-primary hover:text-primary/80 flex items-center gap-1"
-              >
-                Full Analysis
-                <ChevronRight className="w-4 h-4" />
-              </Link>
-            </div>
-            <p className="text-muted-foreground text-sm mb-4">
-              Analyze approval likelihood across different credit products using FICO scoring models,
-              DTI ratios, and comprehensive credit profile data.
-            </p>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        {/* Tabs */}
+        <Reveal delay={180}>
+          <Tabs defaultValue="negative" className="flex-1">
+            <TabsList className="bg-transparent border-b border-border p-0 h-auto flex-shrink-0 gap-0.5">
               {[
-                { label: "Mortgage", desc: "FICO 2/4/5" },
-                { label: "Auto Loan", desc: "FICO Auto 8" },
-                { label: "Credit Card", desc: "FICO Bankcard 8" },
-                { label: "Personal Loan", desc: "FICO 8" },
-                { label: "Business LOC", desc: "Highest Score" },
-                { label: "General", desc: "FICO 8 Baseline" },
-              ].map((product) => (
-                <Link
-                  key={product.label}
-                  href={`/clients/${clientId}/readiness`}
-                  className="bg-muted/30 rounded-lg p-3 hover:bg-muted transition-colors"
+                { v: "negative", l: "Negative Items", c: summary?.negativeItems || 0 },
+                { v: "reports", l: "Reports", c: client.reports.length },
+                { v: "disputes", l: "Disputes", c: summary?.totalDisputes || 0 },
+                { v: "scores", l: "Scores", c: null },
+                { v: "dna", l: "Credit DNA", c: null },
+                { v: "readiness", l: "Readiness", c: null },
+                { v: "litigation", l: "Litigation", c: null },
+              ].map(t => (
+                <TabsTrigger
+                  key={t.v}
+                  value={t.v}
+                  className="gap-1.5 px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-amber-500 data-[state=active]:text-amber-400 data-[state=active]:bg-amber-500/10 text-muted-foreground hover:text-foreground text-sm font-medium transition-all -mb-px"
                 >
-                  <span className="text-sm font-medium text-foreground">{product.label}</span>
-                  <p className="text-xs text-muted-foreground mt-1">{product.desc}</p>
-                </Link>
+                  {t.l}
+                  {t.c !== null && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-muted font-mono">{t.c}</span>}
+                </TabsTrigger>
               ))}
-            </div>
-          </div>
-        </TabsContent>
+            </TabsList>
 
-        {/* Litigation Tab */}
-        <TabsContent value="litigation" className="mt-4 flex-1 overflow-auto space-y-4">
-          <div className="bg-card/50 rounded-xl border border-border p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Scale className="w-5 h-5 text-red-400" />
-                Litigation Scanner
-              </h3>
-              <Link
-                href={`/clients/${clientId}/litigation`}
-                className="text-sm text-primary hover:text-primary/80 flex items-center gap-1"
-              >
-                Full Scanner
-                <ChevronRight className="w-4 h-4" />
-              </Link>
-            </div>
-            <p className="text-muted-foreground text-sm mb-4">
-              Automatically scan credit reports for actionable FCRA/FDCPA violations by collection
-              agencies and furnishers. Estimates potential damages and provides escalation paths to litigation.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="bg-muted/30 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <Shield className="w-4 h-4 text-purple-400" />
-                  <span className="text-sm font-medium text-foreground">FCRA Violations</span>
+            {/* Negative Items Tab */}
+            <TabsContent value="negative" className="mt-4">
+              {client.accounts.length === 0 ? (
+                <Card className="bg-card border-border">
+                  <CardContent className="py-12 text-center">
+                    <CheckCircle className="w-12 h-12 mx-auto text-green-500" />
+                    <h3 className="text-lg font-medium mt-4">No Negative Items Found</h3>
+                    <p className="text-muted-foreground mt-2">Upload a credit report to analyze for issues</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-3">
+                  {client.accounts.map(account => (
+                    <NegativeItemCard key={account.id} account={account} onViewDetails={() => router.push(`/disputes?account=${account.id}`)} />
+                  ))}
                 </div>
-                <p className="text-xs text-muted-foreground">Accuracy, furnisher duties, obsolete info, investigation failures</p>
-              </div>
-              <div className="bg-muted/30 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <AlertTriangle className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-medium text-foreground">FDCPA Violations</span>
-                </div>
-                <p className="text-xs text-muted-foreground">False representations, wrong amounts, time-barred collections</p>
-              </div>
-              <div className="bg-muted/30 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <Activity className="w-4 h-4 text-amber-400" />
-                  <span className="text-sm font-medium text-foreground">Metro 2 Errors</span>
-                </div>
-                <p className="text-xs text-muted-foreground">Field inconsistencies, code errors, format compliance</p>
-              </div>
-            </div>
-            <Link
-              href={`/clients/${clientId}/litigation`}
-              className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors"
-            >
-              <Scale className="w-4 h-4" />
-              Run Litigation Scan
-            </Link>
-          </div>
-        </TabsContent>
-        </Tabs>
-      </Reveal>
+              )}
+            </TabsContent>
 
-      {/* Add Score Modal */}
-      <AddScoreModal
-        open={addScoreModalOpen}
-        onOpenChange={setAddScoreModalOpen}
-        clientId={clientId}
-        onScoreAdded={fetchCreditScores}
-      />
+            {/* Reports Tab */}
+            <TabsContent value="reports" className="mt-4">
+              {client.reports.length === 0 ? (
+                <Card className="bg-card border-border">
+                  <CardContent className="py-12 text-center">
+                    <FileText className="w-12 h-12 mx-auto text-muted-foreground/50" />
+                    <h3 className="text-lg font-medium mt-4">No Reports</h3>
+                    <p className="text-muted-foreground mt-2">Upload a credit report to get started</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <History className="w-5 h-5 text-muted-foreground" />
+                    <h3 className="text-lg font-medium">Report History</h3>
+                  </div>
+                  <div className="relative">
+                    <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-border" />
+                    {client.reports.map((report, index) => {
+                      const isLatest = index === 0;
+                      const formattedDate = safeFormatDateTime(report.createdAt);
+                      const fileSize = report.originalFile?.sizeBytes ? (report.originalFile.sizeBytes / (1024 * 1024)).toFixed(2) + " MB" : "Unknown size";
+                      return (
+                        <div key={report.id} className="relative pl-12 pb-6 last:pb-0">
+                          <div className={`absolute left-3 w-5 h-5 rounded-full border-2 flex items-center justify-center ${isLatest ? "bg-blue-500 border-blue-400" : report.parseStatus === "COMPLETED" ? "bg-green-500/20 border-green-500" : report.parseStatus === "FAILED" ? "bg-red-500/20 border-red-500" : "bg-amber-500/20 border-amber-500"}`}>
+                            {isLatest && <div className="w-2 h-2 bg-white rounded-full" />}
+                          </div>
+                          <Card className={`bg-card border-border ${isLatest ? "ring-1 ring-primary/30" : ""}`}>
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex items-start gap-4 flex-1">
+                                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${isLatest ? "bg-primary/20" : "bg-muted"}`}>
+                                    <FileText className={`w-6 h-6 ${isLatest ? "text-primary" : "text-muted-foreground"}`} />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <p className="font-medium truncate">{report.originalFile?.filename || "Credit Report"}</p>
+                                      {isLatest && <Badge className="bg-primary/20 text-primary text-xs">Latest</Badge>}
+                                      <Badge className={report.parseStatus === "COMPLETED" ? "bg-green-500/20 text-green-400" : report.parseStatus === "FAILED" ? "bg-red-500/20 text-red-400" : "bg-amber-500/20 text-amber-400"}>
+                                        {report.parseStatus}
+                                      </Badge>
+                                    </div>
+                                    <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                                      <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{formattedDate}</span>
+                                      <span>•</span>
+                                      <span>{fileSize}</span>
+                                    </div>
+                                    <div className="flex items-center gap-4 mt-2 text-sm">
+                                      <span className="text-muted-foreground">Accounts parsed: <span className="font-medium">{report._count.accounts}</span></span>
+                                    </div>
+                                    {report.parseStatus === "FAILED" && report.parseError && <p className="mt-1 text-xs text-red-400">{report.parseError}</p>}
+                                    {report.parseStatus === "FAILED" && (
+                                      <Button size="sm" variant="outline" className="mt-2 gap-1.5 text-xs text-amber-400" onClick={async () => {
+                                        const reparseRes = await fetch(`/api/reports/${report.id}/parse`, { method: "POST" });
+                                        if (reparseRes.ok) {
+                                          toast({ title: "Re-parsing", description: "Report is being re-parsed..." });
+                                          setTimeout(fetchClient, 3000);
+                                        }
+                                      }}>
+                                        <RefreshCw className="w-3 h-3" /> Re-parse Report
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  {report.originalFile && (
+                                    <Button size="sm" variant="outline" className="gap-1.5" onClick={async () => {
+                                      const res = await fetch(`/api/files/${report.originalFile!.id}/download`);
+                                      if (res.ok) {
+                                        const data = await res.json();
+                                        if (data.url) window.open(data.url, "_blank");
+                                      }
+                                    }}>
+                                      <Download className="w-4 h-4" /> Download
+                                    </Button>
+                                  )}
+                                  <Button size="sm" variant="outline" className="gap-1.5 border-red-500/30 text-red-400 hover:bg-red-500/10" onClick={() => {
+                                    setReportToDelete({ id: report.id, filename: report.originalFile?.filename || "Credit Report" });
+                                    setDeleteReportDialogOpen(true);
+                                  }}>
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Disputes Tab */}
+            <TabsContent value="disputes" className="mt-4">
+              <DisputeCommandCenter
+                clientId={clientId}
+                accounts={client.accounts.map(a => ({
+                  id: a.id, creditorName: a.creditorName, maskedAccountId: a.maskedAccountId,
+                  accountType: null, accountStatus: a.accountStatus, balance: a.balance,
+                  cra: a.cra, detectedIssues: a.detectedIssues, issueCount: a.issueCount,
+                }))}
+                existingDisputes={client.disputes.map(d => ({
+                  id: d.id, cra: d.cra, round: d.round, status: d.status,
+                  flow: d.flow, sentDate: d.sentDate || undefined, createdAt: d.createdAt,
+                }))}
+                onDisputeCreated={fetchClient}
+              />
+            </TabsContent>
+
+            {/* Scores Tab */}
+            <TabsContent value="scores" className="mt-4">
+              {scoreStats ? (
+                <ScoreChart scores={creditScores} stats={scoreStats} chartData={chartData} onAddScore={() => setAddScoreModalOpen(true)} />
+              ) : (
+                <Card className="bg-card border-border">
+                  <CardContent className="py-12 text-center">
+                    <TrendingUp className="w-12 h-12 mx-auto text-muted-foreground/50" />
+                    <h3 className="text-lg font-medium mt-4">No Credit Scores</h3>
+                    <p className="text-muted-foreground mt-2">Track credit score changes over time</p>
+                    <Button className="mt-4" onClick={() => setAddScoreModalOpen(true)}>Add First Score</Button>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            {/* DNA Tab */}
+            <TabsContent value="dna" className="mt-4">
+              {dnaProfile ? (
+                <div className="space-y-4">
+                  <Card className={`bg-card/50 border-2 ${getDNABorderColor(dnaProfile.classification)}`}>
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-4">
+                          <div className={`w-16 h-16 rounded-xl flex items-center justify-center ${getDNABgColor(dnaProfile.classification)}`}>
+                            <Dna className={`w-8 h-8 ${getDNAIconColor(dnaProfile.classification)}`} />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <h2 className="text-2xl font-bold">{getDNAClassificationLabel(dnaProfile.classification)}</h2>
+                              <Badge className={getDNABadgeColor(dnaProfile.confidenceLevel)}>{dnaProfile.confidenceLevel} Confidence</Badge>
+                            </div>
+                            <p className="text-muted-foreground max-w-2xl">{getDNAClassificationDescription(dnaProfile.classification)}</p>
+                          </div>
+                        </div>
+                        <Button variant="outline" onClick={generateDNA} disabled={dnaLoading}>
+                          {dnaLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+                          Refresh Analysis
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <div className="grid grid-cols-3 gap-4">
+                    <Card className="bg-card border-border"><CardContent className="p-4"><div className="flex items-center justify-between mb-2"><div className="flex items-center gap-2"><Activity className="w-4 h-4 text-primary" /><span className="text-sm text-muted-foreground">Health Score</span></div><span className="text-2xl font-bold">{dnaProfile.overallHealthScore}</span></div><Progress value={dnaProfile.overallHealthScore} className="h-2" /></CardContent></Card>
+                    <Card className="bg-card border-border"><CardContent className="p-4"><div className="flex items-center justify-between mb-2"><div className="flex items-center gap-2"><Target className="w-4 h-4 text-green-400" /><span className="text-sm text-muted-foreground">Improvement Potential</span></div><span className="text-2xl font-bold">{dnaProfile.improvementPotential}</span></div><Progress value={dnaProfile.improvementPotential} className="h-2 [&>div]:bg-green-500" /></CardContent></Card>
+                    <Card className="bg-card border-border"><CardContent className="p-4"><div className="flex items-center justify-between mb-2"><div className="flex items-center gap-2"><Zap className="w-4 h-4 text-amber-400" /><span className="text-sm text-muted-foreground">Urgency Score</span></div><span className="text-2xl font-bold">{dnaProfile.urgencyScore}</span></div><Progress value={dnaProfile.urgencyScore} className="h-2 [&>div]:bg-amber-500" /></CardContent></Card>
+                  </div>
+                </div>
+              ) : (
+                <Card className="bg-card border-border">
+                  <CardContent className="py-12 text-center">
+                    <Dna className="w-12 h-12 mx-auto text-muted-foreground/50" />
+                    <h3 className="text-lg font-medium mt-4">No DNA Profile</h3>
+                    <p className="text-muted-foreground mt-2">Generate a Credit DNA profile for detailed analysis</p>
+                    <Button className="mt-4" onClick={generateDNA} disabled={dnaLoading}>
+                      {dnaLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Dna className="w-4 h-4 mr-2" />}
+                      Generate DNA Profile
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            {/* Readiness Tab */}
+            <TabsContent value="readiness" className="mt-4">
+              <div className="bg-card/50 rounded-xl border border-border p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold flex items-center gap-2"><Target className="w-5 h-5 text-primary" />Credit Readiness Analysis</h3>
+                  <Link href={`/clients/${clientId}/readiness`} className="text-sm text-primary hover:text-primary/80 flex items-center gap-1">Full Analysis<ChevronRight className="w-4 h-4" /></Link>
+                </div>
+                <p className="text-muted-foreground text-sm mb-4">Analyze approval likelihood across different credit products.</p>
+                <div className="grid grid-cols-3 gap-3">
+                  {[{ label: "Mortgage", desc: "FICO 2/4/5" }, { label: "Auto Loan", desc: "FICO Auto 8" }, { label: "Credit Card", desc: "FICO Bankcard 8" }, { label: "Personal Loan", desc: "FICO 8" }, { label: "Business LOC", desc: "Highest Score" }, { label: "General", desc: "FICO 8 Baseline" }].map(p => (
+                    <Link key={p.label} href={`/clients/${clientId}/readiness`} className="bg-muted/30 rounded-lg p-3 hover:bg-muted transition-colors">
+                      <span className="text-sm font-medium">{p.label}</span>
+                      <p className="text-xs text-muted-foreground mt-1">{p.desc}</p>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Litigation Tab */}
+            <TabsContent value="litigation" className="mt-4">
+              <div className="bg-card/50 rounded-xl border border-border p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold flex items-center gap-2"><Scale className="w-5 h-5 text-red-400" />Litigation Scanner</h3>
+                  <Link href={`/clients/${clientId}/litigation`} className="text-sm text-primary hover:text-primary/80 flex items-center gap-1">Full Scanner<ChevronRight className="w-4 h-4" /></Link>
+                </div>
+                <p className="text-muted-foreground text-sm mb-4">Scan for actionable FCRA/FDCPA violations.</p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-muted/30 rounded-lg p-4"><div className="flex items-center gap-2 mb-1"><Shield className="w-4 h-4 text-purple-400" /><span className="text-sm font-medium">FCRA Violations</span></div><p className="text-xs text-muted-foreground">Accuracy, furnisher duties, obsolete info</p></div>
+                  <div className="bg-muted/30 rounded-lg p-4"><div className="flex items-center gap-2 mb-1"><AlertTriangle className="w-4 h-4 text-primary" /><span className="text-sm font-medium">FDCPA Violations</span></div><p className="text-xs text-muted-foreground">False representations, wrong amounts</p></div>
+                  <div className="bg-muted/30 rounded-lg p-4"><div className="flex items-center gap-2 mb-1"><Activity className="w-4 h-4 text-amber-400" /><span className="text-sm font-medium">Metro 2 Errors</span></div><p className="text-xs text-muted-foreground">Field inconsistencies, code errors</p></div>
+                </div>
+                <Link href={`/clients/${clientId}/litigation`} className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors">
+                  <Scale className="w-4 h-4" />Run Litigation Scan
+                </Link>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </Reveal>
+      </div>
+
+      {/* Modals */}
+      <AddScoreModal open={addScoreModalOpen} onOpenChange={setAddScoreModalOpen} clientId={clientId} onScoreAdded={fetchCreditScores} />
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="bg-card border-border max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-foreground">Edit Client</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Update client information
-            </DialogDescription>
+            <DialogTitle>Edit Client</DialogTitle>
+            <DialogDescription className="text-muted-foreground">Update client information</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleUpdateClient} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-foreground">First Name</Label>
-                <Input
-                  value={editForm.firstName}
-                  onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
-                  className="bg-muted border-input text-foreground"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-foreground">Last Name</Label>
-                <Input
-                  value={editForm.lastName}
-                  onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
-                  className="bg-muted border-input text-foreground"
-                  required
-                />
-              </div>
+              <div className="space-y-2"><Label>First Name</Label><Input value={editForm.firstName} onChange={e => setEditForm({ ...editForm, firstName: e.target.value })} className="bg-muted border-input" required /></div>
+              <div className="space-y-2"><Label>Last Name</Label><Input value={editForm.lastName} onChange={e => setEditForm({ ...editForm, lastName: e.target.value })} className="bg-muted border-input" required /></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-foreground">Email</Label>
-                <Input
-                  type="email"
-                  value={editForm.email}
-                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                  className="bg-muted border-input text-foreground"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-foreground">Phone</Label>
-                <Input
-                  value={editForm.phone}
-                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                  className="bg-muted border-input text-foreground"
-                />
-              </div>
+              <div className="space-y-2"><Label>Email</Label><Input type="email" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} className="bg-muted border-input" /></div>
+              <div className="space-y-2"><Label>Phone</Label><Input value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} className="bg-muted border-input" /></div>
             </div>
-            <div className="space-y-2">
-              <Label className="text-foreground">Address</Label>
-              <Input
-                value={editForm.addressLine1}
-                onChange={(e) => setEditForm({ ...editForm, addressLine1: e.target.value })}
-                className="bg-muted border-input text-foreground"
-                placeholder="Street address"
-              />
-            </div>
+            <div className="space-y-2"><Label>Address</Label><Input value={editForm.addressLine1} onChange={e => setEditForm({ ...editForm, addressLine1: e.target.value })} className="bg-muted border-input" placeholder="Street address" /></div>
             <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label className="text-foreground">City</Label>
-                <Input
-                  value={editForm.city}
-                  onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
-                  className="bg-muted border-input text-foreground"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-foreground">State</Label>
-                <Input
-                  value={editForm.state}
-                  onChange={(e) => setEditForm({ ...editForm, state: e.target.value })}
-                  className="bg-muted border-input text-foreground"
-                  placeholder="e.g., CA"
-                  maxLength={2}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-foreground">ZIP Code</Label>
-                <Input
-                  value={editForm.zipCode}
-                  onChange={(e) => setEditForm({ ...editForm, zipCode: e.target.value })}
-                  className="bg-muted border-input text-foreground"
-                  maxLength={10}
-                />
-              </div>
+              <div className="space-y-2"><Label>City</Label><Input value={editForm.city} onChange={e => setEditForm({ ...editForm, city: e.target.value })} className="bg-muted border-input" /></div>
+              <div className="space-y-2"><Label>State</Label><Input value={editForm.state} onChange={e => setEditForm({ ...editForm, state: e.target.value })} className="bg-muted border-input" maxLength={2} /></div>
+              <div className="space-y-2"><Label>ZIP Code</Label><Input value={editForm.zipCode} onChange={e => setEditForm({ ...editForm, zipCode: e.target.value })} className="bg-muted border-input" maxLength={10} /></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-foreground">Date of Birth</Label>
-                <Input
-                  type="date"
-                  value={editForm.dateOfBirth}
-                  onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })}
-                  className="bg-muted border-input text-foreground"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-foreground">SSN Last 4</Label>
-                <Input
-                  value={editForm.ssnLast4}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, "").slice(0, 4);
-                    setEditForm({ ...editForm, ssnLast4: val });
-                  }}
-                  className="bg-muted border-input text-foreground"
-                  placeholder="****"
-                  maxLength={4}
-                />
-              </div>
+              <div className="space-y-2"><Label>Date of Birth</Label><Input type="date" value={editForm.dateOfBirth} onChange={e => setEditForm({ ...editForm, dateOfBirth: e.target.value })} className="bg-muted border-input" /></div>
+              <div className="space-y-2"><Label>SSN Last 4</Label><Input value={editForm.ssnLast4} onChange={e => setEditForm({ ...editForm, ssnLast4: e.target.value.replace(/\D/g, "").slice(0, 4) })} className="bg-muted border-input" placeholder="****" maxLength={4} /></div>
             </div>
             <div className="flex justify-end gap-3 pt-4">
-              <Button type="button" variant="ghost" onClick={() => setEditDialogOpen(false)}>
-                Cancel
-              </Button>
+              <Button type="button" variant="ghost" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
               <Button type="submit">Save Changes</Button>
             </div>
           </form>
@@ -2084,25 +1310,15 @@ export default function ClientDetailPage() {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={(open) => {
-        setDeleteDialogOpen(open);
-        if (!open) setDeleteConfirmText("");
-      }}>
+      <Dialog open={deleteDialogOpen} onOpenChange={open => { setDeleteDialogOpen(open); if (!open) setDeleteConfirmText(""); }}>
         <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-foreground flex items-center gap-2">
-              <Trash2 className="w-5 h-5 text-red-400" />
-              Delete Client
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              This will archive the client and all their data. You can restore the client within 90 days from the Settings page.
-            </DialogDescription>
+            <DialogTitle className="flex items-center gap-2"><Trash2 className="w-5 h-5 text-red-400" />Delete Client</DialogTitle>
+            <DialogDescription className="text-muted-foreground">This will archive the client and all their data. You can restore within 90 days.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
-              <p className="text-red-400 text-sm">
-                <strong>Warning:</strong> This will archive:
-              </p>
+              <p className="text-red-400 text-sm"><strong>Warning:</strong> This will archive:</p>
               <ul className="text-red-400/80 text-sm mt-2 list-disc list-inside space-y-1">
                 <li>{summary?.totalReports || 0} credit reports</li>
                 <li>{summary?.totalAccounts || 0} creditors</li>
@@ -2110,114 +1326,54 @@ export default function ClientDetailPage() {
               </ul>
             </div>
             <div className="space-y-2">
-              <Label className="text-foreground">
-                Type <span className="font-mono text-red-400">DELETE</span> to confirm
-              </Label>
-              <Input
-                value={deleteConfirmText}
-                onChange={(e) => setDeleteConfirmText(e.target.value.toUpperCase())}
-                placeholder="Type DELETE"
-                className="bg-muted border-input text-foreground font-mono"
-              />
+              <Label>Type <span className="font-mono text-red-400">DELETE</span> to confirm</Label>
+              <Input value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value.toUpperCase())} placeholder="Type DELETE" className="bg-muted border-input font-mono" />
             </div>
           </div>
           <div className="flex justify-end gap-3">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => {
-                setDeleteDialogOpen(false);
-                setDeleteConfirmText("");
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteClient}
-              disabled={deleteConfirmText !== "DELETE" || deleting}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {deleting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                <>
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete Client
-                </>
-              )}
+            <Button type="button" variant="ghost" onClick={() => { setDeleteDialogOpen(false); setDeleteConfirmText(""); }}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteClient} disabled={deleteConfirmText !== "DELETE" || deleting} className="bg-red-600 hover:bg-red-700">
+              {deleting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Deleting...</> : <><Trash2 className="w-4 h-4 mr-2" />Delete Client</>}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Report Confirmation Dialog */}
-      <Dialog open={deleteReportDialogOpen} onOpenChange={(open) => {
-        setDeleteReportDialogOpen(open);
-        if (!open) setReportToDelete(null);
-      }}>
+      {/* Delete Report Dialog */}
+      <Dialog open={deleteReportDialogOpen} onOpenChange={open => { setDeleteReportDialogOpen(open); if (!open) setReportToDelete(null); }}>
         <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-foreground flex items-center gap-2">
-              <Trash2 className="w-5 h-5 text-red-400" />
-              Delete Report
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Are you sure you want to delete this report? This action cannot be undone.
-            </DialogDescription>
+            <DialogTitle className="flex items-center gap-2"><Trash2 className="w-5 h-5 text-red-400" />Delete Report</DialogTitle>
+            <DialogDescription className="text-muted-foreground">Are you sure? This cannot be undone.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
-              <p className="text-red-400 text-sm font-medium">
-                {reportToDelete?.filename}
-              </p>
-              <p className="text-red-400/80 text-sm mt-2">
-                Deleting this report will also remove all parsed accounts and data associated with it.
-                The Negative Items list will update to reflect remaining reports.
-              </p>
+              <p className="text-red-400 text-sm font-medium">{reportToDelete?.filename}</p>
+              <p className="text-red-400/80 text-sm mt-2">Deleting this report will also remove all parsed accounts.</p>
             </div>
           </div>
           <div className="flex justify-end gap-3">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => {
-                setDeleteReportDialogOpen(false);
-                setReportToDelete(null);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteReport}
-              disabled={deletingReport}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {deletingReport ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                <>
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete Report
-                </>
-              )}
+            <Button type="button" variant="ghost" onClick={() => { setDeleteReportDialogOpen(false); setReportToDelete(null); }}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteReport} disabled={deletingReport} className="bg-red-600 hover:bg-red-700">
+              {deletingReport ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Deleting...</> : <><Trash2 className="w-4 h-4 mr-2" />Delete Report</>}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
+      {/* Gavel Modal */}
+      {gavelModalOpen && client && <GavelModal client={client} onClose={() => setGavelModalOpen(false)} onSelect={handleGavelSelect} />}
+
+      {/* Gavel Confirm Toast */}
+      {gavelConfirm && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-xl bg-green-500/10 border border-green-500/20 backdrop-blur-xl shadow-lg animate-in fade-in slide-in-from-bottom-4 flex items-center gap-3">
+          <span className="text-lg">✅</span>
+          <span className="text-sm font-medium">Launched <strong className="text-green-400">{gavelConfirm.flow}</strong></span>
+        </div>
+      )}
+
       {/* Amelia Chat Drawer */}
-      <AmeliaChatDrawer
-        clientId={clientId}
-        clientName={client ? `${client.firstName} ${client.lastName}` : undefined}
-      />
+      <AmeliaChatDrawer clientId={clientId} clientName={client ? `${client.firstName} ${client.lastName}` : undefined} />
     </div>
   );
 }
