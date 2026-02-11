@@ -21,16 +21,24 @@ import {
   RefreshCw,
   Edit3,
   X,
-  Scale,
-  AlertTriangle,
   CheckCircle,
-  ChevronDown,
-  ChevronUp,
   Lightbulb,
   Rocket,
-  Lock,
   Send,
   AlertCircle,
+  MapPin,
+  Building2,
+  Calendar,
+  Flag,
+  Scale,
+  FileText,
+  ListChecks,
+  Wrench,
+  User,
+  Search,
+  Clock,
+  MessageSquare,
+  PenTool,
 } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
 import { MailSendDialog } from "./mail-send-dialog";
@@ -140,20 +148,66 @@ const CRA_COLORS: Record<string, { bg: string; text: string; tailwind: string }>
   EQUIFAX: { bg: "rgba(239, 68, 68, 0.15)", text: "#ef4444", tailwind: "bg-red-500/20 text-red-400" },
 };
 
-function StatuteBadge({ code, name }: { code: string; name: string }) {
+// Section icon mapping
+const SECTION_ICONS: Record<string, React.ReactNode> = {
+  clientAddress: <MapPin className="w-3.5 h-3.5" />,
+  craAddress: <Building2 className="w-3.5 h-3.5" />,
+  date: <Calendar className="w-3.5 h-3.5" />,
+  headline: <Flag className="w-3.5 h-3.5" />,
+  damagesParagraph: <Scale className="w-3.5 h-3.5" />,
+  storyParagraph: <FileText className="w-3.5 h-3.5" />,
+  demandHeadline: <Flag className="w-3.5 h-3.5" />,
+  accountsList: <ListChecks className="w-3.5 h-3.5" />,
+  requestedCorrections: <Wrench className="w-3.5 h-3.5" />,
+  personalInfo: <User className="w-3.5 h-3.5" />,
+  hardInquiries: <Search className="w-3.5 h-3.5" />,
+  deadlineNotice: <Clock className="w-3.5 h-3.5" />,
+  consumerStatement: <MessageSquare className="w-3.5 h-3.5" />,
+  signature: <PenTool className="w-3.5 h-3.5" />,
+};
+
+// Section short labels for rail tooltip
+const SECTION_SHORT_LABELS: Record<string, string> = {
+  clientAddress: "Address",
+  craAddress: "Bureau",
+  date: "Date",
+  headline: "Headline",
+  damagesParagraph: "Damages",
+  storyParagraph: "FCRA",
+  demandHeadline: "Demand",
+  accountsList: "Accounts",
+  requestedCorrections: "Corrections",
+  personalInfo: "Personal",
+  hardInquiries: "Inquiries",
+  deadlineNotice: "Deadline",
+  consumerStatement: "Statement",
+  signature: "Signature",
+};
+
+function StatuteBadge({ code, name, color = "emerald" }: { code: string; name: string; color?: string }) {
+  const colorClasses: Record<string, string> = {
+    emerald: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    cyan: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
+    violet: "bg-violet-500/10 text-violet-400 border-violet-500/20",
+  };
   return (
-    <div className="flex items-center gap-2.5 p-2.5 bg-primary/10 rounded-lg">
-      <span className="text-xs font-bold text-primary font-mono">{code}</span>
+    <div className={cn("flex items-center gap-2 px-3 py-2 rounded-lg border", colorClasses[color] || colorClasses.emerald)}>
+      <span className="text-[10px] font-bold font-mono whitespace-nowrap">{code}</span>
       <span className="text-xs text-muted-foreground">{name}</span>
     </div>
   );
 }
 
-// Section Card Component (no drag - structure is fixed per AMELIA doctrine)
-function SectionCard({
+// Canvas Section Component - renders on the document canvas with hover actions
+function CanvasSection({
   section,
+  index,
+  isActive,
+  isHovered,
   isEditing,
   editValue,
+  onMouseEnter,
+  onMouseLeave,
   onStartEdit,
   onSaveEdit,
   onCancelEdit,
@@ -162,10 +216,17 @@ function SectionCard({
   isRegenerating,
   regeneratingSection,
   isDisabled,
+  isLast,
+  sectionRef,
 }: {
   section: DraggableSection;
+  index: number;
+  isActive: boolean;
+  isHovered: boolean;
   isEditing: boolean;
   editValue: string;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
   onStartEdit: () => void;
   onSaveEdit: () => void;
   onCancelEdit: () => void;
@@ -174,56 +235,50 @@ function SectionCard({
   isRegenerating: boolean;
   regeneratingSection: string | null;
   isDisabled?: boolean;
+  isLast: boolean;
+  sectionRef: (el: HTMLDivElement | null) => void;
 }) {
   return (
     <div
+      ref={sectionRef}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       className={cn(
-        "p-4 rounded-xl border transition-all bg-card",
-        isEditing
-          ? "bg-purple-500/10 border-purple-500/30"
-          : isDisabled
-          ? "border-border opacity-50 bg-muted/30"
-          : "border-border hover:border-primary/30 hover:bg-muted"
+        "relative px-6 py-5 -mx-6 rounded-xl transition-all duration-200",
+        isHovered && "bg-foreground/[0.02]",
+        isActive && "border-l-[3px] border-l-primary",
+        isDisabled && "opacity-50"
       )}
     >
-      {/* Section Header */}
-      <div className="flex justify-between items-center mb-3">
-        <div className="flex items-center gap-2">
-          {isDisabled ? (
-            <div className="p-1.5 text-muted-foreground" title="No items to dispute">
-              <AlertCircle className="w-4 h-4" />
-            </div>
-          ) : (
-            <div className="p-1.5 text-muted-foreground">
-              <Lock className="w-4 h-4" />
-            </div>
+      {/* Section Header with floating actions */}
+      <div className="flex justify-between items-center mb-2.5">
+        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[1px] font-mono">
+          {section.label}
+        </span>
+        <div
+          className={cn(
+            "flex gap-1.5 transition-all duration-200",
+            isHovered ? "opacity-100 translate-x-0" : "opacity-0 translate-x-1.5 pointer-events-none"
           )}
-          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-            {section.label}
-          </span>
-          {isDisabled && (
-            <span className="text-[10px] text-muted-foreground italic">(No items found in report)</span>
-          )}
-        </div>
-        <div className="flex gap-2">
+        >
           {section.aiRegenerable && onRegenerate && !isDisabled && (
             <button
               onClick={onRegenerate}
               disabled={isRegenerating}
-              className="flex items-center gap-1 px-2.5 py-1 bg-emerald-500/15 hover:bg-emerald-500/25 rounded text-emerald-400 text-[11px] font-medium transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 rounded-lg text-emerald-400 text-[11px] font-semibold transition-colors"
             >
               {regeneratingSection === section.id ? (
                 <RefreshCw className="w-3 h-3 animate-spin" />
               ) : (
                 <Sparkles className="w-3 h-3" />
               )}
-              Regenerate
+              Regen
             </button>
           )}
           {section.editable && !isEditing && !isDisabled && (
             <button
               onClick={onStartEdit}
-              className="flex items-center gap-1 px-2.5 py-1 bg-muted hover:bg-muted rounded text-muted-foreground text-[11px] font-medium transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-muted hover:bg-muted/80 rounded-lg text-muted-foreground text-[11px] font-semibold transition-colors border border-border"
             >
               <Edit3 className="w-3 h-3" />
               Edit
@@ -238,117 +293,43 @@ function SectionCard({
           <textarea
             value={editValue}
             onChange={(e) => onEditChange(e.target.value)}
-            className="w-full p-3 bg-background border border-purple-500/30 rounded-lg text-foreground text-sm leading-relaxed resize-y min-h-[100px] focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+            className="w-full p-4 bg-background border border-primary/30 rounded-xl text-foreground text-sm leading-relaxed resize-y min-h-[120px] focus:outline-none focus:ring-2 focus:ring-primary/50"
             rows={section.content.split("\n").length + 2}
           />
           <div className="flex justify-end gap-2 mt-3">
             <Button size="sm" variant="ghost" onClick={onCancelEdit} className="text-muted-foreground">
               Cancel
             </Button>
-            <Button size="sm" onClick={onSaveEdit} className="bg-purple-600 hover:bg-purple-500">
-              Save
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <div className={cn("text-foreground text-sm leading-relaxed pl-8", isDisabled && "text-muted-foreground italic")}>
-          {isDisabled ? (
-            <p>This section will be included when relevant items are found in the credit report.</p>
-          ) : (
-            section.content.split("\n").map((line, i) => (
-              <p key={i} className={cn("mb-1", !line && "h-4")}>{line}</p>
-            ))
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Locked Section Card (no drag)
-function LockedSectionCard({
-  section,
-  isEditing,
-  editValue,
-  onStartEdit,
-  onSaveEdit,
-  onCancelEdit,
-  onEditChange,
-}: {
-  section: DraggableSection;
-  isEditing: boolean;
-  editValue: string;
-  onStartEdit: () => void;
-  onSaveEdit: () => void;
-  onCancelEdit: () => void;
-  onEditChange: (value: string) => void;
-}) {
-  return (
-    <div
-      className={cn(
-        "p-4 rounded-xl border transition-all bg-card",
-        isEditing
-          ? "bg-purple-500/10 border-purple-500/30"
-          : "border-border"
-      )}
-    >
-      {/* Section Header */}
-      <div className="flex justify-between items-center mb-3">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 text-muted-foreground" title="Fixed position">
-            <Lock className="w-4 h-4" />
-          </div>
-          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-            {section.label}
-          </span>
-        </div>
-        {section.editable && !isEditing && (
-          <button
-            onClick={onStartEdit}
-            className="flex items-center gap-1 px-2.5 py-1 bg-muted hover:bg-muted rounded text-muted-foreground text-[11px] font-medium transition-colors"
-          >
-            <Edit3 className="w-3 h-3" />
-            Edit
-          </button>
-        )}
-      </div>
-
-      {/* Section Content */}
-      {isEditing ? (
-        <div>
-          <textarea
-            value={editValue}
-            onChange={(e) => onEditChange(e.target.value)}
-            className="w-full p-3 bg-background border border-purple-500/30 rounded-lg text-foreground text-sm leading-relaxed resize-y min-h-[100px] focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-            rows={section.content.split("\n").length + 2}
-          />
-          <div className="flex justify-end gap-2 mt-3">
-            <Button size="sm" variant="ghost" onClick={onCancelEdit} className="text-muted-foreground">
-              Cancel
-            </Button>
-            <Button size="sm" onClick={onSaveEdit} className="bg-purple-600 hover:bg-purple-500">
+            <Button size="sm" onClick={onSaveEdit} className="bg-emerald-600 hover:bg-emerald-500">
               Save
             </Button>
           </div>
         </div>
       ) : section.id === "signature" ? (
-        // Render signature block with script font
-        <div className="text-foreground text-sm leading-relaxed pl-8">
-          <p className="mb-2">Sincerely,</p>
-          <p className="font-signature text-3xl text-blue-400 my-4">
+        // Render signature block
+        <div className="text-foreground text-sm leading-[1.85]">
+          <p className="mb-4">Sincerely,</p>
+          <p className="font-signature text-3xl my-4">
             {section.content.split("\n").find(line => line.trim() && !line.includes("___") && !line.toLowerCase().includes("sincerely")) || "Client Name"}
           </p>
-          <div className="border-b border-muted-foreground/40 w-48 mb-1"></div>
+          <div className="border-b border-border w-40 mb-2"></div>
           <p className="font-semibold">
             {section.content.split("\n").find(line => line.trim() && !line.includes("___") && !line.toLowerCase().includes("sincerely")) || "Client Name"}
           </p>
         </div>
+      ) : isDisabled ? (
+        <p className="text-muted-foreground text-sm italic leading-[1.85]">
+          This section will be included when relevant items are found in the credit report.
+        </p>
       ) : (
-        <div className="text-foreground text-sm leading-relaxed pl-8">
-          {section.content.split("\n").map((line, i) => (
-            <p key={i} className={cn("mb-1", !line && "h-4")}>{line}</p>
-          ))}
+        <div className="text-muted-foreground text-sm leading-[1.85] whitespace-pre-wrap">
+          {section.content}
         </div>
+      )}
+
+      {/* Subtle divider */}
+      {!isLast && (
+        <div className="h-px bg-border/50 mt-5 -mx-6 mx-0" />
       )}
     </div>
   );
@@ -569,12 +550,24 @@ export function LetterEditorModal({
   const [letterCopied, setLetterCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [mailDialogOpen, setMailDialogOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState(0);
+  const [hoveredSection, setHoveredSection] = useState<number | null>(null);
+  const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [ameliaSettings, setAmeliaSettings] = useState<AmeliaSettings>({
     tone: "CONCERNED",
     humanizingPhrases: 12,
     uniquenessScore: 87,
     eoscarRisk: "LOW",
   });
+
+  // All sections combined for the rail
+  const allSections = [...lockedTop, ...draggableSections, ...lockedBottom];
+
+  // Scroll to section when clicking rail
+  const scrollToSection = (index: number) => {
+    setActiveSection(index);
+    sectionRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
 
   // Reconstruct letter from all sections
   const reconstructLetter = (): string => {
@@ -1097,89 +1090,119 @@ export function LetterEditorModal({
           </div>
         </header>
 
-        {/* Main Layout */}
-        <div className="grid grid-cols-[1fr_360px] h-[calc(95vh-140px)]">
-          {/* Editor Panel */}
-          <div className="bg-card overflow-y-auto p-6" ref={editorRef}>
-            <div className="space-y-4 max-w-3xl mx-auto">
-              {/* AMELIA doctrine banner */}
-              <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-400 text-xs">
-                <CheckCircle className="w-4 h-4" />
-                <span>Letter structure follows AMELIA doctrine - optimized for maximum eOSCAR resistance</span>
-              </div>
+        {/* Compliance bar */}
+        <div className="px-5 pb-4">
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500/5 border border-emerald-500/10 rounded-xl text-emerald-400 text-xs">
+            <CheckCircle className="w-4 h-4" />
+            <span className="font-medium">AMELIA doctrine optimized — maximum eOSCAR resistance</span>
+          </div>
+        </div>
 
-              {/* Locked Top Sections */}
-              {lockedTop.map((section) => (
-                <LockedSectionCard
+        {/* Three-column Layout: Rail | Document Canvas | Sidebar */}
+        <div className="grid grid-cols-[56px_1fr_340px] h-[calc(95vh-180px)] gap-4 px-4">
+
+          {/* Section Rail */}
+          <div className="relative flex flex-col items-center gap-0.5 pt-7">
+            {/* Rail line */}
+            <div className="absolute top-7 bottom-0 left-1/2 w-px bg-border -translate-x-1/2 z-0" />
+            {allSections.map((section, i) => {
+              const isActive = activeSection === i;
+              const isHov = hoveredSection === i;
+              return (
+                <button
                   key={section.id}
-                  section={section}
-                  isEditing={editingSection === section.id}
-                  editValue={editValue}
-                  onStartEdit={() => startEditing(section)}
-                  onSaveEdit={saveEdit}
-                  onCancelEdit={cancelEdit}
-                  onEditChange={setEditValue}
-                />
-              ))}
+                  onClick={() => scrollToSection(i)}
+                  onMouseEnter={() => setHoveredSection(i)}
+                  onMouseLeave={() => setHoveredSection(null)}
+                  title={SECTION_SHORT_LABELS[section.id] || section.label}
+                  className={cn(
+                    "relative z-10 w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200",
+                    isActive && "bg-primary/10",
+                    isHov && !isActive && "bg-muted"
+                  )}
+                >
+                  {/* Dot on rail */}
+                  <div
+                    className={cn(
+                      "absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full transition-all duration-200",
+                      isActive ? "bg-primary shadow-[0_0_8px_rgba(var(--primary),0.4)]" : isHov ? "bg-foreground" : "bg-muted-foreground/30"
+                    )}
+                  />
+                  <span className={cn(
+                    "transition-opacity duration-200",
+                    isActive ? "opacity-100" : isHov ? "opacity-80" : "opacity-35"
+                  )}>
+                    {SECTION_ICONS[section.id] || <FileText className="w-3.5 h-3.5" />}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
 
-              {/* Middle Sections (fixed order per AMELIA doctrine) */}
-              <div className="space-y-4">
-                {draggableSections.map((section) => {
-                  // Determine if section should be disabled (greyed out)
-                  const isDisabled =
-                    (section.id === "personalInfo" && !section.content) ||
-                    (section.id === "hardInquiries" && !section.content);
+          {/* Document Canvas */}
+          <div
+            ref={editorRef}
+            className="bg-card rounded-2xl border border-border shadow-lg overflow-y-auto"
+            style={{
+              boxShadow: "0 8px 60px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.1)"
+            }}
+          >
+            <div className="p-12 min-h-full">
+              {allSections.map((section, i) => {
+                const isDisabled =
+                  (section.id === "personalInfo" && !section.content) ||
+                  (section.id === "hardInquiries" && !section.content);
 
-                  return (
-                    <SectionCard
-                      key={section.id}
-                      section={section}
-                      isEditing={editingSection === section.id}
-                      editValue={editValue}
-                      onStartEdit={() => startEditing(section)}
-                      onSaveEdit={saveEdit}
-                      onCancelEdit={cancelEdit}
-                      onEditChange={setEditValue}
-                      onRegenerate={section.aiRegenerable ? () => regenerateSection(section.id) : undefined}
-                      isRegenerating={isRegenerating}
-                      regeneratingSection={regeneratingSection}
-                      isDisabled={isDisabled}
-                    />
-                  );
-                })}
-              </div>
-
-              {/* Locked Bottom Sections */}
-              {lockedBottom.map((section) => (
-                <LockedSectionCard
-                  key={section.id}
-                  section={section}
-                  isEditing={editingSection === section.id}
-                  editValue={editValue}
-                  onStartEdit={() => startEditing(section)}
-                  onSaveEdit={saveEdit}
-                  onCancelEdit={cancelEdit}
-                  onEditChange={setEditValue}
-                />
-              ))}
+                return (
+                  <CanvasSection
+                    key={section.id}
+                    section={section}
+                    index={i}
+                    isActive={activeSection === i}
+                    isHovered={hoveredSection === i}
+                    isEditing={editingSection === section.id}
+                    editValue={editValue}
+                    onMouseEnter={() => { setHoveredSection(i); setActiveSection(i); }}
+                    onMouseLeave={() => setHoveredSection(null)}
+                    onStartEdit={() => startEditing(section)}
+                    onSaveEdit={saveEdit}
+                    onCancelEdit={cancelEdit}
+                    onEditChange={setEditValue}
+                    onRegenerate={section.aiRegenerable ? () => regenerateSection(section.id) : undefined}
+                    isRegenerating={isRegenerating}
+                    regeneratingSection={regeneratingSection}
+                    isDisabled={isDisabled}
+                    isLast={i === allSections.length - 1}
+                    sectionRef={(el) => { sectionRefs.current[i] = el; }}
+                  />
+                );
+              })}
             </div>
           </div>
 
-          {/* AI Panel */}
-          <div className="border-l border-border overflow-y-auto p-4 space-y-4">
-            {/* AMELIA Header */}
-            <div className="bg-gradient-to-br from-emerald-500/10 to-card/60 rounded-xl border border-emerald-500/20 p-5">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="text-3xl">🤖</div>
+          {/* Right Sidebar */}
+          <div className="overflow-y-auto space-y-3 pr-2">
+            {/* Amelia AI Panel */}
+            <div
+              className="rounded-xl border p-5"
+              style={{
+                background: "linear-gradient(160deg, rgba(168,85,247,0.06), rgba(6,182,212,0.03))",
+                borderColor: "rgba(168,85,247,0.12)"
+              }}
+            >
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/15 flex items-center justify-center text-lg">
+                  ✦
+                </div>
                 <div>
-                  <h3 className="text-base font-semibold text-foreground">Amelia AI</h3>
-                  <span className="text-xs text-muted-foreground">Letter Assistant</span>
+                  <div className="text-[15px] font-bold">Amelia AI</div>
+                  <div className="text-[10px] text-muted-foreground">Letter Assistant</div>
                 </div>
               </div>
               <Button
                 onClick={regenerateAll}
                 disabled={isRegenerating}
-                className="w-full bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400"
+                className="w-full bg-emerald-600 hover:bg-emerald-500 rounded-xl py-2.5"
               >
                 {isRegenerating ? (
                   <>
@@ -1189,7 +1212,7 @@ export function LetterEditorModal({
                 ) : (
                   <>
                     <RefreshCw className="w-4 h-4 mr-2" />
-                    Regenerate Entire Letter
+                    Regenerate Full Letter
                   </>
                 )}
               </Button>
@@ -1198,25 +1221,22 @@ export function LetterEditorModal({
             {/* Tone Control */}
             <div className="bg-card rounded-xl border border-border p-5">
               <div className="flex justify-between items-center mb-3">
-                <h4 className="text-sm font-semibold text-foreground">Letter Tone</h4>
+                <span className="text-sm font-bold">Letter Tone</span>
                 <button
                   onClick={() => setShowTonePanel(!showTonePanel)}
-                  className="px-2.5 py-1 bg-muted rounded text-muted-foreground text-xs hover:bg-muted"
+                  className="px-2.5 py-1 bg-muted rounded-lg text-muted-foreground text-xs hover:bg-muted/80 border border-border"
                 >
                   Change
                 </button>
               </div>
 
-              <div className="space-y-1.5">
-                <div
-                  className="px-3 py-2 rounded-lg text-sm font-semibold"
-                  style={{ backgroundColor: `${toneConfig.color}20`, color: toneConfig.color }}
-                >
-                  {toneConfig.label}
-                </div>
-                <span className="text-xs text-muted-foreground block">{toneConfig.description}</span>
-                <span className="text-[11px] text-muted-foreground block">Recommended for {toneConfig.round}</span>
+              <div
+                className="px-3 py-2 rounded-lg text-sm font-semibold mb-2"
+                style={{ backgroundColor: `${toneConfig.color}15`, color: toneConfig.color, border: `1px solid ${toneConfig.color}20` }}
+              >
+                {toneConfig.label}
               </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">{toneConfig.description}. Recommended for {toneConfig.round}.</p>
 
               {showTonePanel && (
                 <div className="mt-4 space-y-2">
@@ -1225,16 +1245,15 @@ export function LetterEditorModal({
                       key={key}
                       onClick={() => changeTone(key)}
                       className={cn(
-                        "w-full p-3 bg-background rounded-lg text-left transition-all border-2",
-                        ameliaSettings.tone === key ? "border-current" : "border-transparent"
+                        "w-full p-3 bg-background rounded-lg text-left transition-all border",
+                        ameliaSettings.tone === key ? "border-2" : "border-border"
                       )}
-                      style={{ borderColor: ameliaSettings.tone === key ? config.color : "transparent" }}
+                      style={{ borderColor: ameliaSettings.tone === key ? config.color : undefined }}
                     >
-                      <span className="block text-sm font-semibold mb-1" style={{ color: config.color }}>
+                      <span className="block text-sm font-semibold mb-0.5" style={{ color: config.color }}>
                         {config.label}
                       </span>
-                      <span className="block text-[11px] text-muted-foreground mb-1">{config.description}</span>
-                      <span className="block text-[10px] text-muted-foreground">{config.round}</span>
+                      <span className="block text-[11px] text-muted-foreground">{config.description}</span>
                     </button>
                   ))}
                 </div>
@@ -1243,104 +1262,108 @@ export function LetterEditorModal({
 
             {/* eOSCAR Resistance */}
             <div className="bg-card rounded-xl border border-border p-5">
-              <h4 className="text-sm font-semibold text-foreground mb-4">eOSCAR Resistance</h4>
+              <div className="text-sm font-bold mb-3">eOSCAR Resistance</div>
 
-              <div className="mb-4">
-                <div className="h-2.5 bg-muted rounded-full overflow-hidden mb-1.5">
-                  <div
-                    className={cn(
-                      "h-full rounded-full transition-all",
-                      eoscarScore.riskScore <= 30 && "bg-emerald-500",
-                      eoscarScore.riskScore > 30 && eoscarScore.riskScore <= 60 && "bg-amber-500",
-                      eoscarScore.riskScore > 60 && "bg-red-500"
-                    )}
-                    style={{ width: `${100 - eoscarScore.riskScore}%` }}
-                  />
-                </div>
-                <div className="flex justify-between text-[10px] text-muted-foreground">
-                  <span>High Risk</span>
-                  <span>Low Risk</span>
-                </div>
+              <div className="relative h-[5px] rounded bg-muted mb-2 overflow-hidden">
+                <div
+                  className="absolute left-0 top-0 bottom-0 rounded"
+                  style={{
+                    width: `${100 - eoscarScore.riskScore}%`,
+                    background: "linear-gradient(90deg, #34d399, #06b6d4)"
+                  }}
+                />
+              </div>
+              <div className="flex justify-between text-[9px] text-muted-foreground font-mono mb-4">
+                <span>High Risk</span>
+                <span>Low Risk</span>
               </div>
 
-              <div className="grid grid-cols-3 gap-3 mb-3">
-                <div className="text-center">
-                  <span className="block text-lg font-bold text-foreground">{eoscarScore.uniqueness}%</span>
-                  <span className="text-[10px] text-muted-foreground">Uniqueness</span>
+              <div className="grid grid-cols-3 gap-2 text-center mb-3">
+                <div>
+                  <div className="text-xl font-extrabold">{eoscarScore.uniqueness}%</div>
+                  <div className="text-[9px] text-muted-foreground font-mono mt-0.5">Uniqueness</div>
                 </div>
-                <div className="text-center">
-                  <span className="block text-lg font-bold text-foreground">{eoscarScore.humanPhrases}</span>
-                  <span className="text-[10px] text-muted-foreground">Human Phrases</span>
+                <div>
+                  <div className="text-xl font-extrabold">{eoscarScore.humanPhrases}</div>
+                  <div className="text-[9px] text-muted-foreground font-mono mt-0.5">Human</div>
                 </div>
-                <div className="text-center">
-                  <span className={cn(
-                    "block text-lg font-bold",
+                <div>
+                  <div className={cn(
+                    "text-xl font-extrabold",
                     eoscarScore.riskLevel === "LOW" && "text-emerald-400",
                     eoscarScore.riskLevel === "MEDIUM" && "text-amber-400",
                     eoscarScore.riskLevel === "HIGH" && "text-red-400"
                   )}>
                     {eoscarScore.riskLevel}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">Risk Level</span>
+                  </div>
+                  <div className="text-[9px] text-muted-foreground font-mono mt-0.5">Risk</div>
                 </div>
               </div>
-
-              <p className="text-[11px] text-muted-foreground leading-relaxed">
-                Letter has been optimized to avoid automated eOSCAR flagging patterns.
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                Optimized to avoid eOSCAR flagging patterns.
               </p>
             </div>
 
-            {/* FCRA Statutes */}
+            {/* Referenced Statutes */}
             <div className="bg-card rounded-xl border border-border p-5">
-              <h4 className="text-sm font-semibold text-foreground mb-3">Referenced Statutes</h4>
-              <div className="space-y-2">
-                <StatuteBadge code="§ 1681e(b)" name="Maximum Accuracy" />
-                <StatuteBadge code="§ 1681i" name="Investigation Procedures" />
-                <StatuteBadge code="§ 1681n" name="Civil Liability (Willful)" />
+              <div className="text-sm font-bold mb-3">Referenced Statutes</div>
+              <div className="flex flex-col gap-1.5">
+                <StatuteBadge code="§ 1681e(b)" name="Maximum Accuracy" color="emerald" />
+                <StatuteBadge code="§ 1681i" name="Investigation Procedures" color="cyan" />
+                <StatuteBadge code="§ 1681n" name="Civil Liability (Willful)" color="violet" />
               </div>
             </div>
 
-            {/* Quick Tips */}
+            {/* Amelia Tips */}
             <div className="bg-card rounded-xl border border-border p-5">
-              <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                <Lightbulb className="w-4 h-4 text-amber-400" />
-                Amelia Tips
-              </h4>
+              <div className="text-sm font-bold mb-3 flex items-center gap-1.5">
+                💡 Amelia Tips
+              </div>
               <div className="space-y-2">
                 {generatedLetter.ameliaMetadata?.isBackdated && (
-                  <div className="flex items-start gap-2 text-xs text-muted-foreground">
-                    <CheckCircle className="w-3.5 h-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                    <span>Letter backdated {generatedLetter.ameliaMetadata.backdatedDays} days per eOSCAR/CFPB doctrine</span>
+                  <div className="flex items-start gap-2">
+                    <span className="text-emerald-400 text-xs mt-0.5 flex-shrink-0">✓</span>
+                    <span className="text-[11px] text-muted-foreground leading-snug">
+                      Backdated {generatedLetter.ameliaMetadata.backdatedDays} days per eOSCAR doctrine
+                    </span>
                   </div>
                 )}
                 {generatedLetter.round === 1 && (
-                  <div className="flex items-start gap-2 text-xs text-muted-foreground">
-                    <CheckCircle className="w-3.5 h-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                    <span>R1 letters use 60-69 day backdate range for batch detection prevention</span>
+                  <div className="flex items-start gap-2">
+                    <span className="text-emerald-400 text-xs mt-0.5 flex-shrink-0">✓</span>
+                    <span className="text-[11px] text-muted-foreground leading-snug">
+                      R1 uses 60-69 day backdate range
+                    </span>
                   </div>
                 )}
-                <div className="flex items-start gap-2 text-xs text-muted-foreground">
-                  <CheckCircle className="w-3.5 h-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                  <span>Letter structure follows AMELIA doctrine (fixed order)</span>
+                <div className="flex items-start gap-2">
+                  <span className="text-emerald-400 text-xs mt-0.5 flex-shrink-0">✓</span>
+                  <span className="text-[11px] text-muted-foreground leading-snug">
+                    Fixed order per AMELIA doctrine
+                  </span>
                 </div>
-                <div className="flex items-start gap-2 text-xs text-muted-foreground">
-                  <CheckCircle className="w-3.5 h-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                  <span>Unique phrasing avoids template detection</span>
+                <div className="flex items-start gap-2">
+                  <span className="text-emerald-400 text-xs mt-0.5 flex-shrink-0">✓</span>
+                  <span className="text-[11px] text-muted-foreground leading-snug">
+                    Unique phrasing avoids detection
+                  </span>
                 </div>
-                <div className="flex items-start gap-2 text-xs text-muted-foreground">
-                  <CheckCircle className="w-3.5 h-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                  <span>Regenerate to get new backdate within range</span>
+                <div className="flex items-start gap-2">
+                  <span className="text-emerald-400 text-xs mt-0.5 flex-shrink-0">✓</span>
+                  <span className="text-[11px] text-muted-foreground leading-snug">
+                    Regenerate for new backdate
+                  </span>
                 </div>
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex gap-2">
+            {/* Export Buttons */}
+            <div className="grid grid-cols-3 gap-1.5">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleCopyLetter}
-                className="flex-1 gap-1.5 border-input"
+                className="flex-1 gap-1.5 border-border rounded-xl justify-center"
               >
                 {letterCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                 {letterCopied ? "Copied!" : "Copy"}
@@ -1350,7 +1373,7 @@ export function LetterEditorModal({
                 size="sm"
                 onClick={handleDownloadPdf}
                 disabled={isDownloading}
-                className="flex-1 gap-1.5 border-input"
+                className="flex-1 gap-1.5 border-border rounded-xl justify-center"
               >
                 {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                 PDF
@@ -1359,7 +1382,7 @@ export function LetterEditorModal({
                 variant="outline"
                 size="sm"
                 onClick={handlePrintLetter}
-                className="flex-1 gap-1.5 border-input"
+                className="flex-1 gap-1.5 border-border rounded-xl justify-center"
               >
                 <Printer className="w-4 h-4" />
                 Print
