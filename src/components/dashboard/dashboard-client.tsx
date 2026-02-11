@@ -507,7 +507,8 @@ export function DashboardClient({
         const res = await fetch("/api/clients?limit=50");
         if (res.ok) {
           const data = await res.json();
-          const clientList = data.clients || [];
+          // API returns { data: [...], pagination: {...} } format
+          const clientList = data.data || data.clients || [];
 
           // Transform and categorize clients
           const transformed: ClientData[] = clientList.map((c: any, index: number) => {
