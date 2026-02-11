@@ -273,6 +273,13 @@ function Badge({ label, color, large = false }: { label: string; color: string; 
 // BUREAU ARC
 // ============================================================================
 
+// Bureau logo paths
+const BUREAU_LOGOS: Record<string, string> = {
+  TU: "/logos/transunion.svg",
+  EX: "/logos/experian.svg",
+  EQ: "/logos/equifax.svg",
+};
+
 function BureauArc({ bureau, size = 105, strokeW = 6 }: { bureau: BureauScore; size?: number; strokeW?: number }) {
   const color = COLORS[bureau.colorKey];
   const r = (size - strokeW) / 2;
@@ -280,9 +287,25 @@ function BureauArc({ bureau, size = 105, strokeW = 6 }: { bureau: BureauScore; s
   const pct = Math.max(0, (bureau.score - 300) / (850 - 300));
   const offset = circ * (1 - pct);
   const change = bureau.score - bureau.prev;
+  const logoUrl = BUREAU_LOGOS[bureau.short];
 
   return (
     <div className="flex flex-col items-center">
+      {/* Bureau Logo */}
+      <div className="mb-2 h-5 flex items-center justify-center">
+        {logoUrl ? (
+          <img
+            src={logoUrl}
+            alt={bureau.name}
+            className="h-4 w-auto object-contain opacity-80"
+            style={{ filter: "brightness(1.2)" }}
+          />
+        ) : (
+          <span className="text-[11px] font-semibold text-muted-foreground">{bureau.name}</span>
+        )}
+      </div>
+
+      {/* Score Arc */}
       <div className="relative" style={{ width: size, height: size }}>
         <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
           <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="hsl(var(--muted))" strokeWidth={strokeW} />
@@ -309,6 +332,8 @@ function BureauArc({ bureau, size = 105, strokeW = 6 }: { bureau: BureauScore; s
           </div>
         </div>
       </div>
+
+      {/* Score Change */}
       <div className="mt-1.5 flex items-center gap-1">
         <span
           className="text-[11px] font-bold"
@@ -318,7 +343,6 @@ function BureauArc({ bureau, size = 105, strokeW = 6 }: { bureau: BureauScore; s
         </span>
         <span className="text-[10px] text-muted-foreground">pts</span>
       </div>
-      <div className="text-[11px] font-semibold text-muted-foreground mt-0.5">{bureau.name}</div>
     </div>
   );
 }
