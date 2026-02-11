@@ -603,32 +603,68 @@ export function DashboardClient({
     fetchClients();
   }, [actionQueue]);
 
+  // Create a placeholder client when no real clients exist
+  const placeholderClient: ClientData = useMemo(() => ({
+    id: "placeholder",
+    name: "Add Your First Client",
+    initials: "??",
+    joined: new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" }),
+    round: 0,
+    category: "newest",
+    categoryLabel: "Get Started",
+    bureaus: [
+      { id: "TU", name: "TransUnion", short: "TU", colorKey: "tu" as const, score: 0, prev: 0, goal: 750 },
+      { id: "EX", name: "Experian", short: "EX", colorKey: "ex" as const, score: 0, prev: 0, goal: 750 },
+      { id: "EQ", name: "Equifax", short: "EQ", colorKey: "eq" as const, score: 0, prev: 0, goal: 750 },
+    ],
+    vitals: [
+      { label: "Payment History", value: 0, max: 100, status: "pending", color: "blue" },
+      { label: "Credit Utilization", value: 0, max: 100, status: "pending", color: "blue" },
+      { label: "Account Age", value: 0, max: 10, unit: "yrs", status: "pending", color: "blue" },
+      { label: "Credit Mix", value: 0, max: 5, unit: "types", status: "pending", color: "blue" },
+      { label: "Hard Inquiries", value: 0, max: 10, status: "pending", color: "blue" },
+      { label: "Derogatory Marks", value: 0, max: 10, status: "pending", color: "blue" },
+    ],
+    trend: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    trendStart: "—",
+    trendEnd: "—",
+    amelia: "Welcome to Dispute2Go! Upload your first client's credit report to get started. I'll analyze it and help you identify the best disputes to file.",
+    queue: [],
+    deletions: 0,
+    activeDisputes: 0,
+    successRate: 0,
+  }), []);
+
   // Get client for active category
   const client = useMemo(() => {
     const found = clients.find((c) => c.category === activeCat);
     return found || clients[0] || null;
   }, [clients, activeCat]);
 
-  const composite = client ? getComposite(client.bureaus) : 0;
-  const avgChange = client
-    ? Math.round(client.bureaus.reduce((a, b) => a + (b.score - b.prev), 0) / client.bureaus.length)
-    : 0;
-  const trendStart = client?.trend[0] || 0;
+  // Use placeholder if no clients
+  const displayClient = client || (clients.length === 0 ? placeholderClient : null);
+  const activeClient = displayClient || placeholderClient;
+
+  // Calculate composite and changes
+  const composite = getComposite(activeClient.bureaus);
+  const avgChange = Math.round(activeClient.bureaus.reduce((a, b) => a + (b.score - b.prev), 0) / activeClient.bureaus.length);
+  const trendStart = activeClient.trend[0] || 0;
   const catInfo = CATEGORIES.find((c) => c.id === activeCat);
   const catColor = COLORS[catInfo?.color as keyof typeof COLORS] || COLORS.accent;
 
   const QUEUE_FILTERS = ["All", "Urgent", "Letters", "Responses"];
 
   // Filter client queue
-  const filteredQueue = client?.queue.filter((item) => {
+  const filteredQueue = activeClient.queue.filter((item) => {
     if (filter === "All") return true;
     if (filter === "Urgent") return item.color === "#ef4444";
     if (filter === "Letters") return item.title.toLowerCase().includes("letter");
     if (filter === "Responses") return item.title.toLowerCase().includes("response") || item.title.toLowerCase().includes("verified");
     return true;
-  }) || [];
+  });
 
-  if (loading) {
+  // Show loading only briefly, then show the dashboard even with empty data
+  if (loading && clients.length === 0) {
     return (
       <div className="min-h-full flex items-center justify-center">
         <div className="text-center">
@@ -684,11 +720,11 @@ export function DashboardClient({
 
         {/* Client Oscillator */}
         <Reveal delay={60}>
-          <ClientOscillator activeCategory={activeCat} onCategoryChange={setActiveCat} client={client} />
+          <ClientOscillator activeCategory={activeCat} onCategoryChange={setActiveCat} client={displayClient} />
         </Reveal>
 
-        {client && (
-          <div key={client.id} className="animate-in fade-in duration-300">
+        {displayClient && (
+          <div key={displayClient.id} className="animate-in fade-in duration-300">
             {/* Bureau Scores + Sidebar */}
             <Reveal delay={80}>
               <div className="grid grid-cols-1 lg:grid-cols-[1fr_330px] gap-3.5 mb-3.5">
@@ -703,26 +739,26 @@ export function DashboardClient({
                       <div>
                         <div className="text-[10px] font-bold tracking-widest text-muted-foreground font-mono">CREDIT VITALS</div>
                         <div className="text-[15px] font-bold mt-0.5 flex items-center gap-2">
-                          {client.name} <Badge label={catInfo?.label || ""} color={catColor} />
+                          {displayClient.name} <Badge label={catInfo?.label || ""} color={catColor} />
                         </div>
                       </div>
                       <div className="flex gap-1.5">
                         <Badge label={avgChange >= 0 ? `AVG +${avgChange}` : `AVG ${avgChange}`} color={avgChange >= 0 ? COLORS.green : COLORS.red} large />
-                        <Badge label={`R${client.round}`} color={COLORS.accent} large />
+                        <Badge label={`R${displayClient.round}`} color={COLORS.accent} large />
                       </div>
                     </div>
 
                     {/* 3 bureau arcs + composite */}
                     <div className="flex items-center justify-center gap-7 mb-5">
-                      <BureauArc bureau={client.bureaus[0]} size={100} strokeW={6} />
+                      <BureauArc bureau={displayClient.bureaus[0]} size={100} strokeW={6} />
                       <div className="flex flex-col items-center">
                         <CompositeRing score={composite} size={140} strokeW={8} />
                         <div className="text-[9px] font-mono text-muted-foreground tracking-widest mt-1.5">COMPOSITE</div>
                       </div>
-                      <BureauArc bureau={client.bureaus[1]} size={100} strokeW={6} />
+                      <BureauArc bureau={displayClient.bureaus[1]} size={100} strokeW={6} />
                     </div>
                     <div className="flex justify-center -mt-2 mb-2.5">
-                      <BureauArc bureau={client.bureaus[2]} size={100} strokeW={6} />
+                      <BureauArc bureau={displayClient.bureaus[2]} size={100} strokeW={6} />
                     </div>
 
                     {/* Goal strip */}
@@ -735,20 +771,20 @@ export function DashboardClient({
                     >
                       <BreathingDot color={catColor} />
                       <span className="text-xs text-muted-foreground">
-                        Target: <strong className="text-emerald-400">{client.bureaus[0].goal}</strong>
+                        Target: <strong className="text-emerald-400">{displayClient.bureaus[0].goal}</strong>
                       </span>
                       <div className="w-px h-3.5 bg-border" />
                       <span className="text-xs text-muted-foreground">
                         Gap:{" "}
-                        <strong style={{ color: client.bureaus[0].goal - composite > 50 ? COLORS.accent : COLORS.green }}>
-                          {client.bureaus[0].goal - composite > 0 ? `+${client.bureaus[0].goal - composite}` : "✓ Achieved"}
+                        <strong style={{ color: displayClient.bureaus[0].goal - composite > 50 ? COLORS.accent : COLORS.green }}>
+                          {displayClient.bureaus[0].goal - composite > 0 ? `+${displayClient.bureaus[0].goal - composite}` : "✓ Achieved"}
                         </strong>
                       </span>
                       <div className="w-px h-3.5 bg-border" />
                       <span className="text-xs text-muted-foreground">
                         Journey:{" "}
                         <strong className="text-emerald-400">
-                          {Math.min(100, Math.round(((composite - 300) / (client.bureaus[0].goal - 300)) * 100))}%
+                          {Math.min(100, Math.round(((composite - 300) / (displayClient.bureaus[0].goal - 300)) * 100))}%
                         </strong>
                       </span>
                     </div>
@@ -760,12 +796,12 @@ export function DashboardClient({
                   {/* Bureau breakdown */}
                   <div className="rounded-2xl bg-card/50 backdrop-blur-xl border border-border p-4">
                     <div className="text-[10px] font-bold tracking-widest text-muted-foreground font-mono mb-3">BUREAU BREAKDOWN</div>
-                    {client.bureaus.map((b, i) => {
+                    {displayClient.bureaus.map((b, i) => {
                       const color = COLORS[b.colorKey];
                       const change = b.score - b.prev;
                       const pct = Math.max(0, ((b.score - 300) / (850 - 300)) * 100);
                       return (
-                        <div key={b.id} className={i < client.bureaus.length - 1 ? "mb-3.5" : ""}>
+                        <div key={b.id} className={i < displayClient.bureaus.length - 1 ? "mb-3.5" : ""}>
                           <div className="flex justify-between items-center mb-1.5">
                             <div className="flex items-center gap-2">
                               <div
@@ -802,9 +838,9 @@ export function DashboardClient({
                   {/* Trend */}
                   <div className="rounded-2xl bg-card/50 backdrop-blur-xl border border-border p-4">
                     <div className="text-[10px] font-bold tracking-widest text-muted-foreground font-mono mb-2.5">COMPOSITE TREND</div>
-                    <Sparkline data={client.trend} clientId={client.id} />
+                    <Sparkline data={displayClient.trend} clientId={displayClient.id} />
                     <div className="flex justify-between mt-1.5">
-                      <span className="text-[10px] text-muted-foreground font-mono">{client.trendStart}</span>
+                      <span className="text-[10px] text-muted-foreground font-mono">{displayClient.trendStart}</span>
                       <span
                         className="text-[10px] font-bold"
                         style={{ color: composite >= trendStart ? COLORS.green : COLORS.red }}
@@ -812,16 +848,16 @@ export function DashboardClient({
                         {composite >= trendStart ? "+" : ""}
                         {composite - trendStart} composite
                       </span>
-                      <span className="text-[10px] text-muted-foreground font-mono">{client.trendEnd}</span>
+                      <span className="text-[10px] text-muted-foreground font-mono">{displayClient.trendEnd}</span>
                     </div>
                   </div>
 
                   {/* Client stats */}
                   <div className="grid grid-cols-3 gap-2">
                     {[
-                      { l: "Deletions", v: client.deletions, c: COLORS.green },
-                      { l: "Active", v: client.activeDisputes, c: COLORS.blue },
-                      { l: "Success", v: `${client.successRate}%`, c: COLORS.accent },
+                      { l: "Deletions", v: displayClient.deletions, c: COLORS.green },
+                      { l: "Active", v: displayClient.activeDisputes, c: COLORS.blue },
+                      { l: "Success", v: `${displayClient.successRate}%`, c: COLORS.accent },
                     ].map((s, i) => (
                       <div key={i} className="px-2.5 py-3 rounded-lg bg-muted/50 border border-border text-center">
                         <div className="text-xl font-extrabold leading-none" style={{ color: s.c }}>
@@ -856,9 +892,9 @@ export function DashboardClient({
                       <span className="text-[13px] font-bold" style={{ color: COLORS.purple }}>
                         AMELIA
                       </span>
-                      <Badge label={`RE: ${client.name.split(" ")[0]}`} color={COLORS.purple} />
+                      <Badge label={`RE: ${displayClient.name.split(" ")[0]}`} color={COLORS.purple} />
                     </div>
-                    <div className="text-[13px] text-muted-foreground leading-relaxed">{client.amelia}</div>
+                    <div className="text-[13px] text-muted-foreground leading-relaxed">{displayClient.amelia}</div>
                   </div>
                   <BreathingDot color={COLORS.purple} size={10} />
                 </div>
@@ -872,7 +908,7 @@ export function DashboardClient({
                   CREDIT HEALTH FACTORS
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
-                  {client.vitals.map((v, i) => {
+                  {displayClient.vitals.map((v, i) => {
                     const c = COLORS[v.color as keyof typeof COLORS] || COLORS.accent;
                     const isWarning = ["critical", "maxed", "severe", "excessive", "slipping", "rising", "new added", "high"].includes(v.status);
                     return (
@@ -916,8 +952,8 @@ export function DashboardClient({
                     <div className="flex items-center gap-2.5">
                       <span className="text-[15px] font-bold">Action Queue</span>
                       <Badge
-                        label={`${client.queue.length} items`}
-                        color={client.queue.length > 0 ? COLORS.accent : COLORS.green}
+                        label={`${displayClient.queue.length} items`}
+                        color={displayClient.queue.length > 0 ? COLORS.accent : COLORS.green}
                       />
                     </div>
                     <div className="flex gap-0.5">
