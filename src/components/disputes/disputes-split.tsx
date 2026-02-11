@@ -25,11 +25,8 @@ import type { AmeliaInsight } from "./amelia-insights-panel";
 
 // Types
 import {
-  CRA_COLORS,
-  FLOW_INFO,
   type ParsedAccountWithIssues,
   type ClientWithProfile,
-  type EOSCARScore,
 } from "./types";
 
 // Bureau data
@@ -166,7 +163,8 @@ export function DisputesSplit({ initialClient }: DisputesSplitProps) {
 
   // AI state
   const [ameliaInsights, setAmeliaInsights] = useState<AmeliaInsight | null>(null);
-  const [eoscarScore, setEoscarScore] = useState<EOSCARScore | null>(null);
+  const [insightsLoading, setInsightsLoading] = useState(false);
+  const [insightsError, setInsightsError] = useState<string | null>(null);
 
   // Loading states
   const [loading, setLoading] = useState(true);
@@ -354,6 +352,57 @@ export function DisputesSplit({ initialClient }: DisputesSplitProps) {
         if (data?.client) setClient(data.client);
       });
   }, [selectedClientId]);
+
+  // Generate AMELIA insights when accounts change
+  const generateInsights = useCallback(async () => {
+    if (!selectedClientId || selectedAccounts.length === 0) {
+      setAmeliaInsights(null);
+      return;
+    }
+
+    setInsightsLoading(true);
+    setInsightsError(null);
+
+    try {
+      const res = await fetch("/api/amelia/insights", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId: selectedClientId,
+          cra: selectedCRA,
+          flow: selectedFlow,
+          accountIds: selectedAccounts,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setAmeliaInsights(data);
+      } else {
+        const errData = await res.json().catch(() => null);
+        setInsightsError(errData?.error || "Failed to generate insights");
+      }
+    } catch {
+      setInsightsError("Could not connect to the analysis service");
+    } finally {
+      setInsightsLoading(false);
+    }
+  }, [selectedClientId, selectedCRA, selectedFlow, selectedAccounts]);
+
+  // Auto-generate insights when accounts are selected (debounced)
+  useEffect(() => {
+    if (selectedAccounts.length === 0) {
+      setAmeliaInsights(null);
+      return;
+    }
+
+    // Debounce the insights generation
+    const timer = setTimeout(() => {
+      generateInsights();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [selectedAccounts, generateInsights]);
 
   // Toggle account selection
   const toggleAccount = (id: string) => {
@@ -880,6 +929,23 @@ export function DisputesSplit({ initialClient }: DisputesSplitProps) {
         <div className="sticky top-5">
           <Reveal delay={260} direction="right">
             <div className="space-y-4">
+              {/* Warning Banner for Too Many Accounts */}
+              {selectedAccounts.length > 5 && (
+                <Card className="bg-amber-500/10 border-amber-500/20 p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="text-xl">⚠️</span>
+                    <div>
+                      <p className="font-semibold text-amber-400 mb-1">Too Many Accounts Selected</p>
+                      <p className="text-sm text-amber-400/80">
+                        Disputing more than 5 accounts at once may trigger automated rejection.
+                        Credit bureaus often flag bulk disputes as frivolous. Consider splitting
+                        into multiple rounds for better success rates.
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              )}
+
               {/* AMELIA Panel */}
               <Card className="bg-gradient-to-br from-purple-500/5 to-cyan-500/5 border-purple-500/10 overflow-hidden">
                 <div className="p-5">
@@ -891,9 +957,14 @@ export function DisputesSplit({ initialClient }: DisputesSplitProps) {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="text-lg font-bold tracking-tight">AMELIA</span>
-                          {selectedAccounts.length > 0 && (
+                          {ameliaInsights && (
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-mono">
                               Active
+                            </span>
+                          )}
+                          {insightsLoading && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-500/15 text-purple-400 font-mono animate-pulse">
+                              Analyzing
                             </span>
                           )}
                         </div>
@@ -901,18 +972,32 @@ export function DisputesSplit({ initialClient }: DisputesSplitProps) {
                       </div>
                     </div>
 
-                    {selectedAccounts.length > 0 && (
+                    {ameliaInsights && (
                       <svg width="44" height="44" viewBox="0 0 44 44" className="flex-shrink-0">
                         <circle cx="22" cy="22" r="18" fill="none" className="stroke-muted" strokeWidth="3" />
                         <circle
                           cx="22" cy="22" r="18" fill="none"
-                          className="stroke-emerald-400"
-                          strokeWidth="3"
-                          strokeLinecap="round"
-                          strokeDasharray={`${0.85 * 113.1} 113.1`}
+                          className={cn(
+                            "strokeWidth-3 strokeLinecap-round",
+                            ameliaInsights.confidence >= 70 ? "stroke-emerald-400" :
+                            ameliaInsights.confidence >= 50 ? "stroke-amber-400" : "stroke-red-400"
+                          )}
+                          style={{
+                            stroke: ameliaInsights.confidence >= 70 ? "#34d399" :
+                                   ameliaInsights.confidence >= 50 ? "#fbbf24" : "#f87171",
+                            strokeWidth: 3,
+                            strokeLinecap: "round",
+                            strokeDasharray: `${(ameliaInsights.confidence / 100) * 113.1} 113.1`,
+                          }}
                           transform="rotate(-90 22 22)"
                         />
-                        <text x="22" y="26" textAnchor="middle" className="fill-emerald-400 text-[11px] font-bold font-mono">85%</text>
+                        <text x="22" y="26" textAnchor="middle" className={cn(
+                          "text-[11px] font-bold font-mono",
+                          ameliaInsights.confidence >= 70 ? "fill-emerald-400" :
+                          ameliaInsights.confidence >= 50 ? "fill-amber-400" : "fill-red-400"
+                        )}>
+                          {ameliaInsights.confidence}%
+                        </text>
                       </svg>
                     )}
                   </div>
@@ -923,7 +1008,26 @@ export function DisputesSplit({ initialClient }: DisputesSplitProps) {
                         Select accounts to analyze for AI-powered recommendations
                       </p>
                     </div>
-                  ) : (
+                  ) : insightsLoading ? (
+                    <div className="text-center py-8">
+                      <Loader2 className="w-8 h-8 animate-spin mx-auto text-purple-400 mb-3" />
+                      <p className="text-sm text-muted-foreground">Analyzing {selectedAccounts.length} account(s)...</p>
+                      <p className="text-xs text-muted-foreground mt-1">AMELIA is reviewing issues and calculating success probability</p>
+                    </div>
+                  ) : insightsError ? (
+                    <div className="text-center py-6">
+                      <p className="text-amber-400 mb-3">{insightsError}</p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={generateInsights}
+                        className="border-purple-500/30 text-purple-400"
+                      >
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Retry Analysis
+                      </Button>
+                    </div>
+                  ) : ameliaInsights ? (
                     <div className="space-y-5">
                       {/* Success Rate */}
                       <div>
@@ -932,70 +1036,157 @@ export function DisputesSplit({ initialClient }: DisputesSplitProps) {
                             <span className="text-base">◎</span>
                             Estimated Success Rate
                           </span>
-                          <span className="text-lg font-bold">75%</span>
+                          <span className="text-lg font-bold">{ameliaInsights.estimatedSuccessRate}%</span>
                         </div>
                         <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                          <div className="h-full w-3/4 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all duration-1000" />
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all duration-1000"
+                            style={{ width: `${ameliaInsights.estimatedSuccessRate}%` }}
+                          />
                         </div>
                       </div>
 
                       {/* Letter Tone */}
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-muted-foreground">Letter Tone:</span>
-                        <Badge className="bg-purple-500/10 text-purple-400 border border-purple-500/20 font-mono">
-                          CONCERNED
+                        <Badge className={cn(
+                          "font-mono",
+                          ameliaInsights.tone === "CONCERNED" && "bg-blue-500/10 text-blue-400 border border-blue-500/20",
+                          ameliaInsights.tone === "WORRIED" && "bg-amber-500/10 text-amber-400 border border-amber-500/20",
+                          ameliaInsights.tone === "FED_UP" && "bg-orange-500/10 text-orange-400 border border-orange-500/20",
+                          ameliaInsights.tone === "WARNING" && "bg-red-500/10 text-red-400 border border-red-500/20",
+                          ameliaInsights.tone === "PISSED" && "bg-red-600/10 text-red-500 border border-red-600/20"
+                        )}>
+                          {ameliaInsights.tone.replace("_", " ")}
                         </Badge>
                       </div>
 
-                      {/* Quick Insights */}
+                      {/* Quick Insights / Recommendations */}
                       <div>
                         <div className="flex items-center gap-2 mb-3">
                           <span className="text-base">💡</span>
                           <span className="font-semibold">Quick Insights</span>
                         </div>
                         <div className="space-y-2">
-                          {[
-                            "Multiple HIGH severity issues increase dispute strength",
-                            "Cross-bureau inconsistencies provide strong evidence",
-                            `${selectedAccounts.length} account(s) selected for dispute`,
-                          ].map((insight, i) => (
+                          {ameliaInsights.recommendations.slice(0, 4).map((rec, i) => (
                             <div key={i} className="flex gap-2 items-start">
-                              <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-2 flex-shrink-0" />
-                              <span className="text-sm text-muted-foreground">{insight}</span>
+                              <div className="w-1.5 h-1.5 rounded-full bg-purple-400 mt-2 flex-shrink-0" />
+                              <span className="text-sm text-muted-foreground">{rec}</span>
                             </div>
                           ))}
                         </div>
                       </div>
 
-                      {/* eOSCAR Risk */}
-                      <div>
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <span className="text-base">🛡</span>
-                            <span className="font-semibold">eOSCAR Risk</span>
+                      {/* Risk Factors */}
+                      {ameliaInsights.riskFactors && ameliaInsights.riskFactors.length > 0 && (
+                        <div>
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="text-base">📊</span>
+                            <span className="font-semibold">Risk Analysis</span>
                           </div>
-                          <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
-                            15% LOW
-                          </Badge>
+                          <div className="space-y-2">
+                            {ameliaInsights.riskFactors.slice(0, 3).map((rf, i) => (
+                              <div key={i} className="flex gap-2 items-start">
+                                <span className={cn(
+                                  "text-sm mt-0.5",
+                                  rf.impact === "positive" && "text-emerald-400",
+                                  rf.impact === "negative" && "text-red-400",
+                                  rf.impact === "neutral" && "text-amber-400"
+                                )}>
+                                  {rf.impact === "positive" ? "↑" : rf.impact === "negative" ? "↓" : "→"}
+                                </span>
+                                <span className="text-sm text-muted-foreground">{rf.factor}</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                        <div className="grid grid-cols-3 gap-2">
-                          {[
-                            { value: "90%", label: "Uniqueness" },
-                            { value: "0", label: "Human Phrases" },
-                            { value: "0", label: "Flagged" },
-                          ].map((metric, i) => (
-                            <div key={i} className="p-3 rounded-lg bg-muted/30 text-center">
-                              <div className="text-xl font-bold">{metric.value}</div>
-                              <div className="text-[9px] text-muted-foreground font-mono mt-1">{metric.label}</div>
+                      )}
+
+                      {/* Legal Focus */}
+                      {ameliaInsights.suggestedStatutes && ameliaInsights.suggestedStatutes.length > 0 && (
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-base">📜</span>
+                            <span className="font-semibold text-sm">Legal Focus</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {ameliaInsights.suggestedStatutes.map((statute, i) => (
+                              <Badge key={i} variant="outline" className="text-xs border-amber-500/30 text-amber-400">
+                                {statute}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* eOSCAR Risk */}
+                      {ameliaInsights.eoscarDetection && (
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <span className="text-base">🛡</span>
+                              <span className="font-semibold">eOSCAR Risk</span>
                             </div>
-                          ))}
+                            <Badge className={cn(
+                              "font-mono",
+                              ameliaInsights.eoscarDetection.level === "low" && "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+                              ameliaInsights.eoscarDetection.level === "medium" && "bg-amber-500/10 text-amber-400 border border-amber-500/20",
+                              ameliaInsights.eoscarDetection.level === "high" && "bg-red-500/10 text-red-400 border border-red-500/20"
+                            )}>
+                              {ameliaInsights.eoscarDetection.risk}% {ameliaInsights.eoscarDetection.level.toUpperCase()}
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="p-3 rounded-lg bg-muted/30 text-center">
+                              <div className="text-xl font-bold">{ameliaInsights.eoscarDetection.uniquenessScore}%</div>
+                              <div className="text-[9px] text-muted-foreground font-mono mt-1">Uniqueness</div>
+                            </div>
+                            <div className="p-3 rounded-lg bg-muted/30 text-center">
+                              <div className="text-xl font-bold text-emerald-400">{ameliaInsights.eoscarDetection.humanizingPhrases}</div>
+                              <div className="text-[9px] text-muted-foreground font-mono mt-1">Human Phrases</div>
+                            </div>
+                            <div className="p-3 rounded-lg bg-muted/30 text-center">
+                              <div className="text-xl font-bold text-amber-400">{ameliaInsights.eoscarDetection.flaggedPhrases}</div>
+                              <div className="text-[9px] text-muted-foreground font-mono mt-1">Flagged</div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      )}
+
+                      {/* Regenerate Analysis Button */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={generateInsights}
+                        disabled={insightsLoading}
+                        className="w-full border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
+                      >
+                        {insightsLoading ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-4 h-4 mr-2" />
+                        )}
+                        Refresh Analysis
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="text-center py-6">
+                      <p className="text-muted-foreground mb-4">
+                        Analyzing {selectedAccounts.length} account(s)...
+                      </p>
+                      <Button
+                        onClick={generateInsights}
+                        disabled={insightsLoading}
+                        className="bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400"
+                      >
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Generate Insights
+                      </Button>
                     </div>
                   )}
                 </div>
 
-                {/* Generate Button */}
+                {/* Generate Letter Button */}
                 <div className="p-5 pt-0">
                   <Button
                     className="w-full bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white shadow-lg shadow-purple-500/20"
@@ -1014,6 +1205,11 @@ export function DisputesSplit({ initialClient }: DisputesSplitProps) {
                       </>
                     )}
                   </Button>
+                  {selectedAccounts.length > 5 && (
+                    <p className="text-xs text-amber-400/70 text-center mt-2">
+                      Consider selecting fewer accounts for best results
+                    </p>
+                  )}
                 </div>
               </Card>
             </div>
