@@ -310,7 +310,7 @@ function ActionToolbar({
 }
 
 // ═══════════════════════════════════════════════════════════
-// GAVEL MODAL - Glassmorphic dispute flow picker
+// GAVEL MODAL - Glassmorphic dispute flow picker with skeleton loading
 // ═══════════════════════════════════════════════════════════
 function GavelModal({
   client,
@@ -321,9 +321,10 @@ function GavelModal({
   onClose: () => void;
   onSelect: (flowId: string) => void;
 }) {
+  const router = useRouter();
   const [hov, setHov] = useState<string | null>(null);
+  const [loading, setLoading] = useState<string | null>(null);
   const negItems = client.accounts.length;
-  const avgScore = 0; // Will be calculated from actual scores
 
   const flows = [
     {
@@ -335,6 +336,8 @@ function GavelModal({
       description: "AMELIA analyzes the credit report, identifies the strongest dispute angles, generates legally-optimized letters, and tracks deadlines automatically.",
       features: ["AI-selected dispute reasons", "FCRA/CFPB compliance built-in", "Auto-deadline tracking", "Bureau response monitoring"],
       badge: "RECOMMENDED",
+      loadingText: "Initializing AMELIA AI...",
+      loadingSteps: ["Loading client profile", "Analyzing credit report", "Identifying dispute angles", "Preparing Sentry interface"],
     },
     {
       id: "template",
@@ -345,13 +348,94 @@ function GavelModal({
       description: "Choose from a library of proven dispute letter templates. Select specific items, customize the language, and send on your own schedule.",
       features: ["Template library access", "Manual item selection", "Custom letter editing", "Flexible send timing"],
       badge: null,
+      loadingText: "Loading Templates...",
+      loadingSteps: ["Loading client data", "Fetching template library", "Preparing dispute items", "Initializing editor"],
     },
   ];
 
-  const colorStyles: Record<string, { bg: string; border: string; text: string }> = {
-    cyan: { bg: "bg-cyan-500/5 hover:bg-cyan-500/10", border: "border-cyan-500/20 hover:border-cyan-500/40", text: "text-cyan-400" },
-    amber: { bg: "bg-amber-500/5 hover:bg-amber-500/10", border: "border-amber-500/20 hover:border-amber-500/40", text: "text-amber-400" },
+  const colorStyles: Record<string, { bg: string; border: string; text: string; glow: string }> = {
+    cyan: { bg: "bg-cyan-500/5 hover:bg-cyan-500/10", border: "border-cyan-500/20 hover:border-cyan-500/40", text: "text-cyan-400", glow: "shadow-cyan-500/20" },
+    amber: { bg: "bg-amber-500/5 hover:bg-amber-500/10", border: "border-amber-500/20 hover:border-amber-500/40", text: "text-amber-400", glow: "shadow-amber-500/20" },
   };
+
+  const handleFlowSelect = (flowId: string) => {
+    setLoading(flowId);
+    onSelect(flowId);
+
+    // Navigate after showing loading state
+    setTimeout(() => {
+      if (flowId === "sentry") {
+        router.push(`/sentry/${client.id}`);
+      } else {
+        router.push(`/disputes?clientId=${client.id}`);
+      }
+    }, 1800);
+  };
+
+  // Skeleton Loading Screen
+  if (loading) {
+    const flow = flows.find(f => f.id === loading)!;
+    const styles = colorStyles[flow.color];
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xl animate-in fade-in duration-200">
+        <div className="w-[500px] p-10 rounded-2xl bg-white/5 dark:bg-white/[0.03] backdrop-blur-2xl border border-white/10 shadow-2xl text-center">
+          {/* Animated Icon */}
+          <div className="relative mb-6">
+            <div className={`w-20 h-20 mx-auto rounded-2xl ${styles.bg} border ${styles.border} flex items-center justify-center text-4xl animate-pulse`}>
+              {flow.icon}
+            </div>
+            <div className={`absolute inset-0 w-20 h-20 mx-auto rounded-2xl ${styles.border} border-2 animate-ping opacity-30`} />
+          </div>
+
+          {/* Loading Text */}
+          <h2 className={`text-xl font-bold mb-2 ${styles.text}`}>{flow.loadingText}</h2>
+          <p className="text-sm text-muted-foreground mb-8">
+            Preparing {flow.name} for <strong className="text-foreground">{client.firstName} {client.lastName}</strong>
+          </p>
+
+          {/* Skeleton Steps */}
+          <div className="space-y-3 mb-8">
+            {flow.loadingSteps.map((step, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-3 animate-in slide-in-from-left duration-300"
+                style={{ animationDelay: `${i * 200}ms`, animationFillMode: 'both' }}
+              >
+                <div className={`w-5 h-5 rounded-full ${styles.bg} border ${styles.border} flex items-center justify-center`}>
+                  <div className={`w-2 h-2 rounded-full ${styles.text.replace('text-', 'bg-')} animate-pulse`} />
+                </div>
+                <div className="flex-1 h-3 rounded bg-white/5 overflow-hidden">
+                  <div
+                    className={`h-full ${styles.text.replace('text-', 'bg-')} opacity-40 animate-pulse`}
+                    style={{
+                      width: `${Math.min(100, (i + 1) * 25)}%`,
+                      animationDelay: `${i * 150}ms`
+                    }}
+                  />
+                </div>
+                <span className="text-xs text-muted-foreground font-mono w-20 text-left">{step.split(' ').slice(-1)[0]}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Progress Bar */}
+          <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+            <div
+              className={`h-full ${styles.text.replace('text-', 'bg-')} rounded-full transition-all duration-[1800ms] ease-out`}
+              style={{ width: '100%', animation: 'grow 1.8s ease-out forwards' }}
+            />
+          </div>
+          <style jsx>{`
+            @keyframes grow {
+              from { width: 0%; }
+              to { width: 100%; }
+            }
+          `}</style>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -378,7 +462,7 @@ function GavelModal({
             return (
               <div
                 key={f.id}
-                onClick={() => onSelect(f.id)}
+                onClick={() => handleFlowSelect(f.id)}
                 onMouseEnter={() => setHov(f.id)}
                 onMouseLeave={() => setHov(null)}
                 className={`p-5 rounded-xl cursor-pointer transition-all duration-300 border ${styles.bg} ${styles.border} ${hov === f.id ? 'scale-[1.01] shadow-lg' : ''}`}
