@@ -133,6 +133,17 @@ export const GET = withAuth(async (req, { organizationId }) => {
           },
         },
       },
+      // Fallback: include credit scores from CreditScore table (for older parsed reports)
+      creditScores: {
+        orderBy: { scoreDate: "desc" },
+        take: 6, // Max 3 bureaus × 2 reports
+        select: {
+          cra: true,
+          score: true,
+          scoreDate: true,
+          reportId: true,
+        },
+      },
     },
     orderBy: [
       { priority: "asc" }, // URGENT first
@@ -200,7 +211,7 @@ export const GET = withAuth(async (req, { organizationId }) => {
 
     // Parse bureau scores from creditScoresExtracted JSON field
     // Format: {TU: {score, model, date}, EQ: {...}, EX: {...}} or {TRANSUNION: score, ...}
-    type BureauScoresType = { TRANSUNION?: number; EXPERIAN?: number; EQUIFAX?: number } | null;
+    type BureauScoresType = { TRANSUNION?: number | null; EXPERIAN?: number | null; EQUIFAX?: number | null } | null;
 
     const parseScores = (scoresField: string | null): BureauScoresType => {
       if (!scoresField) return null;
@@ -218,8 +229,40 @@ export const GET = withAuth(async (req, { organizationId }) => {
       }
     };
 
-    const latestScores = parseScores(latestReport?.creditScoresExtracted as string | null);
-    const previousScores = parseScores(previousReport?.creditScoresExtracted as string | null);
+    // Build scores from creditScoresExtracted on reports
+    let latestScores = parseScores(latestReport?.creditScoresExtracted as string | null);
+    let previousScores = parseScores(previousReport?.creditScoresExtracted as string | null);
+
+    // Fallback: If creditScoresExtracted is null, use CreditScore table
+    if (!latestScores && client.creditScores && client.creditScores.length > 0) {
+      const scoresByReport: Record<string, BureauScoresType> = {};
+
+      for (const cs of client.creditScores) {
+        const reportKey = cs.reportId || "no-report";
+        if (!scoresByReport[reportKey]) {
+          scoresByReport[reportKey] = { TRANSUNION: null, EXPERIAN: null, EQUIFAX: null };
+        }
+        if (cs.cra === "TRANSUNION") scoresByReport[reportKey]!.TRANSUNION = cs.score;
+        else if (cs.cra === "EXPERIAN") scoresByReport[reportKey]!.EXPERIAN = cs.score;
+        else if (cs.cra === "EQUIFAX") scoresByReport[reportKey]!.EQUIFAX = cs.score;
+      }
+
+      // Get scores from latest and previous reports
+      const reportIds = Object.keys(scoresByReport);
+      if (reportIds.length > 0) {
+        // Match to report IDs if possible, otherwise use first entries
+        if (latestReport && scoresByReport[latestReport.id]) {
+          latestScores = scoresByReport[latestReport.id];
+        } else {
+          latestScores = scoresByReport[reportIds[0]];
+        }
+        if (previousReport && scoresByReport[previousReport.id]) {
+          previousScores = scoresByReport[previousReport.id];
+        } else if (reportIds.length > 1) {
+          previousScores = scoresByReport[reportIds[1]];
+        }
+      }
+    }
 
     // Count negative accounts from latest report (based on status or past due amount)
     const negativeStatuses = ["COLLECTION", "CHARGEOFF", "CHARGED_OFF", "LATE", "DELINQUENT", "REPOSSESSION", "FORECLOSURE", "BANKRUPTCY"];
@@ -243,7 +286,7 @@ export const GET = withAuth(async (req, { organizationId }) => {
       }
     }
 
-    const { disputes, reports, ...clientWithoutRelations } = client;
+    const { disputes, reports, creditScores, ...clientWithoutRelations } = client;
 
     return {
       ...clientWithoutRelations,

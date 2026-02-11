@@ -237,6 +237,21 @@ export async function parseAndAnalyzeReport(options: ParseReportOptions): Promis
 
     log.info({ transunion: extractedScores.transunion, equifax: extractedScores.equifax, experian: extractedScores.experian }, "[PARSER] Credit scores extracted: TU=, EQ=, EX=");
 
+    // Step 5a: Also save scores to creditScoresExtracted JSON field on CreditReport
+    // This is used by the dashboard for quick score display
+    const creditScoresExtracted = {
+      TU: extractedScores.transunion ? { score: extractedScores.transunion, model: "VANTAGE3", date: new Date().toISOString() } : null,
+      EQ: extractedScores.equifax ? { score: extractedScores.equifax, model: "VANTAGE3", date: new Date().toISOString() } : null,
+      EX: extractedScores.experian ? { score: extractedScores.experian, model: "VANTAGE3", date: new Date().toISOString() } : null,
+    };
+
+    await prisma.creditReport.update({
+      where: { id: reportId },
+      data: {
+        creditScoresExtracted: JSON.stringify(creditScoresExtracted),
+      },
+    });
+
     // Step 5c: Extract and save hard inquiries
     const hardInquiries = extractHardInquiries(extractionResult.text);
     if (hardInquiries.length > 0) {
@@ -474,6 +489,12 @@ export async function parseAndAnalyzeReportAI(options: ParseReportAIOptions): Pr
     }
 
     // Save credit scores if available
+    const aiExtractedScores: { TU: { score: number; model: string; date: string } | null; EQ: { score: number; model: string; date: string } | null; EX: { score: number; model: string; date: string } | null } = {
+      TU: null,
+      EQ: null,
+      EX: null,
+    };
+
     for (const bureau of report.bureaus) {
       if (bureau.creditScore) {
         const bureauName = bureau.name || bureau.bureau || "UNKNOWN";
@@ -498,7 +519,33 @@ export async function parseAndAnalyzeReportAI(options: ParseReportAIOptions): Pr
             },
           });
         }
+
+        // Build creditScoresExtracted JSON for dashboard
+        const scoreEntry = {
+          score: bureau.creditScore,
+          model: bureau.scoreType || bureau.scoreModel || "VANTAGE3",
+          date: (bureau.reportDate ? new Date(bureau.reportDate) : new Date()).toISOString(),
+        };
+        const bureauNameUpper = String(bureauName).toUpperCase();
+        if (bureauNameUpper.includes("TRANSUNION") || bureauNameUpper === "TU") {
+          aiExtractedScores.TU = scoreEntry;
+        } else if (bureauNameUpper.includes("EQUIFAX") || bureauNameUpper === "EQ") {
+          aiExtractedScores.EQ = scoreEntry;
+        } else if (bureauNameUpper.includes("EXPERIAN") || bureauNameUpper === "EX") {
+          aiExtractedScores.EX = scoreEntry;
+        }
       }
+    }
+
+    // Save creditScoresExtracted to CreditReport for dashboard display
+    if (aiExtractedScores.TU || aiExtractedScores.EQ || aiExtractedScores.EX) {
+      await prisma.creditReport.update({
+        where: { id: reportId },
+        data: {
+          creditScoresExtracted: JSON.stringify(aiExtractedScores),
+        },
+      });
+      log.info({ scores: aiExtractedScores }, "[AI-PARSER] Credit scores saved to creditScoresExtracted");
     }
 
     // Save inquiries as hard inquiries JSON
