@@ -97,7 +97,7 @@ export const GET = withAuth(async (req, { organizationId }) => {
       },
       disputes: {
         orderBy: { createdAt: "desc" },
-        take: 5,
+        take: 10,
         select: {
           id: true,
           round: true,
@@ -108,6 +108,27 @@ export const GET = withAuth(async (req, { organizationId }) => {
           items: {
             select: {
               outcome: true,
+            },
+          },
+        },
+      },
+      // Include latest credit report for scores
+      reports: {
+        orderBy: { reportDate: "desc" },
+        take: 2, // Get latest 2 to calculate score changes
+        select: {
+          id: true,
+          reportDate: true,
+          sourceType: true,
+          creditScoresExtracted: true, // JSON: {TU: {score, model, date}, EQ: {...}, EX: {...}}
+          accounts: {
+            select: {
+              id: true,
+              accountStatus: true,
+              accountType: true,
+              balance: true,
+              creditLimit: true,
+              pastDue: true,
             },
           },
         },
@@ -129,6 +150,9 @@ export const GET = withAuth(async (req, { organizationId }) => {
     const successRate = resolvedOutcomes.length > 0
       ? Math.round((successfulOutcomes.length / resolvedOutcomes.length) * 100)
       : null;
+
+    // Count deleted items
+    const deletedItems = allOutcomes.filter((o) => o === "DELETED").length;
 
     // Get active bureaus (bureaus with active disputes)
     const activeBureaus = [...new Set(
@@ -170,11 +194,61 @@ export const GET = withAuth(async (req, { organizationId }) => {
       (d) => ["DRAFT", "PENDING_REVIEW", "APPROVED", "SENT", "RESPONDED"].includes(d.status)
     ).length;
 
-    const { disputes, ...clientWithoutDisputes } = client;
+    // Extract credit scores from latest reports
+    const latestReport = client.reports[0];
+    const previousReport = client.reports[1];
+
+    // Parse bureau scores from creditScoresExtracted JSON field
+    // Format: {TU: {score, model, date}, EQ: {...}, EX: {...}} or {TRANSUNION: score, ...}
+    type BureauScoresType = { TRANSUNION?: number; EXPERIAN?: number; EQUIFAX?: number } | null;
+
+    const parseScores = (scoresField: string | null): BureauScoresType => {
+      if (!scoresField) return null;
+      try {
+        const parsed = typeof scoresField === 'string' ? JSON.parse(scoresField) : scoresField;
+        // Handle format: {TU: {score: 650}, EQ: {score: 640}, EX: {score: 660}}
+        // Or format: {TRANSUNION: 650, EQUIFAX: 640, EXPERIAN: 660}
+        return {
+          TRANSUNION: parsed.TU?.score ?? parsed.TRANSUNION ?? parsed.TransUnion ?? null,
+          EXPERIAN: parsed.EX?.score ?? parsed.EXPERIAN ?? parsed.Experian ?? null,
+          EQUIFAX: parsed.EQ?.score ?? parsed.EQUIFAX ?? parsed.Equifax ?? null,
+        };
+      } catch {
+        return null;
+      }
+    };
+
+    const latestScores = parseScores(latestReport?.creditScoresExtracted as string | null);
+    const previousScores = parseScores(previousReport?.creditScoresExtracted as string | null);
+
+    // Count negative accounts from latest report (based on status or past due amount)
+    const negativeStatuses = ["COLLECTION", "CHARGEOFF", "CHARGED_OFF", "LATE", "DELINQUENT", "REPOSSESSION", "FORECLOSURE", "BANKRUPTCY"];
+    const negativeAccounts = latestReport?.accounts
+      ? latestReport.accounts.filter((a) =>
+          negativeStatuses.some(status => a.accountStatus?.toUpperCase().includes(status)) ||
+          (a.pastDue && a.pastDue > 0)
+        ).length
+      : 0;
+
+    // Calculate credit utilization from accounts
+    let utilization: number | null = null;
+    if (latestReport?.accounts) {
+      const creditAccounts = latestReport.accounts.filter(
+        (a) => a.creditLimit && a.creditLimit > 0 && a.balance !== null
+      );
+      if (creditAccounts.length > 0) {
+        const totalBalance = creditAccounts.reduce((sum, a) => sum + (a.balance || 0), 0);
+        const totalLimit = creditAccounts.reduce((sum, a) => sum + (a.creditLimit || 0), 0);
+        utilization = totalLimit > 0 ? Math.round((totalBalance / totalLimit) * 100) : null;
+      }
+    }
+
+    const { disputes, reports, ...clientWithoutRelations } = client;
 
     return {
-      ...clientWithoutDisputes,
+      ...clientWithoutRelations,
       successRate,
+      deletedItems,
       activeBureaus,
       currentRound,
       derivedStage,
@@ -182,6 +256,12 @@ export const GET = withAuth(async (req, { organizationId }) => {
       activeDisputeCount,
       totalDisputes: client._count.disputes,
       latestDisputeStatus: client.disputes[0]?.status || null,
+      // Credit report data for dashboard
+      latestScores,
+      previousScores,
+      negativeAccounts,
+      utilization,
+      hasReports: client._count.reports > 0,
     };
   });
 

@@ -511,58 +511,90 @@ export function DashboardClient({
 
           // Transform and categorize clients
           const transformed: ClientData[] = clientList.map((c: any, index: number) => {
-            // Get latest scores from credit report data or estimates
-            const tuScore = c.latestScores?.TRANSUNION || Math.floor(Math.random() * 200 + 500);
-            const exScore = c.latestScores?.EXPERIAN || Math.floor(Math.random() * 200 + 500);
-            const eqScore = c.latestScores?.EQUIFAX || Math.floor(Math.random() * 200 + 500);
-            const prevTu = c.previousScores?.TRANSUNION || tuScore - Math.floor(Math.random() * 60 - 20);
-            const prevEx = c.previousScores?.EXPERIAN || exScore - Math.floor(Math.random() * 60 - 20);
-            const prevEq = c.previousScores?.EQUIFAX || eqScore - Math.floor(Math.random() * 60 - 20);
+            // Get latest scores from credit report data (use real data when available)
+            const hasScores = c.latestScores && (c.latestScores.TRANSUNION || c.latestScores.EXPERIAN || c.latestScores.EQUIFAX);
+            const tuScore = c.latestScores?.TRANSUNION || (hasScores ? 0 : 0);
+            const exScore = c.latestScores?.EXPERIAN || (hasScores ? 0 : 0);
+            const eqScore = c.latestScores?.EQUIFAX || (hasScores ? 0 : 0);
 
-            const composite = Math.round((tuScore + exScore + eqScore) / 3);
-            const prevComposite = Math.round((prevTu + prevEx + prevEq) / 3);
+            // Previous scores for change calculation
+            const prevTu = c.previousScores?.TRANSUNION || tuScore;
+            const prevEx = c.previousScores?.EXPERIAN || exScore;
+            const prevEq = c.previousScores?.EQUIFAX || eqScore;
+
+            // Calculate composite (average of available scores)
+            const availableScores = [tuScore, exScore, eqScore].filter(s => s > 0);
+            const composite = availableScores.length > 0
+              ? Math.round(availableScores.reduce((a, b) => a + b, 0) / availableScores.length)
+              : 0;
+            const prevAvailableScores = [prevTu, prevEx, prevEq].filter(s => s > 0);
+            const prevComposite = prevAvailableScores.length > 0
+              ? Math.round(prevAvailableScores.reduce((a, b) => a + b, 0) / prevAvailableScores.length)
+              : 0;
             const change = composite - prevComposite;
-            const round = c.currentRound || 1;
+            const round = c.currentRound || 0;
 
-            // Determine category
-            let category = "best";
-            let categoryLabel = "Best Performing";
-            if (composite >= 680) {
+            // Determine category based on real data
+            let category = "newest";
+            let categoryLabel = "Newest Client";
+
+            // Check if new client (within 14 days)
+            const isNewClient = c.createdAt && new Date(c.createdAt) > new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+
+            if (!hasScores && isNewClient) {
+              category = "newest";
+              categoryLabel = "Newest Client";
+            } else if (composite >= 680) {
               category = "best";
               categoryLabel = "Best Performing";
             } else if (change >= 50) {
               category = "improved";
               categoryLabel = "Most Improved";
-            } else if (composite < 500) {
+            } else if (composite > 0 && composite < 500) {
               category = "help";
               categoryLabel = "Needs Most Help";
-            } else if (c.createdAt && new Date(c.createdAt) > new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)) {
-              category = "newest";
-              categoryLabel = "Newest Client";
             } else if (change < -10) {
               category = "risk";
               categoryLabel = "At Risk";
+            } else if (isNewClient) {
+              category = "newest";
+              categoryLabel = "Newest Client";
             }
 
-            // Generate trend data
-            const trendBase = prevComposite - 20;
-            const trend = Array.from({ length: 13 }, (_, i) => {
-              const progress = i / 12;
-              return Math.round(trendBase + progress * (composite - trendBase) + (Math.random() * 10 - 5));
-            });
+            // Generate trend data based on actual score change
+            const trendBase = prevComposite > 0 ? prevComposite - 20 : composite - 20;
+            const trend = composite > 0
+              ? Array.from({ length: 13 }, (_, i) => {
+                  const progress = i / 12;
+                  return Math.round(Math.max(300, trendBase + progress * (composite - trendBase)));
+                })
+              : Array.from({ length: 13 }, () => 0);
 
-            // Calculate credit health vitals
-            const utilization = c.utilization || Math.floor(Math.random() * 60 + 20);
-            const paymentHistory = composite >= 650 ? Math.floor(Math.random() * 20 + 80) : Math.floor(Math.random() * 40 + 40);
-            const accountAge = Math.floor(Math.random() * 8 + 1);
-            const creditMix = Math.floor(Math.random() * 4 + 1);
-            const inquiries = Math.floor(Math.random() * 8);
-            const derogatoryMarks = c.negativeAccounts || Math.floor(Math.random() * 5);
+            // Use real utilization data when available
+            const utilization = c.utilization ?? 0;
+
+            // Calculate payment history estimate based on score
+            const paymentHistory = composite >= 700 ? 95 : composite >= 650 ? 85 : composite >= 600 ? 70 : composite >= 500 ? 55 : 40;
+
+            // Estimate account age based on client creation date
+            const clientAgeMonths = c.createdAt
+              ? Math.floor((Date.now() - new Date(c.createdAt).getTime()) / (30 * 24 * 60 * 60 * 1000))
+              : 0;
+            const accountAge = Math.min(10, Math.max(1, Math.floor(clientAgeMonths / 12) + 1));
+
+            // Estimate credit mix based on dispute count
+            const creditMix = Math.min(5, Math.max(1, Math.ceil((c.totalDisputes || 0) / 3) + 1));
+
+            // Use 0 for unknown inquiries
+            const inquiries = 0;
+
+            // Use real negative accounts count
+            const derogatoryMarks = c.negativeAccounts || 0;
 
             return {
               id: c.id,
               name: `${c.firstName} ${c.lastName}`,
-              initials: `${c.firstName[0]}${c.lastName[0]}`.toUpperCase(),
+              initials: `${c.firstName?.[0] || "?"}${c.lastName?.[0] || "?"}`.toUpperCase(),
               joined: new Date(c.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" }),
               round,
               category,
@@ -583,10 +615,12 @@ export function DashboardClient({
               trend,
               trendStart: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
               trendEnd: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-              amelia: generateAmeliaInsight(c.firstName, composite, change, derogatoryMarks, utilization),
+              amelia: hasScores
+                ? generateAmeliaInsight(c.firstName, composite, change, derogatoryMarks, utilization)
+                : `${c.firstName} is a new client. Upload their credit report to get started with dispute analysis and personalized recommendations.`,
               queue: generateClientQueue(c, actionQueue),
               deletions: c.deletedItems || 0,
-              activeDisputes: c.activeDisputes || 0,
+              activeDisputes: c.activeDisputeCount || 0,
               successRate: c.successRate || 0,
             };
           });
