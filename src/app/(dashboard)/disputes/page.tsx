@@ -1,11 +1,11 @@
 "use client";
 
-import { DisputesEnhanced } from "@/components/disputes/disputes-enhanced";
+import { DisputesSplit } from "@/components/disputes/disputes-split";
 
 export default function DisputesPage() {
   return (
     <div className="min-h-full">
-      <DisputesEnhanced />
+      <DisputesSplit />
     </div>
   );
 }
