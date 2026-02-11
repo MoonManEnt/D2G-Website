@@ -1117,7 +1117,7 @@ function ActivitySection({ delay = 0 }: { delay?: number }) {
   );
 }
 
-function SimulationPanel() {
+function SimulationPanel({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
   const { state, dispatch } = useData();
   const [autoRun, setAutoRun] = useState(false);
   const autoRef = useRef<NodeJS.Timeout | null>(null);
@@ -1169,10 +1169,16 @@ function SimulationPanel() {
     <Card className="bg-card/50 backdrop-blur-xl border-border">
       <CardContent className="p-4">
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
+          <button onClick={onToggle} className="flex items-center gap-2 group">
             <span>🧪</span>
             <span className="font-semibold text-sm">Live Simulation</span>
-          </div>
+            <ChevronDown
+              className={cn(
+                "w-4 h-4 text-muted-foreground transition-transform duration-200",
+                collapsed ? "-rotate-90" : "rotate-0"
+              )}
+            />
+          </button>
           <Button
             variant="outline"
             size="sm"
@@ -1187,74 +1193,81 @@ function SimulationPanel() {
           </Button>
         </div>
 
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-xs h-7"
-            onClick={() => dispatch({ type: "DISPUTE_SENT", payload: { bureau: "EX", flow: "ACCURACY", source: "sentry" } })}
-          >
-            🤖 Sentry
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-xs h-7"
-            onClick={() => dispatch({ type: "DISPUTE_SENT", payload: { bureau: "TU", flow: "COLLECTION", source: "manual" } })}
-          >
-            ✋ Manual
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-xs h-7"
-            onClick={() => dispatch({ type: "ITEM_DELETED", payload: { bureau: "EX", flow: "ACCURACY", source: "sentry" } })}
-          >
-            ✅ Deleted
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-xs h-7"
-            onClick={() => dispatch({ type: "AI_REQUEST", payload: { feature: "Letter Generation" } })}
-          >
-            ✦ AI
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-xs h-7"
-            onClick={() => dispatch({ type: "CLIENT_ADDED", payload: { name: "New Client" } })}
-          >
-            👤 Client
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-xs h-7"
-            onClick={() => dispatch({ type: "FCRA_VIOLATION", payload: { type: "Failure to Respond" } })}
-          >
-            ⚖️ FCRA
-          </Button>
-        </div>
-
-        <div className="max-h-28 overflow-auto rounded-lg bg-background/50 p-2">
-          {state.eventLog.length === 0 ? (
-            <div className="text-xs text-muted-foreground italic">
-              Click buttons or enable auto-run to see live events...
-            </div>
-          ) : (
-            state.eventLog.map(e => (
-              <div
-                key={e.id}
-                className="text-[11px] font-mono text-muted-foreground py-1 border-b border-border animate-in fade-in duration-300"
-              >
-                <span className="text-muted-foreground/60">{e.time}</span>
-                <span className="text-emerald-400"> → </span>
-                {e.msg}
-              </div>
-            ))
+        <div
+          className={cn(
+            "overflow-hidden transition-all duration-300 ease-in-out",
+            collapsed ? "max-h-0 opacity-0" : "max-h-[300px] opacity-100"
           )}
+        >
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs h-7"
+              onClick={() => dispatch({ type: "DISPUTE_SENT", payload: { bureau: "EX", flow: "ACCURACY", source: "sentry" } })}
+            >
+              🤖 Sentry
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs h-7"
+              onClick={() => dispatch({ type: "DISPUTE_SENT", payload: { bureau: "TU", flow: "COLLECTION", source: "manual" } })}
+            >
+              ✋ Manual
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs h-7"
+              onClick={() => dispatch({ type: "ITEM_DELETED", payload: { bureau: "EX", flow: "ACCURACY", source: "sentry" } })}
+            >
+              ✅ Deleted
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs h-7"
+              onClick={() => dispatch({ type: "AI_REQUEST", payload: { feature: "Letter Generation" } })}
+            >
+              ✦ AI
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs h-7"
+              onClick={() => dispatch({ type: "CLIENT_ADDED", payload: { name: "New Client" } })}
+            >
+              👤 Client
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs h-7"
+              onClick={() => dispatch({ type: "FCRA_VIOLATION", payload: { type: "Failure to Respond" } })}
+            >
+              ⚖️ FCRA
+            </Button>
+          </div>
+
+          <div className="max-h-28 overflow-auto rounded-lg bg-background/50 p-2">
+            {state.eventLog.length === 0 ? (
+              <div className="text-xs text-muted-foreground italic">
+                Click buttons or enable auto-run to see live events...
+              </div>
+            ) : (
+              state.eventLog.map(e => (
+                <div
+                  key={e.id}
+                  className="text-[11px] font-mono text-muted-foreground py-1 border-b border-border animate-in fade-in duration-300"
+                >
+                  <span className="text-muted-foreground/60">{e.time}</span>
+                  <span className="text-emerald-400"> → </span>
+                  {e.msg}
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -1270,6 +1283,8 @@ export default function AnalyticsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<TimeRange>("6M");
   const [section, setSection] = useState("overview");
+  const [quickViewCollapsed, setQuickViewCollapsed] = useState(false);
+  const [simulationCollapsed, setSimulationCollapsed] = useState(false);
 
   // Fetch initial data
   useEffect(() => {
@@ -1485,45 +1500,63 @@ export default function AnalyticsPage() {
                 {/* Quick Stats */}
                 <Card className="bg-card/50 backdrop-blur-xl border-border">
                   <CardContent className="p-4">
-                    <div className="text-[10px] font-bold tracking-wider text-muted-foreground font-mono mb-4">
-                      QUICK VIEW
-                    </div>
-                    <div className="space-y-4">
-                      <div>
-                        <div className="flex justify-between mb-1.5">
-                          <span className="text-sm text-muted-foreground">Overall Success</span>
-                          <span className="text-sm font-bold text-amber-400">
-                            <LiveNumber value={state.summary.successRate} suffix="%" />
-                          </span>
-                        </div>
-                        <ProgressBar value={state.summary.successRate} max={100} color="#f59e0b" height={5} />
+                    <button
+                      onClick={() => setQuickViewCollapsed(!quickViewCollapsed)}
+                      className="w-full flex items-center justify-between group"
+                    >
+                      <div className="text-[10px] font-bold tracking-wider text-muted-foreground font-mono">
+                        QUICK VIEW
                       </div>
-                      <div>
-                        <div className="flex justify-between mb-1.5">
-                          <span className="text-sm text-muted-foreground">Sentry Rate</span>
-                          <span className="text-sm font-bold text-purple-400">
-                            <LiveNumber value={state.sentry.successRate} suffix="%" />
-                          </span>
-                        </div>
-                        <ProgressBar value={state.sentry.successRate} max={100} color="#a855f7" height={5} />
-                      </div>
-                      <div>
-                        <div className="flex justify-between mb-1.5">
-                          <span className="text-sm text-muted-foreground">AI Requests</span>
-                          <span className="text-sm font-bold text-blue-400">
-                            <LiveNumber value={state.ai.totalRequests} />
-                          </span>
-                        </div>
-                        {state.ai.daily.length > 1 && (
-                          <Sparkline data={state.ai.daily} color="#60a5fa" width={188} height={28} />
+                      <ChevronDown
+                        className={cn(
+                          "w-4 h-4 text-muted-foreground transition-transform duration-200",
+                          quickViewCollapsed ? "-rotate-90" : "rotate-0"
                         )}
-                      </div>
-                      <div className="pt-3 border-t border-border">
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Score Change</span>
-                          <span className="text-sm font-bold text-emerald-400">
-                            +<LiveNumber value={state.summary.scoreImprovement} />
-                          </span>
+                      />
+                    </button>
+                    <div
+                      className={cn(
+                        "overflow-hidden transition-all duration-300 ease-in-out",
+                        quickViewCollapsed ? "max-h-0 opacity-0 mt-0" : "max-h-[400px] opacity-100 mt-4"
+                      )}
+                    >
+                      <div className="space-y-4">
+                        <div>
+                          <div className="flex justify-between mb-1.5">
+                            <span className="text-sm text-muted-foreground">Overall Success</span>
+                            <span className="text-sm font-bold text-amber-400">
+                              <LiveNumber value={state.summary.successRate} suffix="%" />
+                            </span>
+                          </div>
+                          <ProgressBar value={state.summary.successRate} max={100} color="#f59e0b" height={5} />
+                        </div>
+                        <div>
+                          <div className="flex justify-between mb-1.5">
+                            <span className="text-sm text-muted-foreground">Sentry Rate</span>
+                            <span className="text-sm font-bold text-purple-400">
+                              <LiveNumber value={state.sentry.successRate} suffix="%" />
+                            </span>
+                          </div>
+                          <ProgressBar value={state.sentry.successRate} max={100} color="#a855f7" height={5} />
+                        </div>
+                        <div>
+                          <div className="flex justify-between mb-1.5">
+                            <span className="text-sm text-muted-foreground">AI Requests</span>
+                            <span className="text-sm font-bold text-blue-400">
+                              <LiveNumber value={state.ai.totalRequests} />
+                            </span>
+                          </div>
+                          {state.ai.daily.length > 1 && (
+                            <Sparkline data={state.ai.daily} color="#60a5fa" width={188} height={28} />
+                          )}
+                        </div>
+                        <div className="pt-3 border-t border-border">
+                          <div className="flex justify-between">
+                            <span className="text-sm text-muted-foreground">Score Change</span>
+                            <span className="text-sm font-bold text-emerald-400">
+                              +<LiveNumber value={state.summary.scoreImprovement} />
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1531,7 +1564,10 @@ export default function AnalyticsPage() {
                 </Card>
 
                 {/* Simulation Panel */}
-                <SimulationPanel />
+                <SimulationPanel
+                  collapsed={simulationCollapsed}
+                  onToggle={() => setSimulationCollapsed(!simulationCollapsed)}
+                />
               </div>
             </RevealAnimation>
 
