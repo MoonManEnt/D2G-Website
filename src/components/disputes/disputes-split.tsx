@@ -20,7 +20,7 @@ import { useToast } from "@/lib/use-toast";
 
 // Sub-components
 import { AmeliaInsightsPanel } from "./amelia-insights-panel";
-import { LetterEditorModal } from "./letter-editor-modal";
+import { LetterStudioModal } from "./letter-studio";
 import { BulkOperationsPanel } from "./bulk-operations-panel";
 import { StrategyComparisonInline } from "./strategy-comparison";
 import type { AmeliaInsight } from "./amelia-insights-panel";
@@ -1293,8 +1293,8 @@ export function DisputesSplit({ initialClient }: DisputesSplitProps) {
         </div>
       </div>
 
-      {/* Letter Modal */}
-      <LetterEditorModal
+      {/* Letter Studio Modal */}
+      <LetterStudioModal
         open={letterModalOpen}
         onOpenChange={(open) => {
           setLetterModalOpen(open);
