@@ -39,17 +39,30 @@ import {
   type ClientPersonalInfo,
   type DisputeAccount,
   type HardInquiry,
+  type DisputeFlowType,
   calculateLetterDate,
   formatLetterDate,
   determineTone,
   determineInaccurateCategories,
   CRA_ADDRESSES,
   hashContent,
+  // New doctrine imports
+  shouldIncludeCitationsInR1,
+  formatPersonalInfoBlock,
+  getEffectiveFlowForRound,
+  getCaseLawForRound,
+  getStatutesForRound,
+  getPrimaryStatuteForRound,
+  getVoiceForRound,
+  getVoicePhaseForRound,
+  FLOW_ROUND_LIMITS,
 } from "./amelia-doctrine";
 import {
   generateUniqueStory,
   humanizeText,
   buildComponentKey,
+  generateInfiniteTitle,
+  generateNaturalClosing,
 } from "./amelia-stories";
 import {
   inferConsumerVoice,
@@ -192,10 +205,13 @@ function generateHeader(
   }
 
   lines.push(`${client.city}, ${client.state} ${client.zipCode}`);
-  // AMELIA Doctrine: SSN only, NO DOB in dispute letters
   lines.push(`SSN: XXX-XX-${client.ssnLast4}`);
+  // Format DOB as MM/DD/YYYY
+  const dob = new Date(client.dateOfBirth);
+  const dobFormatted = `${String(dob.getMonth() + 1).padStart(2, '0')}/${String(dob.getDate()).padStart(2, '0')}/${dob.getFullYear()}`;
+  lines.push(`DOB: ${dobFormatted}`);
   lines.push("");
-  lines.push(craInfo.name);
+  // CRA address block (lines already includes bureau name as first element)
   lines.push(...craInfo.lines);
   lines.push("");
   lines.push(formatLetterDate(letterDate));
@@ -205,25 +221,19 @@ function generateHeader(
 
 /**
  * Generate the account list section
+ * HARD RULE: NO REDUNDANT LISTINGS - just a simple intro, details are in corrections section
  */
 function generateAccountList(
   accounts: DisputeAccount[],
   craName: string,
   flow: FlowType
 ): string {
-  let section = `Here is the exact information furnishing inaccurate on my ${craName} credit report:\n\n`;
+  // Just a simple intro - the details come in the corrections section
+  // This avoids listing the same accounts twice
+  const accountCount = accounts.length;
+  const accountWord = accountCount === 1 ? "account" : "accounts";
 
-  accounts.forEach((account, index) => {
-    const categories = determineInaccurateCategories(account);
-    const categoryStr = categories.length > 0
-      ? categories.join(", ")
-      : "ACCOUNT TYPE, PAYMENT STATUS, DATE OPENED, PAYMENT HISTORY PROFILE";
-
-    section += `${index + 1}. Account Name: ${account.creditorName}, Account Number: ${account.accountNumber}\n`;
-    section += `   Inaccurate Categories: ${categoryStr}\n\n`;
-  });
-
-  return section;
+  return `I found ${accountCount} ${accountWord} on my ${craName} report that got problems. Here is what needs to be fixed:\n`;
 }
 
 /**
@@ -237,12 +247,12 @@ function generateCorrectionsSection(
   flow: FlowType,
   seed?: string
 ): string {
-  // Vary the header slightly
+  // HARD RULE: Simple headers, 6th-9th grade reading level
   const headers = [
-    "Requested Corrections / Deletions (If Not Verified as Accurate):",
-    "Items Requiring Immediate Correction or Removal:",
-    "Accounts to be Corrected or Deleted if Unverifiable:",
-    "Corrections I Am Formally Requesting:",
+    "ACCOUNTS THAT NEED TO BE FIXED:",
+    "HERES WHATS WRONG:",
+    "ACCOUNTS WITH PROBLEMS:",
+    "FIX THESE ACCOUNTS:",
   ];
   const headerIndex = seed ? Math.abs(hashString(seed)) % headers.length : 0;
   let section = `${headers[headerIndex]}\n\n`;
@@ -253,12 +263,10 @@ function generateCorrectionsSection(
       .map(issue => issue.description || issue.code)
       .filter(desc => desc && desc.length > 0);
 
-    const categories = determineInaccurateCategories(account);
-
-    // Start with account identifier
+    // Start with account identifier - simple format
     section += `${index + 1}. ${account.creditorName}`;
     if (account.accountNumber) {
-      section += ` - Account #${account.accountNumber}`;
+      section += ` (${account.accountNumber})`;
     }
     section += "\n";
 
@@ -267,22 +275,17 @@ function generateCorrectionsSection(
       section += `   Type: ${account.accountType}\n`;
     }
 
-    // Add specific issues found
+    // Add specific issues found - simple language
     if (issueDescriptions.length > 0) {
-      section += `   Issues Found:\n`;
+      section += `   Whats Wrong:\n`;
       issueDescriptions.forEach(issue => {
-        section += `   • ${issue}\n`;
+        section += `   - ${issue}\n`;
       });
     }
 
-    // Add inaccurate categories
-    if (categories.length > 0) {
-      section += `   Categories to Verify: ${categories.join(", ")}\n`;
-    }
-
-    // Generate unique action request based on flow and issues
+    // Generate simple action request
     const actionRequest = generateCorrectionAction(account, flow, index, seed);
-    section += `   Action Requested: ${actionRequest}\n\n`;
+    section += `   What I Need: ${actionRequest}\n\n`;
   });
 
   return section;
@@ -310,14 +313,16 @@ function generateCorrectionAction(
     i.code.includes("STATUS") || i.code.includes("CLOSED") || i.code.includes("OPEN")
   );
 
+  // HARD RULE: Simple, colloquial action requests
+
   // Collection flow
   if (flow === "COLLECTION" || hasCollectionIssue) {
     const collectionActions = [
-      "Validate this debt with original documentation or delete it entirely",
-      "Provide proof of the original creditor agreement or remove this account",
-      "This collection must be verified with signed documentation or deleted",
-      "Remove if original creditor documentation cannot be provided",
-      "Delete this account if validation cannot be completed with proper documentation",
+      "Prove you own this debt or take it off",
+      "Show me the original paperwork or delete it",
+      "I never agreed to this. Remove it",
+      "Get proof from the original company or take it off my file",
+      "This aint valid. Delete it",
     ];
     const idx = seed ? Math.abs(hashString(seed + account.creditorName + index)) % collectionActions.length : index % collectionActions.length;
     return collectionActions[idx];
@@ -326,11 +331,11 @@ function generateCorrectionAction(
   // Late payment issues
   if (hasLatePaymentIssue) {
     const lateActions = [
-      "Correct the payment history to reflect accurate dates or remove late notations",
-      "Update payment status to show accurate reporting or delete inaccurate late marks",
-      "Remove inaccurate late payment notations that do not match my records",
-      "Verify each late payment date with documentation or correct to accurate status",
-      "The late payment reporting must be corrected or removed if unverifiable",
+      "Fix the late payments or remove them",
+      "These late marks are wrong. Take them off",
+      "I wasnt late. Remove these",
+      "Check your records and fix the payment history",
+      "The late payments showing are not right. Delete them",
     ];
     const idx = seed ? Math.abs(hashString(seed + account.creditorName + index)) % lateActions.length : index % lateActions.length;
     return lateActions[idx];
@@ -339,10 +344,10 @@ function generateCorrectionAction(
   // Balance issues
   if (hasBalanceIssue) {
     const balanceActions = [
-      "Update the balance to reflect the correct amount or remove this account",
-      "Correct the reported balance to match actual records",
-      "The balance shown does not match my records and must be corrected",
-      "Verify the balance with documentation and correct any discrepancies",
+      "Fix the balance to the right amount",
+      "The amount is wrong. Correct it",
+      "Update the balance or remove this",
+      "I dont owe this much. Fix it",
     ];
     const idx = seed ? Math.abs(hashString(seed + account.creditorName + index)) % balanceActions.length : index % balanceActions.length;
     return balanceActions[idx];
@@ -351,10 +356,10 @@ function generateCorrectionAction(
   // Status issues
   if (hasStatusIssue) {
     const statusActions = [
-      "Correct the account status to reflect accurate information",
-      "Update the account status or remove if unverifiable",
-      "The account status is inaccurate and must be corrected",
-      "Verify and correct the account status reporting",
+      "Fix the status on this account",
+      "The status is wrong. Update it",
+      "Change the status to what it should be",
+      "This status aint right. Correct it",
     ];
     const idx = seed ? Math.abs(hashString(seed + account.creditorName + index)) % statusActions.length : index % statusActions.length;
     return statusActions[idx];
@@ -362,11 +367,11 @@ function generateCorrectionAction(
 
   // Generic accuracy
   const genericActions = [
-    "Verify all information with documentation and correct any inaccuracies",
-    "This account contains inaccurate information that must be corrected or deleted",
-    "Update this account to reflect accurate information or remove entirely",
-    "Correct all inaccurate details or delete if verification fails",
-    "The information on this account does not match my records and requires correction",
+    "Fix this or take it off",
+    "This info is wrong. Correct it",
+    "Check this account and make it right",
+    "The info dont match my records. Fix it",
+    "Something aint right here. Look into it",
   ];
   const idx = seed ? Math.abs(hashString(seed + account.creditorName + index)) % genericActions.length : index % genericActions.length;
   return genericActions[idx];
@@ -402,33 +407,35 @@ function generatePersonalInfoSection(
     // Round 1: Use client data directly (initial disputes)
 
     // Previous names
+    // HARD RULE: Simple language for personal info
     if (client.previousNames.length > 0) {
-      sections.push("PREVIOUS NAME VARIATIONS TO REMOVE:");
+      sections.push("OLD NAMES TO TAKE OFF:");
       client.previousNames.forEach(name => {
         sections.push(`- ${name}`);
       });
-      sections.push("These name variations do not accurately represent my identity and should be removed from my credit file.");
+      sections.push("These names aint me no more. Remove them.");
       sections.push("");
     }
 
     // Previous addresses
     if (client.previousAddresses.length > 0) {
-      sections.push("PREVIOUS ADDRESSES TO REMOVE:");
+      sections.push("OLD ADDRESSES TO TAKE OFF:");
       client.previousAddresses.forEach(addr => {
         sections.push(`- ${addr}`);
       });
-      sections.push("These addresses are outdated and no longer associated with me. Please remove them from my credit file.");
+      sections.push("I dont live at these places no more. Take them off.");
       sections.push("");
     }
 
     // AMELIA Doctrine: ALWAYS include hard inquiries in R1 if any exist
+    // HARD RULE: Simple format - "{CREDITOR} CRD made on {date}"
     const craInquiries = client.hardInquiries.filter(inq => inq.cra === cra);
     if (craInquiries.length > 0) {
-      sections.push("UNAUTHORIZED HARD INQUIRIES TO REMOVE:");
+      sections.push("INQUIRIES I DID NOT AUTHORIZE:");
       craInquiries.forEach(inq => {
-        sections.push(`- ${inq.creditorName} (${inq.inquiryDate}) - I did not authorize this inquiry`);
+        sections.push(`- ${inq.creditorName} CRD made on ${inq.inquiryDate}`);
       });
-      sections.push("These inquiries were made without my permission and should be removed immediately.");
+      sections.push("I never gave permission for these. Take them off my file.");
       sections.push("");
     }
   } else {
@@ -443,31 +450,33 @@ function generatePersonalInfoSection(
       const addresses = craDisputes.filter(d => d.type === "PREVIOUS_ADDRESS");
       const inquiries = craDisputes.filter(d => d.type === "HARD_INQUIRY");
 
+      // HARD RULE: Simple language for R2+ disputes
       if (names.length > 0) {
-        sections.push("PREVIOUS NAME VARIATIONS STILL REQUIRING REMOVAL:");
+        sections.push("OLD NAMES STILL ON MY FILE:");
         names.forEach(d => {
-          sections.push(`- ${d.value} (previously disputed ${d.disputeCount} time${d.disputeCount > 1 ? "s" : ""}, still reporting)`);
+          sections.push(`- ${d.value} (asked ${d.disputeCount} time${d.disputeCount > 1 ? "s" : ""} already)`);
         });
-        sections.push("These name variations were previously disputed and still appear on my report. Remove them immediately.");
+        sections.push("Already told yall about these. Why they still there?");
         sections.push("");
       }
 
       if (addresses.length > 0) {
-        sections.push("PREVIOUS ADDRESSES STILL REQUIRING REMOVAL:");
+        sections.push("OLD ADDRESSES STILL ON MY FILE:");
         addresses.forEach(d => {
-          sections.push(`- ${d.value} (previously disputed ${d.disputeCount} time${d.disputeCount > 1 ? "s" : ""}, still reporting)`);
+          sections.push(`- ${d.value} (asked ${d.disputeCount} time${d.disputeCount > 1 ? "s" : ""} already)`);
         });
-        sections.push("These addresses were previously disputed and still appear on my report. Remove them immediately.");
+        sections.push("These addresses still showing. I asked before. Remove them.");
         sections.push("");
       }
 
       if (inquiries.length > 0) {
-        sections.push("UNAUTHORIZED HARD INQUIRIES STILL REQUIRING REMOVAL:");
+        // HARD RULE: Simple format - "{CREDITOR} CRD made on {date}"
+        sections.push("INQUIRIES STILL ON MY FILE THAT I NEVER AUTHORIZED:");
         inquiries.forEach(d => {
-          const dateStr = d.inquiryDate ? ` (${d.inquiryDate})` : "";
-          sections.push(`- ${d.value}${dateStr} - Previously disputed ${d.disputeCount} time${d.disputeCount > 1 ? "s" : ""}, still reporting`);
+          const dateStr = d.inquiryDate ? ` made on ${d.inquiryDate}` : "";
+          sections.push(`- ${d.value} CRD${dateStr}`);
         });
-        sections.push("These unauthorized inquiries were previously disputed and still appear on my report. Remove them immediately per FCRA requirements.");
+        sections.push("Already asked yall to remove these. Still showing. Take them off.");
         sections.push("");
       }
     }
@@ -477,9 +486,10 @@ function generatePersonalInfoSection(
     return "";
   }
 
+  // HARD RULE: Simple headers
   const headerText = round === 1
-    ? "Personal Information to Investigate and Correct / Remove:"
-    : "Personal Information STILL Requiring Correction / Removal (Previously Disputed):";
+    ? "OTHER STUFF ON MY FILE THATS WRONG:"
+    : "STUFF I ALREADY ASKED YALL TO FIX:";
 
   return headerText + "\n\n" + sections.join("\n");
 }
@@ -611,45 +621,42 @@ function generateAccountListWithContext(
   accounts: DisputeAccount[],
   craName: string,
   flow: FlowType,
-  context?: NextRoundContext
+  context?: NextRoundContext,
+  round: number = 1
 ): string {
-  let section = `Here is the exact information furnishing inaccurate on my ${craName} credit report:\n\n`;
+  // HARD RULE: R1 = NO REDUNDANT LISTING, NO CITATIONS
+  // Just a simple intro, details come in corrections section
+  if (round === 1 || !context?.itemContexts || context.itemContexts.length === 0) {
+    const accountCount = accounts.length;
+    const accountWord = accountCount === 1 ? "account" : "accounts";
+    return `I found ${accountCount} ${accountWord} on my ${craName} report that got problems:\n`;
+  }
+
+  // R2+: Include context from previous disputes (with simple language)
+  let section = `These accounts still got issues after my last letter:\n\n`;
 
   accounts.forEach((account, index) => {
-    const categories = determineInaccurateCategories(account);
-    const categoryStr = categories.length > 0
-      ? categories.join(", ")
-      : "ACCOUNT TYPE, PAYMENT STATUS, DATE OPENED, PAYMENT HISTORY PROFILE";
-
-    section += `${index + 1}. Account Name: ${account.creditorName}, Account Number: ${account.accountNumber}\n`;
-    section += `   Inaccurate Categories: ${categoryStr}\n`;
+    section += `${index + 1}. ${account.creditorName} (${account.accountNumber})\n`;
 
     // Add item-specific context from previous round if available
-    if (context?.itemContexts) {
-      const itemContext = context.itemContexts.find(
-        ic => ic.creditorName === account.creditorName
-      );
+    const itemContext = context.itemContexts.find(
+      ic => ic.creditorName === account.creditorName
+    );
 
-      if (itemContext) {
-        // Add previous outcome reference
-        if (itemContext.previousOutcome === "VERIFIED") {
-          section += `   Previous Dispute: Claimed "verified" without proper documentation\n`;
-          section += `   Current Demand: Provide method of verification per 15 U.S.C. § 1681i(a)(6)\n`;
-        } else if (itemContext.previousOutcome === "NO_RESPONSE") {
-          section += `   Previous Dispute: NO RESPONSE RECEIVED - FCRA VIOLATION\n`;
-          section += `   Current Demand: IMMEDIATE DELETION required by law\n`;
-        } else if (itemContext.previousOutcome === "STALL_LETTER") {
-          section += `   Previous Dispute: Stall tactics received - ${itemContext.stallTactic || "frivolous claim"}\n`;
-          section += `   Current Demand: Conduct proper investigation as required by FCRA\n`;
-        } else if (itemContext.previousOutcome === "UPDATED") {
-          section += `   Previous Dispute: Partial update made - errors remain\n`;
-          section += `   Current Demand: Complete correction or deletion\n`;
-        }
-
-        // Add violations to cite
-        if (itemContext.citeViolations.length > 0) {
-          section += `   Violations: ${itemContext.citeViolations.join("; ")}\n`;
-        }
+    if (itemContext) {
+      // Add previous outcome reference in simple language
+      if (itemContext.previousOutcome === "VERIFIED") {
+        section += `   Last time: Yall said it was verified but showed no proof\n`;
+        section += `   This time: Show me how you verified it\n`;
+      } else if (itemContext.previousOutcome === "NO_RESPONSE") {
+        section += `   Last time: No response at all\n`;
+        section += `   This time: Delete it since you ignored me\n`;
+      } else if (itemContext.previousOutcome === "STALL_LETTER") {
+        section += `   Last time: Got a runaround letter\n`;
+        section += `   This time: Actually investigate this\n`;
+      } else if (itemContext.previousOutcome === "UPDATED") {
+        section += `   Last time: Made some changes but still wrong\n`;
+        section += `   This time: Fix it all the way\n`;
       }
     }
 
@@ -657,6 +664,82 @@ function generateAccountListWithContext(
   });
 
   return section;
+}
+
+// =============================================================================
+// LEGAL SECTION GENERATION (Based on R1 Citation Strategy)
+// =============================================================================
+
+/**
+ * Generate the legal citations section based on flow and round.
+ *
+ * UNIVERSAL RULE 1: R1 Citation Strategy
+ * - ACCURACY: NO citations in R1 (story first)
+ * - COLLECTION: YES citations in R1 (debt validation required)
+ * - CONSENT: YES citations in R1 (privacy violations need legal basis)
+ * - COMBO: Mixed (depends on primary issue)
+ */
+function generateLegalSection(
+  flow: FlowType,
+  round: number,
+  primaryIssue?: string
+): string {
+  // Check if we should include citations in R1
+  if (round === 1 && !shouldIncludeCitationsInR1(flow as DisputeFlowType, primaryIssue)) {
+    // No legal section for R1 ACCURACY - just the story and facts
+    return "";
+  }
+
+  // Get applicable statutes for this flow/round
+  const statutes = getStatutesForRound(flow as DisputeFlowType, round);
+  if (statutes.length === 0) return "";
+
+  // Get the primary statute to feature
+  const primaryStatute = getPrimaryStatuteForRound(flow as DisputeFlowType, round);
+
+  // Get applicable case law
+  const caseLaw = getCaseLawForRound(round);
+
+  const sections: string[] = [];
+
+  // Add primary statute reference (if not R1 for accuracy flows)
+  if (primaryStatute && round >= 3) {
+    sections.push(
+      `Under ${primaryStatute.code} (${primaryStatute.title}), ${primaryStatute.description.toLowerCase()}.`
+    );
+  }
+
+  // Add case law for higher rounds
+  if (caseLaw.length > 0 && round >= 4) {
+    const relevantCase = caseLaw[0]; // Use most relevant case
+    sections.push(
+      `As established in ${relevantCase.name}, ${relevantCase.shortDescription.toLowerCase()}.`
+    );
+  }
+
+  // For collection flow R1, add debt validation language
+  if (flow === "COLLECTION" && round === 1) {
+    sections.push(
+      `Under 15 USC 1692g, you are required to provide validation of this debt within 30 days of my request.`
+    );
+  }
+
+  // For consent flow R1, add permissible purpose language
+  if (flow === "CONSENT" && round === 1) {
+    sections.push(
+      `Under the Fair Credit Reporting Act, you must have a permissible purpose to access my credit report. I did not authorize this access.`
+    );
+  }
+
+  return sections.join(" ");
+}
+
+/**
+ * Get voice-appropriate opening phrases based on round
+ */
+function getVoiceAppropriateOpening(round: number): string[] {
+  const voiceInfo = getVoiceForRound(round);
+  return voiceInfo.language;
 }
 
 // =============================================================================
@@ -685,8 +768,9 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
 
   const craInfo = CRA_ADDRESSES[cra];
 
-  // Determine effective flow (handles R5-R7 switching)
-  const effectiveFlow = getEffectiveFlow(flow, round);
+  // Determine effective flow (handles R5-R7 switching for COLLECTION/COMBO)
+  // Uses doctrine's getEffectiveFlowForRound for proper flow switching
+  const effectiveFlow = getEffectiveFlowForRound(flow as DisputeFlowType, round) as FlowType;
 
   // Get the template for this flow/round
   const template = getTemplate(effectiveFlow, round);
@@ -775,7 +859,13 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
 
   // Generate letter sections
   const header = generateHeader(client, cra, letterDate);
-  const headline = interpolateVariables(template.headline, vars);
+
+  // HARD RULE: Infinite unique title - centered and bold
+  // Seed with client + round + CRA for deterministic but unique generation
+  const titleSeed = `${client.fullName}-${cra}-${round}-${Date.now()}`;
+  const rawTitle = generateInfiniteTitle(titleSeed);
+  // Format: centered (using spaces) and bold (using ** for markdown, uppercase for plain text)
+  const headline = `                    **${rawTitle.toUpperCase()}**`;
 
   // Opening paragraph (DAMAGES) - select from variants for uniqueness
   // Use client + date + CRA as seed for deterministic but unique selection
@@ -818,12 +908,22 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
     }
   }
 
+  // UNIVERSAL RULE 1: R1 Citation Strategy
+  // Generate legal section based on flow and round
+  // ACCURACY R1 = NO citations, COLLECTION/CONSENT R1 = YES citations
+  const primaryIssue = accounts[0]?.issues[0]?.description;
+  const legalSection = generateLegalSection(flow, round, primaryIssue);
+  if (legalSection) {
+    bodyParagraphs.push(legalSection);
+  }
+
   // Account list - may include item-specific context for R2+
   const accountList = generateAccountListWithContext(
     accounts,
     craInfo.name,
     effectiveFlow,
-    previousRoundContext
+    previousRoundContext,
+    round
   );
 
   // Account list intro (if present in template)
@@ -903,8 +1003,13 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
     letterParts.push(personalInfoSection);
   }
 
+  // HARD RULE: No "Consumer Statement:" label - just natural closing
+  // Generate a real-talk closing paragraph, 6th-9th grade level
+  const closingSeed = `${client.fullName}-${cra}-${round}-closing`;
+  const naturalClosingParagraph = generateNaturalClosing(round, closingSeed);
+
   letterParts.push(
-    `Consumer Statement: ${consumerStatement}`,
+    naturalClosingParagraph,
     screenshotsRef,
     "",
     closing

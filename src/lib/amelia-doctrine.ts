@@ -617,4 +617,500 @@ export function extractHardInquiries(reportText: string, cra: CRA): HardInquiry[
   return inquiries;
 }
 
+// =============================================================================
+// THE 3 UNIVERSAL OPERATING RULES (From PDF Guide)
+// These rules are ABSOLUTE and apply to ALL flows
+// =============================================================================
+
+/**
+ * UNIVERSAL RULE 1: R1 Citation Strategy
+ * Controls whether legal citations appear in Round 1 letters.
+ *
+ * - ACCURACY: NO citations in R1 (establish story first, build human connection)
+ * - COLLECTION: YES citations in R1 (debt validation is legally required upfront)
+ * - CONSENT: YES citations in R1 (privacy violations require immediate legal basis)
+ * - COMBO: MIXED (depends on primary issue - if collection-heavy, YES; if accuracy-heavy, NO)
+ */
+export function shouldIncludeCitationsInR1(flow: DisputeFlowType, primaryIssue?: string): boolean {
+  switch (flow) {
+    case "ACCURACY":
+      return false; // Never cite in R1 for accuracy - story first
+    case "COLLECTION":
+      return true; // Always cite §1692g for debt validation
+    case "CONSENT":
+      return true; // Always cite for privacy/permissible purpose
+    case "COMBO":
+      // If primary issue is collection-related, include citations
+      if (primaryIssue?.toLowerCase().includes("collection") ||
+          primaryIssue?.toLowerCase().includes("debt") ||
+          primaryIssue?.toLowerCase().includes("validation")) {
+        return true;
+      }
+      return false; // Default to accuracy-style (no R1 citations)
+    default:
+      return false;
+  }
+}
+
+/**
+ * UNIVERSAL RULE 2: Personal Info Block
+ * EVERY letter MUST include the Personal Info Block until items are confirmed removed.
+ */
+export interface PersonalInfoBlock {
+  fullLegalName: string;
+  currentAddress: string;
+  ssnLast4: string;
+  dateOfBirth: string;
+  previousAddresses?: string[];
+}
+
+export function formatPersonalInfoBlock(client: ClientPersonalInfo): string {
+  const lines = [
+    `Full Legal Name: ${client.fullName}`,
+    `Current Address: ${client.addressLine1}${client.addressLine2 ? ", " + client.addressLine2 : ""}, ${client.city}, ${client.state} ${client.zipCode}`,
+    `SSN (last 4): ${client.ssnLast4}`,
+    `Date of Birth: ${client.dateOfBirth}`,
+  ];
+
+  if (client.previousAddresses.length > 0) {
+    lines.push(`Previous Addresses: ${client.previousAddresses.slice(0, 2).join("; ")}`);
+  }
+
+  return lines.join("\n");
+}
+
+/**
+ * UNIVERSAL RULE 3: Backdating Strategy
+ * - R1: 60-69 days before actual send date
+ * - R2+: 30-39 days before actual send date
+ *
+ * Purpose: Creates paper trail showing bureaus failed to respond within FCRA timelines
+ * Note: Already implemented in calculateLetterDate() above
+ */
+
+// =============================================================================
+// FLOW-SPECIFIC ROUND COUNTS
+// =============================================================================
+
+export const FLOW_ROUND_LIMITS: Record<DisputeFlowType, number> = {
+  ACCURACY: 11,   // 11 rounds of escalation
+  COLLECTION: 12, // 12 rounds (R5-7 uses Accuracy, returns at R8)
+  CONSENT: 10,    // 10 rounds for privacy/permissible purpose
+  COMBO: 12,      // 12 rounds (R5-7 uses Accuracy, returns at R8)
+};
+
+/**
+ * Get the effective flow for a given round.
+ * COLLECTION and COMBO switch to ACCURACY at R5-7, then return.
+ */
+export function getEffectiveFlowForRound(flow: DisputeFlowType, round: number): DisputeFlowType {
+  if ((flow === "COLLECTION" || flow === "COMBO") && round >= 5 && round <= 7) {
+    return "ACCURACY";
+  }
+  return flow;
+}
+
+// =============================================================================
+// CASE LAW CITATIONS - When to Introduce Each Case
+// =============================================================================
+
+export interface CaseLawCitation {
+  name: string;
+  fullCitation: string;
+  shortDescription: string;
+  useFor: string[];
+  introduceAtRound: number; // Minimum round to introduce
+}
+
+export const CASE_LAW_CITATIONS: CaseLawCitation[] = [
+  {
+    name: "Cushman v. Trans Union",
+    fullCitation: "Cushman v. Trans Union Corp., 115 F.3d 220 (3d Cir. 1997)",
+    shortDescription: "CRAs must go beyond ACDV parroting for reinvestigation",
+    useFor: ["reinvestigation", "reasonable procedures", "verification"],
+    introduceAtRound: 5,
+  },
+  {
+    name: "Shepard v. Equifax",
+    fullCitation: "Shepard v. Equifax Info. Servs., LLC, 2019 U.S. Dist.",
+    shortDescription: "Investigation must go beyond data furnisher",
+    useFor: ["reinvestigation", "verification", "accuracy"],
+    introduceAtRound: 4, // Introduced at R4 per PDF guide
+  },
+  {
+    name: "Brown v. Equifax",
+    fullCitation: "Brown v. Equifax Info. Servs., 2010 U.S. Dist.",
+    shortDescription: "Failure to send reinvestigation results = violation",
+    useFor: ["reinvestigation results", "1681i(a)(6)"],
+    introduceAtRound: 6,
+  },
+  {
+    name: "Johnson v. MBNA",
+    fullCitation: "Johnson v. MBNA America Bank, NA, 357 F.3d 426 (4th Cir. 2004)",
+    shortDescription: "Furnisher must investigate disputes, not just parrot",
+    useFor: ["furnisher liability", "1681s-2(b)"],
+    introduceAtRound: 7,
+  },
+  {
+    name: "Grigoryan v. Experian",
+    fullCitation: "Grigoryan v. Experian Info. Solutions, Inc., 84 F. Supp. 3d 1020",
+    shortDescription: "Statutory damages for willful noncompliance",
+    useFor: ["statutory damages", "willful violation", "litigation"],
+    introduceAtRound: 9,
+  },
+  {
+    name: "McGhee v. Rent Recovery",
+    fullCitation: "McGhee v. Rent Recovery Solutions, LLC, 2018 U.S. Dist.",
+    shortDescription: "Furnisher liability for unreasonable procedures",
+    useFor: ["furnisher liability", "unreasonable procedures"],
+    introduceAtRound: 8,
+  },
+  {
+    name: "Klein v. Navient",
+    fullCitation: "Klein v. Navient Sols., LLC, 2020 U.S. Dist.",
+    shortDescription: "Consumer statement must be complete, not abbreviated",
+    useFor: ["consumer statement", "1681i(c)"],
+    introduceAtRound: 7,
+  },
+];
+
+/**
+ * Get applicable case law citations for a given round and context
+ */
+export function getCaseLawForRound(round: number, context?: string[]): CaseLawCitation[] {
+  return CASE_LAW_CITATIONS.filter(citation => {
+    // Must meet minimum round requirement
+    if (round < citation.introduceAtRound) return false;
+
+    // If context provided, check if citation is relevant
+    if (context && context.length > 0) {
+      return citation.useFor.some(use =>
+        context.some(c => c.toLowerCase().includes(use.toLowerCase()))
+      );
+    }
+
+    return true;
+  });
+}
+
+// =============================================================================
+// FCRA/FDCPA STATUTE PROGRESSION
+// =============================================================================
+
+export interface StatuteCitation {
+  code: string;
+  title: string;
+  description: string;
+  flow: DisputeFlowType[];
+  introduceAtRound: number;
+  escalationLevel: "mild" | "moderate" | "severe" | "litigation";
+}
+
+export const FCRA_STATUTES: StatuteCitation[] = [
+  // FCRA Statutes - progressive introduction
+  {
+    code: "15 USC 1681e(b)",
+    title: "Maximum Possible Accuracy",
+    description: "CRA must follow reasonable procedures to assure maximum possible accuracy",
+    flow: ["ACCURACY", "COMBO"],
+    introduceAtRound: 3,
+    escalationLevel: "mild",
+  },
+  {
+    code: "15 USC 1681i(a)(1)(A)",
+    title: "30-Day Investigation Requirement",
+    description: "CRA must investigate disputes within 30 days",
+    flow: ["ACCURACY", "COLLECTION", "CONSENT", "COMBO"],
+    introduceAtRound: 3,
+    escalationLevel: "mild",
+  },
+  {
+    code: "15 USC 1681i(a)(5)",
+    title: "Treatment of Inaccurate/Unverifiable Info",
+    description: "If info cannot be verified, CRA must promptly delete or modify",
+    flow: ["ACCURACY", "COMBO"],
+    introduceAtRound: 3,
+    escalationLevel: "moderate",
+  },
+  {
+    code: "15 USC 1681i(a)(6)(B)(iii)",
+    title: "Reinvestigation Results",
+    description: "CRA must provide results of reinvestigation within 5 business days",
+    flow: ["ACCURACY", "COMBO"],
+    introduceAtRound: 5,
+    escalationLevel: "moderate",
+  },
+  {
+    code: "15 USC 1681i(a)(7)",
+    title: "Description of Reinvestigation Procedure",
+    description: "Consumer can request description of procedure used",
+    flow: ["ACCURACY", "COMBO"],
+    introduceAtRound: 5,
+    escalationLevel: "moderate",
+  },
+  {
+    code: "15 USC 1681i(c)",
+    title: "Consumer Statement",
+    description: "Consumer can file statement of dispute",
+    flow: ["ACCURACY", "COMBO"],
+    introduceAtRound: 7,
+    escalationLevel: "severe",
+  },
+  {
+    code: "15 USC 1681s-2(b)",
+    title: "Furnisher Investigation Duties",
+    description: "Furnisher must investigate disputes forwarded by CRA",
+    flow: ["ACCURACY", "COLLECTION", "COMBO"],
+    introduceAtRound: 7,
+    escalationLevel: "severe",
+  },
+  {
+    code: "15 USC 1681c(e)",
+    title: "Indication of Closure by Consumer",
+    description: "Must indicate when account closed by consumer",
+    flow: ["ACCURACY", "COMBO"],
+    introduceAtRound: 10,
+    escalationLevel: "litigation",
+  },
+  {
+    code: "15 USC 1681n",
+    title: "Civil Liability - Willful Noncompliance",
+    description: "Actual damages, statutory damages $100-$1000, punitive damages, attorney fees",
+    flow: ["ACCURACY", "COLLECTION", "CONSENT", "COMBO"],
+    introduceAtRound: 9,
+    escalationLevel: "litigation",
+  },
+  {
+    code: "15 USC 1681o",
+    title: "Civil Liability - Negligent Noncompliance",
+    description: "Actual damages, attorney fees",
+    flow: ["ACCURACY", "COLLECTION", "CONSENT", "COMBO"],
+    introduceAtRound: 8,
+    escalationLevel: "severe",
+  },
+];
+
+export const FDCPA_STATUTES: StatuteCitation[] = [
+  // FDCPA Statutes - for COLLECTION flow
+  {
+    code: "15 USC 1692g",
+    title: "Validation of Debts",
+    description: "Debt collector must send validation notice within 5 days",
+    flow: ["COLLECTION", "COMBO"],
+    introduceAtRound: 1, // Required in R1 for collection
+    escalationLevel: "mild",
+  },
+  {
+    code: "15 USC 1692g(b)",
+    title: "Disputed Debts",
+    description: "Collection must cease until debt is validated",
+    flow: ["COLLECTION", "COMBO"],
+    introduceAtRound: 2,
+    escalationLevel: "moderate",
+  },
+  {
+    code: "15 USC 1692j",
+    title: "Furnishing Deceptive Forms",
+    description: "Prohibition on furnishing deceptive forms or documents",
+    flow: ["COLLECTION", "COMBO"],
+    introduceAtRound: 4,
+    escalationLevel: "moderate",
+  },
+  {
+    code: "15 USC 1692c(c)(2)",
+    title: "Ceasing Communication",
+    description: "Consumer can demand collector cease communication",
+    flow: ["COLLECTION", "COMBO"],
+    introduceAtRound: 8,
+    escalationLevel: "severe",
+  },
+];
+
+/**
+ * Get applicable statutes for a flow and round
+ */
+export function getStatutesForRound(
+  flow: DisputeFlowType,
+  round: number
+): StatuteCitation[] {
+  const allStatutes = [...FCRA_STATUTES, ...FDCPA_STATUTES];
+
+  return allStatutes.filter(statute => {
+    // Must apply to this flow
+    if (!statute.flow.includes(flow)) return false;
+
+    // Must meet minimum round requirement
+    if (round < statute.introduceAtRound) return false;
+
+    return true;
+  });
+}
+
+/**
+ * Get the primary statute for a round (the one to feature prominently)
+ */
+export function getPrimaryStatuteForRound(
+  flow: DisputeFlowType,
+  round: number
+): StatuteCitation | null {
+  const applicable = getStatutesForRound(flow, round);
+
+  // Find the statute that was JUST introduced this round
+  const newlyIntroduced = applicable.filter(s => s.introduceAtRound === round);
+  if (newlyIntroduced.length > 0) {
+    return newlyIntroduced[0];
+  }
+
+  // Otherwise return the most severe applicable statute
+  const sorted = applicable.sort((a, b) => {
+    const levels = { mild: 1, moderate: 2, severe: 3, litigation: 4 };
+    return levels[b.escalationLevel] - levels[a.escalationLevel];
+  });
+
+  return sorted[0] || null;
+}
+
+// =============================================================================
+// VOICE EVOLUTION BY ROUND (Kitchen Table Test)
+// =============================================================================
+
+export type VoicePhase = "opening" | "escalation" | "pressure" | "resolution";
+
+export interface VoiceCharacteristics {
+  phase: VoicePhase;
+  tone: string;
+  language: string[];
+  goal: string;
+}
+
+export const VOICE_EVOLUTION: Record<VoicePhase, VoiceCharacteristics> = {
+  opening: {
+    phase: "opening",
+    tone: "Hopeful, explaining, reasonable",
+    language: [
+      "I noticed...",
+      "I'm hoping you can help...",
+      "I recently discovered...",
+      "I'm writing to bring to your attention...",
+      "I found something concerning...",
+    ],
+    goal: "Establish human connection",
+  },
+  escalation: {
+    phase: "escalation",
+    tone: "Frustrated, persistent, questioning",
+    language: [
+      "I've already contacted you...",
+      "Why hasn't this been fixed?",
+      "I'm confused why this is still...",
+      "This is the third time...",
+      "I don't understand why...",
+    ],
+    goal: "Show pattern of bureau failure",
+  },
+  pressure: {
+    phase: "pressure",
+    tone: "Desperate, exhausted, angry but controlled",
+    language: [
+      "I don't know what else to do...",
+      "This is affecting my life...",
+      "I've tried everything...",
+      "My family is suffering...",
+      "I'm at my breaking point...",
+    ],
+    goal: "Maximum emotional impact",
+  },
+  resolution: {
+    phase: "resolution",
+    tone: "Resigned, ultimatum, legal threats",
+    language: [
+      "I have no choice but to...",
+      "My attorney has advised...",
+      "This is your final notice...",
+      "I will be filing...",
+      "Consider this notice of...",
+    ],
+    goal: "Force action or prepare litigation record",
+  },
+};
+
+/**
+ * Get the voice phase for a given round
+ */
+export function getVoicePhaseForRound(round: number): VoicePhase {
+  if (round <= 2) return "opening";
+  if (round <= 5) return "escalation";
+  if (round <= 8) return "pressure";
+  return "resolution";
+}
+
+/**
+ * Get voice characteristics for a round
+ */
+export function getVoiceForRound(round: number): VoiceCharacteristics {
+  const phase = getVoicePhaseForRound(round);
+  return VOICE_EVOLUTION[phase];
+}
+
+// =============================================================================
+// CONFIDENCE SCORING (6 Weighted Factors)
+// =============================================================================
+
+export interface ConfidenceFactors {
+  documentationQuality: number; // 0-100, weight 25%
+  accountAge: number;           // 0-100, weight 15%
+  disputeTypeMatch: number;     // 0-100, weight 20%
+  previousDisputes: number;     // 0-100, weight 15%
+  bureauHistory: number;        // 0-100, weight 15%
+  economicContext: number;      // 0-100, weight 10%
+}
+
+export interface ConfidenceScore {
+  score: number;
+  tier: "HIGH" | "MEDIUM" | "LOW_MEDIUM" | "LOW";
+  displayText: string;
+  factors: ConfidenceFactors;
+}
+
+/**
+ * Calculate weighted confidence score
+ */
+export function calculateConfidenceScore(factors: ConfidenceFactors): ConfidenceScore {
+  const weights = {
+    documentationQuality: 0.25,
+    accountAge: 0.15,
+    disputeTypeMatch: 0.20,
+    previousDisputes: 0.15,
+    bureauHistory: 0.15,
+    economicContext: 0.10,
+  };
+
+  const score =
+    factors.documentationQuality * weights.documentationQuality +
+    factors.accountAge * weights.accountAge +
+    factors.disputeTypeMatch * weights.disputeTypeMatch +
+    factors.previousDisputes * weights.previousDisputes +
+    factors.bureauHistory * weights.bureauHistory +
+    factors.economicContext * weights.economicContext;
+
+  let tier: ConfidenceScore["tier"];
+  let displayText: string;
+
+  if (score >= 85) {
+    tier = "HIGH";
+    displayText = "Strong case";
+  } else if (score >= 65) {
+    tier = "MEDIUM";
+    displayText = "Good chance";
+  } else if (score >= 45) {
+    tier = "LOW_MEDIUM";
+    displayText = "Worth trying";
+  } else {
+    tier = "LOW";
+    displayText = "Challenging";
+  }
+
+  return { score: Math.round(score), tier, displayText, factors };
+}
+
 // Types are already exported inline with their definitions

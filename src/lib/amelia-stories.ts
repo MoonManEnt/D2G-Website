@@ -1422,7 +1422,7 @@ type AssemblyTechnique =
  */
 const CONNECTORS = {
   and: ["And", "Additionally", "What's more", "On top of that", "Furthermore", "Also", "Plus"],
-  because: ["because", "since", "due to the fact that", "as a result of", "thanks to", "owing to"],
+  because: ["because", "since", "due to the fact that", "given that", "considering that"],
   but: ["But", "However", "Yet", "Still", "Nevertheless", "Despite this"],
   so: ["So", "Therefore", "As a result", "Consequently", "Thus", "Hence"],
   then: ["Then", "After that", "Subsequently", "Following this", "Next"],
@@ -1780,4 +1780,677 @@ export function addEscalationLanguage(text: string, round: number): string {
   return `${text} ${selected}`;
 }
 
+// =============================================================================
+// SOCIOECONOMIC CONTEXT INTEGRATION (From PDF Guide)
+// =============================================================================
+
+/**
+ * Socioeconomic context data that can be woven into stories
+ * In production, these would come from BLS API, FRED API, NewsAPI, NOAA/FEMA
+ */
+export interface SocioeconomicContext {
+  localUnemploymentRate?: number;
+  nationalUnemploymentRate?: number;
+  mortgageRate?: number;
+  inflationRate?: number;
+  recentLocalEvents?: string[]; // e.g., "company layoffs", "natural disaster"
+  housingMarketStatus?: "hot" | "cooling" | "slow";
+}
+
+/**
+ * Economic context phrases that can be woven into stories naturally
+ */
+const ECONOMIC_CONTEXT_PHRASES = {
+  unemployment: [
+    "With unemployment in my area at {rate}%, finding stable work has been challenging.",
+    "In this economy, where {rate}% of people in my county are out of work, every financial decision matters.",
+    "I've been fortunate to stay employed when {rate}% of my neighbors are struggling to find work.",
+  ],
+  mortgageRates: [
+    "With mortgage rates at {rate}%, every month I wait costs my family more money.",
+    "Interest rates have climbed to {rate}%, making my housing situation even more urgent.",
+    "At {rate}% mortgage rates, I can barely afford what I was pre-approved for six months ago.",
+  ],
+  inflation: [
+    "Between inflation eating away at my paycheck and these credit errors, I'm losing ground every day.",
+    "With prices up across the board, I can't afford to have my credit blocking opportunities.",
+    "Everything costs more now, and these errors are the last thing I need on top of it all.",
+  ],
+  housingMarket: {
+    hot: [
+      "The housing market is competitive right now, and I'm losing out on homes because of these errors.",
+      "Houses are selling within days, and I'm stuck watching from the sidelines with ruined credit.",
+    ],
+    cooling: [
+      "Even with the market cooling down, I still can't get approved because of these inaccuracies.",
+      "The market is finally slowing down, but my credit errors are keeping me locked out.",
+    ],
+    slow: [
+      "Even in a slow market, I can't take advantage of opportunities because of my credit report.",
+    ],
+  },
+  localEvents: [
+    "Since the layoffs at {company}, I've been working extra shifts to stay afloat.",
+    "After the {event} hit our area, I've been trying to rebuild, but these credit errors are making it impossible.",
+    "Things have been tough since {event}, and dealing with credit errors on top of everything is exhausting.",
+  ],
+};
+
+/**
+ * Generate an economic context phrase to weave into a story
+ * Returns an empty string if no context is relevant or available
+ */
+export function generateEconomicContextPhrase(context?: SocioeconomicContext): string {
+  if (!context) return "";
+
+  const phrases: string[] = [];
+
+  // Add unemployment context (if above national average)
+  if (context.localUnemploymentRate && context.localUnemploymentRate > 4.5) {
+    const template = ECONOMIC_CONTEXT_PHRASES.unemployment[
+      Math.floor(Math.random() * ECONOMIC_CONTEXT_PHRASES.unemployment.length)
+    ];
+    phrases.push(template.replace("{rate}", context.localUnemploymentRate.toFixed(1)));
+  }
+
+  // Add mortgage rate context (if high)
+  if (context.mortgageRate && context.mortgageRate > 6.5) {
+    const template = ECONOMIC_CONTEXT_PHRASES.mortgageRates[
+      Math.floor(Math.random() * ECONOMIC_CONTEXT_PHRASES.mortgageRates.length)
+    ];
+    phrases.push(template.replace("{rate}", context.mortgageRate.toFixed(2)));
+  }
+
+  // Add housing market context
+  if (context.housingMarketStatus) {
+    const marketPhrases = ECONOMIC_CONTEXT_PHRASES.housingMarket[context.housingMarketStatus];
+    if (marketPhrases.length > 0) {
+      phrases.push(marketPhrases[Math.floor(Math.random() * marketPhrases.length)]);
+    }
+  }
+
+  // Add inflation context
+  if (context.inflationRate && context.inflationRate > 3.0) {
+    phrases.push(
+      ECONOMIC_CONTEXT_PHRASES.inflation[
+        Math.floor(Math.random() * ECONOMIC_CONTEXT_PHRASES.inflation.length)
+      ]
+    );
+  }
+
+  // Return a random phrase from available context (or empty string)
+  if (phrases.length === 0) return "";
+  return phrases[Math.floor(Math.random() * phrases.length)];
+}
+
+// =============================================================================
+// ROUND-BASED FRUSTRATION LEVELS (Voice Evolution)
+// =============================================================================
+
+/**
+ * Frustration intensity phrases by round
+ */
+export const FRUSTRATION_LEVELS = {
+  // R1-R2: Opening Phase - Hopeful, explaining
+  opening: {
+    openings: [
+      "I noticed something concerning on my credit report...",
+      "I'm hoping you can help me resolve an issue...",
+      "I recently discovered an error that needs correction...",
+      "I found some inaccurate information that I need to bring to your attention...",
+    ],
+    closings: [
+      "I appreciate your attention to this matter.",
+      "Thank you for taking the time to investigate.",
+      "I look forward to a swift resolution.",
+      "I trust this can be resolved quickly.",
+    ],
+  },
+
+  // R3-R5: Escalation Phase - Frustrated, persistent
+  escalation: {
+    openings: [
+      "I've already contacted you about this issue, and nothing has changed...",
+      "Why hasn't this been fixed after my previous dispute?",
+      "I'm confused why these errors remain on my report...",
+      "This is getting frustrating - I've been waiting for weeks...",
+      "I don't understand why my previous dispute was ignored...",
+    ],
+    closings: [
+      "I expect action this time.",
+      "This needs to be fixed immediately.",
+      "My patience is wearing thin.",
+      "I will not stop until this is resolved.",
+    ],
+  },
+
+  // R6-R8: Pressure Phase - Desperate, exhausted
+  pressure: {
+    openings: [
+      "I don't know what else to do at this point...",
+      "This situation has affected every aspect of my life...",
+      "I've tried everything - multiple disputes, documentation, calls...",
+      "My family is suffering because of your inaction...",
+      "I'm at my breaking point with these errors...",
+    ],
+    closings: [
+      "Something has to change.",
+      "I've run out of options but one.",
+      "The next step is out of my hands.",
+      "You've left me no choice.",
+    ],
+  },
+
+  // R9+: Resolution Phase - Ultimatum, legal threats
+  resolution: {
+    openings: [
+      "I have no choice but to pursue legal action...",
+      "My attorney has advised me to document this pattern of negligence...",
+      "This is your final notice before I escalate this matter...",
+      "Consider this my formal demand before filing...",
+      "I will be contacting the CFPB and state Attorney General...",
+    ],
+    closings: [
+      "You have 30 days to respond before I proceed.",
+      "I have documented every violation for my legal case.",
+      "See you in court if this isn't resolved.",
+      "My attorney will be in touch if I don't hear back.",
+    ],
+  },
+};
+
+/**
+ * Get frustration-appropriate phrases for a given round
+ */
+export function getFrustrationLevel(round: number): {
+  phase: "opening" | "escalation" | "pressure" | "resolution";
+  openings: string[];
+  closings: string[];
+} {
+  if (round <= 2) {
+    return { phase: "opening", ...FRUSTRATION_LEVELS.opening };
+  }
+  if (round <= 5) {
+    return { phase: "escalation", ...FRUSTRATION_LEVELS.escalation };
+  }
+  if (round <= 8) {
+    return { phase: "pressure", ...FRUSTRATION_LEVELS.pressure };
+  }
+  return { phase: "resolution", ...FRUSTRATION_LEVELS.resolution };
+}
+
+/**
+ * Get a random frustration-appropriate opening for a round
+ */
+export function getFrustrationOpening(round: number): string {
+  const level = getFrustrationLevel(round);
+  return level.openings[Math.floor(Math.random() * level.openings.length)];
+}
+
+/**
+ * Get a random frustration-appropriate closing for a round
+ */
+export function getFrustrationClosing(round: number): string {
+  const level = getFrustrationLevel(round);
+  return level.closings[Math.floor(Math.random() * level.closings.length)];
+}
+
+/**
+ * Enhance a story with economic context and frustration level
+ */
+export function enhanceStoryWithContext(
+  story: string,
+  round: number,
+  economicContext?: SocioeconomicContext
+): string {
+  // Add economic context phrase (30% chance if context available)
+  const economicPhrase = Math.random() < 0.3
+    ? generateEconomicContextPhrase(economicContext)
+    : "";
+
+  // Add frustration closing (always for R3+)
+  const frustrationClosing = round >= 3
+    ? getFrustrationClosing(round)
+    : "";
+
+  const parts = [story];
+  if (economicPhrase) parts.push(economicPhrase);
+  if (frustrationClosing) parts.push(frustrationClosing);
+
+  return parts.join(" ");
+}
+
 export { hashStory, replaceVariables, ESCALATION_SCENARIOS, CONTINUATION_CONNECTORS };
+
+// =============================================================================
+// KITCHEN TABLE STORY INTEGRATION
+// Combines the story engine with detailed scenarios for TRUE infinite uniqueness
+// =============================================================================
+
+import {
+  generateUniqueStory as generateStoryEngineStory,
+  generateStoryBlock,
+  type StoryContext,
+  type GeneratedStory as EngineGeneratedStory,
+} from "./amelia-story-engine";
+
+/**
+ * Extended story context with client and account details
+ */
+export interface KitchenTableContext {
+  clientFirstName: string;
+  clientId: string;
+  cra: string;
+  flow: "ACCURACY" | "COLLECTION" | "CONSENT" | "COMBO";
+  round: number;
+  accountTypes?: string[];
+  totalBalance?: number;
+  hasCollectionAccounts?: boolean;
+  hasMultipleAccounts?: boolean;
+  disputeId?: string;
+  previousStories?: string[];
+  economicContext?: SocioeconomicContext;
+}
+
+/**
+ * Generate a Kitchen Table story - TRUE infinite uniqueness
+ *
+ * This combines:
+ * 1. Story Engine: Life situation + goal + impact (the opening context)
+ * 2. Scenario System: Detailed denial/suffering scenarios
+ * 3. Voice Phase: Round-appropriate emotional escalation
+ * 4. Economic Context: Real-world situational awareness
+ *
+ * The result is a story that sounds like a REAL person wrote it at their kitchen table.
+ * No templates. No recycled phrases. Every letter is unique.
+ */
+export function generateKitchenTableStory(
+  context: KitchenTableContext,
+  usedHashes: Set<string> = new Set(),
+  usedComponentKeys: Set<string> = new Set()
+): GeneratedStory & { kitchenTableOpening: string; engineHash: string } {
+  // Generate the opening context from the story engine
+  const engineContext: StoryContext = {
+    clientFirstName: context.clientFirstName,
+    flow: context.flow,
+    round: context.round,
+    cra: context.cra,
+    accountTypes: context.accountTypes,
+    totalBalance: context.totalBalance,
+    isCollection: context.hasCollectionAccounts || context.flow === "COLLECTION",
+    hasMultipleAccounts: context.hasMultipleAccounts,
+    seed: `${context.clientId}-${context.disputeId || "new"}-${context.round}`,
+  };
+
+  // Get the story engine's opening (life situation + goal + impact)
+  const engineStory = generateStoryEngineStory(engineContext);
+
+  // Generate the detailed scenario (denial, suffering, etc.)
+  const scenarioStory = generateUniqueStory(usedHashes, context.round, 100, usedComponentKeys);
+
+  // Combine them intelligently
+  // The engine provides the OPENING (who I am, what I'm trying to do)
+  // The scenario provides the DETAIL (what specifically happened)
+  const combinedParagraph = combineKitchenTableStory(
+    engineStory,
+    scenarioStory,
+    context.round,
+    context.economicContext
+  );
+
+  // Generate combined hash
+  const combinedHash = crypto
+    .createHash("sha256")
+    .update(combinedParagraph)
+    .digest("hex")
+    .substring(0, 16);
+
+  return {
+    ...scenarioStory,
+    paragraph: combinedParagraph,
+    hash: combinedHash,
+    kitchenTableOpening: engineStory.opening,
+    engineHash: engineStory.hash,
+  };
+}
+
+/**
+ * Intelligently combine the story engine output with the detailed scenario
+ */
+function combineKitchenTableStory(
+  engineStory: EngineGeneratedStory,
+  scenarioStory: GeneratedStory,
+  round: number,
+  economicContext?: SocioeconomicContext
+): string {
+  const parts: string[] = [];
+
+  // For R1: Start with the story engine's context, then add scenario detail
+  if (round === 1) {
+    // Story engine provides the life context
+    parts.push(engineStory.opening);
+    // Add a transition and the specific scenario
+    const transitions = [
+      "And here's what happened:",
+      "Then this happened:",
+      "Let me explain what went wrong:",
+      "Here's the problem:",
+      "What makes this worse is",
+    ];
+    const transition = transitions[Math.floor(Math.random() * transitions.length)];
+    parts.push(`${transition} ${scenarioStory.paragraph}`);
+  }
+  // For R2-R5: Lead with continuation, blend context and escalation
+  else if (round <= 5) {
+    // Start with escalation-appropriate opening
+    parts.push(engineStory.emotional);
+    // Add the story engine's urgency
+    parts.push(engineStory.urgency);
+    // Add the scenario with its frustration
+    parts.push(scenarioStory.paragraph);
+  }
+  // For R6+: Heavy pressure, blend all elements
+  else {
+    // Lead with emotional state
+    parts.push(engineStory.emotional);
+    // Add urgent situation
+    parts.push(engineStory.situation);
+    // Add impact
+    parts.push(engineStory.impact);
+    // Add scenario details
+    parts.push(scenarioStory.paragraph);
+    // Close with urgency
+    parts.push(engineStory.urgency);
+  }
+
+  let combined = parts.join(" ");
+
+  // Add economic context if available (30% chance)
+  if (economicContext && Math.random() < 0.3) {
+    const economicPhrase = generateEconomicContextPhrase(economicContext);
+    if (economicPhrase) {
+      combined = combined + " " + economicPhrase;
+    }
+  }
+
+  // Add frustration closing for R3+
+  if (round >= 3) {
+    const closing = getFrustrationClosing(round);
+    if (closing) {
+      combined = combined + " " + closing;
+    }
+  }
+
+  return combined;
+}
+
+/**
+ * Validate that a story passes the Kitchen Table Test
+ *
+ * A story passes if it:
+ * 1. Sounds like a real person wrote it
+ * 2. Contains specific details (not vague)
+ * 3. Shows emotion through facts, not adjectives
+ * 4. Uses contractions and natural language
+ * 5. Is unique (low similarity to previous stories)
+ */
+export function validateKitchenTableStory(
+  story: string,
+  previousStories: string[] = []
+): { passes: boolean; score: number; issues: string[] } {
+  const issues: string[] = [];
+  let score = 100;
+
+  // Check for corporate/template language
+  const corporatePatterns = [
+    /pursuant to/i,
+    /hereby/i,
+    /hereafter/i,
+    /aforementioned/i,
+    /in regards to/i,
+    /please be advised/i,
+    /to whom it may concern/i,
+    /your earliest convenience/i,
+    /notwithstanding/i,
+    /whereas/i,
+  ];
+
+  for (const pattern of corporatePatterns) {
+    if (pattern.test(story)) {
+      issues.push(`Contains corporate language: ${pattern.source}`);
+      score -= 15;
+    }
+  }
+
+  // Check for natural contractions (should have some)
+  const contractionCount = (story.match(/\b(I'm|I've|I'd|don't|can't|won't|it's|that's|they're|wasn't|couldn't|shouldn't|wouldn't)\b/gi) || []).length;
+  if (contractionCount < 2) {
+    issues.push("Too few contractions - sounds formal");
+    score -= 10;
+  }
+
+  // Check for specific details (numbers, names, places)
+  const hasSpecificDetails = /\$[\d,]+|\d+ (month|year|day|week)|my (wife|husband|kid|children|family|brother|sister|mom|dad)/i.test(story);
+  if (!hasSpecificDetails) {
+    issues.push("Missing specific personal details");
+    score -= 10;
+  }
+
+  // Check for emotion through facts (good) vs emotion through adjectives (bad)
+  const adjectiveEmotions = (story.match(/\b(very sad|extremely upset|really frustrated|so angry|terribly worried)\b/gi) || []).length;
+  if (adjectiveEmotions > 1) {
+    issues.push("Uses adjective-based emotion - show through facts instead");
+    score -= 10;
+  }
+
+  // Check uniqueness against previous stories
+  if (previousStories.length > 0) {
+    const storyWords = new Set(story.toLowerCase().split(/\s+/).filter(w => w.length > 4));
+
+    for (const prev of previousStories) {
+      const prevWords = new Set(prev.toLowerCase().split(/\s+/).filter(w => w.length > 4));
+      let overlap = 0;
+
+      for (const word of storyWords) {
+        if (prevWords.has(word)) overlap++;
+      }
+
+      const similarity = overlap / Math.max(storyWords.size, 1);
+      if (similarity > 0.5) {
+        issues.push(`High similarity (${Math.round(similarity * 100)}%) to previous story`);
+        score -= 25;
+        break;
+      }
+    }
+  }
+
+  // Check minimum length (real stories have substance)
+  if (story.split(/\s+/).length < 50) {
+    issues.push("Story too short - needs more substance");
+    score -= 15;
+  }
+
+  return {
+    passes: score >= 70,
+    score: Math.max(0, score),
+    issues,
+  };
+}
+
+// =============================================================================
+// INFINITE TITLE GENERATOR
+// Every title must be unique - no repeated phrases across letters
+// =============================================================================
+
+const TITLE_ACTIONS = [
+  "Dispute", "Challenge", "Formal Dispute", "Request to Fix", "Correction Request",
+  "Error Report", "Mistake Notice", "Fix Request", "Problem Report", "Issue Report",
+  "Data Error", "Wrong Info", "Bad Data", "Credit Error", "Report Error",
+  "Accuracy Issue", "Record Problem", "File Error", "Account Error", "Info Problem",
+];
+
+const TITLE_SUBJECTS = [
+  "my credit file", "my credit report", "info on my file", "data you got wrong",
+  "errors I found", "mistakes on my report", "wrong information", "bad data on file",
+  "inaccurate accounts", "incorrect items", "false information", "errors in my records",
+  "problems on my credit", "issues with my file", "stuff thats wrong", "things that aint right",
+  "accounts reported wrong", "data that dont match", "info that needs fixing",
+];
+
+const TITLE_URGENCY = [
+  "", // no urgency
+  "- Need This Fixed",
+  "- Please Correct",
+  "- Time Sensitive",
+  "- Urgent",
+  "- Action Required",
+  "- Needs Attention",
+  "- Important",
+  "- Please Review",
+  "- Immediate Attention",
+];
+
+/**
+ * Generate an infinite unique title for the letter
+ * Centered and bold in letter format
+ */
+export function generateInfiniteTitle(seed?: string): string {
+  // Use seed for deterministic generation if provided
+  const rand = seed
+    ? (() => {
+        let h = 0;
+        for (let i = 0; i < seed.length; i++) {
+          h = Math.imul(31, h) + seed.charCodeAt(i) | 0;
+        }
+        return () => {
+          h = Math.imul(h ^ h >>> 15, h | 1);
+          h ^= h + Math.imul(h ^ h >>> 7, h | 61);
+          return ((h ^ h >>> 14) >>> 0) / 4294967296;
+        };
+      })()
+    : Math.random;
+
+  const action = TITLE_ACTIONS[Math.floor(rand() * TITLE_ACTIONS.length)];
+  const subject = TITLE_SUBJECTS[Math.floor(rand() * TITLE_SUBJECTS.length)];
+  const urgency = TITLE_URGENCY[Math.floor(rand() * TITLE_URGENCY.length)];
+
+  // 40% chance to use alternative format
+  if (rand() < 0.4) {
+    const altFormats = [
+      `RE: ${action} of ${subject}`,
+      `About ${subject}`,
+      `${action}: ${subject}`,
+      `This is about ${subject}`,
+      `${subject} - ${action}`,
+    ];
+    return altFormats[Math.floor(rand() * altFormats.length)] + urgency;
+  }
+
+  return `${action} - ${subject}${urgency}`;
+}
+
+// =============================================================================
+// NATURAL CLOSING GENERATOR (No "Consumer Statement" label)
+// 6th-9th grade reading level, colloquial, real person voice
+// =============================================================================
+
+const CLOSING_OPENERS = [
+  "Look,", "Listen,", "Im just saying,", "Real talk,", "At the end of the day,",
+  "Bottom line,", "The thing is,", "What I need is simple:", "All Im asking is this:",
+  "Heres the deal:", "Point blank,", "Just to be clear,", "Let me be real with you,",
+  "", // sometimes no opener
+];
+
+const CLOSING_SITUATIONS = [
+  "I got bills to pay and a family counting on me",
+  "Im trying to do right by my family",
+  "I work hard every day and this aint fair",
+  "Im just trying to get ahead like everybody else",
+  "I got responsibilities and this is holding me back",
+  "Im doing everything right but yall got my info wrong",
+  "I need credit to live my life and take care of my people",
+  "This been going on too long and I need it fixed",
+  "I shouldnt have to fight this hard for accurate info",
+  "Every day this stays wrong is another day I cant move forward",
+  "I aint asking for nothing special just fix whats wrong",
+  "My credit affects everything in my life",
+  "I cant get nothing done with these errors on my file",
+  "This is messing up my life in real ways",
+];
+
+const CLOSING_REQUESTS = [
+  "Fix these errors so I can get on with my life",
+  "Just make it right thats all Im asking",
+  "Correct this stuff so my report is accurate",
+  "Do the right thing and fix my file",
+  "Handle this so I can move on",
+  "Get this straight once and for all",
+  "Make the corrections I need",
+  "Update my info to what it should be",
+  "Take care of this the right way",
+  "Get my report showing the truth",
+];
+
+const CLOSING_ENDINGS = [
+  "I appreciate you looking into this.",
+  "Thanks for handling this.",
+  "Im counting on yall to make this right.",
+  "Please dont make me keep sending letters.",
+  "Im trusting you to do your job here.",
+  "Hoping this gets resolved quick.",
+  "Waiting to hear back from you.",
+  "Do what you gotta do to fix this.",
+  "", // sometimes no ending
+];
+
+/**
+ * Generate a natural closing paragraph - no label, just real talk
+ * 6th-9th grade reading level, colloquialisms, urban/middle America
+ */
+export function generateNaturalClosing(round: number, seed?: string): string {
+  const rand = seed
+    ? (() => {
+        let h = 0;
+        for (let i = 0; i < seed.length; i++) {
+          h = Math.imul(31, h) + seed.charCodeAt(i) | 0;
+        }
+        return () => {
+          h = Math.imul(h ^ h >>> 15, h | 1);
+          h ^= h + Math.imul(h ^ h >>> 7, h | 61);
+          return ((h ^ h >>> 14) >>> 0) / 4294967296;
+        };
+      })()
+    : Math.random;
+
+  const opener = CLOSING_OPENERS[Math.floor(rand() * CLOSING_OPENERS.length)];
+  const situation = CLOSING_SITUATIONS[Math.floor(rand() * CLOSING_SITUATIONS.length)];
+  const request = CLOSING_REQUESTS[Math.floor(rand() * CLOSING_REQUESTS.length)];
+  const ending = CLOSING_ENDINGS[Math.floor(rand() * CLOSING_ENDINGS.length)];
+
+  // Build the closing naturally
+  let closing = "";
+
+  if (opener) {
+    closing = opener + " " + situation + ". " + request + ".";
+  } else {
+    closing = situation + ". " + request + ".";
+  }
+
+  if (ending) {
+    closing += " " + ending;
+  }
+
+  // For later rounds, add more urgency
+  if (round >= 4) {
+    const urgentAdditions = [
+      " This been going on way too long already.",
+      " I shouldnt have to keep asking for this.",
+      " Yall had plenty of time to fix this.",
+      " Im running out of patience here.",
+      " Dont make me take this further.",
+    ];
+    closing += urgentAdditions[Math.floor(rand() * urgentAdditions.length)];
+  }
+
+  return closing;
+}

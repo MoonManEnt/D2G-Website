@@ -21,6 +21,8 @@ import { useToast } from "@/lib/use-toast";
 // Sub-components
 import { AmeliaInsightsPanel } from "./amelia-insights-panel";
 import { LetterEditorModal } from "./letter-editor-modal";
+import { BulkOperationsPanel } from "./bulk-operations-panel";
+import { StrategyComparisonInline } from "./strategy-comparison";
 import type { AmeliaInsight } from "./amelia-insights-panel";
 
 // Types
@@ -36,12 +38,40 @@ const BUREAUS = [
   { id: "EQUIFAX", name: "Equifax", abbr: "EQ", color: "rose" },
 ] as const;
 
-// Strategy flows
+// Strategy flows - Human-friendly language (PDF Guide: simplified flow selection)
 const FLOWS = [
-  { id: "ACCURACY", label: "Accuracy", desc: "Inaccurate information disputes", color: "blue", maxRounds: 12 },
-  { id: "COLLECTION", label: "Collection", desc: "Debt validation challenges", color: "red", maxRounds: 10 },
-  { id: "CONSENT", label: "Consent", desc: "Unauthorized access disputes", color: "purple", maxRounds: 4 },
-  { id: "COMBO", label: "Combo", desc: "Multiple issue types combined", color: "amber", maxRounds: 12 },
+  {
+    id: "ACCURACY",
+    label: "Something is wrong",
+    desc: "Balance, dates, status, or other info is incorrect",
+    color: "blue",
+    maxRounds: 11,
+    humanExamples: ["Wrong balance", "Wrong dates", "Account not mine", "Status incorrect"]
+  },
+  {
+    id: "COLLECTION",
+    label: "Debt collection dispute",
+    desc: "Third-party collector, medical debt, or old debt",
+    color: "red",
+    maxRounds: 12,
+    humanExamples: ["Collection account", "Medical bills", "Zombie debt", "Sold debt"]
+  },
+  {
+    id: "CONSENT",
+    label: "I didn't authorize this",
+    desc: "Inquiry or account opened without permission",
+    color: "purple",
+    maxRounds: 10,
+    humanExamples: ["Unauthorized inquiry", "Identity theft", "Fraud", "No permission given"]
+  },
+  {
+    id: "COMBO",
+    label: "Multiple issues",
+    desc: "Both accuracy and collection problems on same account",
+    color: "amber",
+    maxRounds: 12,
+    humanExamples: ["Wrong balance + collection", "Multiple error types", "Complex dispute"]
+  },
 ] as const;
 
 // Animated number component
@@ -714,9 +744,19 @@ export function DisputesSplit({ initialClient }: DisputesSplitProps) {
                       <div className="flex-1 min-w-0">
                         <div className={cn("text-sm font-semibold", isActive && colors.text)}>{flow.label}</div>
                         <div className="text-xs text-muted-foreground truncate">{flow.desc}</div>
+                        {/* Show human examples when flow is selected */}
+                        {isActive && flow.humanExamples && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {flow.humanExamples.slice(0, 3).map((example) => (
+                              <span key={example} className="text-[10px] px-1.5 py-0.5 bg-muted rounded-full text-muted-foreground">
+                                {example}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <span className="text-[10px] text-muted-foreground font-mono">R1/{flow.maxRounds}</span>
+                        <span className="text-[10px] text-muted-foreground font-mono">up to {flow.maxRounds} rounds</span>
                         <div className="flex gap-0.5 mt-1 justify-end">
                           {Array.from({ length: Math.min(flow.maxRounds, 12) }).map((_, r) => (
                             <div key={r} className={cn(
@@ -731,6 +771,16 @@ export function DisputesSplit({ initialClient }: DisputesSplitProps) {
                   );
                 })}
               </div>
+
+              {/* Strategy Comparison - Shows when accounts are selected */}
+              {selectedAccounts.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-border">
+                  <StrategyComparisonInline
+                    currentFlow={selectedFlow}
+                    onSelectStrategy={(flow) => setSelectedFlow(flow)}
+                  />
+                </div>
+              )}
             </Card>
           </div>
         </Reveal>
@@ -944,6 +994,32 @@ export function DisputesSplit({ initialClient }: DisputesSplitProps) {
                     </div>
                   </div>
                 </Card>
+              )}
+
+              {/* Bulk Operations Panel - Shows when multiple accounts are selected */}
+              {selectedClientId && selectedAccounts.length >= 3 && (
+                <BulkOperationsPanel
+                  clientId={selectedClientId}
+                  selectedAccountIds={selectedAccounts}
+                  onComplete={() => {
+                    setSelectedAccounts([]);
+                    // Refresh accounts list
+                    setAccountsLoading(true);
+                    fetch(`/api/accounts/negative?clientId=${selectedClientId}`)
+                      .then((r) => r.ok ? r.json() : { accounts: [] })
+                      .then((data) => {
+                        const accounts = (data.accounts || [])
+                          .filter((a: ParsedAccountWithIssues) => a.cra === selectedCRA)
+                          .map((a: ParsedAccountWithIssues) => ({
+                            ...a,
+                            detectedIssues: parseDetectedIssues(a.detectedIssues),
+                            applicableFlows: determineApplicableFlows(parseDetectedIssues(a.detectedIssues)),
+                          }));
+                        setParsedAccounts(accounts);
+                      })
+                      .finally(() => setAccountsLoading(false));
+                  }}
+                />
               )}
 
               {/* AMELIA Panel */}

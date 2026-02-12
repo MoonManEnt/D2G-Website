@@ -51,6 +51,14 @@ interface AmeliaInsightsPanelProps {
   compact?: boolean;
 }
 
+// Simplified confidence tiers (from PDF Guide)
+function getConfidenceTier(score: number): { tier: string; color: string; description: string } {
+  if (score >= 85) return { tier: "Strong case", color: "text-green-400", description: "High chance of success" };
+  if (score >= 65) return { tier: "Good chance", color: "text-primary", description: "Solid dispute strategy" };
+  if (score >= 45) return { tier: "Worth trying", color: "text-amber-400", description: "Some challenges expected" };
+  return { tier: "Challenging", color: "text-red-400", description: "Consider additional documentation" };
+}
+
 export function AmeliaInsightsPanel({
   clientId,
   cra,
@@ -64,6 +72,7 @@ export function AmeliaInsightsPanel({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(true);
+  const [showTechnical, setShowTechnical] = useState(false); // Hide technical by default
 
   const generateInsights = async () => {
     if (!clientId || accountIds.length === 0) return;
@@ -244,23 +253,37 @@ export function AmeliaInsightsPanel({
                 </div>
               ) : (
                 <>
-                  {/* Success Rate Bar */}
-                  <div className="p-3 bg-card rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-muted-foreground flex items-center gap-2">
-                        <Target className="w-4 h-4" />
-                        Estimated Success Rate
-                      </span>
-                      <span className="text-lg font-bold text-foreground">{insights.estimatedSuccessRate}%</span>
-                    </div>
-                    <Progress value={insights.estimatedSuccessRate} className="h-2 [&>div]:bg-gradient-to-r [&>div]:from-violet-500 [&>div]:to-green-500" />
-                  </div>
+                  {/* Simplified Confidence Display (Human-Friendly) */}
+                  {(() => {
+                    const tier = getConfidenceTier(insights.confidence);
+                    return (
+                      <div className="p-4 bg-card rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Target className="w-5 h-5 text-violet-400" />
+                            <div>
+                              <span className={`text-lg font-bold ${tier.color}`}>{tier.tier}</span>
+                              <p className="text-xs text-muted-foreground">{tier.description}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-2xl font-bold text-foreground">{insights.confidence}%</span>
+                            <p className="text-[10px] text-muted-foreground">confidence</p>
+                          </div>
+                        </div>
+                        <Progress value={insights.confidence} className="h-1.5 mt-3 [&>div]:bg-gradient-to-r [&>div]:from-violet-500 [&>div]:to-green-500" />
+                      </div>
+                    );
+                  })()}
 
-                  {/* Tone Badge */}
+                  {/* Tone Badge - Simplified */}
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Letter Tone:</span>
+                    <span className="text-xs text-muted-foreground">Letter approach:</span>
                     <Badge className={getToneColor(insights.tone)}>
-                      {insights.tone.replace("_", " ")}
+                      {insights.tone === "CONCERNED" ? "Polite & hopeful" :
+                       insights.tone === "WORRIED" ? "Persistent" :
+                       insights.tone === "FED_UP" ? "Frustrated" :
+                       insights.tone === "WARNING" ? "Firm warning" : "Final demand"}
                     </Badge>
                   </div>
 
@@ -302,59 +325,89 @@ export function AmeliaInsightsPanel({
                     </div>
                   </div>
 
-                  {/* Suggested Statutes */}
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
-                      <BookOpen className="w-4 h-4 text-amber-400" />
-                      Legal Focus
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {insights.suggestedStatutes.map((statute, i) => (
-                        <Badge
-                          key={i}
-                          variant="outline"
-                          className="text-xs border-amber-500/30 text-amber-400"
-                        >
-                          {statute}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
+                  {/* Technical Details Toggle */}
+                  <button
+                    onClick={() => setShowTechnical(!showTechnical)}
+                    className="w-full flex items-center justify-between py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Scale className="w-3 h-3" />
+                      Technical details
+                    </span>
+                    {showTechnical ? (
+                      <ChevronUp className="w-4 h-4" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" />
+                    )}
+                  </button>
 
-                  {/* eOSCAR Detection */}
-                  {insights.eoscarDetection && (
-                    <div className="p-3 bg-card rounded-lg">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
-                          <Scale className="w-4 h-4 text-purple-400" />
-                          eOSCAR Detection Risk
-                        </h4>
-                        <Badge className={getEoscarRiskColor(insights.eoscarDetection.level)}>
-                          {insights.eoscarDetection.risk}% {insights.eoscarDetection.level.toUpperCase()}
-                        </Badge>
-                      </div>
-                      <div className="grid grid-cols-3 gap-3 text-center">
-                        <div>
-                          <p className="text-lg font-bold text-foreground">
-                            {insights.eoscarDetection.uniquenessScore}%
-                          </p>
-                          <p className="text-[10px] text-muted-foreground">Uniqueness</p>
+                  {/* Technical Details Section (Hidden by Default) */}
+                  <AnimatePresence>
+                    {showTechnical && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.15 }}
+                        className="space-y-4 overflow-hidden"
+                      >
+                        {/* Suggested Statutes */}
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
+                            <BookOpen className="w-4 h-4 text-amber-400" />
+                            Legal Citations
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {insights.suggestedStatutes.map((statute, i) => (
+                              <Badge
+                                key={i}
+                                variant="outline"
+                                className="text-xs border-amber-500/30 text-amber-400"
+                              >
+                                {statute}
+                              </Badge>
+                            ))}
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-lg font-bold text-green-400">
-                            {insights.eoscarDetection.humanizingPhrases}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground">Human Phrases</p>
-                        </div>
-                        <div>
-                          <p className="text-lg font-bold text-amber-400">
-                            {insights.eoscarDetection.flaggedPhrases}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground">Flagged</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+
+                        {/* eOSCAR Detection */}
+                        {insights.eoscarDetection && (
+                          <div className="p-3 bg-card rounded-lg">
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
+                                <Scale className="w-4 h-4 text-purple-400" />
+                                Uniqueness Analysis
+                              </h4>
+                              <Badge className={getEoscarRiskColor(insights.eoscarDetection.level)}>
+                                {insights.eoscarDetection.level === "low" ? "Optimized" :
+                                 insights.eoscarDetection.level === "medium" ? "Good" : "Review needed"}
+                              </Badge>
+                            </div>
+                            <div className="grid grid-cols-3 gap-3 text-center">
+                              <div>
+                                <p className="text-lg font-bold text-foreground">
+                                  {insights.eoscarDetection.uniquenessScore}%
+                                </p>
+                                <p className="text-[10px] text-muted-foreground">Uniqueness</p>
+                              </div>
+                              <div>
+                                <p className="text-lg font-bold text-green-400">
+                                  {insights.eoscarDetection.humanizingPhrases}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground">Human Phrases</p>
+                              </div>
+                              <div>
+                                <p className="text-lg font-bold text-amber-400">
+                                  {insights.eoscarDetection.flaggedPhrases}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground">Review Items</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
                   {/* Regenerate Button */}
                   <Button

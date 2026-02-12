@@ -619,6 +619,173 @@ export const KEYBOARD_SHORTCUTS = {
 } as const;
 
 // ============================================================================
+// AMELIA DOCTRINE TYPES
+// ============================================================================
+
+/**
+ * AMELIA Voice Evolution by Round Phase
+ * Based on PDF guide: Opening (R1-R2), Escalation (R3-R5), Pressure (R6-R8), Resolution (R9-12)
+ */
+export type VoicePhase = "opening" | "escalation" | "pressure" | "resolution";
+
+export interface VoiceEvolution {
+  phase: VoicePhase;
+  tone: string;
+  language: string[];
+  goal: string;
+}
+
+/**
+ * Flow Round Configuration from AMELIA Doctrine
+ */
+export interface FlowRoundConfig {
+  flow: FlowType;
+  maxRounds: number;
+  r1Citations: boolean;
+  flowSwitchRounds?: number[];  // Rounds where flow switches (e.g., COLLECTION R5-7)
+}
+
+export const AMELIA_FLOW_CONFIGS: Record<FlowType, FlowRoundConfig> = {
+  ACCURACY: { flow: FlowType.ACCURACY, maxRounds: 11, r1Citations: false },
+  COLLECTION: { flow: FlowType.COLLECTION, maxRounds: 12, r1Citations: true, flowSwitchRounds: [5, 6, 7] },
+  CONSENT: { flow: FlowType.CONSENT, maxRounds: 10, r1Citations: true },
+  COMBO: { flow: FlowType.COMBO, maxRounds: 12, r1Citations: false, flowSwitchRounds: [5, 6, 7] },
+};
+
+// ============================================================================
+// DRAFT PERSISTENCE TYPES
+// ============================================================================
+
+/**
+ * Dispute Draft for auto-saving letter previews
+ */
+export interface DisputeDraft {
+  id: string;
+  clientId: string;
+  organizationId: string;
+  letterContent: string;
+  contentHash: string;
+  cra: CRA;
+  flow: FlowType;
+  round: number;
+  accountIds: string[];
+  ameliaMetadata: Record<string, unknown>;
+  status: "ACTIVE" | "EXPIRED" | "CONVERTED";
+  convertedDisputeId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  expiresAt: Date;
+}
+
+export interface DraftSaveRequest {
+  clientId: string;
+  letterContent: string;
+  contentHash: string;
+  cra: CRA;
+  flow: FlowType;
+  round: number;
+  accountIds: string[];
+  ameliaMetadata?: Record<string, unknown>;
+  draftId?: string;  // For updating existing draft
+}
+
+export interface DraftSaveResponse {
+  draft: DisputeDraft;
+  success: boolean;
+}
+
+// ============================================================================
+// BULK OPERATIONS TYPES
+// ============================================================================
+
+export interface BulkDisputePreview {
+  cra: CRA;
+  accounts: Array<{
+    id: string;
+    creditorName: string;
+    suggestedFlow: FlowType | null;
+  }>;
+  suggestedFlow: FlowType;
+  accountsInDispute: string[];
+}
+
+export interface BulkDisputeRequest {
+  clientId: string;
+  accountIds: string[];
+  flow?: FlowType;
+  groupByCRA?: boolean;
+}
+
+export interface BulkDisputeResult {
+  disputeId: string;
+  cra: CRA;
+  flow: FlowType;
+  accountCount: number;
+  isExisting: boolean;
+}
+
+export interface BulkDisputeResponse {
+  success: boolean;
+  summary: {
+    totalAccountsRequested: number;
+    accountsProcessed: number;
+    accountsSkipped: number;
+    disputesCreated: number;
+  };
+  disputes: BulkDisputeResult[];
+  skippedAccounts?: Array<{
+    accountId: string;
+    existingDisputeId: string;
+    status: string;
+  }>;
+  errors?: Array<{
+    cra: string;
+    error: string;
+  }>;
+}
+
+// ============================================================================
+// STRATEGY COMPARISON TYPES
+// ============================================================================
+
+export interface StrategyVariant {
+  flow: FlowType;
+  estimatedSuccess: number;
+  tone: string;
+  letterLength: "short" | "medium" | "long";
+  keyStrengths: string[];
+  primaryStatute: string;
+  rounds: number;
+  r1Citations: boolean;
+}
+
+export interface StrategyComparisonResult {
+  strategies: StrategyVariant[];
+  recommendedFlow: FlowType;
+  reasoning: string;
+}
+
+// ============================================================================
+// CONFIDENCE SCORING (AMELIA 6-Factor Model)
+// ============================================================================
+
+export interface AmeliaConfidenceFactors {
+  documentationQuality: number;  // 25% weight
+  accountAge: number;            // 15% weight
+  disputeTypeMatch: number;      // 20% weight
+  previousDisputes: number;      // 15% weight
+  bureauHistory: number;         // 15% weight
+  economicContext: number;       // 10% weight
+}
+
+export interface AmeliaConfidenceScore {
+  total: number;
+  tier: "HIGH" | "MEDIUM" | "LOW-MEDIUM" | "LOW";
+  tierLabel: string;  // "Strong case", "Good chance", etc.
+  factors: AmeliaConfidenceFactors;
+}
+
+// ============================================================================
 // BRANDING / WHITE LABEL TYPES
 // ============================================================================
 

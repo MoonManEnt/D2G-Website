@@ -126,6 +126,7 @@ model Client {
   readinessAnalyses    CreditReadinessAnalysis[]
   litigationScans        LitigationScan[]
   ameliaConversations    AmeliaConversation[]
+  disputeDrafts          DisputeDraft[]
 
   @@index([organizationId])
   @@index([organizationId, archivedAt])
@@ -1502,4 +1503,44 @@ model AmeliaOutcomePattern {
   @@index([organizationId, cra])
   @@index([organizationId, cra, flow])
   @@index([successRate])
+}
+
+// =============================================================================
+// DISPUTE DRAFTS - Auto-save letter previews before final creation
+// =============================================================================
+
+model DisputeDraft {
+  id             String   @id @default(uuid())
+  clientId       String
+  organizationId String
+
+  // Draft content
+  letterContent  String   @db.Text // The generated letter content
+  contentHash    String   // For uniqueness tracking
+
+  // Dispute configuration
+  cra            String   // TRANSUNION, EXPERIAN, EQUIFAX
+  flow           String   // ACCURACY, COLLECTION, CONSENT, COMBO
+  round          Int      @default(1)
+  accountIds     String   @default("[]") // JSON array of account IDs
+
+  // AMELIA metadata
+  ameliaMetadata String   @default("{}") // JSON: tone, statute, backdating info
+
+  // Draft status
+  status         String   @default("ACTIVE") // ACTIVE, CONVERTED, EXPIRED
+  convertedDisputeId String? // When converted to real dispute
+
+  // Timestamps
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  expiresAt      DateTime // Drafts expire after 7 days
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([organizationId])
+  @@index([organizationId, clientId])
+  @@index([status])
+  @@index([expiresAt])
 }

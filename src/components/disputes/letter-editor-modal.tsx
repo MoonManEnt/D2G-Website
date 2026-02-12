@@ -101,7 +101,20 @@ interface LetterEditorModalProps {
   launching: boolean;
   onDownload: () => Promise<void>;
   downloading: boolean;
+  // New props for early customization
+  onFlowChange?: (flow: string) => void;
+  onRoundChange?: (round: number) => void;
+  onRegenerate?: () => Promise<void>;
+  availableFlows?: { id: string; label: string }[];
 }
+
+// Flow options for early customization
+const FLOW_OPTIONS = [
+  { id: "ACCURACY", label: "Something is wrong", desc: "Balance, dates, status incorrect" },
+  { id: "COLLECTION", label: "Debt collection dispute", desc: "Third-party collector, medical debt" },
+  { id: "CONSENT", label: "I didn't authorize this", desc: "Unauthorized inquiry or account" },
+  { id: "COMBO", label: "Multiple issues", desc: "Both accuracy and collection problems" },
+];
 
 const TONE_CONFIG = {
   CONCERNED: {
@@ -344,6 +357,10 @@ export function LetterEditorModal({
   launching,
   onDownload,
   downloading,
+  onFlowChange,
+  onRoundChange,
+  onRegenerate,
+  availableFlows,
 }: LetterEditorModalProps) {
   const { toast } = useToast();
   const editorRef = useRef<HTMLDivElement>(null);
@@ -560,6 +577,15 @@ export function LetterEditorModal({
     eoscarRisk: "LOW",
   });
 
+  // Draft persistence state
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [draftSaved, setDraftSaved] = useState(false);
+  const [showFlowSelector, setShowFlowSelector] = useState(false);
+
+  // Current flow and round (editable)
+  const [currentFlow, setCurrentFlow] = useState(generatedLetter?.flow || "ACCURACY");
+  const [currentRound, setCurrentRound] = useState(generatedLetter?.round || 1);
+
   // All sections combined for the rail
   const allSections = [...lockedTop, ...draggableSections, ...lockedBottom];
 
@@ -677,8 +703,77 @@ export function LetterEditorModal({
       setEditValue("");
       setShowTonePanel(false);
       setShowPreview(false);
+      setShowFlowSelector(false);
+      setDraftSaved(false);
     }
   }, [open]);
+
+  // Sync flow and round with generated letter
+  useEffect(() => {
+    if (generatedLetter) {
+      setCurrentFlow(generatedLetter.flow);
+      setCurrentRound(generatedLetter.round);
+    }
+  }, [generatedLetter?.flow, generatedLetter?.round]);
+
+  // Handle flow change
+  const handleFlowChange = async (newFlow: string) => {
+    setCurrentFlow(newFlow);
+    setShowFlowSelector(false);
+    if (onFlowChange) {
+      onFlowChange(newFlow);
+    }
+  };
+
+  // Handle round change
+  const handleRoundChange = (delta: number) => {
+    const newRound = Math.max(1, Math.min(12, currentRound + delta));
+    setCurrentRound(newRound);
+    if (onRoundChange) {
+      onRoundChange(newRound);
+    }
+  };
+
+  // Save draft
+  const handleSaveDraft = async () => {
+    if (!generatedLetter?.clientId) {
+      toast({ title: "Cannot save", description: "Missing client information", variant: "destructive" });
+      return;
+    }
+
+    setSavingDraft(true);
+    try {
+      const fullContent = reconstructLetter();
+      const contentHash = btoa(fullContent.slice(0, 100) + fullContent.length);
+
+      const res = await fetch("/api/disputes/drafts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId: generatedLetter.clientId,
+          letterContent: fullContent,
+          contentHash,
+          cra: generatedLetter.cra,
+          flow: currentFlow,
+          round: currentRound,
+          accountIds: generatedLetter.accountIds || [],
+          ameliaMetadata: generatedLetter.ameliaMetadata || {},
+        }),
+      });
+
+      if (res.ok) {
+        setDraftSaved(true);
+        setTimeout(() => setDraftSaved(false), 3000);
+        toast({ title: "Draft saved", description: "You can resume editing later" });
+      } else {
+        throw new Error("Save failed");
+      }
+    } catch {
+      toast({ title: "Save failed", description: "Could not save draft", variant: "destructive" });
+    } finally {
+      setSavingDraft(false);
+    }
+  };
 
   // Find and update section in the appropriate array
   const updateSection = (sectionId: string, newContent: string) => {
@@ -1036,13 +1131,60 @@ export function LetterEditorModal({
               Back to Disputes
             </button>
             <h1 className="text-2xl font-bold text-foreground mb-2">Letter Editor</h1>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
               <Badge className={CRA_COLORS[generatedLetter.cra]?.tailwind || "bg-muted text-muted-foreground"}>
                 {generatedLetter.cra}
               </Badge>
-              <Badge className="bg-muted text-muted-foreground">R{generatedLetter.round}</Badge>
-              <Badge className="bg-red-500/20 text-red-400">{generatedLetter.flow}</Badge>
-              <Badge className="bg-amber-500/20 text-amber-400">DRAFT</Badge>
+              {/* Editable Round */}
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => handleRoundChange(-1)}
+                  disabled={currentRound <= 1}
+                  className="w-5 h-5 rounded bg-muted hover:bg-muted/80 text-muted-foreground disabled:opacity-30 flex items-center justify-center text-xs"
+                >
+                  −
+                </button>
+                <Badge className="bg-muted text-muted-foreground px-2">R{currentRound}</Badge>
+                <button
+                  onClick={() => handleRoundChange(1)}
+                  disabled={currentRound >= 12}
+                  className="w-5 h-5 rounded bg-muted hover:bg-muted/80 text-muted-foreground disabled:opacity-30 flex items-center justify-center text-xs"
+                >
+                  +
+                </button>
+              </div>
+              {/* Editable Flow */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowFlowSelector(!showFlowSelector)}
+                  className="flex items-center gap-1"
+                >
+                  <Badge className="bg-red-500/20 text-red-400 cursor-pointer hover:bg-red-500/30">
+                    {FLOW_OPTIONS.find(f => f.id === currentFlow)?.label || currentFlow}
+                    <span className="ml-1 text-[8px]">▼</span>
+                  </Badge>
+                </button>
+                {showFlowSelector && (
+                  <div className="absolute top-full left-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-50 min-w-[200px]">
+                    {FLOW_OPTIONS.map((flow) => (
+                      <button
+                        key={flow.id}
+                        onClick={() => handleFlowChange(flow.id)}
+                        className={cn(
+                          "w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors",
+                          currentFlow === flow.id && "bg-primary/10 text-primary"
+                        )}
+                      >
+                        <div className="font-medium">{flow.label}</div>
+                        <div className="text-[10px] text-muted-foreground">{flow.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <Badge className="bg-amber-500/20 text-amber-400">
+                {draftSaved ? "SAVED" : "DRAFT"}
+              </Badge>
             </div>
           </div>
           <div className="flex gap-2">
@@ -1058,10 +1200,18 @@ export function LetterEditorModal({
             <Button
               variant="outline"
               size="sm"
+              onClick={handleSaveDraft}
+              disabled={savingDraft || draftSaved}
               className="gap-2 border-primary/30 bg-primary/10 text-primary hover:bg-primary/20"
             >
-              <Save className="w-4 h-4" />
-              Save Draft
+              {savingDraft ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : draftSaved ? (
+                <Check className="w-4 h-4" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              {draftSaved ? "Saved" : "Save Draft"}
             </Button>
             <Button
               size="sm"
@@ -1217,6 +1367,46 @@ export function LetterEditorModal({
                 )}
               </Button>
             </div>
+
+            {/* Strategy Settings - Early Customization */}
+            {(currentFlow !== generatedLetter.flow || currentRound !== generatedLetter.round) && (
+              <div className="bg-amber-500/5 rounded-xl border border-amber-500/20 p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertCircle className="w-4 h-4 text-amber-400" />
+                  <span className="text-sm font-bold text-amber-400">Strategy Changed</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground mb-3">
+                  You&apos;ve changed the {currentFlow !== generatedLetter.flow ? "flow" : "round"}.
+                  Regenerate to apply AMELIA&apos;s optimized approach for this strategy.
+                </p>
+                <div className="flex gap-2 text-xs mb-3">
+                  <span className="px-2 py-1 bg-muted rounded text-muted-foreground">
+                    {generatedLetter.flow} → {currentFlow}
+                  </span>
+                  <span className="px-2 py-1 bg-muted rounded text-muted-foreground">
+                    R{generatedLetter.round} → R{currentRound}
+                  </span>
+                </div>
+                <Button
+                  onClick={onRegenerate || regenerateAll}
+                  disabled={isRegenerating}
+                  className="w-full bg-amber-600 hover:bg-amber-500 rounded-xl py-2"
+                  size="sm"
+                >
+                  {isRegenerating ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Regenerating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Apply New Strategy
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
 
             {/* Tone Control */}
             <div className="bg-card rounded-xl border border-border p-5">

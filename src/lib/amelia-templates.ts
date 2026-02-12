@@ -150,48 +150,56 @@ export const ACCURACY_TEMPLATES: Record<number, Omit<RoundTemplate, "round" | "f
   1: {
     headline: "FACTUAL DISPUTE—Inaccurate accounts on my credit report.",
     statute: "FCRA Maximum Accuracy",
-    openingParagraph: `{bureauName} may be facing serious legal penalties. You are furnishing inaccurate information on my credit report which is stopping me from getting the credit I need to support my family. Because of your unreliable reporting habits, I am forced to work extra hours day in and day out… losing all my spare time (which I used to spend with my family). And all the extra stress, lost time, and unwanted pressure in my life is caused by the inaccurate items on my credit report.`,
+    // HARD RULE: 6th-9th grade reading level, colloquial
+    openingParagraph: `Im writing because {bureauName} got wrong stuff on my credit report. This is causing me real problems. I cant get approved for nothing and its not because I dont pay my bills. Its because yall got bad info. I work hard, I handle my business, and I deserve to have my credit reported right. Something needs to change.`,
+    // HARD RULE: 6th-9th grade reading level, colloquial, regional expressions
     openingParagraphVariants: [
-      // Variant 1: Working parent struggling with finances
-      `I need to bring something serious to your attention. The information {bureauName} is reporting about me is simply wrong. These errors have real consequences—I've been turned down for financing that would have helped my family, and the rejections keep piling up. Every time I think I'm close to getting ahead, another denial letter shows up because of data on your report that doesn't match reality.`,
-      // Variant 2: First-time homebuyer blocked
-      `I've spent months preparing to buy my first home. Saved up, got my paperwork ready, found a place I could actually afford. Then the mortgage company pulled my credit and everything fell apart. The information {bureauName} has on file contains errors that make me look like a completely different person. I'm not going to let incorrect reporting destroy the biggest opportunity of my life.`,
-      // Variant 3: Recent divorcee rebuilding
-      `After going through a divorce, I've been working to rebuild my financial life. What I didn't expect was to find errors on my credit report that have nothing to do with my actual history. {bureauName} is reporting information that is demonstrably inaccurate, and it's preventing me from moving forward. I've checked the data against my own records, and the discrepancies are clear.`,
-      // Variant 4: Small business owner denied credit
-      `Running a small business means I rely on credit to keep things moving. When I was denied a business line of credit last month, I pulled my reports to see what went wrong. What I found on my {bureauName} report shocked me—accounts reporting balances I don't owe, statuses that don't match reality, and dates that make no sense. This isn't a minor clerical issue. This is affecting my ability to keep my business running.`,
-      // Variant 5: Healthcare worker during crisis
-      `I work in healthcare, and the past few years have pushed me to my limits. The last thing I needed was to discover that my credit report is full of inaccuracies. When I tried to refinance my car to lower my payments, I was denied because of what {bureauName} is reporting. I pulled my report and compared it to my actual records. The information doesn't match. Not even close.`,
-      // Variant 6: Veteran returning to civilian life
-      `Transitioning back to civilian life after military service has been challenging enough. Now I've discovered that {bureauName} is reporting information that is flat-out wrong. I've been denied for basic things—an apartment, a car loan—because of errors on my credit report. I served my country, and I expect accurate reporting from the agencies that hold so much power over my financial future.`,
-      // Variant 7: Teacher with student loans
-      `As an educator, I don't make a lot, but I've always been responsible with my finances. So you can imagine my frustration when I discovered that {bureauName} has been reporting inaccurate information about my accounts. I compared what you're showing against my actual payment records and statements. The numbers don't add up. The statuses are wrong. This needs to be corrected.`,
-      // Variant 8: Single parent managing everything alone
-      `Raising kids on my own means every dollar counts. When I was denied for a credit card with a modest limit, I knew something was wrong. I've never missed payments, yet {bureauName} is showing information that paints a completely different picture. I've pulled my records and cross-referenced everything. Your data is inaccurate, and it's hurting my family's ability to get by.`,
+      // Variant 1: Working parent
+      `Look I work hard every day to take care of my family. Got bills to pay like everybody else. So when I got denied for a loan I knew something was up. Pulled my credit from {bureauName} and found a bunch of stuff thats just wrong. Accounts I dont recognize, balances that aint right, late payments I never made. This is messing up my life and I need it fixed.`,
+      // Variant 2: First-time homebuyer
+      `Been saving up for a house for years now. Finally found a place I could afford and went to get a mortgage. Got denied because of my credit. Looked at what {bureauName} got on me and I couldnt believe it. Half this stuff aint even mine and the rest is wrong. I did everything right and your bad info is keeping me from my dream.`,
+      // Variant 3: Starting over
+      `Going through some changes in my life and trying to get back on my feet. Last thing I needed was to find out {bureauName} got wrong info on my credit. I checked my report and its like looking at somebody elses file. The accounts are wrong, the amounts dont match, none of it is right. I need this fixed so I can move on with my life.`,
+      // Variant 4: Small business owner
+      `I run a small business and credit is how I keep the lights on. When I got turned down for a business loan I had to see why. {bureauName} got me looking like I dont pay my bills but thats not true. I got records going back years. Your data is wrong and its killing my business. This needs to get straight right now.`,
+      // Variant 5: Healthcare worker
+      `I work at the hospital and you know how crazy these past few years been. Last thing I need is credit problems on top of everything else. Went to refinance my car to save some money and got denied. {bureauName} got all kinds of wrong stuff on my file. I compared it to my own records and its not even close. Fix this.`,
+      // Variant 6: Veteran
+      `Served my country for years and now Im back trying to build a normal life. Cant even get an apartment because {bureauName} got bad info on my credit. I didnt go through everything I went through just to get blocked by a credit report thats full of mistakes. Check your records because what you got aint right.`,
+      // Variant 7: Teacher/Educator
+      `I teach kids for a living. Dont make a lot but I always pay my bills. So imagine how I felt when I saw what {bureauName} is reporting about me. The numbers are wrong, the dates are wrong, some of this stuff I never even heard of. I keep good records and I know whats real. Your report is not it.`,
+      // Variant 8: Single parent
+      `Raising my kids by myself aint easy but I make it work. Every dollar matters so when I got denied for a credit card I had to find out why. {bureauName} got me looking bad when I know I do right by my bills. The info on my report dont match my life at all. I need this corrected so I can take care of my family.`,
     ],
     bodyParagraphs: [
       `The information in this complaint is inaccurate because it reports different information across each consumer reporting agency (or CRA). However, the Fair Credit Reporting Act (or FCRA) requires {bureauName} to report my credit with maximum accuracy. What is maximum accuracy? Well, under the FCRA, this standard forces CRAs to report my credit 100% consistent across each agency, only after I inform you of the errors.`,
       `And for this reason, if you do not modify or delete the accounts I am about to list in this complaint, you may have to pay a hefty fine (over a couple thousand) for the damages your misleading reporting has caused me. Here is a list of the items furnishing incorrect, plus the exact categories that are inaccurate:`,
     ],
+    // HARD RULE: R1 = NO CITATIONS, 6th-9th grade reading level, colloquial
     bodyParagraphVariants: [
       [
-        // Variant A (original)
-        `The information in this complaint is inaccurate because it reports different information across each consumer reporting agency (or CRA). However, the Fair Credit Reporting Act (or FCRA) requires {bureauName} to report my credit with maximum accuracy. What is maximum accuracy? Well, under the FCRA, this standard forces CRAs to report my credit 100% consistent across each agency, only after I inform you of the errors.`,
-        // Variant B
-        `After reviewing my credit files from all three bureaus, I found serious discrepancies in how these accounts are being reported. Under the Fair Credit Reporting Act, {bureauName} is legally required to maintain maximum accuracy—which means the information on your report must be 100% consistent with what the other agencies show. Right now, it's not even close.`,
-        // Variant C
-        `I pulled my reports from all three credit bureaus and compared them side by side. What I found is alarming: the accounts listed below show completely different information depending on which bureau I check. The FCRA's maximum accuracy standard under 15 USC 1681e(b) makes it crystal clear—{bureauName} must ensure every data point matches across all agencies once a consumer reports discrepancies. You have failed to meet that standard.`,
+        // Variant A - Simple comparison explanation
+        `I got my credit reports from all three bureaus and they dont match. Like at all. {bureauName} is showing stuff that the other two aint got. Thats not right. When I compare the reports side by side the numbers are different, the dates are different, and some stuff just dont make sense. Yall need to fix this.`,
+        // Variant B - Direct call out
+        `Something is wrong with what {bureauName} got on me. I looked at all three of my credit reports and yours is the one thats messed up. The other bureaus got different info and honestly theirs looks more like what I remember. Your data is wrong and its hurting me.`,
+        // Variant C - Working person angle
+        `I been looking at my credit from all three bureaus and {bureauName} got it wrong. I work hard and pay my bills so I know whats what. The stuff on your report dont match my records and it dont match what the other bureaus showing neither. This needs to be fixed.`,
+        // Variant D - Frustrated but clear
+        `Checked all my credit reports recently. {bureauName} is the problem. What yall showing dont match what Equifax and the others got. And more importantly it dont match my actual records. I got statements and receipts. Your info is just wrong.`,
       ],
       [
-        // Variant A (original)
-        `And for this reason, if you do not modify or delete the accounts I am about to list in this complaint, you may have to pay a hefty fine (over a couple thousand) for the damages your misleading reporting has caused me. Here is a list of the items furnishing incorrect, plus the exact categories that are inaccurate:`,
-        // Variant B
-        `Because of your failure to maintain accuracy, I have suffered real financial harm. If these items are not corrected or removed within 30 days, I will have no choice but to pursue damages under 15 USC 1681o—which could cost your agency thousands of dollars. Below are the specific accounts reporting inaccurate data, along with the categories that are wrong:`,
-        // Variant C
-        `This isn't just a minor inconvenience—your inaccurate reporting has cost me real money and real opportunities. Under the FCRA, I am entitled to actual damages for every day these errors remain on my report. I strongly suggest you review and delete the following items before this escalates further. Here are the accounts with their specific inaccuracies:`,
+        // Variant A - Direct consequence
+        `Because of these mistakes I been getting denied left and right. Cant get approved for nothing. If this dont get fixed soon Im gonna have to take this further and nobody wants that. Here is whats wrong on my file:`,
+        // Variant B - Family impact
+        `These errors are messing up my life for real. My family needs me to have good credit and right now I cant do nothing. Fix these problems or Im gonna have to get help from people who deal with this stuff. Heres whats wrong:`,
+        // Variant C - Time pressure
+        `I need this handled quick. Every day this wrong info sits on my report is another day I cant get ahead. I know my rights and I know you got 30 days. Heres the accounts that are messed up:`,
+        // Variant D - Money impact
+        `This is costing me money every single day. Higher interest rates, getting denied, all of it. I shouldnt have to deal with this when I aint even do nothing wrong. Look at these accounts and tell me this is right:`,
       ],
     ],
-    accountListIntro: `You have 30 days from receiving this dispute to either correct these items… or… delete them from my credit report. I know I may sound a little blunt and direct, but you should know, my credit score controls almost all of my financial decisions… and without it I am going to struggle for a very long time. So all I ask of you is this: Please follow your legal duties and remove the inaccurate information from my credit report. I can assure you, it would work out best for the both of us.`,
+    // HARD RULE: No sales language, colloquial, direct
+    accountListIntro: `You got 30 days to look into this and fix it. I aint trying to cause problems for nobody but this wrong info is causing problems for me. Every day it stays on my report is another day I cant get ahead. Just look into it and make it right. Thats all Im asking.`,
     demandSection: DEMAND_LANGUAGE.R1,
     consumerStatement: `All items listed in this complaint are reporting incorrect information on my credit report. I have not been able to use my credit in a very long time and I am suffering each and every day because of it. Please remove this information ASAP so I can go back to living my normal (less stressful) life.`,
     consumerStatementVariants: [
@@ -701,6 +709,104 @@ export const CONSENT_TEMPLATES: Record<number, Omit<RoundTemplate, "round" | "fl
     consumerStatement: `Every account in this complaint is furnishing information that is either a specific extension of credit or an authorization of credit from a credit card or similar device. And for this reason, all the items must be deleted under 15 USC 1681a(d)(a)(2)(B) because this information is, legally, not allowed to be in a credit report.`,
     includesScreenshots: true,
   },
+
+  4: {
+    headline: "FOURTH DEMAND—Permissible Purpose Challenge Under 15 USC 1681b",
+    statute: "15 USC 1681b",
+    openingParagraph: `This is my fourth time writing about the same unauthorized accounts. I've explained the law. I've cited the statutes. I've given you more than enough time. And still, {bureauName} continues to report accounts that I never authorized and that have no permissible purpose under 15 USC 1681b.`,
+    bodyParagraphs: [
+      `Let me be absolutely clear: I never gave written consent for these accounts to appear on my credit report. The FCRA requires that before any information is reported, there must be a permissible purpose. Where is your permissible purpose? I've asked before and received no answer.`,
+      `Under 15 USC 1681b, you can only report information if you have written instructions from the consumer, a court order, or a legitimate credit transaction. None of these apply here. These accounts were placed without my authorization, and you have been unable to produce any documentation proving otherwise.`,
+      `The continued presence of these unauthorized accounts has cost me real money. I've been denied for credit cards, apartments, and financing that would have helped my family. Every month you delay is another month of damage.`,
+    ],
+    demandSection: DEMAND_LANGUAGE.R4,
+    consumerStatement: `I'm running out of patience. Four letters. Four times explaining the same law. Four times asking for the same simple thing: remove the accounts that were never authorized. If you cannot produce my written consent, you have no legal right to report this information. Delete it now.`,
+    includesScreenshots: true,
+  },
+
+  5: {
+    headline: "FIFTH NOTICE—CFPB Complaint Being Prepared Under 15 USC 1681b(c)",
+    statute: "15 USC 1681b(c)",
+    openingParagraph: `I am now preparing a formal complaint to the Consumer Financial Protection Bureau. {bureauName} has ignored my previous four disputes regarding unauthorized accounts that lack any permissible purpose under the Fair Credit Reporting Act.`,
+    bodyParagraphs: [
+      `The CFPB takes privacy violations seriously. Under 15 USC 1681b(c), furnishing consumer information without a permissible purpose is a clear violation. I have documented each of my disputes, the dates they were sent, and your failure to respond appropriately.`,
+      `Before I file, I am giving you one more opportunity to correct this. The CFPB complaint will include all correspondence, the unauthorized accounts in question, and a detailed timeline of your non-compliance. This will become part of your regulatory record.`,
+      `I don't want to escalate this. I want the unauthorized information removed. But if you continue to ignore my legitimate concerns about accounts reported without my consent, I have no other option.`,
+    ],
+    demandSection: DEMAND_LANGUAGE.R5,
+    consumerStatement: `This is my fifth dispute. I have been more than patient. The accounts listed below were never authorized by me, and you have failed to provide any evidence of a permissible purpose. Remove them now, or I will proceed with my CFPB complaint within 10 business days.`,
+    includesScreenshots: true,
+  },
+
+  6: {
+    headline: "SIXTH NOTICE—State Attorney General Notification Under FCRA Privacy Provisions",
+    statute: "15 USC 1681n",
+    openingParagraph: `Along with my CFPB complaint, I am now copying my state Attorney General's office on this matter. {bureauName}'s continued reporting of accounts without my written authorization constitutes a willful violation of the Fair Credit Reporting Act.`,
+    bodyParagraphs: [
+      `Under 15 USC 1681n, willful noncompliance with the FCRA allows me to recover actual damages, punitive damages, and attorney's fees. Your refusal to investigate and remove unauthorized accounts after six separate disputes demonstrates willfulness.`,
+      `State Attorneys General have the authority to bring actions against credit reporting agencies for pattern violations. My documentation shows a clear pattern: repeated disputes, no meaningful investigation, and no correction of accounts that were never authorized.`,
+      `I have kept copies of every letter, every response, and every credit report showing these unauthorized accounts. This evidence will be included in my regulatory complaints and any future legal action.`,
+    ],
+    demandSection: DEMAND_LANGUAGE.R6,
+    consumerStatement: `Six times I've asked. Six times you've ignored the law. I never authorized these accounts. You cannot produce my written consent. Under the FCRA, you have no right to report them. This is your final warning before regulatory action proceeds.`,
+    includesScreenshots: true,
+  },
+
+  7: {
+    headline: "SEVENTH DEMAND—Legal Counsel Engaged Under 15 USC 1681n(a)(1)(A)",
+    statute: "15 USC 1681n(a)(1)(A)",
+    openingParagraph: `I have now retained legal counsel to review my options regarding {bureauName}'s continued privacy violations. My attorney has reviewed all seven of my disputes and your responses—or lack thereof.`,
+    bodyParagraphs: [
+      `Under 15 USC 1681n(a)(1)(A), I am entitled to actual damages for each violation. My attorney has calculated preliminary damages including: denied credit applications, higher interest rates on existing credit, emotional distress, and time spent disputing these unauthorized accounts.`,
+      `Additionally, 15 USC 1681n allows for punitive damages when violations are willful. Seven disputes with no meaningful correction strongly suggests willfulness. My attorney believes a jury would agree.`,
+      `I am not looking for a lawsuit. I am looking for {bureauName} to follow the law and remove accounts that were reported without my authorization. But if legal action is the only way to get compliance, that option is now on the table.`,
+    ],
+    demandSection: DEMAND_LANGUAGE.R7_PLUS,
+    consumerStatement: `My attorney has all documentation ready for filing. The unauthorized accounts below must be deleted immediately. This is not a threat—it is a statement of fact about where this dispute is headed if you continue to violate my privacy rights under the FCRA.`,
+    includesScreenshots: true,
+  },
+
+  8: {
+    headline: "EIGHTH AND PRE-LITIGATION NOTICE—Demand for Immediate Deletion",
+    statute: "15 USC 1681n, 15 USC 1681o",
+    openingParagraph: `This letter serves as formal pre-litigation notice. I have exhausted every reasonable effort to resolve this matter with {bureauName} directly. Eight separate disputes over unauthorized accounts have been met with willful disregard for my privacy rights under the FCRA.`,
+    bodyParagraphs: [
+      `My legal team has now prepared a draft complaint for filing in federal court. The complaint will allege willful violations under 15 USC 1681n and negligent violations under 15 USC 1681o. We are seeking actual damages, punitive damages, and attorney's fees.`,
+      `The accounts in question were never authorized by me. You have never produced my written consent because it does not exist. Every day these accounts remain on my report is another day of violation.`,
+      `This is your final opportunity to resolve this matter without litigation. I am willing to accept deletion of all unauthorized accounts and a letter confirming the correction. Once the complaint is filed, this offer is withdrawn.`,
+    ],
+    demandSection: DEMAND_LANGUAGE.R7_PLUS,
+    consumerStatement: `Eight disputes. No resolution. No evidence of authorization. The path forward is clear: delete the unauthorized accounts within 10 days of receiving this letter, or respond to the federal complaint that will follow.`,
+    includesScreenshots: true,
+  },
+
+  9: {
+    headline: "NINTH NOTICE—Final Demand Before Federal Court Filing",
+    statute: "15 USC 1681n(a)(2)",
+    openingParagraph: `This is my ninth and final attempt at direct resolution. {bureauName} has demonstrated a pattern of willful noncompliance with the Fair Credit Reporting Act that my attorneys believe warrants significant punitive damages under 15 USC 1681n(a)(2).`,
+    bodyParagraphs: [
+      `The case law is clear. In Cushman v. Trans Union, the court found that failure to maintain reasonable procedures after being notified of errors constitutes willfulness. I have notified you nine times. Your procedures have clearly failed.`,
+      `Punitive damages in FCRA cases have ranged from $5,000 to $100,000 depending on the egregiousness of the conduct. Nine ignored disputes regarding unauthorized accounts demonstrates exactly the kind of conduct courts punish.`,
+      `My attorneys are ready to file. The only question is whether {bureauName} wants to resolve this matter now or defend it in federal court. The choice is yours, but my patience has run out.`,
+    ],
+    demandSection: DEMAND_LANGUAGE.R7_PLUS,
+    consumerStatement: `Nine times. Nine chances to do the right thing. The accounts below were never authorized, and you have never produced evidence otherwise. Delete them within 5 business days or prepare to receive service of process.`,
+    includesScreenshots: true,
+  },
+
+  10: {
+    headline: "FINAL ULTIMATUM—Litigation Proceeds Without Further Notice",
+    statute: "15 USC 1681n, 15 USC 1681o, 15 USC 1681b",
+    openingParagraph: `This is my final communication before filing suit. {bureauName}'s conduct over the past ten disputes has been documented, analyzed, and prepared for presentation to a federal judge. My attorneys are confident in the strength of our case.`,
+    bodyParagraphs: [
+      `We will be seeking: (1) Actual damages for denied credit, higher interest rates, and emotional distress; (2) Punitive damages for willful violation of the FCRA; (3) Attorney's fees and costs; and (4) Injunctive relief requiring deletion of all unauthorized accounts.`,
+      `The complaint will detail ten separate disputes, your failure to investigate, your failure to produce evidence of authorization, and your continued reporting of accounts without a permissible purpose. A jury will decide whether this conduct was reasonable.`,
+      `If you wish to avoid litigation, you have 48 hours from receipt of this letter to delete all unauthorized accounts and provide written confirmation. After that deadline, no settlement will be considered until after discovery.`,
+    ],
+    demandSection: DEMAND_LANGUAGE.R7_PLUS,
+    consumerStatement: `Ten disputes. Zero compliance. The unauthorized accounts listed below have damaged my credit, my reputation, and my family's financial stability. This ends now—either through your voluntary deletion or through the federal courts.`,
+    includesScreenshots: true,
+  },
 };
 
 // =============================================================================
@@ -733,6 +839,141 @@ export const LATE_PAYMENT_TEMPLATES: Record<number, Omit<RoundTemplate, "round" 
     accountListIntro: `I am asking you to correct this immediately. These entries have caused measurable harm to my ability to obtain fair credit, and their continued presence leaves my personal information exposed for anyone who runs my file. Please delete the unlawful data within 30 days and confirm the removal in writing.`,
     demandSection: DEMAND_LANGUAGE.R2,
     consumerStatement: `I feel like my privacy has been stripped away. Every time a lender pulls my report, they see private details that were never meant to be public. I'm simply asking for what the law already provides — accuracy, privacy, and respect. Please remove these items so I can move forward with dignity and a fair opportunity to rebuild my credit.`,
+    includesScreenshots: true,
+  },
+};
+
+// =============================================================================
+// COMBO FLOW TEMPLATES (R1-R4, R8-R12)
+// R5-R7 switches to ACCURACY flow (handled in getEffectiveFlow)
+// =============================================================================
+
+export const COMBO_TEMPLATES: Record<number, Omit<RoundTemplate, "round" | "flow">> = {
+  1: {
+    headline: "DUAL VIOLATION DISPUTE—Accuracy Errors AND Collection Violations on Same Account",
+    statute: "FCRA 1681e(b) & FDCPA 1692g",
+    openingParagraph: `I'm writing about accounts that have multiple problems at once. Not only is the information being reported inaccurately, but these accounts were also placed by debt collectors who never validated the debts properly. This is a double violation of my rights under both the Fair Credit Reporting Act and the Fair Debt Collection Practices Act.`,
+    bodyParagraphs: [
+      `Let me explain what's happening: First, the basic information on these accounts is wrong. The balances don't match, the dates are off, and the status doesn't reflect reality. That's an accuracy violation under FCRA Section 1681e(b).`,
+      `Second, these are collection accounts that were placed without proper debt validation under FDCPA Section 1692g. When a debt collector reports to the bureaus before validating a debt, they violate federal law. I never received proper validation for these debts, yet here they are on my credit report.`,
+      `The combination of these issues has severely damaged my credit. I can't get approved for anything because these accounts show inaccurate balances from collectors who never proved I owed anything in the first place. This needs to stop.`,
+    ],
+    demandSection: DEMAND_LANGUAGE.R1,
+    consumerStatement: `Every account listed below has two problems: the reported information is inaccurate AND the debt collector never provided proper validation. Under both the FCRA and FDCPA, these accounts should not be on my report. Please investigate both issues and delete any accounts that cannot be fully verified as accurate AND properly validated.`,
+    includesScreenshots: false,
+  },
+
+  2: {
+    headline: "SECOND NOTICE—Combined FCRA/FDCPA Violations Remain Unresolved",
+    statute: "FCRA 1681i & FDCPA 1692g(b)",
+    openingParagraph: `Last month I disputed accounts that have both accuracy problems and collection violations. I explained that the information is wrong AND that the collectors never validated these debts. Nothing has changed. The same accounts with the same errors are still damaging my credit.`,
+    bodyParagraphs: [
+      `Under FCRA Section 1681i, you had 30 days to conduct a reasonable reinvestigation. Instead, it appears you simply verified the information with the same collectors who reported it incorrectly in the first place. That's not a reasonable investigation.`,
+      `Meanwhile, under FDCPA Section 1692g(b), these collectors should have ceased collection activity—including credit reporting—until they validated these debts. They never did. They're violating federal law every day these accounts remain on my report.`,
+      `I've now been denied credit twice more since my first dispute. Each denial adds to my damages. Each day these dual violations continue makes your liability greater.`,
+    ],
+    demandSection: DEMAND_LANGUAGE.R2,
+    consumerStatement: `Two violations per account. Two chances to fix this. Zero action from {bureauName}. The accounts below are inaccurate AND were reported without proper debt validation. I'm asking again: conduct a real investigation of both issues and delete any accounts that fail either test.`,
+    includesScreenshots: true,
+  },
+
+  3: {
+    headline: "THIRD DEMAND—Method of Verification Required for Combined Violations",
+    statute: "FCRA 1681i(a)(6)(B)(iii) & FDCPA 1692j",
+    openingParagraph: `Three disputes later, I still have accounts on my report that are both inaccurate AND were placed by collectors who never validated the underlying debts. I'm now demanding that you provide the method of verification for each account, as required by FCRA Section 1681i(a)(6)(B)(iii).`,
+    bodyParagraphs: [
+      `When you investigated my disputes, how did you verify the accuracy of the information? What documents did the collectors provide? Did they provide proof of the original debt? Did they show payment history from the original creditor? I have a right to know.`,
+      `Under FDCPA Section 1692j, debt collectors cannot use deceptive forms or documents in collection activities. Reporting unvalidated debts to credit bureaus with inaccurate information is exactly the kind of deceptive practice this law prohibits.`,
+      `I need answers. How can the same information that I proved was inaccurate come back "verified"? What verification method did you use? Who provided the documents? These are not unreasonable questions.`,
+    ],
+    demandSection: DEMAND_LANGUAGE.R3,
+    consumerStatement: `Three rounds of disputes. The same accounts with the same problems. I want to see the verification documents. Show me how these collectors proved both that the information is accurate AND that they properly validated these debts. If you can't, delete them.`,
+    includesScreenshots: true,
+  },
+
+  4: {
+    headline: "FOURTH NOTICE—Demanding Investigation of Furnisher Duties Under FCRA and FDCPA",
+    statute: "FCRA 1681s-2(b) & FDCPA 1692e",
+    openingParagraph: `This is my fourth dispute about accounts with combined accuracy and collection violations. I've asked for method of verification. I've cited both FCRA and FDCPA. I've explained the dual violations. And still, {bureauName} has failed to properly investigate.`,
+    bodyParagraphs: [
+      `Under FCRA Section 1681s-2(b), when a furnisher receives notice of dispute, they must conduct their own investigation. The collectors furnishing these accounts have a duty to verify the accuracy of what they report. Have they done that? Show me the evidence.`,
+      `Under FDCPA Section 1692e, debt collectors cannot use false, deceptive, or misleading representations. Reporting debts they cannot validate with inaccurate information is both false and misleading. These collectors are breaking the law.`,
+      `I have been patient. I have followed the process. I have cited the law. At some point, patience runs out. We're approaching that point.`,
+    ],
+    demandSection: DEMAND_LANGUAGE.R4,
+    consumerStatement: `Four disputes documenting the same dual violations. The accounts below are inaccurate. The collectors never validated the debts. Both laws are being broken. How many more times do I need to say it before someone at {bureauName} actually investigates?`,
+    includesScreenshots: true,
+  },
+
+  // R5-R7 use ACCURACY templates (handled by getEffectiveFlow)
+
+  8: {
+    headline: "EIGHTH NOTICE—Return to Combined FCRA/FDCPA Claims After Accuracy Investigation",
+    statute: "FCRA 1681n & FDCPA 1692k",
+    openingParagraph: `I've spent rounds 5 through 7 focusing specifically on the accuracy issues with these accounts. Now I'm returning to the full picture: these accounts have BOTH accuracy violations under FCRA AND collection violations under FDCPA. Both sets of violations expose you to liability.`,
+    bodyParagraphs: [
+      `Under FCRA Section 1681n, willful noncompliance allows recovery of actual damages, punitive damages, and attorney's fees. Eight disputes with no meaningful correction demonstrates willfulness.`,
+      `Under FDCPA Section 1692k, debt collectors who violate the Act are liable for actual damages, statutory damages up to $1,000, and attorney's fees. These collectors have been reporting unvalidated debts for months.`,
+      `My attorneys have reviewed both sets of claims. The documentation of eight disputes, combined with the dual violations, creates a strong case for damages under both statutes.`,
+    ],
+    demandSection: DEMAND_LANGUAGE.R7_PLUS,
+    consumerStatement: `Eight rounds. Two statutes violated. Zero meaningful investigation. The accounts below remain on my report with inaccurate information from collectors who never validated these debts. My patience and your time to fix this are both running out.`,
+    includesScreenshots: true,
+  },
+
+  9: {
+    headline: "NINTH NOTICE—Pre-Litigation Demand Under Combined FCRA and FDCPA Claims",
+    statute: "FCRA 1681n(a)(1)(A) & FDCPA 1692k(a)",
+    openingParagraph: `This serves as formal pre-litigation notice under both the Fair Credit Reporting Act and the Fair Debt Collection Practices Act. After nine disputes, the accounts in question remain on my report with inaccurate information from collectors who never validated the underlying debts.`,
+    bodyParagraphs: [
+      `My legal team has prepared a draft complaint alleging violations under both statutes. We will seek actual damages from the credit reporting failures, statutory damages from the collection violations, punitive damages for willful conduct, and attorney's fees.`,
+      `The combined exposure under both laws is significant. FCRA allows unlimited punitive damages for willful violations. FDCPA provides statutory damages of up to $1,000 per violation. Nine documented disputes demonstrate a clear pattern.`,
+      `This is your final opportunity to investigate properly and delete the accounts that cannot be verified as both accurate AND properly validated. After this letter, we proceed to litigation.`,
+    ],
+    demandSection: DEMAND_LANGUAGE.R7_PLUS,
+    consumerStatement: `Nine disputes. Two federal statutes violated. Complete documentation of your failure to investigate. The accounts below must be deleted immediately, or the next document you receive will be a federal court complaint.`,
+    includesScreenshots: true,
+  },
+
+  10: {
+    headline: "TENTH AND FINAL NOTICE—Litigation Proceeds Under FCRA and FDCPA",
+    statute: "FCRA 1681n, 1681o & FDCPA 1692k",
+    openingParagraph: `This is my final communication before filing suit under both the Fair Credit Reporting Act and the Fair Debt Collection Practices Act. Ten disputes over multiple months have failed to produce any meaningful investigation of accounts that have dual violations.`,
+    bodyParagraphs: [
+      `The complaint is ready for filing. It alleges: (1) Willful violation of FCRA for failure to maintain reasonable procedures; (2) Willful violation of FCRA for failure to conduct reasonable reinvestigation; (3) Violation of FDCPA for reporting unvalidated debts; (4) Violation of FDCPA for using deceptive practices in collection.`,
+      `We will be seeking: actual damages for all credit denials; statutory damages under FDCPA; punitive damages under FCRA; attorney's fees and costs; and injunctive relief requiring deletion and policy changes.`,
+      `You have 48 hours from receipt of this letter to delete all accounts that cannot be verified as both accurate AND properly validated. After that deadline, we file.`,
+    ],
+    demandSection: DEMAND_LANGUAGE.R7_PLUS,
+    consumerStatement: `Ten disputes. Two federal statutes. Complete failure to investigate. The accounts below have damaged my credit, my reputation, and my family's financial stability through dual violations of federal law. This ends now—through deletion or through the federal courts.`,
+    includesScreenshots: true,
+  },
+
+  11: {
+    headline: "FINAL ULTIMATUM—Federal Court Filing Imminent Under FCRA and FDCPA",
+    statute: "FCRA 1681n, 1681o & FDCPA 1692k",
+    openingParagraph: `I have exhausted all reasonable efforts to resolve these dual violations directly with {bureauName}. Eleven separate disputes have documented both accuracy violations under FCRA and collection violations under FDCPA. Your continued inaction leaves me no choice but litigation.`,
+    bodyParagraphs: [
+      `My attorneys will file in federal court within 5 business days. The complaint details eleven disputes, systematic failure to investigate, inaccurate reporting, and unvalidated collection accounts. Discovery will request all communications with the furnishers, all verification documents, and all policies regarding dispute handling.`,
+      `Cases like this typically settle, but we are prepared to take this to trial if necessary. The documentation is comprehensive, the violations are clear, and juries tend to sympathize with consumers who have tried this hard to resolve things directly.`,
+      `Final opportunity: delete all accounts that cannot be verified as both accurate AND properly validated within 72 hours. Provide written confirmation. After that, the complaint is filed and settlement discussions will only occur on our terms.`,
+    ],
+    demandSection: DEMAND_LANGUAGE.R7_PLUS,
+    consumerStatement: `Eleven disputes. Two federal laws violated. Complete documentation of every failure. The accounts below must be deleted immediately. This is not negotiable. The only question is whether resolution happens now or in federal court.`,
+    includesScreenshots: true,
+  },
+
+  12: {
+    headline: "LITIGATION NOTICE—Federal Complaint Being Filed Under FCRA and FDCPA",
+    statute: "FCRA 1681n, 1681o, 1681p & FDCPA 1692k",
+    openingParagraph: `As of this letter, my attorneys are filing the federal complaint against {bureauName} and all furnishers of the disputed accounts. Twelve disputes over the past year have been met with willful disregard for my rights under both the Fair Credit Reporting Act and the Fair Debt Collection Practices Act.`,
+    bodyParagraphs: [
+      `The complaint has been finalized and includes: twelve documented disputes; evidence of inaccurate reporting; evidence of unvalidated collection debts; communications showing failure to investigate; and expert testimony on credit damage calculation.`,
+      `We are filing under 15 USC 1681p (FCRA jurisdiction) and 15 USC 1692k (FDCPA jurisdiction). Venue is proper in this district. We are seeking actual damages, statutory damages, punitive damages, attorney's fees, and injunctive relief.`,
+      `This letter serves as formal notice of the litigation. You will be served through your registered agent. All future communications should be directed to my attorneys. Settlement discussions remain possible but will require deletion of all disputed accounts plus damages.`,
+    ],
+    demandSection: DEMAND_LANGUAGE.R7_PLUS,
+    consumerStatement: `Twelve rounds of disputes. Two federal statutes violated. No meaningful investigation. As of this letter, litigation proceeds. The accounts listed below will be the subject of federal court proceedings. You had twelve chances to make this right. You chose not to.`,
     includesScreenshots: true,
   },
 };
@@ -913,9 +1154,17 @@ export function getTemplate(flow: FlowType, round: number): RoundTemplate | null
       break;
 
     case "COMBO":
-      // Combo uses a mix - for now, return accuracy templates
-      // The actual combo logic combines accuracy + collection in one letter
-      template = ACCURACY_TEMPLATES[round];
+      // COMBO flow has its own templates for R1-R4 and R8-R12
+      // R5-R7 switch to ACCURACY (handled by getEffectiveFlow)
+      if (round >= 5 && round <= 7) {
+        template = ACCURACY_TEMPLATES[round];
+      } else {
+        template = COMBO_TEMPLATES[round];
+        // Fallback to accuracy if combo template doesn't exist for this round
+        if (!template) {
+          template = ACCURACY_TEMPLATES[round];
+        }
+      }
       break;
   }
 
