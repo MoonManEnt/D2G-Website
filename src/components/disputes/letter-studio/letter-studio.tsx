@@ -18,6 +18,8 @@ import {
   Loader2,
   Check,
 } from "lucide-react";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import { useToast } from "@/lib/use-toast";
 import { LetterDocument } from "./letter-document";
 import { AmeliaPanel, type DocumentSection as AmeliaPanelDocumentSection } from "./amelia-panel";
 import { SectionNavigator, type SectionInfo } from "./section-navigator";
@@ -197,6 +199,9 @@ export function LetterStudio({
   const [draftSaved, setDraftSaved] = useState(false);
 
   const documentRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
   // ---------------------------------------------------------------------------
   // Derived State
@@ -256,6 +261,266 @@ export function LetterStudio({
   const handleSectionHover = useCallback((section: DocumentSection | null) => {
     setHoveredSection(section);
   }, []);
+
+  // ---------------------------------------------------------------------------
+  // PDF Generation
+  // ---------------------------------------------------------------------------
+
+  const generatePdf = useCallback(async (content: string): Promise<Uint8Array> => {
+    const pdfDoc = await PDFDocument.create();
+    const timesRoman = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+    const timesRomanBold = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
+    const timesRomanItalic = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
+
+    const fontSize = 11;
+    const lineHeight = 14;
+    const margin = 72; // 1 inch margins
+    const pageWidth = 612; // Letter size
+    const pageHeight = 792;
+    const maxWidth = pageWidth - margin * 2;
+
+    // Split content into lines and wrap
+    const lines = content.split("\n");
+    const wrappedLines: { text: string; bold?: boolean; italic?: boolean; centered?: boolean }[] = [];
+
+    for (const line of lines) {
+      if (line.trim() === "") {
+        wrappedLines.push({ text: "" });
+        continue;
+      }
+
+      // Check for title line (centered, bold - usually has ** markers or RE:)
+      const isTitle = line.includes("**") || (line.toUpperCase().includes("RE:") && line.length < 80);
+      const cleanLine = line.replace(/\*\*/g, "").trim();
+
+      // Check for signature area
+      const isSignature =
+        cleanLine.toLowerCase().includes("sincerely") ||
+        (cleanLine.trim().length > 0 &&
+          cleanLine.trim().length < 40 &&
+          !cleanLine.includes(":") &&
+          !cleanLine.includes(".") &&
+          lines.indexOf(line) > lines.length - 10);
+
+      // Check for headers/bold text (ALL CAPS)
+      const isBold = isTitle || (cleanLine.toUpperCase() === cleanLine && cleanLine.trim().length > 3 && cleanLine.trim().length < 60);
+
+      // Word wrap
+      const words = cleanLine.split(" ");
+      let currentLine = "";
+
+      for (const word of words) {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        const font = isBold ? timesRomanBold : timesRoman;
+        const width = font.widthOfTextAtSize(testLine, fontSize);
+
+        if (width > maxWidth && currentLine) {
+          wrappedLines.push({ text: currentLine, bold: isBold, italic: isSignature, centered: isTitle });
+          currentLine = word;
+        } else {
+          currentLine = testLine;
+        }
+      }
+
+      if (currentLine) {
+        wrappedLines.push({ text: currentLine, bold: isBold, italic: isSignature, centered: isTitle });
+      }
+    }
+
+    // Create pages and draw text
+    let page = pdfDoc.addPage([pageWidth, pageHeight]);
+    let y = pageHeight - margin;
+
+    for (const line of wrappedLines) {
+      if (y < margin + lineHeight) {
+        page = pdfDoc.addPage([pageWidth, pageHeight]);
+        y = pageHeight - margin;
+      }
+
+      const font = line.bold ? timesRomanBold : line.italic ? timesRomanItalic : timesRoman;
+
+      // Calculate x position (centered or left-aligned)
+      let x = margin;
+      if (line.centered && line.text) {
+        const textWidth = font.widthOfTextAtSize(line.text, fontSize);
+        x = (pageWidth - textWidth) / 2;
+      }
+
+      page.drawText(line.text, {
+        x,
+        y,
+        size: fontSize,
+        font,
+        color: rgb(0, 0, 0),
+      });
+
+      y -= lineHeight;
+    }
+
+    return pdfDoc.save();
+  }, []);
+
+  const handleDownloadPdf = useCallback(async () => {
+    if (!generatedLetter) return;
+
+    setIsDownloadingPdf(true);
+    try {
+      const pdfBytes = await generatePdf(generatedLetter.content);
+      const blob = new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+
+      // Generate filename
+      const clientSlug = clientName?.replace(/\s+/g, "_") || "client";
+      const filename = `${clientSlug}_${cra}_R${round}_${flow}.pdf`;
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "PDF Downloaded",
+        description: `Saved as ${filename}`,
+      });
+    } catch (error) {
+      console.error("Failed to generate PDF:", error);
+      toast({
+        title: "Download Failed",
+        description: "Could not generate PDF. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  }, [generatedLetter, generatePdf, clientName, cra, round, flow, toast]);
+
+  const handlePrint = useCallback(() => {
+    if (!generatedLetter) return;
+
+    // Create a clean print window with just the letter content
+    const printWindow = window.open("", "_blank", "width=800,height=1000");
+    if (!printWindow) {
+      toast({
+        title: "Print Blocked",
+        description: "Please allow popups to print the letter.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Format the content for printing - convert ** to bold
+    const formattedContent = generatedLetter.content
+      .split("\n")
+      .map((line) => {
+        // Handle title lines with **
+        if (line.includes("**")) {
+          const cleanLine = line.replace(/\*\*/g, "").trim();
+          return `<p style="text-align: center; font-weight: bold; text-transform: uppercase; margin: 20px 0;">${cleanLine}</p>`;
+        }
+        // Empty lines become paragraph breaks
+        if (line.trim() === "") {
+          return "<br/>";
+        }
+        return `<p style="margin: 0 0 8px 0; line-height: 1.6;">${line}</p>`;
+      })
+      .join("\n");
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Dispute Letter - ${clientName || "Client"}</title>
+        <style>
+          @media print {
+            @page {
+              margin: 1in;
+              size: letter;
+            }
+            body {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+          }
+          body {
+            font-family: "Times New Roman", Times, serif;
+            font-size: 11pt;
+            line-height: 1.5;
+            color: #000;
+            background: #fff;
+            max-width: 6.5in;
+            margin: 0 auto;
+            padding: 0.5in;
+          }
+          p {
+            margin: 0 0 8px 0;
+          }
+        </style>
+      </head>
+      <body>
+        ${formattedContent}
+      </body>
+      </html>
+    `);
+
+    printWindow.document.close();
+
+    // Wait for content to load then print
+    printWindow.onload = () => {
+      printWindow.focus();
+      printWindow.print();
+    };
+
+    toast({
+      title: "Print Ready",
+      description: "Print dialog opened in new window.",
+    });
+  }, [generatedLetter, clientName, toast]);
+
+  const handleCopyToClipboard = useCallback(async () => {
+    if (!generatedLetter) return;
+
+    try {
+      // Clean up the content - remove ** markers for clipboard
+      const cleanContent = generatedLetter.content.replace(/\*\*/g, "");
+      await navigator.clipboard.writeText(cleanContent);
+      toast({
+        title: "Copied to Clipboard",
+        description: "Letter content copied successfully.",
+      });
+    } catch (error) {
+      console.error("Failed to copy:", error);
+      toast({
+        title: "Copy Failed",
+        description: "Could not copy to clipboard.",
+        variant: "destructive",
+      });
+    }
+  }, [generatedLetter, toast]);
+
+  const handleRegenerateFull = useCallback(async () => {
+    if (!onRegenerate) return;
+
+    setIsRegenerating(true);
+    try {
+      await onRegenerate();
+      toast({
+        title: "Letter Regenerated",
+        description: "A new unique letter has been generated.",
+      });
+    } catch (error) {
+      console.error("Failed to regenerate:", error);
+      toast({
+        title: "Regeneration Failed",
+        description: "Could not regenerate letter. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRegenerating(false);
+    }
+  }, [onRegenerate, toast]);
 
   // ---------------------------------------------------------------------------
   // Keyboard Shortcuts
@@ -456,22 +721,20 @@ export function LetterStudio({
             round={round}
             flow={flow}
             tone={selectedTone}
-            onRegenerate={async () => {
-              if (onRegenerate) await onRegenerate();
-            }}
+            onRegenerate={handleRegenerateFull}
             onToneChange={handleToneChange}
-            onRegenerateFullLetter={async () => {
-              if (onRegenerate) await onRegenerate();
-            }}
-            onCopyToClipboard={() => {
-              navigator.clipboard.writeText(generatedLetter.content);
-            }}
-            onDownloadPDF={onDownload}
-            onPrint={() => window.print()}
+            onRegenerateFullLetter={handleRegenerateFull}
+            onCopyToClipboard={handleCopyToClipboard}
+            onDownloadPDF={handleDownloadPdf}
+            onPrint={handlePrint}
             onSendMail={() => {
               // TODO: Integrate with DocuPost
+              toast({
+                title: "Coming Soon",
+                description: "DocuPost integration will be available soon.",
+              });
             }}
-            isRegenerating={false}
+            isRegenerating={isRegenerating}
             kitchenTableScore={92}
             eoscarRisk="LOW"
             uniquenessScore={98}
