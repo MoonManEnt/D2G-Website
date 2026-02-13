@@ -1,17 +1,16 @@
 /**
- * SENTRY WRITING MODES
+ * SENTRY WRITING MODES - UNIFIED WITH AMELIA
  *
- * As of v2.0, NORMAL_PEOPLE is the ONLY mode used.
- * All letters are human-first with story-driven content.
+ * As of v3.0, all letters use AMELIA's Kitchen Table Test compliance.
+ * WritingMode is kept for backward compatibility but no longer selectable.
  *
- * PROFESSIONAL mode is DEPRECATED - kept for backward compatibility only.
- *
- * Human-first letters feature:
- * - Story first (2-3 sentences about real-life impact)
- * - Simple language (8th-11th grade reading level)
- * - Clear demands in plain English
- * - Legal footer at the end (like fine print)
- * - e-OSCAR compliance maintained behind the scenes
+ * Kitchen Table Test (6th-9th grade reading level):
+ * - Sounds like a real person wrote it at their kitchen table
+ * - Colloquial language ("I got my reports" not "I have obtained")
+ * - No corporate speak or legal jargon in body
+ * - Unique AI-generated impact stories
+ * - NO statute citations in Round 1 (establishes story first)
+ * - Automatic tone escalation: CONCERNED → WORRIED → FED_UP → WARNING → PISSED
  */
 
 import type { SentryFlowType, SentryCRA } from "@/types/sentry";
@@ -32,27 +31,28 @@ export interface WritingModeConfig {
 }
 
 export const WRITING_MODE_CONFIGS: Record<WritingMode, WritingModeConfig> = {
-  // DEPRECATED - kept for backward compatibility
+  // DEPRECATED - kept for backward compatibility only
   PROFESSIONAL: {
     mode: "PROFESSIONAL",
     name: "Professional (Deprecated)",
-    description: "No longer used - all letters use human-first style",
+    description: "Deprecated - all letters now use Kitchen Table compliance",
     readingLevel: "N/A",
     tone: "Deprecated",
-    features: ["Deprecated - use NORMAL_PEOPLE"],
+    features: ["Deprecated - AMELIA handles all letter generation"],
   },
-  // DEFAULT - All letters now use this mode
+  // DEFAULT - Kitchen Table Test compliant (AMELIA unified)
   NORMAL_PEOPLE: {
     mode: "NORMAL_PEOPLE",
-    name: "Human-First",
-    description: "Story-driven letters that sound like a real person",
-    readingLevel: "8th-11th grade",
-    tone: "Conversational, relatable, authentic",
+    name: "Kitchen Table",
+    description: "Sounds like a real person wrote it at their kitchen table",
+    readingLevel: "6th-9th grade",
+    tone: "Auto-escalates: Concerned → Worried → Fed Up → Warning → Final Notice",
     features: [
-      "Personal impact story leads the letter",
-      "Plain English - no legal jargon",
-      "Clear, simple demands",
-      "Legal footer at the end (like fine print)",
+      "6th-9th grade reading level (Kitchen Table Test)",
+      "Colloquial language - no corporate speak",
+      "NO statute citations in Round 1",
+      "Infinite unique AI-generated stories",
+      "Automatic tone escalation by round",
     ],
   },
 };
@@ -233,11 +233,11 @@ export const HUMAN_TOUCH_PATTERNS = {
 };
 
 // =============================================================================
-// READING LEVEL GUIDELINES
+// READING LEVEL GUIDELINES (Kitchen Table Test: 6th-9th grade)
 // =============================================================================
 
 /**
- * Word substitutions to maintain 8th-11th grade reading level
+ * Word substitutions to maintain 6th-9th grade reading level (Kitchen Table Test)
  */
 export const PLAIN_LANGUAGE_SUBSTITUTIONS: Record<string, string> = {
   "pursuant to": "according to",
@@ -298,15 +298,16 @@ ${context.clientContext.hasSmallBusiness ? "- Owns or starting a small business"
   return `You are helping a regular person write about how a credit report error is affecting their life.
 This is for a dispute letter to a credit bureau.
 
-CRITICAL RULES:
+CRITICAL RULES (Kitchen Table Test):
 1. Generate a COMPLETELY NEW and UNIQUE story every time - never repeat
-2. Write at an 8th-11th grade reading level
-3. Sound like a REAL PERSON, not an AI or English teacher
-4. Include specific but realistic details
-5. Show emotional impact without being dramatic or over-the-top
-6. Keep it to 2-3 sentences max
-7. Make it relatable - this is someone working hard in a capitalist society
-8. NO fancy vocabulary, NO perfect grammar - this is everyday speech
+2. Write at a 6th-9th grade reading level (Kitchen Table Test)
+3. Sound like a REAL PERSON sitting at their kitchen table, not an AI
+4. Use COLLOQUIAL language ("I got" not "I obtained", "I've been" not "I have been")
+5. Include specific but realistic details about daily life impact
+6. Show emotional impact without being dramatic or over-the-top
+7. Keep it to 2-3 sentences max
+8. NO fancy vocabulary, NO corporate speak, NO perfect grammar
+9. This is someone working hard who just wants their credit fixed
 
 THE SITUATION:
 The person is dealing with ${disputeTypeDescriptions[context.disputeType]}.

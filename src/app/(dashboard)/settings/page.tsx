@@ -38,7 +38,7 @@ import {
   Archive,
   MessageSquarePlus,
 } from "lucide-react";
-import { WRITING_MODE_CONFIGS, type WritingMode } from "@/lib/sentry/writing-modes";
+import { ArrowRight, Mic2, AlertCircle, Flame, Gavel, Angry } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
 import { BrandingSettings } from "@/components/branding";
 import { ProfilePictureUpload } from "@/components/profile";
@@ -80,9 +80,7 @@ export default function SettingsPage() {
   } | null>(null);
   const [isLoadingCounts, setIsLoadingCounts] = useState(false);
 
-  // Dispute settings state
-  const [defaultWritingMode, setDefaultWritingMode] = useState<WritingMode>("PROFESSIONAL");
-  const [isSavingDisputeSettings, setIsSavingDisputeSettings] = useState(false);
+  // Dispute settings - now informational only (AMELIA handles tone automatically)
 
   // Initialize form with session data
   useEffect(() => {
@@ -91,13 +89,6 @@ export default function SettingsPage() {
     }
   }, [session?.user?.name]);
 
-  // Load saved writing mode preference
-  useEffect(() => {
-    const savedMode = localStorage.getItem("dispute2go_default_writing_mode");
-    if (savedMode === "PROFESSIONAL" || savedMode === "NORMAL_PEOPLE") {
-      setDefaultWritingMode(savedMode);
-    }
-  }, []);
 
   // Fetch profile picture
   useEffect(() => {
@@ -545,140 +536,103 @@ export default function SettingsPage() {
           <motion.div variants={tabContentVariants} initial="hidden" animate="visible">
             <Card className="bg-card border-border backdrop-blur-sm">
               <CardHeader>
-                <CardTitle className="text-foreground">Dispute Settings</CardTitle>
+                <CardTitle className="text-foreground flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-emerald-400" />
+                  AMELIA Letter Generation
+                </CardTitle>
                 <CardDescription className="text-muted-foreground">
-                  Configure default settings for Sentry dispute letter generation
+                  How dispute letters are generated using the Kitchen Table Test
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Writing Mode Selection */}
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-foreground text-lg">Default Writing Style</Label>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Choose the default tone and style for generated dispute letters
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {(["PROFESSIONAL", "NORMAL_PEOPLE"] as WritingMode[]).map((mode) => {
-                      const config = WRITING_MODE_CONFIGS[mode];
-                      const isSelected = defaultWritingMode === mode;
-                      return (
-                        <button
-                          key={mode}
-                          onClick={() => setDefaultWritingMode(mode)}
-                          className={`p-6 rounded-xl text-left transition-all border ${
-                            isSelected
-                              ? mode === "NORMAL_PEOPLE"
-                                ? "bg-purple-500/20 border-purple-500/50 ring-2 ring-purple-500/30"
-                                : "bg-blue-500/20 border-blue-500/50 ring-2 ring-blue-500/30"
-                              : "bg-muted border-border hover:bg-muted/80"
-                          }`}
-                        >
-                          <div className="flex items-center gap-3 mb-3">
-                            {mode === "NORMAL_PEOPLE" ? (
-                              <div className={`p-2 rounded-lg ${isSelected ? "bg-purple-500/20" : "bg-muted"}`}>
-                                <MessageSquarePlus className={`w-5 h-5 ${isSelected ? "text-purple-400" : "text-muted-foreground"}`} />
-                              </div>
-                            ) : (
-                              <div className={`p-2 rounded-lg ${isSelected ? "bg-blue-500/20" : "bg-muted"}`}>
-                                <FileText className={`w-5 h-5 ${isSelected ? "text-blue-400" : "text-muted-foreground"}`} />
-                              </div>
-                            )}
-                            <div>
-                              <span className={`font-semibold ${
-                                isSelected
-                                  ? mode === "NORMAL_PEOPLE" ? "text-purple-400" : "text-blue-400"
-                                  : "text-foreground"
-                              }`}>
-                                {config.name}
-                              </span>
-                              <span className={`ml-2 text-xs px-2 py-0.5 rounded ${
-                                isSelected
-                                  ? mode === "NORMAL_PEOPLE" ? "bg-purple-500/20 text-purple-400" : "bg-blue-500/20 text-blue-400"
-                                  : "bg-muted text-muted-foreground"
-                              }`}>
-                                {config.readingLevel}
-                              </span>
-                            </div>
-                          </div>
-                          <p className="text-sm text-muted-foreground mb-3">
-                            {config.description}
-                          </p>
-                          <ul className="space-y-1">
-                            {config.features.map((feature, idx) => (
-                              <li key={idx} className="text-xs text-muted-foreground flex items-center gap-2">
-                                <Check className="w-3 h-3 text-emerald-400" />
-                                {feature}
-                              </li>
-                            ))}
-                          </ul>
-                          {mode === "NORMAL_PEOPLE" && (
-                            <div className="mt-4 pt-3 border-t border-border">
-                              <p className="text-xs text-purple-400 flex items-center gap-2">
-                                <Sparkles className="w-3 h-3" />
-                                AI-generated unique impact stories
-                              </p>
-                            </div>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div className="flex justify-end pt-4">
-                    <Button
-                      onClick={async () => {
-                        setIsSavingDisputeSettings(true);
-                        try {
-                          // Save to user preferences (in localStorage for now, could be API later)
-                          localStorage.setItem("dispute2go_default_writing_mode", defaultWritingMode);
-                          toast({
-                            title: "Settings saved",
-                            description: `Default writing style set to ${WRITING_MODE_CONFIGS[defaultWritingMode].name}`,
-                          });
-                        } finally {
-                          setIsSavingDisputeSettings(false);
-                        }
-                      }}
-                      disabled={isSavingDisputeSettings}
-                      className="bg-primary hover:bg-primary/90"
-                    >
-                      {isSavingDisputeSettings ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="w-4 h-4 mr-2" />
-                          Save Settings
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="border-t border-border pt-6">
-                  <div className="bg-muted/50 rounded-lg p-4">
-                    <h4 className="text-sm font-medium text-foreground mb-2">About Writing Modes</h4>
-                    <div className="space-y-3 text-sm text-muted-foreground">
-                      <p>
-                        <strong className="text-blue-400">Professional Mode</strong> generates formal dispute letters with
-                        full legal citations and technical language. Best for law firms and professional credit repair companies.
-                      </p>
-                      <p>
-                        <strong className="text-purple-400">Normal People Mode</strong> generates conversational letters that
-                        sound like a real person wrote them. Uses 8th-11th grade reading level with AI-generated unique
-                        impact stories that explain how the credit error affects the consumer's life.
-                      </p>
-                      <p className="text-xs">
-                        Both modes are fully e-OSCAR compliant and include proper legal citations. You can override the
-                        default setting when creating individual disputes.
+                {/* Kitchen Table Test Explanation */}
+                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-5">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-emerald-500/20 rounded-lg">
+                      <MessageSquarePlus className="w-5 h-5 text-emerald-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-emerald-400 mb-1">Kitchen Table Test</h3>
+                      <p className="text-sm text-muted-foreground">
+                        All letters sound like a real person wrote them at their kitchen table.
+                        <strong className="text-foreground"> 6th-9th grade reading level</strong>, colloquial language,
+                        no corporate speak, and unique AI-generated impact stories.
                       </p>
                     </div>
                   </div>
+                </div>
+
+                {/* Tone Escalation System */}
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-foreground text-lg">Automatic Tone Escalation</Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Letter tone automatically escalates based on dispute round
+                    </p>
+                  </div>
+
+                  <div className="grid gap-3">
+                    {[
+                      { round: "R1", tone: "Concerned", icon: Mic2, color: "blue", desc: "Polite, establishing facts. NO statute citations - just tells your story." },
+                      { round: "R2", tone: "Worried", icon: AlertCircle, color: "cyan", desc: "More assertive, expressing genuine concern about the errors." },
+                      { round: "R3", tone: "Fed Up", icon: Flame, color: "amber", desc: "Frustrated tone, demanding action and accountability." },
+                      { round: "R4", tone: "Warning", icon: Gavel, color: "orange", desc: "Mentioning legal rights and consequences of non-compliance." },
+                      { round: "R5+", tone: "Final Notice", icon: Angry, color: "red", desc: "Last warning before pursuing legal remedies." },
+                    ].map((item, idx) => {
+                      const Icon = item.icon;
+                      const colorMap: Record<string, string> = {
+                        blue: "bg-blue-500/10 border-blue-500/30 text-blue-400",
+                        cyan: "bg-cyan-500/10 border-cyan-500/30 text-cyan-400",
+                        amber: "bg-amber-500/10 border-amber-500/30 text-amber-400",
+                        orange: "bg-orange-500/10 border-orange-500/30 text-orange-400",
+                        red: "bg-red-500/10 border-red-500/30 text-red-400",
+                      };
+                      return (
+                        <div key={item.round} className="flex items-center gap-3">
+                          {idx > 0 && (
+                            <ArrowRight className="w-4 h-4 text-muted-foreground/50 -ml-1 -mr-1" />
+                          )}
+                          <div className={`flex items-center gap-3 flex-1 p-3 rounded-lg border ${colorMap[item.color]}`}>
+                            <div className="flex items-center gap-2 min-w-[100px]">
+                              <Icon className="w-4 h-4" />
+                              <span className="font-mono font-bold">{item.round}</span>
+                              <span className="font-medium">{item.tone}</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground flex-1">{item.desc}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Key Features */}
+                <div className="border-t border-border pt-6">
+                  <Label className="text-foreground text-lg mb-4 block">Key Features</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      { title: "Infinite Uniqueness", desc: "Every letter is 100% unique - defeats eOSCAR pattern detection" },
+                      { title: "Backdated Letters", desc: "R1 backdated 60-69 days, R2+ backdated 30-39 days" },
+                      { title: "Personal Info Disputes", desc: "R1 includes previous names, addresses, and hard inquiries" },
+                      { title: "Natural Closings", desc: "No 'Consumer Statement' labels - just authentic sign-offs" },
+                    ].map((feature) => (
+                      <div key={feature.title} className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
+                        <Check className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+                        <div>
+                          <span className="font-medium text-foreground text-sm">{feature.title}</span>
+                          <p className="text-xs text-muted-foreground">{feature.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-muted/50 rounded-lg p-4">
+                  <p className="text-xs text-muted-foreground">
+                    <strong className="text-foreground">Note:</strong> The tone escalation is automatic based on round number.
+                    You can override the tone when editing individual letters in Letter Studio, but the Kitchen Table Test
+                    compliance (6th-9th grade reading level, colloquial language) is always enforced.
+                  </p>
                 </div>
               </CardContent>
             </Card>
