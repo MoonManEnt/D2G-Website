@@ -85,7 +85,9 @@ export interface LetterStudioProps {
   onRoundChange?: (round: number) => void;
   onRegenerate?: () => Promise<void>;
   onToneChange?: (tone: string) => void;
+  onFormatChange?: (format: string) => void;
   availableFlows?: { id: string; label: string }[];
+  initialFormat?: string;
 }
 
 // ============================================================================
@@ -104,6 +106,21 @@ const TONE_OPTIONS = [
   { id: "FED_UP", label: "Fed Up", round: "R3" },
   { id: "WARNING", label: "Warning", round: "R4" },
   { id: "PISSED", label: "Pissed", round: "R5+" },
+];
+
+const FORMAT_OPTIONS = [
+  {
+    id: "STRUCTURED",
+    label: "Structured",
+    description: "Bold headers, detailed explanations (Recommended)",
+    recommended: true,
+  },
+  {
+    id: "CONVERSATIONAL",
+    label: "Conversational",
+    description: "Casual headers, combined sections",
+    recommended: false,
+  },
 ];
 
 const DEFAULT_FLOWS = [
@@ -177,7 +194,9 @@ export function LetterStudio({
   onRoundChange,
   onRegenerate,
   onToneChange,
+  onFormatChange,
   availableFlows = DEFAULT_FLOWS,
+  initialFormat = "STRUCTURED",
 }: LetterStudioProps) {
   // ---------------------------------------------------------------------------
   // State
@@ -195,6 +214,7 @@ export function LetterStudio({
   const [selectedTone, setSelectedTone] = useState(
     generatedLetter?.ameliaMetadata?.tone || "CONCERNED"
   );
+  const [selectedFormat, setSelectedFormat] = useState(initialFormat);
   const [savingDraft, setSavingDraft] = useState(false);
   const [draftSaved, setDraftSaved] = useState(false);
 
@@ -256,6 +276,19 @@ export function LetterStudio({
       onToneChange?.(tone);
     },
     [onToneChange]
+  );
+
+  const handleFormatChange = useCallback(
+    (format: string) => {
+      setSelectedFormat(format);
+      onFormatChange?.(format);
+      // Show toast indicating regeneration may be needed
+      toast({
+        title: "Format Changed",
+        description: `Switched to ${format === "STRUCTURED" ? "Structured" : "Conversational"} format. Regenerate to apply.`,
+      });
+    },
+    [onFormatChange, toast]
   );
 
   const handleSectionHover = useCallback((section: DocumentSection | null) => {
@@ -622,6 +655,41 @@ export function LetterStudio({
           {clientName && (
             <span className="text-sm text-muted-foreground">{clientName}</span>
           )}
+
+          {/* Format Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                {FORMAT_OPTIONS.find((f) => f.id === selectedFormat)?.label ||
+                  "Format"}
+                <ChevronDown className="w-3 h-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64">
+              {FORMAT_OPTIONS.map((format) => (
+                <DropdownMenuItem
+                  key={format.id}
+                  onClick={() => handleFormatChange(format.id)}
+                  className={cn(
+                    "flex flex-col items-start py-2",
+                    selectedFormat === format.id && "bg-accent"
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{format.label}</span>
+                    {format.recommended && (
+                      <Badge variant="secondary" className="text-[10px] px-1 py-0">
+                        Recommended
+                      </Badge>
+                    )}
+                  </div>
+                  <span className="text-xs text-muted-foreground mt-0.5">
+                    {format.description}
+                  </span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* Tone Dropdown */}
           <DropdownMenu>

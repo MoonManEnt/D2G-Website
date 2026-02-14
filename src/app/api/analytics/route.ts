@@ -196,6 +196,7 @@ export async function GET(req: Request) {
                   cra: true,
                   flow: true,
                   round: true,
+                  letterFormat: true, // Track format for analytics
                 },
               },
               accountItem: {
@@ -374,6 +375,25 @@ export async function GET(req: Request) {
         total: flowResponses.length,
         success: flowDeleted,
         rate: flowResponses.length > 0 ? Math.round((flowDeleted / flowResponses.length) * 100) : 0,
+      };
+    }
+
+    // Success by Letter Format (STRUCTURED vs CONVERSATIONAL)
+    const successByFormat: Record<string, { total: number; deleted: number; verified: number; rate: number; description: string }> = {};
+    for (const format of ["STRUCTURED", "CONVERSATIONAL"]) {
+      const formatResponses = disputeResponses.filter(r =>
+        (r.disputeItem?.dispute?.letterFormat || "STRUCTURED") === format
+      );
+      const formatDeleted = formatResponses.filter(r => r.outcome === "DELETED").length;
+      const formatVerified = formatResponses.filter(r => r.outcome === "VERIFIED").length;
+      successByFormat[format] = {
+        total: formatResponses.length,
+        deleted: formatDeleted,
+        verified: formatVerified,
+        rate: formatResponses.length > 0 ? Math.round((formatDeleted / formatResponses.length) * 100) : 0,
+        description: format === "STRUCTURED"
+          ? "Bold headers, detailed explanations"
+          : "Casual headers, combined sections",
       };
     }
 
@@ -579,6 +599,7 @@ export async function GET(req: Request) {
       monthlyTrends,
       successByCRA,
       successByFlow,
+      successByFormat, // Letter format analytics (STRUCTURED vs CONVERSATIONAL)
       roundPerformance,
       clientFunnel,
       topPerformingItems,

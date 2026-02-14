@@ -19,6 +19,7 @@
 import {
   type FlowType,
   type LetterStructure,
+  type LetterFormat,
   type TemplateVariables,
   getTemplate,
   getDemandLanguage,
@@ -32,9 +33,11 @@ import {
   CONSENT_TEMPLATES,
   LATE_PAYMENT_TEMPLATES,
   LETTER_STRUCTURE_DESCRIPTIONS,
+  LETTER_FORMAT_DESCRIPTIONS,
+  STRUCTURED_FORMAT_HEADERS,
 } from "./amelia-templates";
-export type { FlowType, LetterStructure } from "./amelia-templates";
-export { LETTER_STRUCTURE_DESCRIPTIONS } from "./amelia-templates";
+export type { FlowType, LetterStructure, LetterFormat } from "./amelia-templates";
+export { LETTER_STRUCTURE_DESCRIPTIONS, LETTER_FORMAT_DESCRIPTIONS } from "./amelia-templates";
 import {
   type ClientPersonalInfo,
   type DisputeAccount,
@@ -104,6 +107,8 @@ export interface LetterGenerationInput {
   activePersonalInfoDisputes?: ActivePersonalInfoDispute[];
   // Letter structure: DAMAGES_FIRST (default) or FACTS_FIRST
   letterStructure?: LetterStructure;
+  // Letter format: CONVERSATIONAL (default) or STRUCTURED (bold headers + detailed explanations)
+  letterFormat?: LetterFormat;
   // Override the auto-determined tone (used when regenerating with user-selected tone)
   toneOverride?: string;
 }
@@ -127,6 +132,8 @@ export interface GeneratedLetter {
   };
   // Letter structure used (DAMAGES_FIRST or FACTS_FIRST)
   letterStructure: LetterStructure;
+  // Letter format used (CONVERSATIONAL or STRUCTURED)
+  letterFormat: LetterFormat;
 }
 
 // =============================================================================
@@ -512,6 +519,299 @@ function generateScreenshotsReference(): string {
 }
 
 // =============================================================================
+// STRUCTURED FORMAT GENERATORS (Bold headers, separate sections)
+// =============================================================================
+
+/**
+ * Select a randomized header from the pool for eOSCAR resistance
+ */
+function selectStructuredHeader(
+  headerPool: string[],
+  seed: string,
+  bureauName?: string
+): string {
+  const idx = Math.abs(hashString(seed)) % headerPool.length;
+  let header = headerPool[idx];
+  if (bureauName) {
+    header = header.replace("{bureauName}", bureauName);
+  }
+  return header;
+}
+
+/**
+ * Generate STRUCTURED format: Simple account quick list
+ * Just creditor name + account number in bullet format
+ */
+function generateStructuredAccountQuickList(
+  accounts: DisputeAccount[],
+  bureauName: string,
+  seed: string
+): string {
+  const header = selectStructuredHeader(
+    STRUCTURED_FORMAT_HEADERS.accountList,
+    seed + "-accountlist",
+    bureauName
+  );
+
+  const bullets = accounts.map(account => {
+    const acctNum = account.accountNumber || "No Account Number";
+    return `• ${account.creditorName} — Account #${acctNum}`;
+  });
+
+  return `**${header}**\n\n${bullets.join("\n")}`;
+}
+
+/**
+ * Generate STRUCTURED format: Detailed corrections section
+ * Prose explanation for each account with specific details
+ */
+function generateStructuredCorrectionsSection(
+  accounts: DisputeAccount[],
+  flow: FlowType,
+  seed: string
+): string {
+  const header = selectStructuredHeader(
+    STRUCTURED_FORMAT_HEADERS.corrections,
+    seed + "-corrections"
+  );
+
+  const explanations = accounts.map(account => {
+    const acctNum = account.accountNumber || "No Account Number";
+    const explanation = generateStructuredAccountExplanation(account, flow, seed);
+    return `• ${account.creditorName} (${acctNum}) — ${explanation}`;
+  });
+
+  return `**${header}**\n\n${explanations.join("\n\n")}`;
+}
+
+/**
+ * Generate a detailed prose explanation for a single account
+ * Kitchen Table voice but with specific details for high specificity score
+ */
+function generateStructuredAccountExplanation(
+  account: DisputeAccount,
+  flow: FlowType,
+  seed: string
+): string {
+  const issues = account.issues || [];
+  const hasBalanceIssue = issues.some(i =>
+    i.code.includes("BALANCE") || i.code.includes("AMOUNT")
+  );
+  const hasLatePaymentIssue = issues.some(i =>
+    i.code.includes("LATE") || i.code.includes("PAYMENT") || i.code.includes("DELINQ")
+  );
+  const hasCollectionIssue = issues.some(i =>
+    i.code.includes("COLLECTION") || i.code.includes("CHARGEOFF")
+  );
+  const hasStatusIssue = issues.some(i =>
+    i.code.includes("STATUS") || i.code.includes("CLOSED") || i.code.includes("OPEN")
+  );
+  const hasNotMineIssue = issues.some(i =>
+    i.code.includes("NOT_MINE") || i.code.includes("FRAUD") || i.code.includes("IDENTITY")
+  );
+
+  // Build issue-specific explanations with details
+  const issueDescriptions = issues
+    .map(issue => issue.description || issue.code)
+    .filter(desc => desc && desc.length > 0);
+
+  // Collection accounts
+  if (flow === "COLLECTION" || hasCollectionIssue) {
+    const collectionExplanations = [
+      `I do not recognize this account and have never done business with this company. I am disputing this as not my account. Delete this tradeline unless you can provide documentation proving this debt belongs to me.`,
+      `This collection is being disputed because I have no record of this debt. Provide validation showing the original creditor, original amount, and proof this is my obligation, or remove it from my file.`,
+      `I never agreed to owe this company anything. Show me signed documentation with my signature or delete this account. Reporting unverified debt is inaccurate.`,
+      `This debt collector has no business on my credit report. I dispute the validity of this account entirely. Remove it or prove with original paperwork that its mine.`,
+    ];
+    const idx = Math.abs(hashString(seed + account.creditorName)) % collectionExplanations.length;
+    return collectionExplanations[idx];
+  }
+
+  // Not mine / fraud
+  if (hasNotMineIssue) {
+    const notMineExplanations = [
+      `I do not recognize this account. I have never applied for or opened an account with this company. This may be the result of identity theft or a mixed file. Delete this tradeline unless you can verify I personally opened this account.`,
+      `This account does not belong to me. I have no knowledge of ever doing business with this creditor. Investigate this as a potential fraud or mixed file issue and remove if you cannot prove its mine.`,
+      `I am disputing this account as not belonging to me. My records show no history with this company. Verify this account belongs to me personally or delete it.`,
+    ];
+    const idx = Math.abs(hashString(seed + account.creditorName)) % notMineExplanations.length;
+    return notMineExplanations[idx];
+  }
+
+  // Balance issues - include specific amounts when available
+  if (hasBalanceIssue) {
+    const balanceIssue = issues.find(i => i.code.includes("BALANCE") || i.code.includes("AMOUNT"));
+    const details = balanceIssue?.description || "The balance is incorrect";
+    const balanceExplanations = [
+      `${details}. This balance does not match my records and needs to be corrected to reflect the accurate amount, or delete the tradeline entirely if it cannot be verified.`,
+      `The balance showing on this account is wrong. ${details}. Fix this to show the correct amount or remove the account if you cannot verify the accurate balance.`,
+      `${details}. I am disputing this balance as inaccurate. Correct it to match what I actually owe or delete the tradeline.`,
+    ];
+    const idx = Math.abs(hashString(seed + account.creditorName)) % balanceExplanations.length;
+    return balanceExplanations[idx];
+  }
+
+  // Late payment issues
+  if (hasLatePaymentIssue) {
+    const lateIssue = issues.find(i => i.code.includes("LATE") || i.code.includes("PAYMENT"));
+    const details = lateIssue?.description || "Late payments are showing incorrectly";
+    const lateExplanations = [
+      `${details}. I have records showing I was not late during these periods. Remove the late payment notations or provide proof of the exact dates I was late.`,
+      `The late payment history on this account is inaccurate. ${details}. Correct the payment history to reflect accurate information or delete the negative marks.`,
+      `${details}. These late marks are damaging my credit and they are not accurate. Fix the payment history or remove the late notations entirely.`,
+    ];
+    const idx = Math.abs(hashString(seed + account.creditorName)) % lateExplanations.length;
+    return lateExplanations[idx];
+  }
+
+  // Status issues
+  if (hasStatusIssue) {
+    const statusIssue = issues.find(i => i.code.includes("STATUS"));
+    const details = statusIssue?.description || "The account status is wrong";
+    const statusExplanations = [
+      `${details}. This status does not reflect the true condition of this account. Correct the status to match reality or explain how you verified this status.`,
+      `The status being reported is inaccurate. ${details}. Update this to the correct status or provide documentation showing how this status was verified.`,
+      `${details}. Fix this status to reflect accurate information about my account.`,
+    ];
+    const idx = Math.abs(hashString(seed + account.creditorName)) % statusExplanations.length;
+    return statusExplanations[idx];
+  }
+
+  // Generic accuracy issues - use all issue descriptions
+  const genericExplanations = [
+    `The information on this account contains errors${issueDescriptions.length > 0 ? `: ${issueDescriptions.join("; ")}` : ""}. These inaccuracies need to be corrected or the account should be deleted if it cannot be verified as accurate.`,
+    `This account is reporting inaccurately${issueDescriptions.length > 0 ? ` — specifically: ${issueDescriptions.join(", ")}` : ""}. Investigate and correct these errors or remove the tradeline.`,
+    `I am disputing the accuracy of this account${issueDescriptions.length > 0 ? `. Issues include: ${issueDescriptions.join("; ")}` : ""}. Fix these problems or delete the account if you cannot verify the information is correct.`,
+  ];
+  const idx = Math.abs(hashString(seed + account.creditorName)) % genericExplanations.length;
+  return genericExplanations[idx];
+}
+
+/**
+ * Generate STRUCTURED format: Personal information section
+ * Separate section with bold header for old names/addresses
+ */
+function generateStructuredPersonalInfoSection(
+  client: ClientPersonalInfo,
+  cra: CRA,
+  round: number,
+  activeDisputes?: ActivePersonalInfoDispute[],
+  seed?: string
+): string {
+  const items: string[] = [];
+
+  if (round === 1) {
+    // Round 1: Use client data directly
+    client.previousNames.forEach(name => {
+      items.push(`• ${name} — This is an old name that no longer applies to me. Remove this from my file as it does not reflect my current legal name.`);
+    });
+
+    client.previousAddresses.forEach(addr => {
+      items.push(`• ${addr} — This is an old address I no longer live at. Remove this from my file as it does not reflect my current residence and could be tied to accounts that arent mine.`);
+    });
+  } else {
+    // Round 2+: Use active disputes
+    if (activeDisputes && activeDisputes.length > 0) {
+      const craDisputes = activeDisputes.filter(d => d.cra === cra);
+      const names = craDisputes.filter(d => d.type === "PREVIOUS_NAME");
+      const addresses = craDisputes.filter(d => d.type === "PREVIOUS_ADDRESS");
+
+      names.forEach(d => {
+        items.push(`• ${d.value} — I already asked to have this old name removed (${d.disputeCount} time${d.disputeCount > 1 ? "s" : ""}). It does not belong on my file.`);
+      });
+
+      addresses.forEach(d => {
+        items.push(`• ${d.value} — I already disputed this old address (${d.disputeCount} time${d.disputeCount > 1 ? "s" : ""}). Remove it from my file.`);
+      });
+    }
+  }
+
+  if (items.length === 0) {
+    return "";
+  }
+
+  const header = selectStructuredHeader(
+    STRUCTURED_FORMAT_HEADERS.personalInfo,
+    (seed || "") + "-personalinfo"
+  );
+
+  return `**${header}**\n\n${items.join("\n\n")}`;
+}
+
+/**
+ * Generate STRUCTURED format: Hard inquiries section
+ * Separate section with bold header for unauthorized inquiries
+ */
+function generateStructuredInquiriesSection(
+  client: ClientPersonalInfo,
+  cra: CRA,
+  round: number,
+  activeDisputes?: ActivePersonalInfoDispute[],
+  seed?: string
+): string {
+  const items: string[] = [];
+
+  if (round === 1) {
+    // Round 1: Use client hard inquiries
+    const craInquiries = client.hardInquiries.filter(inq => inq.cra === cra);
+    craInquiries.forEach(inq => {
+      items.push(`• ${inq.creditorName} — Inquiry made on ${inq.inquiryDate} — I did not authorize this company to pull my credit. I never applied for anything with them. Remove this unauthorized inquiry from my report.`);
+    });
+  } else {
+    // Round 2+: Use active disputes
+    if (activeDisputes && activeDisputes.length > 0) {
+      const craDisputes = activeDisputes.filter(d => d.cra === cra && d.type === "HARD_INQUIRY");
+      craDisputes.forEach(d => {
+        const dateStr = d.inquiryDate ? ` made on ${d.inquiryDate}` : "";
+        items.push(`• ${d.value}${dateStr} — I already disputed this inquiry (${d.disputeCount} time${d.disputeCount > 1 ? "s" : ""}). I never authorized this pull. Remove it.`);
+      });
+    }
+  }
+
+  if (items.length === 0) {
+    return "";
+  }
+
+  const header = selectStructuredHeader(
+    STRUCTURED_FORMAT_HEADERS.inquiries,
+    (seed || "") + "-inquiries"
+  );
+
+  return `**${header}**\n\n${items.join("\n\n")}`;
+}
+
+/**
+ * Generate STRUCTURED format: Consumer statement with label
+ */
+function generateStructuredConsumerStatement(
+  round: number,
+  seed: string
+): string {
+  const header = selectStructuredHeader(
+    STRUCTURED_FORMAT_HEADERS.consumerStatement,
+    seed + "-consumer"
+  );
+
+  // Kitchen Table voice closing statements
+  const statements = [
+    "These wrong items have been holding me back for too long. Im asking you to look into each one carefully and only report what is accurate and really tied to me. I want my credit file to show the truth so I can be judged fairly and move on without these mistakes following me around.",
+    "These inaccuracies have been messing with my life for way too long. Please investigate everything I listed and fix what needs fixing. All I want is for my credit report to tell the truth about who I am.",
+    "Ive been dealing with these errors long enough. Look into each item I disputed and only keep whats actually accurate. I deserve to have a credit file that reflects the real me, not someone elses mistakes.",
+    "These problems on my report have caused real harm to me and my family. Im asking you to do a proper investigation and correct or delete what doesnt belong. I just want fair treatment based on accurate information.",
+  ];
+
+  const idx = Math.abs(hashString(seed)) % statements.length;
+  return `**${header}** ${statements[idx]}`;
+}
+
+/**
+ * Generate STRUCTURED format: Closing signature
+ */
+function generateStructuredClosing(clientName: string): string {
+  return `Best,\n\n${clientName}`;
+}
+
+// =============================================================================
 // ADAPTIVE CONTENT GENERATION (FOR ROUNDS 2+)
 // =============================================================================
 
@@ -763,6 +1063,7 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
     previousRoundContext,
     activePersonalInfoDisputes,
     letterStructure = "DAMAGES_FIRST", // Default to emotional lead
+    letterFormat = "STRUCTURED", // Default to STRUCTURED (recommended for higher specificity)
     toneOverride,
   } = input;
 
@@ -917,49 +1218,114 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
     bodyParagraphs.push(legalSection);
   }
 
-  // Account list - may include item-specific context for R2+
-  const accountList = generateAccountListWithContext(
-    accounts,
-    craInfo.name,
-    effectiveFlow,
-    previousRoundContext,
-    round
-  );
+  // =========================================================================
+  // FORMAT-SPECIFIC SECTION GENERATION
+  // =========================================================================
 
-  // Account list intro (if present in template)
-  const accountListIntro = template.accountListIntro
-    ? interpolateVariables(template.accountListIntro, vars)
-    : "";
-
-  // Demand section (uses natural escalation)
-  const demandLanguage = getDemandLanguage(round);
-  const demandSection = demandLanguage;
-
-  // Corrections section - use client info and date as seed for unique variations
-  const correctionsSeed = `${client.fullName}-${letterDate.toISOString()}-${cra}`;
-  const correctionsSection = generateCorrectionsSection(accounts, effectiveFlow, correctionsSeed);
-
-  // AMELIA Doctrine: Personal info disputes persist until confirmed removed
-  // R1: Initial disputes from client data
-  // R2+: Continue disputing items that are still ACTIVE in PersonalInfoDispute table
-  const personalInfoSection = generatePersonalInfoSection(
-    client,
-    cra,
-    round,
-    activePersonalInfoDisputes
-  );
-
-  // Consumer statement - select from variants for uniqueness
-  const { statement: selectedStatement } = selectConsumerStatementVariant(template, variantSeed);
-  const consumerStatement = interpolateVariables(selectedStatement, vars);
+  // Seed for randomized headers (ensures consistency within same letter)
+  const formatSeed = `${client.fullName}-${letterDate.toISOString()}-${cra}-${round}`;
 
   // Screenshots reference (R2+)
   const screenshotsRef = shouldIncludeScreenshots(round)
     ? generateScreenshotsReference()
     : "";
 
-  // Closing
-  const closing = generateClosing(client.fullName);
+  // Variables for sections that differ by format
+  let accountListSection: string;
+  let correctionsSection: string;
+  let personalInfoSection: string;
+  let inquiriesSection: string;
+  let closingSection: string;
+  let consumerStatementSection: string;
+
+  if (letterFormat === "STRUCTURED") {
+    // =====================================================================
+    // STRUCTURED FORMAT: Bold headers, separate quick list + detailed explanations
+    // =====================================================================
+
+    // Simple bullet list of account names + numbers
+    accountListSection = generateStructuredAccountQuickList(
+      accounts,
+      craInfo.name,
+      formatSeed
+    );
+
+    // Detailed prose explanation per account
+    correctionsSection = generateStructuredCorrectionsSection(
+      accounts,
+      effectiveFlow,
+      formatSeed
+    );
+
+    // Separate section for old names/addresses
+    personalInfoSection = generateStructuredPersonalInfoSection(
+      client,
+      cra,
+      round,
+      activePersonalInfoDisputes,
+      formatSeed
+    );
+
+    // Separate section for hard inquiries
+    inquiriesSection = generateStructuredInquiriesSection(
+      client,
+      cra,
+      round,
+      activePersonalInfoDisputes,
+      formatSeed
+    );
+
+    // Consumer statement with label
+    consumerStatementSection = generateStructuredConsumerStatement(round, formatSeed);
+
+    // "Best," closing
+    closingSection = generateStructuredClosing(client.fullName);
+
+  } else {
+    // =====================================================================
+    // CONVERSATIONAL FORMAT: Current AMELIA style - combined, casual
+    // =====================================================================
+
+    // Account list with context (may include item-specific context for R2+)
+    accountListSection = generateAccountListWithContext(
+      accounts,
+      craInfo.name,
+      effectiveFlow,
+      previousRoundContext,
+      round
+    );
+
+    // Combined corrections section
+    const correctionsSeed = `${client.fullName}-${letterDate.toISOString()}-${cra}`;
+    correctionsSection = generateCorrectionsSection(accounts, effectiveFlow, correctionsSeed);
+
+    // Combined personal info (names, addresses, inquiries together)
+    personalInfoSection = generatePersonalInfoSection(
+      client,
+      cra,
+      round,
+      activePersonalInfoDisputes
+    );
+
+    // No separate inquiries section (included in personalInfoSection)
+    inquiriesSection = "";
+
+    // Natural closing paragraph (no label)
+    const closingSeed = `${client.fullName}-${cra}-${round}-closing`;
+    consumerStatementSection = generateNaturalClosing(round, closingSeed);
+
+    // "Sincerely," closing
+    closingSection = generateClosing(client.fullName);
+  }
+
+  // Demand section (same for both formats - uses natural escalation)
+  const demandLanguage = getDemandLanguage(round);
+  const demandSection = demandLanguage;
+
+  // Account list intro (if present in template) - only for CONVERSATIONAL
+  const accountListIntro = (letterFormat === "CONVERSATIONAL" && template.accountListIntro)
+    ? interpolateVariables(template.accountListIntro, vars)
+    : "";
 
   // Assemble the complete letter based on structure preference
   // DAMAGES_FIRST: Personal impact → Legal facts → Account list → Penalty
@@ -990,30 +1356,61 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
     );
   }
 
-  // Common sections (same for both structures)
-  letterParts.push(
-    accountList,
-    accountListIntro ? accountListIntro + "\n\n" : "",
-    demandSection,
-    "",
-    correctionsSection
-  );
+  // =========================================================================
+  // FORMAT-SPECIFIC LETTER ASSEMBLY
+  // =========================================================================
 
-  if (personalInfoSection) {
-    letterParts.push(personalInfoSection);
+  if (letterFormat === "STRUCTURED") {
+    // STRUCTURED FORMAT assembly:
+    // Opening → Body → Account Quick List → Demand → Detailed Corrections → Personal Info → Inquiries → Consumer Statement → Closing
+
+    letterParts.push(
+      accountListSection, // Quick reference list with bold header
+      "",
+      demandSection, // "You have an opportunity to fix this..."
+      "",
+      correctionsSection, // Detailed explanations with bold header
+      ""
+    );
+
+    if (personalInfoSection) {
+      letterParts.push(personalInfoSection, "");
+    }
+
+    if (inquiriesSection) {
+      letterParts.push(inquiriesSection, "");
+    }
+
+    letterParts.push(
+      consumerStatementSection, // Labeled "Consumer Statement:"
+      screenshotsRef,
+      "",
+      closingSection // "Best,"
+    );
+
+  } else {
+    // CONVERSATIONAL FORMAT assembly (original AMELIA style):
+    // Opening → Body → Account List → Demand → Corrections → Personal Info → Natural Closing
+
+    letterParts.push(
+      accountListSection,
+      accountListIntro ? accountListIntro + "\n\n" : "",
+      demandSection,
+      "",
+      correctionsSection
+    );
+
+    if (personalInfoSection) {
+      letterParts.push(personalInfoSection);
+    }
+
+    letterParts.push(
+      consumerStatementSection, // Natural closing paragraph (no label)
+      screenshotsRef,
+      "",
+      closingSection // "Sincerely,"
+    );
   }
-
-  // HARD RULE: No "Consumer Statement:" label - just natural closing
-  // Generate a real-talk closing paragraph, 6th-9th grade level
-  const closingSeed = `${client.fullName}-${cra}-${round}-closing`;
-  const naturalClosingParagraph = generateNaturalClosing(round, closingSeed);
-
-  letterParts.push(
-    naturalClosingParagraph,
-    screenshotsRef,
-    "",
-    closing
-  );
 
   let content = letterParts.join("\n").replace(/\n{3,}/g, "\n\n");
 
@@ -1068,6 +1465,7 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
       hardInquiries: disputedInquiries,
     },
     letterStructure,
+    letterFormat,
   };
 }
 

@@ -423,6 +423,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             hardInquiries: [],
           },
           letterStructure: "DAMAGES_FIRST",
+          letterFormat: "STRUCTURED", // Default to STRUCTURED for higher specificity
         };
 
         usedAIV4 = true;
@@ -512,6 +513,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             hardInquiries: [],
           },
           letterStructure: "DAMAGES_FIRST",
+          letterFormat: "STRUCTURED", // Default to STRUCTURED for higher specificity
         };
 
         log.info({ data: disputeId }, "[Amelia] Legacy AI letter generated successfully for dispute");

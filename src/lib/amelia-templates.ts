@@ -68,6 +68,81 @@ export const LETTER_STRUCTURE_DESCRIPTIONS: Record<LetterStructure, { name: stri
   },
 };
 
+/**
+ * Letter Format Options
+ *
+ * Controls how accounts and disputed items are presented in the letter:
+ * - CONVERSATIONAL: Current AMELIA style - combined sections, casual headers, colloquial
+ * - STRUCTURED: PDF-style - bold section headers, separate quick list + detailed explanations
+ *
+ * eOSCAR Analysis:
+ * - CONVERSATIONAL: Lower template detection risk, higher human authenticity
+ * - STRUCTURED: Higher specificity score (detailed per-account explanations), clearer for bureau processors
+ *
+ * Both formats use Kitchen Table voice (6th-9th grade reading level).
+ */
+export type LetterFormat = "CONVERSATIONAL" | "STRUCTURED";
+
+export const LETTER_FORMAT_DESCRIPTIONS: Record<LetterFormat, {
+  name: string;
+  description: string;
+  eoscarRisk: "LOW" | "MEDIUM" | "HIGH";
+  specificityScore: "LOW" | "MEDIUM" | "HIGH";
+  recommended: boolean;
+}> = {
+  CONVERSATIONAL: {
+    name: "Conversational",
+    description: "Combined sections with casual headers. More natural, less template-like appearance.",
+    eoscarRisk: "LOW",
+    specificityScore: "MEDIUM",
+    recommended: false,
+  },
+  STRUCTURED: {
+    name: "Structured (Recommended)",
+    description: "Bold section headers with separate account list and detailed explanations. Higher specificity forces human review.",
+    eoscarRisk: "MEDIUM",
+    specificityScore: "HIGH",
+    recommended: true,
+  },
+};
+
+/**
+ * Randomized bold headers for STRUCTURED format
+ * Using variations prevents eOSCAR template detection
+ */
+export const STRUCTURED_FORMAT_HEADERS = {
+  accountList: [
+    "Here is the exact information furnishing inaccurate on my {bureauName} credit report:",
+    "The following accounts are reporting inaccurately on my {bureauName} file:",
+    "These accounts on my {bureauName} report contain errors:",
+    "I found the following inaccurate information on my {bureauName} report:",
+  ],
+  corrections: [
+    "Requested Corrections / Deletions (If Not Verified as Accurate):",
+    "Items Requiring Correction or Deletion:",
+    "Accounts That Must Be Fixed or Removed:",
+    "Specific Corrections Needed:",
+  ],
+  personalInfo: [
+    "Personal Information to Investigate and Correct / Remove:",
+    "Outdated Personal Information to Remove:",
+    "Personal Data Requiring Investigation:",
+    "Old Personal Information That Should Not Be On My File:",
+  ],
+  inquiries: [
+    "Hard Inquiries to Investigate (Unauthorized / No Consent):",
+    "Unauthorized Inquiries to Remove:",
+    "Inquiries Made Without My Permission:",
+    "Hard Pulls I Did Not Authorize:",
+  ],
+  consumerStatement: [
+    "Consumer Statement:",
+    "My Statement:",
+    "In Closing:",
+    "Final Statement:",
+  ],
+};
+
 export interface TemplateVariables {
   clientFirstName: string;
   clientLastName: string;

@@ -335,6 +335,7 @@ model Dispute {
   status          String        @default("DRAFT")
   disputeCode     String?       @unique // Human-readable code: D2GO-YYYYMMDD-XXX
   letterContent   String? // AI-generated letter content
+  letterFormat    String?       @default("STRUCTURED") // CONVERSATIONAL or STRUCTURED - for analytics
   referenceNumber String? // Reference number for tracking
   aiStrategy      String? // JSON: AI-generated strategy and recommendations
   createdAt       DateTime      @default(now())
@@ -361,6 +362,7 @@ model Dispute {
   @@index([cra, round])
   @@index([mailedLetterId])
   @@index([disputeCode])
+  @@index([letterFormat])
 }
 
 model DisputeItem {
@@ -450,6 +452,7 @@ model DisputeRoundHistory {
   letterSentDate DateTime?
   letterContent  String? // Snapshot of the letter sent
   letterHash     String? // For tracking uniqueness
+  letterFormat   String? // CONVERSATIONAL or STRUCTURED - for outcome analytics
 
   // Response tracking
   responseReceivedDate DateTime?
@@ -1523,6 +1526,7 @@ model DisputeDraft {
   flow           String   // ACCURACY, COLLECTION, CONSENT, COMBO
   round          Int      @default(1)
   accountIds     String   @default("[]") // JSON array of account IDs
+  letterFormat   String   @default("STRUCTURED") // CONVERSATIONAL or STRUCTURED
 
   // AMELIA metadata
   ameliaMetadata String   @default("{}") // JSON: tone, statute, backdating info
