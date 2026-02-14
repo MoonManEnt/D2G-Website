@@ -9,7 +9,105 @@ import {
 } from "@/lib/stripe";
 import { checkoutSchema } from "@/lib/api-validation-schemas";
 import { createLogger } from "@/lib/logger";
+import {
+  FREE_TIER_FLAGS,
+  STARTER_TIER_FLAGS,
+  PROFESSIONAL_TIER_FLAGS,
+  ENTERPRISE_TIER_FLAGS,
+  FeatureFlags,
+} from "@/types";
 const log = createLogger("billing-checkout-api");
+
+// Tier hierarchy (lower index = lower tier)
+const TIER_ORDER = ["FREE", "STARTER", "PROFESSIONAL", "ENTERPRISE"] as const;
+type TierType = (typeof TIER_ORDER)[number];
+
+// Get feature flags for a tier
+function getTierLimits(tier: TierType): FeatureFlags {
+  switch (tier) {
+    case "FREE":
+      return FREE_TIER_FLAGS;
+    case "STARTER":
+      return STARTER_TIER_FLAGS;
+    case "PROFESSIONAL":
+      return PROFESSIONAL_TIER_FLAGS;
+    case "ENTERPRISE":
+      return ENTERPRISE_TIER_FLAGS;
+    default:
+      return FREE_TIER_FLAGS;
+  }
+}
+
+interface DowngradeBlocker {
+  resource: string;
+  current: number;
+  limit: number;
+}
+
+// Validate if downgrade is possible
+async function validateDowngrade(
+  organizationId: string,
+  targetTier: TierType
+): Promise<{ canDowngrade: boolean; blockers: DowngradeBlocker[] }> {
+  const targetLimits = getTierLimits(targetTier);
+  const blockers: DowngradeBlocker[] = [];
+
+  // Count active clients
+  const clientCount = await prisma.client.count({
+    where: {
+      organizationId,
+      archivedAt: null,
+    },
+  });
+
+  // Check client count vs limit
+  if (targetLimits.maxClients !== -1 && clientCount > targetLimits.maxClients) {
+    blockers.push({
+      resource: "Active clients",
+      current: clientCount,
+      limit: targetLimits.maxClients,
+    });
+  }
+
+  // Count team members
+  const teamMemberCount = await prisma.user.count({
+    where: {
+      organizationId,
+      isActive: true,
+    },
+  });
+
+  // Check team member count vs limit
+  if (targetLimits.maxTeamSeats !== -1 && teamMemberCount > targetLimits.maxTeamSeats) {
+    blockers.push({
+      resource: "Team members",
+      current: teamMemberCount,
+      limit: targetLimits.maxTeamSeats,
+    });
+  }
+
+  // Get storage usage
+  const organization = await prisma.organization.findUnique({
+    where: { id: organizationId },
+    select: { storageUsedBytes: true },
+  });
+
+  const storageUsedBytes = Number(organization?.storageUsedBytes || 0);
+  if (targetLimits.storageQuotaBytes !== -1 && storageUsedBytes > targetLimits.storageQuotaBytes) {
+    const currentStorageGB = parseFloat((storageUsedBytes / (1024 * 1024 * 1024)).toFixed(2));
+    const limitStorageGB = parseFloat((targetLimits.storageQuotaBytes / (1024 * 1024 * 1024)).toFixed(2));
+    blockers.push({
+      resource: "Storage usage (GB)",
+      current: currentStorageGB,
+      limit: limitStorageGB,
+    });
+  }
+
+  return {
+    canDowngrade: blockers.length === 0,
+    blockers,
+  };
+}
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +149,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Organization not found" },
         { status: 404 }
+      );
+    }
+
+    // Check if this is a downgrade
+    const currentTier = organization.subscriptionTier as TierType;
+    const targetTier = plan as TierType;
+    const currentIndex = TIER_ORDER.indexOf(currentTier);
+    const targetIndex = TIER_ORDER.indexOf(targetTier);
+
+    // If this is a downgrade, validate it
+    if (targetIndex < currentIndex) {
+      const { canDowngrade, blockers } = await validateDowngrade(
+        organization.id,
+        targetTier
+      );
+
+      if (!canDowngrade) {
+        log.warn(
+          { organizationId: organization.id, targetTier, blockers },
+          "Downgrade blocked due to usage exceeding limits"
+        );
+        return NextResponse.json(
+          {
+            error: "Cannot downgrade: usage exceeds target tier limits",
+            blockers,
+          },
+          { status: 400 }
+        );
+      }
+
+      log.info(
+        { organizationId: organization.id, currentTier, targetTier },
+        "Downgrade validation passed"
       );
     }
 

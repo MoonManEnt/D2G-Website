@@ -172,3 +172,9 @@ export {
   type ViolationStats,
   type AnalyticsData,
 } from './use-analytics';
+
+// Feature access hooks
+export {
+  useFeatureAccess,
+  type FeatureAccessResult,
+} from './use-feature-access';

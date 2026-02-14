@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { withAuth } from "@/lib/api-middleware";
+import { SubscriptionTier } from "@/types";
 import {
   generateCFPBComplaint,
   generateAICFPBComplaint,
@@ -14,19 +14,10 @@ const log = createLogger("dispute-cfpb-api");
 
 export const dynamic = "force-dynamic";
 
-interface RouteParams {
-  params: Promise<{ id: string }>;
-}
-
 // GET /api/disputes/[id]/cfpb - Generate CFPB complaint for a dispute
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export const GET = withAuth(async (request, ctx) => {
   try {
-    const session = await getServerSession(authOptions);
-    const { id: disputeId } = await params;
-
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const disputeId = ctx.params.id;
 
     // Get format from query params (json or text)
     const { searchParams } = new URL(request.url);
@@ -36,7 +27,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const dispute = await prisma.dispute.findFirst({
       where: {
         id: disputeId,
-        organizationId: session.user.organizationId,
+        organizationId: ctx.organizationId,
       },
       include: {
         client: true,
@@ -153,23 +144,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       { status: 500 }
     );
   }
-}
+}, { minTier: SubscriptionTier.PROFESSIONAL });
 
 // POST /api/disputes/[id]/cfpb - Generate AI-powered CFPB complaint
-export async function POST(request: NextRequest, { params }: RouteParams) {
+export const POST = withAuth(async (request, ctx) => {
+  const disputeId = ctx.params.id;
+
   try {
-    const session = await getServerSession(authOptions);
-    const { id: disputeId } = await params;
-
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     // Fetch dispute with all related data
     const dispute = await prisma.dispute.findFirst({
       where: {
         id: disputeId,
-        organizationId: session.user.organizationId,
+        organizationId: ctx.organizationId,
       },
       include: {
         client: true,
@@ -262,7 +248,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Use AI-powered generation with fallback to template
     const result = await generateAICFPBComplaint(
       complaintData,
-      session.user.organizationId
+      ctx.organizationId
     );
 
     return NextResponse.json({
@@ -283,17 +269,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Attempt template fallback at the route level
     try {
-      const session = await getServerSession(authOptions);
-      const { id: disputeId } = await params;
-
-      if (!session?.user) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-
       const dispute = await prisma.dispute.findFirst({
         where: {
           id: disputeId,
-          organizationId: session.user.organizationId,
+          organizationId: ctx.organizationId,
         },
         include: {
           client: true,
@@ -342,4 +321,4 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
   }
-}
+}, { minTier: SubscriptionTier.PROFESSIONAL });

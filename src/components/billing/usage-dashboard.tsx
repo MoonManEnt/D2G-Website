@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, TrendingUp } from "lucide-react";
+import { UsageWarningList } from "./usage-warning";
 
 interface UsageData {
   clients: { current: number; limit: number };
@@ -94,6 +95,16 @@ export function UsageDashboard({ onUpgradeClick }: UsageDashboardProps) {
     (u) => u && typeof u.limit === "number" && u.limit !== -1 && u.current / u.limit >= 0.8
   );
 
+  // Build usage items for warning list
+  const usageItems = [
+    { label: "Clients", current: usage.clients?.current ?? 0, limit: usage.clients?.limit ?? 0 },
+    { label: "Disputes", current: usage.disputes?.current ?? 0, limit: usage.disputes?.limit ?? 0 },
+    { label: "Letters", current: usage.letters?.current ?? 0, limit: usage.letters?.limit ?? 0 },
+    { label: "Reports", current: usage.reports?.current ?? 0, limit: usage.reports?.limit ?? 0 },
+    { label: "Storage", current: usage.storage?.current ?? 0, limit: usage.storage?.limit ?? 0 },
+    { label: "Team Seats", current: usage.teamSeats?.current ?? 0, limit: usage.teamSeats?.limit ?? 0 },
+  ].filter((item) => item.limit !== 0); // Filter out items with no limit set
+
   return (
     <Card className="bg-card border-border">
       <CardHeader className="flex flex-row items-center justify-between">
@@ -111,7 +122,12 @@ export function UsageDashboard({ onUpgradeClick }: UsageDashboardProps) {
           </Button>
         )}
       </CardHeader>
-      <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <CardContent className="space-y-6">
+        {/* Usage Warnings */}
+        <UsageWarningList usageItems={usageItems} onUpgradeClick={onUpgradeClick} />
+
+        {/* Usage Bars */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {usage.clients && (
           <UsageBar
             label="Active Clients"
@@ -155,6 +171,7 @@ export function UsageDashboard({ onUpgradeClick }: UsageDashboardProps) {
             limit={usage.teamSeats.limit ?? 0}
           />
         )}
+        </div>
       </CardContent>
     </Card>
   );

@@ -158,12 +158,21 @@ async function updateOrganizationSubscription(
   // Read tier from subscription metadata, default to PROFESSIONAL for backward compat
   const tier = subscription.metadata?.tier || "PROFESSIONAL";
 
+  // Handle trial end date
+  const trialEndsAt = subscription.trial_end
+    ? new Date(subscription.trial_end * 1000)
+    : null;
+
+  // Trialing status should keep the tier, not revert to FREE
+  const isActiveOrTrialing = status === "ACTIVE" || status === "TRIALING";
+
   await prisma.organization.update({
     where: { id: organizationId },
     data: {
       stripeSubscriptionId: subscription.id,
       subscriptionStatus: status,
-      subscriptionTier: status === "ACTIVE" ? tier : "FREE",
+      subscriptionTier: isActiveOrTrialing ? tier : "FREE",
+      ...(trialEndsAt && { trialEndsAt }),
     },
   });
 

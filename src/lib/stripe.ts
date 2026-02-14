@@ -297,8 +297,9 @@ export function mapSubscriptionStatus(
 ): string {
   switch (stripeStatus) {
     case "active":
-    case "trialing":
       return "ACTIVE";
+    case "trialing":
+      return "TRIALING";
     case "past_due":
       return "PAST_DUE";
     case "canceled":

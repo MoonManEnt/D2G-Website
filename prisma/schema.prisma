@@ -17,6 +17,7 @@ model Organization {
   subscriptionStatus   String                  @default("ACTIVE")
   stripeCustomerId     String?
   stripeSubscriptionId String?
+  trialEndsAt          DateTime?
   isFoundingMember      Boolean  @default(false)
   foundingMemberNumber  Int?
   foundingMemberLockedPrice Float?
