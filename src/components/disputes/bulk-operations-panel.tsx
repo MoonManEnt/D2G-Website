@@ -70,15 +70,10 @@ export function BulkOperationsPanel({
 
     try {
       const accountIdsParam = selectedAccountIds.join(",");
-      const res = await fetch(
+      // GET /api/disputes/bulk returns preview data
+      const previewRes = await fetch(
         `/api/disputes/bulk?clientId=${clientId}&accountIds=${accountIdsParam}`,
         { method: "GET" }
-      );
-
-      // Note: The API uses GET for preview, but it's at /api/disputes/bulk/preview
-      // Let me adjust to use the correct endpoint
-      const previewRes = await fetch(
-        `/api/disputes/bulk/preview?clientId=${clientId}&accountIds=${accountIdsParam}`
       );
 
       if (!previewRes.ok) {

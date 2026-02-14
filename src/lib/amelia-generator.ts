@@ -213,10 +213,14 @@ function generateHeader(
 
   lines.push(`${client.city}, ${client.state} ${client.zipCode}`);
   lines.push(`SSN: XXX-XX-${client.ssnLast4}`);
-  // Format DOB as MM/DD/YYYY
-  const dob = new Date(client.dateOfBirth);
-  const dobFormatted = `${String(dob.getMonth() + 1).padStart(2, '0')}/${String(dob.getDate()).padStart(2, '0')}/${dob.getFullYear()}`;
-  lines.push(`DOB: ${dobFormatted}`);
+  // Format DOB as MM/DD/YYYY (with validation to prevent NaN/NaN/NaN)
+  if (client.dateOfBirth) {
+    const dob = new Date(client.dateOfBirth);
+    if (!isNaN(dob.getTime())) {
+      const dobFormatted = `${String(dob.getMonth() + 1).padStart(2, '0')}/${String(dob.getDate()).padStart(2, '0')}/${dob.getFullYear()}`;
+      lines.push(`DOB: ${dobFormatted}`);
+    }
+  }
   lines.push("");
   // CRA address block (lines already includes bureau name as first element)
   lines.push(...craInfo.lines);
@@ -539,8 +543,8 @@ function selectStructuredHeader(
 }
 
 /**
- * Generate STRUCTURED format: Simple account quick list
- * Just creditor name + account number in bullet format
+ * Generate STRUCTURED format: Account list with inaccurate categories
+ * Bold account name + number, followed by inaccurate categories list
  */
 function generateStructuredAccountQuickList(
   accounts: DisputeAccount[],
@@ -553,12 +557,24 @@ function generateStructuredAccountQuickList(
     bureauName
   );
 
-  const bullets = accounts.map(account => {
+  const accountEntries = accounts.map(account => {
     const acctNum = account.accountNumber || "No Account Number";
-    return `• ${account.creditorName} — Account #${acctNum}`;
+    const accountLine = `**${account.creditorName} — Account #${acctNum}**`;
+
+    // Get inaccurate categories from the account data
+    const categories = account.inaccurateCategories && account.inaccurateCategories.length > 0
+      ? account.inaccurateCategories
+      : account.issues.map(issue => issue.description || issue.code).filter(Boolean);
+
+    // Format categories as comma-separated list
+    const categoriesLine = categories.length > 0
+      ? `Inaccurate Categories: ${categories.join(", ")}.`
+      : "";
+
+    return categoriesLine ? `${accountLine}\n${categoriesLine}` : accountLine;
   });
 
-  return `**${header}**\n\n${bullets.join("\n")}`;
+  return `**${header}**\n\n${accountEntries.join("\n\n")}`;
 }
 
 /**
@@ -1362,14 +1378,13 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
 
   if (letterFormat === "STRUCTURED") {
     // STRUCTURED FORMAT assembly:
-    // Opening → Body → Account Quick List → Demand → Detailed Corrections → Personal Info → Inquiries → Consumer Statement → Closing
+    // Opening → Body → Account List with Categories → Demand → Personal Info → Inquiries → Consumer Statement → Closing
+    // Note: Corrections section removed - inaccurate categories now shown inline with accounts
 
     letterParts.push(
-      accountListSection, // Quick reference list with bold header
+      accountListSection, // Account list with bold names + inaccurate categories
       "",
       demandSection, // "You have an opportunity to fix this..."
-      "",
-      correctionsSection, // Detailed explanations with bold header
       ""
     );
 
