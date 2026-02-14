@@ -135,22 +135,33 @@ interface InputProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   error?: string;
   rightEl?: React.ReactNode;
+  name?: string;
+  autoComplete?: string;
 }
 
-function Input({ label, type = "text", icon, placeholder, value, onChange, error, rightEl }: InputProps) {
+function Input({ label, type = "text", icon, placeholder, value, onChange, error, rightEl, name, autoComplete }: InputProps) {
   const [focused, setFocused] = useState(false);
   const [showPw, setShowPw] = useState(false);
   const isPw = type === "password";
   return (
     <div style={{ marginBottom: 18 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
-        <label style={{ fontSize: 12.5, fontWeight: 500, color: C.textSec, fontFamily: "var(--body)" }}>{label}</label>{rightEl}
+        <label htmlFor={name} style={{ fontSize: 12.5, fontWeight: 500, color: C.textSec, fontFamily: "var(--body)" }}>{label}</label>{rightEl}
       </div>
       <div style={{ display: "flex", alignItems: "center", background: focused ? C.inputFocus : C.inputBg, border: `1px solid ${error ? C.red : focused ? C.teal : C.border}`, borderRadius: 10, transition: "all 0.25s", boxShadow: focused ? `0 0 0 3px ${C.tealGlow}` : "0 1px 2px rgba(0,0,0,0.03)" }}>
         {icon && <span style={{ display: "flex", paddingLeft: 13, color: focused ? C.teal : C.textMuted, transition: "color 0.25s" }}>{icon}</span>}
-        <input type={isPw ? (showPw ? "text" : "password") : type} placeholder={placeholder} value={value} onChange={onChange}
-          onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
-          style={{ flex: 1, padding: "12px 13px", paddingLeft: icon ? 9 : 13, background: "transparent", border: "none", outline: "none", color: C.text, fontSize: 13.5, fontFamily: "var(--body)" }} />
+        <input
+          id={name}
+          name={name}
+          autoComplete={autoComplete}
+          type={isPw ? (showPw ? "text" : "password") : type}
+          placeholder={placeholder}
+          value={value}
+          onChange={onChange}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          style={{ flex: 1, padding: "12px 13px", paddingLeft: icon ? 9 : 13, background: "transparent", border: "none", outline: "none", color: C.text, fontSize: 13.5, fontFamily: "var(--body)" }}
+        />
         {isPw && <button type="button" onClick={() => setShowPw(!showPw)} style={{ background: "none", border: "none", padding: "0 13px", cursor: "pointer", color: C.textMuted, display: "flex" }}>
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
             {showPw ? <><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94" /><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19" /><line x1="1" y1="1" x2="23" y2="23" /></> : <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></>}
@@ -448,7 +459,9 @@ function D2GAuthV3() {
   );
 
   // ═══════════════════ RIGHT PANEL ═══════════════════
-  const Right = () => (
+  // Note: This is intentionally a JSX variable, not a component function,
+  // to prevent re-mounting on every state change which breaks input focus.
+  const rightPanel = (
     <div style={{ flex: "1 1 48%", display: "flex", alignItems: "center", justifyContent: "center", padding: "36px 44px", position: "relative", minHeight: "100vh", background: C.pageBg }}>
       <div style={{ position: "absolute", top: 0, left: 0, width: 30, height: "100%", background: "linear-gradient(to right, rgba(0,0,0,0.025), transparent)", pointerEvents: "none" }} />
       <div style={{ width: "100%", maxWidth: 400, background: C.cardBg, borderRadius: 18, padding: "36px 32px", border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(0,0,0,0.03), 0 8px 32px rgba(0,0,0,0.05)" }}>
@@ -463,9 +476,9 @@ function D2GAuthV3() {
               <span style={{ fontSize: 13, color: C.red, fontFamily: "var(--body)" }}>{errors.form}</span>
             </div>
           )}
-          <form onSubmit={handleSubmit}>
-            <Input label="Email" type="email" icon={IC.mail} placeholder="you@company.com" value={email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)} error={errors.email} />
-            <Input label="Password" type="password" icon={IC.lock} placeholder="••••••••••" value={password} onChange={e => setPassword(e.target.value)} error={errors.password}
+          <form onSubmit={handleSubmit} autoComplete="on">
+            <Input label="Email" type="email" name="email" autoComplete="username email" icon={IC.mail} placeholder="you@company.com" value={email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)} error={errors.email} />
+            <Input label="Password" type="password" name="password" autoComplete="current-password" icon={IC.lock} placeholder="••••••••••" value={password} onChange={e => setPassword(e.target.value)} error={errors.password}
               rightEl={<button type="button" onClick={() => setView("forgot")} style={{ background: "none", border: "none", color: C.tealDark, fontSize: 11.5, fontWeight: 500, cursor: "pointer", fontFamily: "var(--body)", padding: 0 }}>Forgot password?</button>} />
             <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 22, marginTop: -6 }}>
               <button type="button" onClick={() => setRemember(!remember)} style={{ width: 15, height: 15, borderRadius: 4, border: `1.5px solid ${remember ? C.teal : C.border}`, background: remember ? C.teal : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0, transition: "all 0.2s" }}>
@@ -484,11 +497,11 @@ function D2GAuthV3() {
         {view === "register" && <div style={fade(0.1)}>
           <h2 style={{ fontSize: 22, fontWeight: 700, color: C.text, fontFamily: "var(--head)", letterSpacing: "-0.02em", margin: "0 0 4px 0" }}>Create your account</h2>
           <p style={{ fontSize: 13.5, color: C.textMuted, margin: "0 0 24px 0", fontFamily: "var(--body)" }}>14-day free trial • No credit card required</p>
-          <form onSubmit={handleSubmit}>
-            <Input label="Full Name" icon={IC.user} placeholder="Jane Smith" value={fullName} onChange={e => setFullName(e.target.value)} error={errors.fullName} />
-            <Input label="Company / Business" icon={IC.bldg} placeholder="Smith Credit Solutions" value={company} onChange={e => setCompany(e.target.value)} error={errors.company} />
-            <Input label="Email" type="email" icon={IC.mail} placeholder="jane@smithcredit.com" value={email} onChange={e => setEmail(e.target.value)} error={errors.email} />
-            <Input label="Password" type="password" icon={IC.lock} placeholder="Min. 8 characters" value={password} onChange={e => setPassword(e.target.value)} error={errors.password} />
+          <form onSubmit={handleSubmit} autoComplete="on">
+            <Input label="Full Name" name="name" autoComplete="name" icon={IC.user} placeholder="Jane Smith" value={fullName} onChange={e => setFullName(e.target.value)} error={errors.fullName} />
+            <Input label="Company / Business" name="organization" autoComplete="organization" icon={IC.bldg} placeholder="Smith Credit Solutions" value={company} onChange={e => setCompany(e.target.value)} error={errors.company} />
+            <Input label="Email" type="email" name="email" autoComplete="email" icon={IC.mail} placeholder="jane@smithcredit.com" value={email} onChange={e => setEmail(e.target.value)} error={errors.email} />
+            <Input label="Password" type="password" name="new-password" autoComplete="new-password" icon={IC.lock} placeholder="Min. 8 characters" value={password} onChange={e => setPassword(e.target.value)} error={errors.password} />
             <PwStrength password={password} />
             <p style={{ fontSize: 11, color: C.textMuted, lineHeight: 1.55, margin: "0 0 18px 0", fontFamily: "var(--body)" }}>By creating an account, you agree to our <a href="#" style={{ color: C.tealDark, textDecoration: "none" }}>Terms of Service</a> and <a href="#" style={{ color: C.tealDark, textDecoration: "none" }}>Privacy Policy</a>.</p>
             <PrimaryBtn type="submit" loading={loading}>Create Account</PrimaryBtn>
@@ -503,8 +516,8 @@ function D2GAuthV3() {
           <button onClick={() => setView("login")} style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: "none", color: C.textMuted, fontSize: 12.5, cursor: "pointer", fontFamily: "var(--body)", padding: 0, marginBottom: 24 }}>{IC.back} Back to sign in</button>
           <h2 style={{ fontSize: 22, fontWeight: 700, color: C.text, fontFamily: "var(--head)", letterSpacing: "-0.02em", margin: "0 0 4px 0" }}>Reset password</h2>
           <p style={{ fontSize: 13.5, color: C.textMuted, margin: "0 0 26px 0", fontFamily: "var(--body)", lineHeight: 1.55 }}>Enter the email associated with your account and we'll send a reset link.</p>
-          <form onSubmit={(e) => { handleSubmit(e); setTimeout(() => setView("verify"), 2000); }}>
-            <Input label="Email" type="email" icon={IC.mail} placeholder="you@company.com" value={email} onChange={e => setEmail(e.target.value)} error={errors.email} />
+          <form onSubmit={(e) => { handleSubmit(e); setTimeout(() => setView("verify"), 2000); }} autoComplete="on">
+            <Input label="Email" type="email" name="email" autoComplete="email" icon={IC.mail} placeholder="you@company.com" value={email} onChange={e => setEmail(e.target.value)} error={errors.email} />
             <PrimaryBtn type="submit" loading={loading}>Send Reset Link</PrimaryBtn>
           </form>
         </div>}
@@ -543,7 +556,7 @@ function D2GAuthV3() {
       `}</style>
       <div style={{ display: "flex", minHeight: "100vh", background: C.pageBg, fontFamily: "var(--body)", overflow: "hidden" }}>
         <LeftPanel mounted={mounted} />
-        <Right />
+        {rightPanel}
       </div>
     </>
   );
