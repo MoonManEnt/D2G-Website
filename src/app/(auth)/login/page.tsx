@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, memo } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -255,6 +255,91 @@ const IC = {
 };
 
 // ============================================================================
+// LEFT PANEL (MEMOIZED - extracted to prevent re-renders on input changes)
+// ============================================================================
+interface LeftPanelProps {
+  mounted: boolean;
+}
+
+const LeftPanel = memo(function LeftPanel({ mounted }: LeftPanelProps) {
+  const fade = (d = 0) => ({
+    opacity: mounted ? 1 : 0,
+    transform: mounted ? "translateY(0)" : "translateY(10px)",
+    transition: `all 0.6s cubic-bezier(0.16,1,0.3,1) ${d}s`,
+  });
+
+  return (
+    <div style={{ flex: "1 1 52%", position: "relative", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: "60px 40px", overflow: "hidden", minHeight: "100vh", background: `linear-gradient(145deg, ${C.navy} 0%, ${C.navyMid} 100%)` }}>
+      <GradientOrbs />
+      {/* Grid pattern */}
+      <div style={{ position: "absolute", inset: 0, zIndex: 1, backgroundImage: "linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)", backgroundSize: "48px 48px" }} />
+
+      <div style={{ position: "relative", zIndex: 2, width: "100%", maxWidth: 520 }}>
+
+        {/* ════ REAL D2G LOGO — LARGE ════ */}
+        <div style={{ ...fade(0.08), marginBottom: 32 }}>
+          <img
+            src={D2G_LOGO}
+            alt="Dispute2Go"
+            style={{
+              width: 240,
+              height: 240,
+              objectFit: "contain",
+              filter: "drop-shadow(0 0 30px rgba(35,97,161,0.35)) drop-shadow(0 0 60px rgba(46,172,213,0.15))",
+            }}
+          />
+        </div>
+
+        {/* Headline */}
+        <div style={fade(0.2)}>
+          <h1 style={{ fontSize: 32, fontWeight: 700, lineHeight: 1.15, color: "#f0f2f7", fontFamily: "var(--head)", letterSpacing: "-0.03em", margin: "0 0 12px 0" }}>
+            The platform credit repair<br />professionals{" "}
+            <span style={{ background: `linear-gradient(135deg, ${C.tealLight}, ${C.purple})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>trust most.</span>
+          </h1>
+          <p style={{ fontSize: 14.5, lineHeight: 1.6, color: "rgba(255,255,255,0.45)", fontFamily: "var(--body)", margin: "0 0 32px 0", maxWidth: 380 }}>
+            AI-powered dispute generation, real-time tracking, and compliance automation — all in one place.
+          </p>
+        </div>
+
+        {/* Floating UI showcase */}
+        <div style={{ ...fade(0.35), position: "relative", marginBottom: 20, minHeight: 320 }}>
+          <div style={{ position: "relative", zIndex: 2 }}><DashboardMockup /></div>
+
+          {/* Floating stat pill — top right */}
+          <div style={{ position: "absolute", top: -10, right: -20, zIndex: 3, animation: "cardFloat2 9s ease-in-out infinite" }}>
+            <FloatingPill
+              icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.green} strokeWidth="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>}
+              text="Deletion Rate" value="73.2%" color={C.green} style={{}}
+            />
+          </div>
+
+          {/* Testimonial — bottom right */}
+          <div style={{ position: "absolute", bottom: -20, right: -30, zIndex: 3 }}><TestimonialFloat /></div>
+
+          {/* AMELIA badge — mid left */}
+          <div style={{ position: "absolute", top: "45%", left: -36, zIndex: 3, display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", borderRadius: 12, background: "rgba(255,255,255,0.85)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.6)", boxShadow: "0 8px 24px rgba(0,0,0,0.08)", animation: "cardFloat3 11s ease-in-out infinite" }}>
+            <div style={{ width: 26, height: 26, borderRadius: 8, background: `linear-gradient(135deg, ${C.purple}, ${C.pink})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" /></svg>
+            </div>
+            <div><div style={{ fontSize: 11, fontWeight: 700, color: C.text, fontFamily: "var(--head)" }}>AMELIA</div><div style={{ fontSize: 9, color: C.textMuted, fontFamily: "var(--body)" }}>AI Engine Active</div></div>
+          </div>
+        </div>
+
+        {/* Trust metrics */}
+        <div style={{ ...fade(0.5), display: "flex", alignItems: "center", gap: 20, marginTop: 8 }}>
+          {[{ n: "250K+", l: "Disputes generated and counting" }, { n: "2,500+", l: "Specialists" }, { n: "99.9%", l: "Uptime SLA" }].map((s, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
+              <span style={{ fontSize: 15, fontWeight: 700, color: "#f0f2f7", fontFamily: "var(--head)" }}>{s.n}</span>
+              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", fontFamily: "var(--body)" }}>{s.l}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+});
+
+// ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 function D2GAuthV3() {
@@ -362,77 +447,6 @@ function D2GAuthV3() {
     </p>
   );
 
-  // ═══════════════════ LEFT PANEL ═══════════════════
-  const Left = () => (
-    <div style={{ flex: "1 1 52%", position: "relative", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: "60px 40px", overflow: "hidden", minHeight: "100vh", background: `linear-gradient(145deg, ${C.navy} 0%, ${C.navyMid} 100%)` }}>
-      <GradientOrbs />
-      {/* Grid pattern */}
-      <div style={{ position: "absolute", inset: 0, zIndex: 1, backgroundImage: "linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)", backgroundSize: "48px 48px" }} />
-
-      <div style={{ position: "relative", zIndex: 2, width: "100%", maxWidth: 520 }}>
-
-        {/* ════ REAL D2G LOGO — LARGE ════ */}
-        <div style={{ ...fade(0.08), marginBottom: 32 }}>
-          <img
-            src={D2G_LOGO}
-            alt="Dispute2Go"
-            style={{
-              width: 240,
-              height: 240,
-              objectFit: "contain",
-              filter: "drop-shadow(0 0 30px rgba(35,97,161,0.35)) drop-shadow(0 0 60px rgba(46,172,213,0.15))",
-            }}
-          />
-        </div>
-
-        {/* Headline */}
-        <div style={fade(0.2)}>
-          <h1 style={{ fontSize: 32, fontWeight: 700, lineHeight: 1.15, color: "#f0f2f7", fontFamily: "var(--head)", letterSpacing: "-0.03em", margin: "0 0 12px 0" }}>
-            The platform credit repair<br />professionals{" "}
-            <span style={{ background: `linear-gradient(135deg, ${C.tealLight}, ${C.purple})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>trust most.</span>
-          </h1>
-          <p style={{ fontSize: 14.5, lineHeight: 1.6, color: "rgba(255,255,255,0.45)", fontFamily: "var(--body)", margin: "0 0 32px 0", maxWidth: 380 }}>
-            AI-powered dispute generation, real-time tracking, and compliance automation — all in one place.
-          </p>
-        </div>
-
-        {/* Floating UI showcase */}
-        <div style={{ ...fade(0.35), position: "relative", marginBottom: 20, minHeight: 320 }}>
-          <div style={{ position: "relative", zIndex: 2 }}><DashboardMockup /></div>
-
-          {/* Floating stat pill — top right */}
-          <div style={{ position: "absolute", top: -10, right: -20, zIndex: 3, animation: "cardFloat2 9s ease-in-out infinite" }}>
-            <FloatingPill
-              icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.green} strokeWidth="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>}
-              text="Deletion Rate" value="73.2%" color={C.green} style={{}}
-            />
-          </div>
-
-          {/* Testimonial — bottom right */}
-          <div style={{ position: "absolute", bottom: -20, right: -30, zIndex: 3 }}><TestimonialFloat /></div>
-
-          {/* AMELIA badge — mid left */}
-          <div style={{ position: "absolute", top: "45%", left: -36, zIndex: 3, display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", borderRadius: 12, background: "rgba(255,255,255,0.85)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.6)", boxShadow: "0 8px 24px rgba(0,0,0,0.08)", animation: "cardFloat3 11s ease-in-out infinite" }}>
-            <div style={{ width: 26, height: 26, borderRadius: 8, background: `linear-gradient(135deg, ${C.purple}, ${C.pink})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" /></svg>
-            </div>
-            <div><div style={{ fontSize: 11, fontWeight: 700, color: C.text, fontFamily: "var(--head)" }}>AMELIA</div><div style={{ fontSize: 9, color: C.textMuted, fontFamily: "var(--body)" }}>AI Engine Active</div></div>
-          </div>
-        </div>
-
-        {/* Trust metrics */}
-        <div style={{ ...fade(0.5), display: "flex", alignItems: "center", gap: 20, marginTop: 8 }}>
-          {[{ n: "250K+", l: "Disputes generated and counting" }, { n: "2,500+", l: "Specialists" }, { n: "99.9%", l: "Uptime SLA" }].map((s, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
-              <span style={{ fontSize: 15, fontWeight: 700, color: "#f0f2f7", fontFamily: "var(--head)" }}>{s.n}</span>
-              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", fontFamily: "var(--body)" }}>{s.l}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
   // ═══════════════════ RIGHT PANEL ═══════════════════
   const Right = () => (
     <div style={{ flex: "1 1 48%", display: "flex", alignItems: "center", justifyContent: "center", padding: "36px 44px", position: "relative", minHeight: "100vh", background: C.pageBg }}>
@@ -528,7 +542,7 @@ function D2GAuthV3() {
         html, body { overflow: hidden; }
       `}</style>
       <div style={{ display: "flex", minHeight: "100vh", background: C.pageBg, fontFamily: "var(--body)", overflow: "hidden" }}>
-        <Left />
+        <LeftPanel mounted={mounted} />
         <Right />
       </div>
     </>
