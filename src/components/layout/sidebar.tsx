@@ -16,7 +16,6 @@ import {
   ChevronRight,
   BarChart3,
   Sparkles,
-  Shield,
   Search,
   GripVertical,
   Gavel,
@@ -40,7 +39,6 @@ const navigation: { name: string; href: string; icon: typeof LayoutDashboard; to
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, tourId: "dashboard" },
   { name: "Clients", href: "/clients", icon: Users, tourId: "clients" },
   { name: "Disputes", href: "/disputes", icon: Scale, tourId: "disputes" },
-  { name: "Sentry", href: "/sentry", icon: Shield, tourId: "sentry" },
   { name: "Analytics & Reporting", href: "/analytics", icon: BarChart3, tourId: "analytics" },
   { name: "Litigation", href: "/litigation", icon: Gavel, tourId: "litigation" },
   { name: "Feedback", href: "/feedback", icon: MessageSquarePlus },
@@ -66,11 +64,6 @@ const iconAnimations: Record<string, any> = {
   Disputes: {
     rotate: [0, -10, 10, 0],
     transition: { duration: 0.5, ease: "easeInOut" },
-  },
-  Sentry: {
-    scale: [1, 1.2, 1],
-    filter: ["drop-shadow(0 0 0px #3b82f6)", "drop-shadow(0 0 8px #3b82f6)", "drop-shadow(0 0 0px #3b82f6)"],
-    transition: { duration: 0.6, ease: "easeInOut" },
   },
   "Analytics & Reporting": {
     scaleY: [1, 1.2, 1],

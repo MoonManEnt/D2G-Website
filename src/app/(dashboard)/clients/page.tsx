@@ -610,7 +610,7 @@ export default function ClientsPage() {
   };
 
   const handleQuickView = (e: React.MouseEvent, client: Client) => { e.stopPropagation(); setQuickViewClient(client); };
-  const handleDisputeAction = (e: React.MouseEvent, client: Client) => { e.stopPropagation(); router.push(`/sentry?clientId=${client.id}`); };
+  const handleDisputeAction = (e: React.MouseEvent, client: Client) => { e.stopPropagation(); router.push(`/disputes?clientId=${client.id}`); };
   const handleHardDeleteClick = (e: React.MouseEvent, client: Client) => { e.stopPropagation(); setHardDeleteClient(client); };
 
   const handleConfirmHardDelete = async () => {

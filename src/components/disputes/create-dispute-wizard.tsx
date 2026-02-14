@@ -746,7 +746,6 @@ export function CreateDisputeWizard({
           open={mailDialogOpen}
           onOpenChange={setMailDialogOpen}
           disputeId={createdDisputeId}
-          disputeType="DISPUTE"
           cra={selectedCRA}
           clientName={`${selectedClientObj?.firstName || ""} ${selectedClientObj?.lastName || ""}`}
         />

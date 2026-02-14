@@ -4,14 +4,13 @@
  * Manages account locking during active disputes to prevent:
  * 1. Same account in multiple concurrent disputes
  * 2. Race conditions when creating disputes
- * 3. Cross-system conflicts (Dispute vs Sentry)
  *
  * Accounts are locked when a dispute is SENT and unlocked when RESOLVED or deleted.
  */
 
 import prisma from "@/lib/prisma";
 
-export type LockSystem = "DISPUTE" | "SENTRY";
+export type LockSystem = "DISPUTE";
 
 export interface AccountLockInfo {
   accountId: string;
@@ -89,7 +88,7 @@ export async function checkAccountAvailability(
     // Fetch lock details from the appropriate system
     let lockDetails: AccountLockInfo["lockedBy"] | undefined;
 
-    if (account.lockedBySystem === "DISPUTE" && account.lockedByDisputeId) {
+    if (account.lockedByDisputeId) {
       const dispute = await prisma.dispute.findUnique({
         where: { id: account.lockedByDisputeId },
         select: {
@@ -108,32 +107,6 @@ export async function checkAccountAvailability(
           disputeId: dispute.id,
           disputeCode: dispute.disputeCode || undefined,
           system: "DISPUTE",
-          status: dispute.status,
-          cra: dispute.cra,
-          round: dispute.round,
-          sentDate: dispute.sentDate || undefined,
-          responseDeadline: dispute.deadlineDate || undefined,
-        };
-      }
-    } else if (account.lockedBySystem === "SENTRY" && account.lockedByDisputeId) {
-      const dispute = await prisma.sentryDispute.findUnique({
-        where: { id: account.lockedByDisputeId },
-        select: {
-          id: true,
-          disputeCode: true,
-          status: true,
-          cra: true,
-          round: true,
-          sentDate: true,
-          deadlineDate: true,
-        },
-      });
-
-      if (dispute) {
-        lockDetails = {
-          disputeId: dispute.id,
-          disputeCode: dispute.disputeCode || undefined,
-          system: "SENTRY",
           status: dispute.status,
           cra: dispute.cra,
           round: dispute.round,
@@ -201,21 +174,8 @@ export async function lockAccountsForDispute(
         };
 
         // Get more details about the locking dispute
-        if (account.lockedBySystem === "DISPUTE" && account.lockedByDisputeId) {
+        if (account.lockedByDisputeId) {
           const d = await tx.dispute.findUnique({
-            where: { id: account.lockedByDisputeId },
-            select: { status: true, round: true, disputeCode: true },
-          });
-          if (d) {
-            lockInfo = {
-              ...lockInfo,
-              status: d.status,
-              round: d.round,
-              disputeCode: d.disputeCode || undefined,
-            };
-          }
-        } else if (account.lockedBySystem === "SENTRY" && account.lockedByDisputeId) {
-          const d = await tx.sentryDispute.findUnique({
             where: { id: account.lockedByDisputeId },
             select: { status: true, round: true, disputeCode: true },
           });
@@ -293,28 +253,21 @@ export function buildLockErrorMessage(
 
   const details = failedAccounts.map((f) => {
     const ref = f.lockedBy.disputeCode || f.lockedBy.disputeId.slice(0, 8);
-    return `• ${f.creditorName}: Locked by ${f.lockedBy.system} ${ref} (Round ${f.lockedBy.round}, Status: ${f.lockedBy.status})`;
+    return `• ${f.creditorName}: Locked by dispute ${ref} (Round ${f.lockedBy.round}, Status: ${f.lockedBy.status})`;
   });
 
   return `The following accounts cannot be added to this dispute:\n${details.join("\n")}`;
 }
 
 /**
- * Check for cross-system conflicts (account in both Dispute and Sentry)
+ * Check for conflicts (accounts already in another dispute)
  */
-export async function checkCrossSystemConflicts(
+export async function checkConflicts(
   accountIds: string[],
   cra: string,
-  organizationId: string,
-  excludeSystem?: LockSystem
+  organizationId: string
 ): Promise<AccountLockInfo[]> {
   const { locked } = await checkAccountAvailability(accountIds, cra, organizationId);
-
-  // If we're checking from one system, only return conflicts from the OTHER system
-  if (excludeSystem) {
-    return locked.filter((l) => l.lockedBy?.system !== excludeSystem);
-  }
-
   return locked;
 }
 

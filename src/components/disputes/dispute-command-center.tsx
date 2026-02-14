@@ -722,7 +722,6 @@ export function DisputeCommandCenter({
           open={mailDialogOpen}
           onOpenChange={setMailDialogOpen}
           disputeId={mailDisputeId}
-          disputeType="DISPUTE"
           clientName={clientName || "Client"}
           cra={mailDisputeCRA}
           onSuccess={() => {

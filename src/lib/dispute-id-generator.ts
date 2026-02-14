@@ -2,8 +2,7 @@
  * Dispute ID Generator Service
  *
  * Generates unique, human-readable dispute codes in the format:
- * - Disputes: D2GO-YYYYMMDD-XXX (e.g., D2GO-20250128-001)
- * - Sentry:   STY-YYYYMMDD-XXX  (e.g., STY-20250128-042)
+ * - D2GO-YYYYMMDD-XXX (e.g., D2GO-20250128-001)
  *
  * Uses database-level atomic sequence to prevent duplicates
  * even under high concurrency.
@@ -12,7 +11,7 @@
 import prisma from "@/lib/prisma";
 import { format } from "date-fns";
 
-export type DisputeSystem = "DISPUTE" | "SENTRY";
+export type DisputeSystem = "DISPUTE";
 
 interface DisputeCodeResult {
   code: string;
@@ -33,9 +32,9 @@ interface ParsedDisputeCode {
  * sequence increment. Retries up to 3 times on conflict.
  */
 export async function generateDisputeCode(
-  system: DisputeSystem
+  system: DisputeSystem = "DISPUTE"
 ): Promise<DisputeCodeResult> {
-  const prefix = system === "DISPUTE" ? "D2GO" : "STY";
+  const prefix = "D2GO";
   const dateKey = format(new Date(), "yyyyMMdd");
 
   // Use transaction with retry for race condition handling
@@ -89,16 +88,16 @@ export async function generateDisputeCode(
  * // { system: "DISPUTE", date: Date(2025-01-28), sequence: 1 }
  */
 export function parseDisputeCode(code: string): ParsedDisputeCode | null {
-  const match = code.match(/^(D2GO|STY)-(\d{8})-(\d{3})$/);
+  const match = code.match(/^D2GO-(\d{8})-(\d{3})$/);
   if (!match) return null;
 
-  const [, prefix, dateStr, seqStr] = match;
+  const [, dateStr, seqStr] = match;
   const year = parseInt(dateStr.slice(0, 4));
   const month = parseInt(dateStr.slice(4, 6)) - 1; // JS months are 0-indexed
   const day = parseInt(dateStr.slice(6, 8));
 
   return {
-    system: prefix === "D2GO" ? "DISPUTE" : "SENTRY",
+    system: "DISPUTE",
     date: new Date(year, month, day),
     sequence: parseInt(seqStr),
   };
@@ -108,7 +107,7 @@ export function parseDisputeCode(code: string): ParsedDisputeCode | null {
  * Validate a dispute code format
  */
 export function isValidDisputeCode(code: string): boolean {
-  return /^(D2GO|STY)-\d{8}-\d{3}$/.test(code);
+  return /^D2GO-\d{8}-\d{3}$/.test(code);
 }
 
 /**
@@ -144,87 +143,52 @@ export async function findDisputeByCode(
   const parsed = parseDisputeCode(code);
   if (!parsed) return null;
 
-  if (parsed.system === "DISPUTE") {
-    const dispute = await prisma.dispute.findFirst({
-      where: { disputeCode: code, organizationId },
-      include: {
-        client: { select: { id: true, firstName: true, lastName: true } },
-        items: {
-          include: {
-            accountItem: {
-              select: { id: true, creditorName: true, maskedAccountId: true },
-            },
+  const dispute = await prisma.dispute.findFirst({
+    where: { disputeCode: code, organizationId },
+    include: {
+      client: { select: { id: true, firstName: true, lastName: true } },
+      items: {
+        include: {
+          accountItem: {
+            select: { id: true, creditorName: true, maskedAccountId: true },
           },
         },
       },
-    });
-    if (!dispute) return null;
-    return {
-      system: "DISPUTE",
-      dispute: {
-        id: dispute.id,
-        disputeCode: dispute.disputeCode,
-        clientId: dispute.clientId,
-        cra: dispute.cra,
-        round: dispute.round,
-        status: dispute.status,
-        client: dispute.client,
-        items: dispute.items.map((item) => ({
-          id: item.id,
-          accountItemId: item.accountItemId,
-          accountItem: item.accountItem,
-        })),
-      },
-    };
-  } else {
-    const dispute = await prisma.sentryDispute.findFirst({
-      where: { disputeCode: code, organizationId },
-      include: {
-        client: { select: { id: true, firstName: true, lastName: true } },
-        items: {
-          include: {
-            accountItem: {
-              select: { id: true, creditorName: true, maskedAccountId: true },
-            },
-          },
-        },
-      },
-    });
-    if (!dispute) return null;
-    return {
-      system: "SENTRY",
-      dispute: {
-        id: dispute.id,
-        disputeCode: dispute.disputeCode,
-        clientId: dispute.clientId,
-        cra: dispute.cra,
-        round: dispute.round,
-        status: dispute.status,
-        client: dispute.client,
-        items: dispute.items.map((item) => ({
-          id: item.id,
-          accountItemId: item.accountItemId,
-          accountItem: item.accountItem,
-        })),
-      },
-    };
-  }
+    },
+  });
+  if (!dispute) return null;
+  return {
+    system: "DISPUTE",
+    dispute: {
+      id: dispute.id,
+      disputeCode: dispute.disputeCode,
+      clientId: dispute.clientId,
+      cra: dispute.cra,
+      round: dispute.round,
+      status: dispute.status,
+      client: dispute.client,
+      items: dispute.items.map((item) => ({
+        id: item.id,
+        accountItemId: item.accountItemId,
+        accountItem: item.accountItem,
+      })),
+    },
+  };
 }
 
 /**
- * Get the prefix for a dispute system
+ * Get the prefix for dispute codes
  */
-export function getDisputeCodePrefix(system: DisputeSystem): string {
-  return system === "DISPUTE" ? "D2GO" : "STY";
+export function getDisputeCodePrefix(): string {
+  return "D2GO";
 }
 
 /**
- * Format a dispute code for display (with system label)
+ * Format a dispute code for display
  */
 export function formatDisputeCodeForDisplay(code: string): string {
   const parsed = parseDisputeCode(code);
   if (!parsed) return code;
 
-  const systemLabel = parsed.system === "DISPUTE" ? "Dispute" : "Sentry";
-  return `${systemLabel} ${code}`;
+  return `Dispute ${code}`;
 }

@@ -328,34 +328,21 @@ function GavelModal({
 
   const flows = [
     {
-      id: "sentry",
-      icon: "🛡️",
-      name: "Sentry Mode Dispute",
-      tagline: "AI-Powered Autonomous",
+      id: "disputes",
+      icon: "✦",
+      name: "Create Dispute",
+      tagline: "AI-Powered Letters",
       color: "cyan",
-      description: "AMELIA analyzes the credit report, identifies the strongest dispute angles, generates legally-optimized letters, and tracks deadlines automatically.",
+      description: "AMELIA analyzes the credit report, identifies the strongest dispute angles, and generates legally-optimized letters with Kitchen Table voice.",
       features: ["AI-selected dispute reasons", "FCRA/CFPB compliance built-in", "Auto-deadline tracking", "Bureau response monitoring"],
       badge: "RECOMMENDED",
-      loadingText: "Initializing AMELIA AI...",
-      loadingSteps: ["Loading client profile", "Analyzing credit report", "Identifying dispute angles", "Preparing Sentry interface"],
-    },
-    {
-      id: "template",
-      icon: "📝",
-      name: "Dispute Template Flow",
-      tagline: "Manual Selection",
-      color: "amber",
-      description: "Choose from a library of proven dispute letter templates. Select specific items, customize the language, and send on your own schedule.",
-      features: ["Template library access", "Manual item selection", "Custom letter editing", "Flexible send timing"],
-      badge: null,
-      loadingText: "Loading Templates...",
-      loadingSteps: ["Loading client data", "Fetching template library", "Preparing dispute items", "Initializing editor"],
+      loadingText: "Initializing AMELIA...",
+      loadingSteps: ["Loading client profile", "Analyzing credit report", "Identifying dispute angles", "Preparing dispute interface"],
     },
   ];
 
   const colorStyles: Record<string, { bg: string; border: string; text: string; glow: string }> = {
     cyan: { bg: "bg-cyan-500/5 hover:bg-cyan-500/10", border: "border-cyan-500/20 hover:border-cyan-500/40", text: "text-cyan-400", glow: "shadow-cyan-500/20" },
-    amber: { bg: "bg-amber-500/5 hover:bg-amber-500/10", border: "border-amber-500/20 hover:border-amber-500/40", text: "text-amber-400", glow: "shadow-amber-500/20" },
   };
 
   const handleFlowSelect = (flowId: string) => {
@@ -364,11 +351,7 @@ function GavelModal({
 
     // Navigate after showing loading state
     setTimeout(() => {
-      if (flowId === "sentry") {
-        router.push(`/sentry/${client.id}`);
-      } else {
-        router.push(`/disputes?clientId=${client.id}`);
-      }
+      router.push(`/disputes?clientId=${client.id}`);
     }, 1800);
   };
 
@@ -814,12 +797,10 @@ export default function ClientDetailPage() {
 
   const handleGavelSelect = (flowId: string) => {
     setGavelModalOpen(false);
-    setGavelConfirm({ flow: flowId === "sentry" ? "Sentry Mode Dispute" : "Dispute Template Flow" });
+    setGavelConfirm({ flow: "Create Dispute" });
     setTimeout(() => setGavelConfirm(null), 3000);
-    // Navigate to the disputes tab or sentry page
-    if (flowId === "sentry") {
-      router.push(`/sentry?clientId=${clientId}`);
-    }
+    // Navigate to the disputes page
+    router.push(`/disputes?clientId=${clientId}`);
   };
 
   // Loading state

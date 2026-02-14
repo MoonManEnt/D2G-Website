@@ -110,14 +110,6 @@ describe("Soul Engine - Voice Inference", () => {
       expect(profile.emotionalState).toBe("resolute");
     });
 
-    it("should infer surprised/vigilant for Sentry mode", () => {
-      const input = {
-        ...baseSoulInput,
-        disputeConfig: { ...baseSoulInput.disputeConfig, mode: "sentry" as const, round: 1 },
-      };
-      const profile = inferConsumerVoice(input);
-      expect(["surprised", "vigilant"]).toContain(profile.emotionalState);
-    });
   });
 
   describe("Legal Literacy Inference", () => {
@@ -608,11 +600,6 @@ describe("Opening Strategy Selection", () => {
     expect(strategy).toBe("situational_urgency");
   });
 
-  it("should select sentry strategies for sentry mode", () => {
-    const surprisedProfile = { ...baseProfile, emotionalState: "surprised" as const };
-    const strategy = selectOpeningStrategy(surprisedProfile, 1, "sentry");
-    expect(["sentry_surprised", "sentry_vigilant"]).toContain(strategy);
-  });
 });
 
 // =============================================================================

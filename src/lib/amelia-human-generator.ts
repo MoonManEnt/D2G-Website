@@ -27,11 +27,7 @@ import {
   type HumanFirstAmeliaTemplate,
 } from "./amelia-human-templates";
 import type { FlowType } from "./amelia-templates";
-import { generateRequiredStory } from "./sentry/story-generator";
-import {
-  type StoryContext,
-  EOSCAR_TO_DISPUTE_TYPE,
-} from "./sentry/writing-modes";
+import { generateKitchenTableStory, type KitchenTableContext } from "./amelia-stories";
 import {
   type ClientPersonalInfo,
   type DisputeAccount,
@@ -44,6 +40,39 @@ import type { CRA } from "@/types";
 import { createLogger } from "./logger";
 
 const log = createLogger("amelia-human-generator");
+
+// =============================================================================
+// STORY CONTEXT TYPES (Previously from sentry/writing-modes)
+// =============================================================================
+
+type DisputeType = "NOT_MINE" | "INACCURATE" | "PAID" | "COLLECTION" | "TOO_OLD" | "UNAUTHORIZED";
+
+interface StoryContext {
+  disputeType: DisputeType;
+  creditorName: string;
+  accountType?: string;
+  balance?: number;
+  clientContext: {
+    hasFamily: boolean;
+    isCarbuyer: boolean;
+    isHomebuyer: boolean;
+    isRenter: boolean;
+  };
+  flow: "ACCURACY" | "COLLECTION" | "CONSENT" | "COMBO";
+  round: number;
+}
+
+const EOSCAR_TO_DISPUTE_TYPE: Record<string, DisputeType> = {
+  "01": "INACCURATE",
+  "02": "INACCURATE",
+  "03": "INACCURATE",
+  "04": "NOT_MINE",
+  "05": "PAID",
+  "06": "COLLECTION",
+  "07": "TOO_OLD",
+  "08": "UNAUTHORIZED",
+  "09": "INACCURATE",
+};
 
 // =============================================================================
 // TYPES
@@ -214,8 +243,8 @@ function buildStoryContext(
   // The story generator will use these to create relevant narratives
   const clientContext: StoryContext["clientContext"] = {
     hasFamily: true, // Most common - universal appeal
-    isCarbuyer: primaryAccount?.accountType?.toLowerCase().includes("auto"),
-    isHomebuyer: primaryAccount?.accountType?.toLowerCase().includes("mortgage"),
+    isCarbuyer: primaryAccount?.accountType?.toLowerCase().includes("auto") ?? false,
+    isHomebuyer: primaryAccount?.accountType?.toLowerCase().includes("mortgage") ?? false,
     isRenter: flow === "ACCURACY" && round === 1, // First-time disputes often about housing
   };
 
@@ -280,12 +309,24 @@ export async function generateHumanFirstLetter(
   // Generate header
   const header = generateHeader(client, cra, letterDate);
 
-  // Build story context
-  const storyContext = buildStoryContext(accounts, flow, round, client);
+  // Build story context for Kitchen Table story generation
+  const kitchenTableContext: KitchenTableContext = {
+    clientFirstName: client.firstName,
+    clientId: organizationId || "default", // Use org ID as client identifier for hash tracking
+    disputeId: undefined,
+    flow: flow as "ACCURACY" | "COLLECTION" | "CONSENT" | "COMBO",
+    round,
+    cra,
+    accountTypes: accounts.map(a => a.accountType || "Account"),
+    totalBalance: accounts.reduce((sum, a) => sum + (a.balance || 0), 0),
+    hasCollectionAccounts: flow === "COLLECTION" || accounts.some(a => a.accountType?.toLowerCase().includes("collection")),
+    hasMultipleAccounts: accounts.length > 1,
+    economicContext: undefined,
+  };
 
-  // Generate story using AI
-  const generatedStory = await generateRequiredStory(storyContext, organizationId);
-  const storyParagraph = generatedStory.storyParagraph;
+  // Generate story using Kitchen Table story generator
+  const generatedStory = generateKitchenTableStory(kitchenTableContext);
+  const storyParagraph = generatedStory.paragraph;
 
   // Generate follow-up opening for R2+
   let followUpOpening = "";
@@ -344,7 +385,7 @@ ${client.fullName}`;
   // Determine tone
   const tone = determineTone(round);
 
-  log.info({ contentHash, tone, storyHash: generatedStory.storyHash }, "Human-first letter generated");
+  log.info({ contentHash, tone, storyHash: generatedStory.hash }, "Human-first letter generated");
 
   return {
     content,
@@ -364,15 +405,27 @@ ${client.fullName}`;
 /**
  * Regenerate just the story for an existing letter
  */
-export async function regenerateStory(
+export function regenerateStory(
   input: Omit<HumanLetterGenerationInput, "regenerationFocus">
-): Promise<string> {
-  const { client, accounts, flow, round, organizationId } = input;
+): string {
+  const { client, accounts, cra, flow, round, organizationId } = input;
 
-  const storyContext = buildStoryContext(accounts, flow, round, client);
-  const generatedStory = await generateRequiredStory(storyContext, organizationId);
+  const kitchenTableContext: KitchenTableContext = {
+    clientFirstName: client.firstName,
+    clientId: organizationId || "default",
+    disputeId: undefined,
+    flow: flow as "ACCURACY" | "COLLECTION" | "CONSENT" | "COMBO",
+    round,
+    cra,
+    accountTypes: accounts.map(a => a.accountType || "Account"),
+    totalBalance: accounts.reduce((sum, a) => sum + (a.balance || 0), 0),
+    hasCollectionAccounts: flow === "COLLECTION" || accounts.some(a => a.accountType?.toLowerCase().includes("collection")),
+    hasMultipleAccounts: accounts.length > 1,
+    economicContext: undefined,
+  };
 
-  return generatedStory.storyParagraph;
+  const generatedStory = generateKitchenTableStory(kitchenTableContext);
+  return generatedStory.paragraph;
 }
 
 /**

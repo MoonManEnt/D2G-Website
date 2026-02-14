@@ -1647,7 +1647,6 @@ export function LetterEditorModal({
             open={mailDialogOpen}
             onOpenChange={setMailDialogOpen}
             disputeId={generatedLetter.disputeId}
-            disputeType="DISPUTE"
             clientName={lockedTop.find(s => s.id === "clientAddress")?.content?.split("\n")[0] || "Client"}
             cra={generatedLetter.cra}
             onSuccess={() => {

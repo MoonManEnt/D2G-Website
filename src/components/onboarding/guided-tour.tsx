@@ -42,13 +42,6 @@ const TOUR_STEPS: TourStep[] = [
     position: "right",
   },
   {
-    id: "sentry",
-    title: "Sentry Intelligence",
-    description: "Advanced dispute intelligence with e-OSCAR code analysis, success predictions, and A/B testing for optimal strategies.",
-    targetSelector: "[data-tour='sentry']",
-    position: "right",
-  },
-  {
     id: "analytics",
     title: "Analytics & Insights",
     description: "Track your success rates by CRA, flow type, and over time. See which strategies work best for your business.",

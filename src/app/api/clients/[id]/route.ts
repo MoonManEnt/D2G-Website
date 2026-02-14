@@ -340,16 +340,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         where: { clientId }
       });
 
-      // 3. Delete sentry dispute items (references account items)
-      await prisma.sentryDisputeItem.deleteMany({
-        where: { accountItem: { clientId } }
-      });
-
-      // 4. Delete sentry disputes
-      await prisma.sentryDispute.deleteMany({
-        where: { clientId }
-      });
-
       // 5. Delete pending evidence (references account items)
       await prisma.pendingEvidence.deleteMany({
         where: { accountItem: { clientId } }

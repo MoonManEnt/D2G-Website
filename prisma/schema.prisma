@@ -122,7 +122,6 @@ model Client {
   clientDocuments      ClientDocument[]
   archiveSnapshot      ClientArchiveSnapshot?
   personalInfoDisputes PersonalInfoDispute[]
-  sentryDisputes       SentryDispute[]
   readinessAnalyses    CreditReadinessAnalysis[]
   litigationScans        LitigationScan[]
   ameliaConversations    AmeliaConversation[]
@@ -277,7 +276,6 @@ model AccountItem {
   diffChangesOld     DiffChange[]        @relation("OldAccount")
   disputes           DisputeItem[]
   evidences          Evidence[]
-  sentryDisputeItems SentryDisputeItem[]
   pendingEvidences   PendingEvidence[]
 
   @@unique([reportId, fingerprint, cra, sequenceIndex])
@@ -1090,120 +1088,9 @@ model ClientArchiveSnapshot {
 }
 
 // =============================================================================
-// SENTRY DISPUTE SYSTEM - Completely isolated from existing Dispute models
-// =============================================================================
-// This is a parallel disputing system for A/B testing new intelligence features.
-// DO NOT merge with existing Dispute models - they must remain separate.
+// FURNISHER PROFILES - Track creditor/collector response patterns
 // =============================================================================
 
-model SentryDispute {
-  id             String @id @default(cuid())
-  clientId       String
-  client         Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  organizationId String
-
-  // Core fields
-  cra         String // TRANSUNION, EXPERIAN, EQUIFAX
-  flow        String // ACCURACY, COLLECTION, CONSENT, COMBO
-  round       Int     @default(1)
-  status      String  @default("DRAFT") // DRAFT, SENT, RESPONDED, RESOLVED
-  disputeCode String? @unique // Human-readable code: STY-YYYYMMDD-XXX
-
-  // Letter content
-  letterContent     String? @db.Text
-  letterContentHash String? // For uniqueness tracking
-
-  // Sentry Intelligence Data
-  eoscarCodes        String? // JSON: Array of selected e-OSCAR codes
-  metro2Fields       String? // JSON: Array of targeted Metro 2 fields
-  citationValidation String? // JSON: Citation validation results
-  ocrRiskScore       Int? // 0-100
-  successProbability Float? // 0-1
-
-  // Physical mail tracking
-  mailedLetterId   String? // DocuPost or Lob letter ID
-  mailedAt         DateTime?
-  mailProvider     String? // DOCUPOST or LOB
-  mailServiceLevel String? // standard, certified, certified_return_receipt
-
-  // Dates
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  sentDate     DateTime?
-  deadlineDate DateTime?
-  respondedAt  DateTime?
-  resolvedAt   DateTime?
-
-  // Relations
-  items    SentryDisputeItem[]
-  analysis SentryAnalysis?
-
-  @@index([clientId])
-  @@index([organizationId])
-  @@index([organizationId, status])
-  @@index([status])
-  @@index([cra, round])
-  @@index([disputeCode])
-}
-
-model SentryDisputeItem {
-  id              String        @id @default(cuid())
-  sentryDisputeId String
-  sentryDispute   SentryDispute @relation(fields: [sentryDisputeId], references: [id], onDelete: Cascade)
-  accountItemId   String
-  accountItem     AccountItem   @relation(fields: [accountItemId], references: [id])
-
-  // Sentry-specific targeting
-  eoscarCode     String? // Primary e-OSCAR code for this item
-  metro2Fields   String? // JSON: Targeted fields for this specific item
-  disputeReason  String?
-  customLanguage String? @db.Text // Custom dispute text
-
-  // Outcome tracking
-  outcome       String? // DELETED, VERIFIED, UPDATED, NO_RESPONSE, STALL_LETTER, PENDING
-  responseDate  DateTime?
-  responseNotes String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([sentryDisputeId])
-  @@index([accountItemId])
-}
-
-model SentryAnalysis {
-  id              String        @id @default(cuid())
-  sentryDisputeId String        @unique
-  sentryDispute   SentryDispute @relation(fields: [sentryDisputeId], references: [id], onDelete: Cascade)
-
-  // e-OSCAR Analysis
-  recommendedCodes       String  @db.Text // JSON: Array of recommended codes with reasoning
-  codeSelectionRationale String?
-
-  // Legal Validation
-  validCitations   String? @db.Text // JSON: Array of valid citations found
-  invalidCitations String? @db.Text // JSON: Array of problematic citations
-  citationWarnings String? @db.Text // JSON: Warnings (e.g., FDCPA to CRA)
-
-  // OCR Analysis
-  ocrScore          Int // 0-100 (higher = safer)
-  ocrFindings       String? @db.Text // JSON: Array of flagged phrases
-  ocrFixSuggestions String? @db.Text // JSON: Auto-fix recommendations
-
-  // Metro 2 Analysis
-  identifiedFields   String? @db.Text // JSON: Fields that could be disputed
-  fieldDiscrepancies String? @db.Text // JSON: Cross-bureau discrepancies
-
-  // Success Prediction
-  successProbability Float // 0-1
-  successBreakdown   String  @db.Text // JSON: Factor-by-factor breakdown
-  improvementTips    String? @db.Text // JSON: How to increase success rate
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-// Track furnisher response patterns (benefits both systems)
 model FurnisherProfile {
   id             String @id @default(cuid())
   name           String @unique
@@ -1223,31 +1110,16 @@ model FurnisherProfile {
   @@index([normalizedName])
 }
 
-// Track e-OSCAR code outcomes for ML improvement
-model SentryCodeOutcome {
-  id              String   @id @default(cuid())
-  code            String
-  accountType     String // Collection, credit card, etc.
-  furnisherName   String?
-  outcome         String // DELETED, VERIFIED, etc.
-  sentryDisputeId String
-  createdAt       DateTime @default(now())
-
-  @@index([code])
-  @@index([furnisherName])
-  @@index([sentryDisputeId])
-}
-
 // =============================================================================
 // DISPUTE SEQUENCE - Atomic counter for human-readable dispute codes
 // =============================================================================
-// Generates codes like D2GO-20250128-001 (Disputes) and STY-20250128-042 (Sentry)
+// Generates codes like D2GO-20250128-001
 // Uses database-level atomicity to prevent race conditions
 
 model DisputeSequence {
   id           String   @id @default(uuid())
   dateKey      String // Format: YYYYMMDD
-  system       String // "DISPUTE" or "SENTRY"
+  system       String // "DISPUTE"
   lastSequence Int      @default(0)
   updatedAt    DateTime @updatedAt
 

@@ -12,21 +12,18 @@ import {
   CheckCircle2,
   Clock,
   Zap,
-  Brain,
   Target,
   Scale,
   Send,
-  ChevronUp,
   ChevronDown,
   Download,
-  Shield,
-  Hand,
   Sparkles,
   Building2,
   GitBranch,
   Activity,
   Play,
   Pause,
+  FileText,
 } from "lucide-react";
 import { createLogger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
@@ -45,17 +42,9 @@ interface AnalyticsState {
     scoreImprovement: number;
     avgCompletionMonths: number;
   };
-  sentry: {
-    disputes: number;
-    deleted: number;
-    avgDays: number;
-    successRate: number;
-  };
-  manual: {
-    disputes: number;
-    deleted: number;
-    avgDays: number;
-    successRate: number;
+  letterFormat: {
+    structured: { total: number; deleted: number; rate: number };
+    conversational: { total: number; deleted: number; rate: number };
   };
   bureaus: Array<{
     id: string;
@@ -138,8 +127,10 @@ const INITIAL_STATE: AnalyticsState = {
     scoreImprovement: 0,
     avgCompletionMonths: 0,
   },
-  sentry: { disputes: 0, deleted: 0, avgDays: 0, successRate: 0 },
-  manual: { disputes: 0, deleted: 0, avgDays: 0, successRate: 0 },
+  letterFormat: {
+    structured: { total: 0, deleted: 0, rate: 0 },
+    conversational: { total: 0, deleted: 0, rate: 0 },
+  },
   bureaus: [
     { id: "TU", name: "TRANSUNION", sent: 0, deleted: 0, verified: 0, color: "#06b6d4" },
     { id: "EX", name: "EXPERIAN", sent: 0, deleted: 0, verified: 0, color: "#a78bfa" },
@@ -201,10 +192,11 @@ function recalculateState(state: AnalyticsState): AnalyticsState {
   state.summary.itemsDeleted = totalDel;
   state.summary.successRate = totalSent > 0 ? Math.round((totalDel / totalSent) * 100) : 0;
 
-  state.sentry.successRate = state.sentry.disputes > 0
-    ? Math.round((state.sentry.deleted / state.sentry.disputes) * 100) : 0;
-  state.manual.successRate = state.manual.disputes > 0
-    ? Math.round((state.manual.deleted / state.manual.disputes) * 100) : 0;
+  // Recalc letter format rates
+  state.letterFormat.structured.rate = state.letterFormat.structured.total > 0
+    ? Math.round((state.letterFormat.structured.deleted / state.letterFormat.structured.total) * 100) : 0;
+  state.letterFormat.conversational.rate = state.letterFormat.conversational.total > 0
+    ? Math.round((state.letterFormat.conversational.deleted / state.letterFormat.conversational.total) * 100) : 0;
 
   // Recalc AI breakdown percentages
   const aiTotal = state.ai.breakdown.reduce((a, b) => a + b.requests, 0);
@@ -235,10 +227,14 @@ function analyticsReducer(state: AnalyticsState, action: AnalyticsAction): Analy
       s.monthlyTrends = s.monthlyTrends.length > 0
         ? [...s.monthlyTrends.slice(0, -1), { ...s.monthlyTrends[s.monthlyTrends.length - 1], disputes: s.monthlyTrends[s.monthlyTrends.length - 1].disputes + 1 }]
         : s.monthlyTrends;
-      if (source === "sentry") s.sentry = { ...s.sentry, disputes: s.sentry.disputes + 1 };
-      else s.manual = { ...s.manual, disputes: s.manual.disputes + 1 };
+      // Track by letter format
+      if (source === "structured") {
+        s.letterFormat = { ...s.letterFormat, structured: { ...s.letterFormat.structured, total: s.letterFormat.structured.total + 1 } };
+      } else {
+        s.letterFormat = { ...s.letterFormat, conversational: { ...s.letterFormat.conversational, total: s.letterFormat.conversational.total + 1 } };
+      }
       s.rounds = [{ ...s.rounds[0], sent: s.rounds[0].sent + 1 }, ...s.rounds.slice(1)];
-      s.activity = [{ id: Date.now(), user: "System", action: `${source === "sentry" ? "Sentry" : "Manual"} dispute sent to ${bureau} — ${flow}`, time: "Just now", avatar: source === "sentry" ? "🤖" : "✋", source }, ...s.activity].slice(0, 10);
+      s.activity = [{ id: Date.now(), user: "System", action: `Dispute sent to ${bureau} — ${flow} (${source === "structured" ? "Structured" : "Conversational"})`, time: "Just now", avatar: "📤", source }, ...s.activity].slice(0, 10);
       s.eventLog = addLog(`DISPUTE_SENT → ${bureau} / ${flow} (${source})`);
       return recalculateState(s);
     }
@@ -251,8 +247,12 @@ function analyticsReducer(state: AnalyticsState, action: AnalyticsAction): Analy
       s.monthlyTrends = s.monthlyTrends.length > 0
         ? [...s.monthlyTrends.slice(0, -1), { ...s.monthlyTrends[s.monthlyTrends.length - 1], deleted: s.monthlyTrends[s.monthlyTrends.length - 1].deleted + 1 }]
         : s.monthlyTrends;
-      if (source === "sentry") s.sentry = { ...s.sentry, deleted: s.sentry.deleted + 1 };
-      else s.manual = { ...s.manual, deleted: s.manual.deleted + 1 };
+      // Track by letter format
+      if (source === "structured") {
+        s.letterFormat = { ...s.letterFormat, structured: { ...s.letterFormat.structured, deleted: s.letterFormat.structured.deleted + 1 } };
+      } else {
+        s.letterFormat = { ...s.letterFormat, conversational: { ...s.letterFormat.conversational, deleted: s.letterFormat.conversational.deleted + 1 } };
+      }
       s.rounds = [{ ...s.rounds[0], deleted: s.rounds[0].deleted + 1 }, ...s.rounds.slice(1)];
       s.summary = { ...s.summary, scoreImprovement: s.summary.scoreImprovement + Math.floor(Math.random() * 5 + 2) };
       s.activity = [{ id: Date.now(), user: "System", action: `Item deleted from ${bureau} — ${flow} success`, time: "Just now", avatar: "✅", source }, ...s.activity].slice(0, 10);
@@ -479,7 +479,7 @@ function ProgressBar({
 
 const NAV_ITEMS = [
   { id: "overview", label: "Overview", icon: BarChart3, desc: "Full dashboard" },
-  { id: "sentry", label: "Sentry vs Manual", icon: Shield, desc: "Compare modes" },
+  { id: "format", label: "Letter Format", icon: FileText, desc: "Format comparison" },
   { id: "ai", label: "AI Usage", icon: Sparkles, desc: "AMELIA metrics" },
   { id: "bureau", label: "Bureau Analysis", icon: Building2, desc: "CRA breakdown" },
   { id: "pipeline", label: "Pipeline & Flows", icon: GitBranch, desc: "Client stages" },
@@ -527,34 +527,27 @@ function StatsRow({ delay = 0 }: { delay?: number }) {
   );
 }
 
-function SentrySection({ delay = 0 }: { delay?: number }) {
+function LetterFormatSection({ delay = 0 }: { delay?: number }) {
   const { state } = useData();
 
-  const sentryFaster = state.manual.avgDays > 0
-    ? (state.manual.avgDays / (state.sentry.avgDays || 1)).toFixed(1)
-    : "0";
-  const sentryBetter = state.sentry.successRate - state.manual.successRate;
+  const structuredBetter = state.letterFormat.structured.rate - state.letterFormat.conversational.rate;
 
   const sides = [
     {
-      key: "sentry",
-      label: "Sentry Mode",
-      icon: Shield,
-      iconEmoji: "🤖",
+      key: "structured",
+      label: "Structured Format",
+      iconEmoji: "📋",
       color: "#a855f7",
-      desc: "AI-automated monitoring",
-      data: state.sentry,
-      time: `${state.sentry.avgDays.toFixed(1)} days`,
+      desc: "Bold headers, detailed explanations",
+      data: state.letterFormat.structured,
     },
     {
-      key: "manual",
-      label: "Manual Disputes",
-      icon: Hand,
-      iconEmoji: "✋",
+      key: "conversational",
+      label: "Conversational Format",
+      iconEmoji: "💬",
       color: "#60a5fa",
-      desc: "Dispute page created",
-      data: state.manual,
-      time: `${state.manual.avgDays.toFixed(1)} days`,
+      desc: "Casual headers, combined sections",
+      data: state.letterFormat.conversational,
     },
   ];
 
@@ -564,15 +557,15 @@ function SentrySection({ delay = 0 }: { delay?: number }) {
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-lg">
-              <Shield className="w-5 h-5 text-muted-foreground" />
-              Sentry Mode vs Manual Disputes
+              <FileText className="w-5 h-5 text-muted-foreground" />
+              Letter Format Comparison
             </CardTitle>
             <div className="flex gap-2">
               <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
                 LIVE
               </Badge>
               <Badge variant="outline" className="text-muted-foreground">
-                {state.sentry.disputes + state.manual.disputes} total
+                {state.letterFormat.structured.total + state.letterFormat.conversational.total} total
               </Badge>
             </div>
           </div>
@@ -605,46 +598,39 @@ function SentrySection({ delay = 0 }: { delay?: number }) {
                     <div className="text-xs text-muted-foreground">{side.desc}</div>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div>
                     <div className="text-2xl font-bold">
-                      <LiveNumber value={side.data.disputes} />
+                      <LiveNumber value={side.data.total} />
                     </div>
-                    <div className="text-xs text-muted-foreground font-mono mt-1">Disputes Sent</div>
+                    <div className="text-xs text-muted-foreground font-mono mt-1">Total Sent</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold">
+                    <div className="text-2xl font-bold text-emerald-400">
                       <LiveNumber value={side.data.deleted} />
                     </div>
-                    <div className="text-xs text-muted-foreground font-mono mt-1">Items Deleted</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold">{side.time}</div>
-                    <div className="text-xs text-muted-foreground font-mono mt-1">Avg Resolution</div>
+                    <div className="text-xs text-muted-foreground font-mono mt-1">Deleted</div>
                   </div>
                   <div>
                     <div className="text-2xl font-bold">
-                      <LiveNumber value={side.data.successRate} suffix="%" />
+                      <LiveNumber value={side.data.rate} suffix="%" />
                     </div>
-                    <div className="text-xs text-muted-foreground font-mono mt-1">Success Rate</div>
+                    <div className="text-xs text-muted-foreground font-mono mt-1">Success</div>
                   </div>
                 </div>
                 <div className="mt-4">
-                  <ProgressBar value={side.data.successRate} max={100} color={side.color} height={5} />
+                  <ProgressBar value={side.data.rate} max={100} color={side.color} height={5} />
                 </div>
               </div>
             ))}
           </div>
 
-          {(parseFloat(sentryFaster) > 1 || sentryBetter > 0) && (
+          {structuredBetter > 0 && (
             <div className="mt-4 p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10 flex items-center gap-3">
               <span className="text-lg">💡</span>
               <span className="text-sm text-muted-foreground">
-                Sentry Mode resolves disputes{" "}
-                <strong className="text-emerald-400">{sentryFaster}x faster</strong>
-                {sentryBetter > 0 && (
-                  <> with a <strong className="text-emerald-400">{sentryBetter}% higher</strong> success rate</>
-                )}
+                Structured format has a{" "}
+                <strong className="text-emerald-400">{structuredBetter}% higher</strong> success rate
               </span>
             </div>
           )}
@@ -1043,8 +1029,8 @@ function ActivitySection({ delay = 0 }: { delay?: number }) {
   const { state } = useData();
 
   const sourceColors: Record<string, string> = {
-    sentry: "#a855f7",
-    manual: "#60a5fa",
+    structured: "#a855f7",
+    conversational: "#60a5fa",
     ai: "#34d399",
     system: "#ef4444",
   };
@@ -1133,7 +1119,7 @@ function SimulationPanel({ collapsed, onToggle }: { collapsed: boolean; onToggle
         payload: {
           bureau: bureaus[Math.floor(Math.random() * bureaus.length)],
           flow: flows[Math.floor(Math.random() * flows.length)],
-          source: Math.random() > 0.4 ? "sentry" : "manual"
+          source: Math.random() > 0.4 ? "structured" : "conversational"
         }
       }),
       () => dispatch({
@@ -1141,7 +1127,7 @@ function SimulationPanel({ collapsed, onToggle }: { collapsed: boolean; onToggle
         payload: {
           bureau: bureaus[Math.floor(Math.random() * bureaus.length)],
           flow: flows[Math.floor(Math.random() * 2)],
-          source: Math.random() > 0.4 ? "sentry" : "manual"
+          source: Math.random() > 0.4 ? "structured" : "conversational"
         }
       }),
       () => dispatch({
@@ -1204,23 +1190,23 @@ function SimulationPanel({ collapsed, onToggle }: { collapsed: boolean; onToggle
               variant="outline"
               size="sm"
               className="text-xs h-7"
-              onClick={() => dispatch({ type: "DISPUTE_SENT", payload: { bureau: "EX", flow: "ACCURACY", source: "sentry" } })}
+              onClick={() => dispatch({ type: "DISPUTE_SENT", payload: { bureau: "EX", flow: "ACCURACY", source: "structured" } })}
             >
-              🤖 Sentry
+              📋 Structured
             </Button>
             <Button
               variant="outline"
               size="sm"
               className="text-xs h-7"
-              onClick={() => dispatch({ type: "DISPUTE_SENT", payload: { bureau: "TU", flow: "COLLECTION", source: "manual" } })}
+              onClick={() => dispatch({ type: "DISPUTE_SENT", payload: { bureau: "TU", flow: "COLLECTION", source: "conversational" } })}
             >
-              ✋ Manual
+              💬 Conversational
             </Button>
             <Button
               variant="outline"
               size="sm"
               className="text-xs h-7"
-              onClick={() => dispatch({ type: "ITEM_DELETED", payload: { bureau: "EX", flow: "ACCURACY", source: "sentry" } })}
+              onClick={() => dispatch({ type: "ITEM_DELETED", payload: { bureau: "EX", flow: "ACCURACY", source: "structured" } })}
             >
               ✅ Deleted
             </Button>
@@ -1307,17 +1293,17 @@ export default function AnalyticsPage() {
                 avgCompletionMonths: data.summary?.avgCompletionMonths ||
                   (data.summary?.avgResolutionDays ? Number((data.summary.avgResolutionDays / 30).toFixed(1)) : 0),
               },
-              sentry: {
-                disputes: data.sentryStats?.disputes || Math.floor((data.summary?.activeDisputeCount || 0) * 0.6),
-                deleted: data.sentryStats?.deleted || Math.floor((data.summary?.resolvedDisputeCount || 0) * 0.55),
-                avgDays: data.sentryStats?.avgDays || 2.1,
-                successRate: data.sentryStats?.successRate || 50,
-              },
-              manual: {
-                disputes: data.manualStats?.disputes || Math.floor((data.summary?.activeDisputeCount || 0) * 0.4),
-                deleted: data.manualStats?.deleted || Math.floor((data.summary?.resolvedDisputeCount || 0) * 0.45),
-                avgDays: data.manualStats?.avgDays || 4.8,
-                successRate: data.manualStats?.successRate || 45,
+              letterFormat: {
+                structured: {
+                  total: data.successByFormat?.STRUCTURED?.total || 0,
+                  deleted: data.successByFormat?.STRUCTURED?.deleted || 0,
+                  rate: data.successByFormat?.STRUCTURED?.rate || 0,
+                },
+                conversational: {
+                  total: data.successByFormat?.CONVERSATIONAL?.total || 0,
+                  deleted: data.successByFormat?.CONVERSATIONAL?.deleted || 0,
+                  rate: data.successByFormat?.CONVERSATIONAL?.rate || 0,
+                },
               },
               bureaus: data.successByCRA
                 ? Object.entries(data.successByCRA).map(([cra, stats]: [string, any]) => ({
@@ -1386,7 +1372,7 @@ export default function AnalyticsPage() {
                 action: a.details || a.type,
                 time: a.date,
                 avatar: a.type === "deletion" ? "✅" : a.type === "sent" ? "📤" : "📬",
-                source: a.type === "deletion" ? "sentry" : "manual",
+                source: a.type === "deletion" ? "structured" : "conversational",
               })) || [],
             },
           });
@@ -1532,12 +1518,12 @@ export default function AnalyticsPage() {
                         </div>
                         <div>
                           <div className="flex justify-between mb-1.5">
-                            <span className="text-sm text-muted-foreground">Sentry Rate</span>
+                            <span className="text-sm text-muted-foreground">Structured Rate</span>
                             <span className="text-sm font-bold text-purple-400">
-                              <LiveNumber value={state.sentry.successRate} suffix="%" />
+                              <LiveNumber value={state.letterFormat.structured.rate} suffix="%" />
                             </span>
                           </div>
-                          <ProgressBar value={state.sentry.successRate} max={100} color="#a855f7" height={5} />
+                          <ProgressBar value={state.letterFormat.structured.rate} max={100} color="#a855f7" height={5} />
                         </div>
                         <div>
                           <div className="flex justify-between mb-1.5">
@@ -1575,7 +1561,7 @@ export default function AnalyticsPage() {
             <div key={section} className="animate-in fade-in duration-300">
               <StatsRow delay={100} />
 
-              {show("sentry") && <SentrySection delay={160} />}
+              {show("format") && <LetterFormatSection delay={160} />}
 
               {show("ai") && (
                 <div className="mt-4">

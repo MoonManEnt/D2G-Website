@@ -114,16 +114,16 @@ export async function GET(
       const accountIds = accounts.map(a => a.id);
       const targetCra = cra?.toUpperCase();
 
-      // Get all Sentry dispute items for these accounts
-      const disputeItems = await prisma.sentryDisputeItem.findMany({
+      // Get all dispute items for these accounts
+      const disputeItems = await prisma.disputeItem.findMany({
         where: {
           accountItemId: { in: accountIds },
           ...(targetCra && {
-            sentryDispute: { cra: targetCra },
+            dispute: { cra: targetCra },
           }),
         },
         include: {
-          sentryDispute: {
+          dispute: {
             select: {
               id: true,
               cra: true,
@@ -170,7 +170,7 @@ export async function GET(
         // Find disputes for this account (filtered by CRA if specified)
         const accountDisputes = disputeItems.filter(
           item => item.accountItemId === accountId &&
-            (!targetCra || item.sentryDispute.cra === targetCra)
+            (!targetCra || item.dispute.cra === targetCra)
         );
 
         if (accountDisputes.length === 0) {
@@ -180,38 +180,38 @@ export async function GET(
 
         // Check for active (DRAFT) disputes
         const activeDispute = accountDisputes.find(
-          item => item.sentryDispute.status === "DRAFT"
+          item => item.dispute.status === "DRAFT"
         );
         if (activeDispute) {
           disputeStatusMap.set(accountId, {
             status: "in_active_dispute",
-            reason: `Draft dispute in progress (Round ${activeDispute.sentryDispute.round})`,
-            disputeId: activeDispute.sentryDispute.id,
-            round: activeDispute.sentryDispute.round,
+            reason: `Draft dispute in progress (Round ${activeDispute.dispute.round})`,
+            disputeId: activeDispute.dispute.id,
+            round: activeDispute.dispute.round,
           });
           continue;
         }
 
         // Check for sent disputes within waiting period
         const sentDispute = accountDisputes.find(item => {
-          if (item.sentryDispute.status !== "SENT" || !item.sentryDispute.sentDate) {
+          if (item.dispute.status !== "SENT" || !item.dispute.sentDate) {
             return false;
           }
-          const sentTime = new Date(item.sentryDispute.sentDate).getTime();
+          const sentTime = new Date(item.dispute.sentDate).getTime();
           return now.getTime() - sentTime < waitingPeriodMs;
         });
 
-        if (sentDispute && sentDispute.sentryDispute.sentDate) {
-          const sentTime = new Date(sentDispute.sentryDispute.sentDate).getTime();
+        if (sentDispute && sentDispute.dispute.sentDate) {
+          const sentTime = new Date(sentDispute.dispute.sentDate).getTime();
           const daysElapsed = Math.floor((now.getTime() - sentTime) / (24 * 60 * 60 * 1000));
           const daysRemaining = RESPONSE_WAITING_PERIOD_DAYS - daysElapsed;
 
           disputeStatusMap.set(accountId, {
             status: "waiting_response",
             reason: `Awaiting CRA response (${daysRemaining} days remaining)`,
-            disputeId: sentDispute.sentryDispute.id,
-            round: sentDispute.sentryDispute.round,
-            sentDate: sentDispute.sentryDispute.sentDate,
+            disputeId: sentDispute.dispute.id,
+            round: sentDispute.dispute.round,
+            sentDate: sentDispute.dispute.sentDate,
             daysRemaining,
           });
           continue;

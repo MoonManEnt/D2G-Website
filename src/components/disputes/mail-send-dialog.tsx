@@ -30,7 +30,6 @@ interface MailSendDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   disputeId: string;
-  disputeType: "DISPUTE" | "SENTRY";
   clientName: string;
   cra: string;
   onSuccess?: () => void;
@@ -72,7 +71,6 @@ export function MailSendDialog({
   open,
   onOpenChange,
   disputeId,
-  disputeType,
   clientName,
   cra,
   onSuccess,
@@ -108,10 +106,7 @@ export function MailSendDialog({
     setSending(true);
 
     try {
-      const endpoint =
-        disputeType === "SENTRY"
-          ? `/api/sentry/${disputeId}/mail`
-          : `/api/disputes/${disputeId}/mail`;
+      const endpoint = `/api/disputes/${disputeId}/mail`;
 
       const res = await fetch(endpoint, {
         method: "POST",

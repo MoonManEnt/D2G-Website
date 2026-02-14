@@ -24,8 +24,6 @@ const mockPrisma = {
   document: { deleteMany: jest.fn().mockResolvedValue({} as never) },
   disputeItem: { deleteMany: jest.fn().mockResolvedValue({} as never) },
   dispute: { deleteMany: jest.fn().mockResolvedValue({} as never) },
-  sentryDisputeItem: { deleteMany: jest.fn().mockResolvedValue({} as never) },
-  sentryDispute: { deleteMany: jest.fn().mockResolvedValue({} as never) },
   pendingEvidence: { deleteMany: jest.fn().mockResolvedValue({} as never) },
   evidence: { deleteMany: jest.fn().mockResolvedValue({} as never) },
   creditReport: { findMany: jest.fn().mockResolvedValue([] as never), deleteMany: jest.fn().mockResolvedValue({} as never) },
