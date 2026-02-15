@@ -641,153 +641,154 @@ export function DisputesSplit({ initialClient }: DisputesSplitProps) {
         </div>
       </Reveal>
 
-      {/* Stats Row - Centered */}
+      {/* Stats Row - Full Width Fluid */}
       <Reveal delay={100}>
-        <div className="flex justify-center gap-4">
+        <div className="grid grid-cols-4 gap-3">
           {[
-            { icon: "📑", label: "NEGATIVE ACCOUNTS", value: stats.totalAccounts, color: "text-foreground" },
-            { icon: "🔥", label: "HIGH PRIORITY", value: stats.highPriority, color: "text-red-400" },
-            { icon: "📦", label: "COLLECTIONS", value: stats.collections, color: "text-amber-400" },
-            { icon: "💰", label: "TOTAL BALANCE", value: `$${stats.totalBalance.toLocaleString()}`, color: "text-emerald-400", isString: true },
+            { icon: "📑", label: "NEGATIVE ACCOUNTS", value: stats.totalAccounts, color: "text-foreground", gradient: "from-slate-500/10 to-slate-600/5" },
+            { icon: "🔥", label: "HIGH PRIORITY", value: stats.highPriority, color: "text-red-400", gradient: "from-red-500/10 to-red-600/5" },
+            { icon: "📦", label: "COLLECTIONS", value: stats.collections, color: "text-amber-400", gradient: "from-amber-500/10 to-amber-600/5" },
+            { icon: "💰", label: "TOTAL BALANCE", value: `$${stats.totalBalance.toLocaleString()}`, color: "text-emerald-400", gradient: "from-emerald-500/10 to-emerald-600/5", isString: true },
           ].map((stat, i) => (
-            <Card key={i} className="bg-card border-border min-w-[200px]">
-              <CardContent className="p-5 text-center">
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <span className="text-lg">{stat.icon}</span>
-                  <span className="text-[10px] font-bold tracking-widest text-muted-foreground font-mono">{stat.label}</span>
+            <div
+              key={i}
+              className={cn(
+                "relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br p-5",
+                stat.gradient
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <div className="text-2xl">{stat.icon}</div>
+                <div className="flex-1">
+                  <div className="text-[10px] font-bold tracking-widest text-muted-foreground font-mono mb-1">{stat.label}</div>
+                  <div className={cn("text-3xl font-bold leading-none", stat.color)}>
+                    {stat.isString ? stat.value : <AnimatedNumber value={stat.value as number} delay={250 + i * 70} />}
+                  </div>
                 </div>
-                <div className={cn("text-4xl font-bold leading-none", stat.color)}>
-                  {stat.isString ? stat.value : <AnimatedNumber value={stat.value as number} delay={250 + i * 70} />}
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+              {/* Decorative gradient orb */}
+              <div className={cn(
+                "absolute -right-4 -bottom-4 w-20 h-20 rounded-full opacity-30 blur-2xl",
+                stat.color === "text-red-400" && "bg-red-500",
+                stat.color === "text-amber-400" && "bg-amber-500",
+                stat.color === "text-emerald-400" && "bg-emerald-500",
+                stat.color === "text-foreground" && "bg-slate-500"
+              )} />
+            </div>
           ))}
         </div>
       </Reveal>
 
-      {/* Three-Column Layout */}
-      <div className="grid grid-cols-[280px_1fr_400px] gap-5 items-start">
-        {/* Left Sidebar - Config */}
-        <Reveal delay={160} direction="left">
-          <div className="sticky top-5 space-y-4">
-            {/* Bureau Selector */}
-            <Card className="bg-card border-border p-5">
-              <div className="text-sm font-semibold text-muted-foreground mb-4 tracking-wide">Bureau</div>
-              <div className="space-y-2">
-                {BUREAUS.map((bureau) => {
-                  const isActive = selectedCRA === bureau.id;
-                  const colorClasses = {
-                    cyan: { active: "bg-cyan-500/10 border-cyan-500/20", badge: "bg-cyan-500/15 text-cyan-400", dot: "bg-cyan-400" },
-                    violet: { active: "bg-violet-500/10 border-violet-500/20", badge: "bg-violet-500/15 text-violet-400", dot: "bg-violet-400" },
-                    rose: { active: "bg-rose-500/10 border-rose-500/20", badge: "bg-rose-500/15 text-rose-400", dot: "bg-rose-400" },
-                  };
-                  const colors = colorClasses[bureau.color];
+      {/* Combined Bureau + Strategy Selector Bar */}
+      <Reveal delay={130}>
+        <Card className="bg-card/50 border-border/50 p-4">
+          <div className="flex items-center gap-6">
+            {/* Bureau Selector - Horizontal */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-muted-foreground tracking-wide mr-2">BUREAU</span>
+              {BUREAUS.map((bureau) => {
+                const isActive = selectedCRA === bureau.id;
+                const colorClasses = {
+                  cyan: { active: "bg-cyan-500/15 border-cyan-500/30 text-cyan-400", badge: "bg-cyan-500/20 text-cyan-400" },
+                  violet: { active: "bg-violet-500/15 border-violet-500/30 text-violet-400", badge: "bg-violet-500/20 text-violet-400" },
+                  rose: { active: "bg-rose-500/15 border-rose-500/30 text-rose-400", badge: "bg-rose-500/20 text-rose-400" },
+                };
+                const colors = colorClasses[bureau.color];
 
-                  return (
-                    <button
-                      key={bureau.id}
-                      onClick={() => setSelectedCRA(bureau.id)}
-                      className={cn(
-                        "w-full p-3.5 rounded-xl flex items-center gap-3 transition-all text-left",
-                        isActive ? colors.active : "hover:bg-muted/50",
-                        isActive ? "border" : "border border-transparent"
-                      )}
-                    >
+                return (
+                  <button
+                    key={bureau.id}
+                    onClick={() => setSelectedCRA(bureau.id)}
+                    className={cn(
+                      "px-4 py-2.5 rounded-xl flex items-center gap-2.5 transition-all font-medium text-sm",
+                      isActive ? colors.active : "bg-muted/30 hover:bg-muted/50 text-muted-foreground",
+                      isActive ? "border shadow-sm" : "border border-transparent"
+                    )}
+                  >
+                    <span className={cn(
+                      "text-xs font-bold font-mono px-2 py-1 rounded-md",
+                      isActive ? colors.badge : "bg-muted text-muted-foreground"
+                    )}>
+                      {bureau.abbr}
+                    </span>
+                    <span>{bureau.name}</span>
+                    <span className="text-xs text-muted-foreground font-mono">
+                      {parsedAccounts.length}
+                    </span>
+                    {isActive && (
                       <div className={cn(
-                        "w-10 h-10 rounded-lg flex items-center justify-center text-xs font-bold font-mono transition-all",
-                        isActive ? colors.badge : "bg-muted text-muted-foreground"
-                      )}>
-                        {bureau.abbr}
-                      </div>
-                      <div className="flex-1">
-                        <div className={cn("text-sm font-semibold", isActive && `text-${bureau.color}-400`)}>{bureau.name}</div>
-                        <div className="text-xs text-muted-foreground font-mono">{parsedAccounts.length} accounts</div>
-                      </div>
-                      {isActive && (
-                        <div className={cn("w-2 h-2 rounded-full shadow-lg", colors.dot)} style={{ boxShadow: `0 0 8px currentColor` }} />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </Card>
+                        "w-1.5 h-1.5 rounded-full",
+                        bureau.color === "cyan" && "bg-cyan-400",
+                        bureau.color === "violet" && "bg-violet-400",
+                        bureau.color === "rose" && "bg-rose-400"
+                      )} style={{ boxShadow: `0 0 8px currentColor` }} />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
 
-            {/* Strategy Selector */}
-            <Card className="bg-card border-border p-5">
-              <div className="text-sm font-semibold text-muted-foreground mb-4 tracking-wide">Strategy</div>
-              <div className="space-y-1">
-                {FLOWS.map((flow) => {
-                  const isActive = selectedFlow === flow.id;
-                  const colorClasses = {
-                    blue: { active: "bg-blue-500/10 border-blue-500/20", dot: "bg-blue-400", text: "text-blue-400" },
-                    red: { active: "bg-red-500/10 border-red-500/20", dot: "bg-red-400", text: "text-red-400" },
-                    purple: { active: "bg-purple-500/10 border-purple-500/20", dot: "bg-purple-400", text: "text-purple-400" },
-                    amber: { active: "bg-amber-500/10 border-amber-500/20", dot: "bg-amber-400", text: "text-amber-400" },
-                  };
-                  const colors = colorClasses[flow.color];
+            {/* Divider */}
+            <div className="h-10 w-px bg-border/50" />
 
-                  return (
-                    <button
-                      key={flow.id}
-                      onClick={() => setSelectedFlow(flow.id)}
-                      className={cn(
-                        "w-full p-3 rounded-xl flex items-center gap-3 transition-all text-left",
-                        isActive ? colors.active : "hover:bg-muted/50",
-                        isActive ? "border" : "border border-transparent"
-                      )}
-                    >
-                      <div className={cn(
-                        "w-2.5 h-2.5 rounded-full flex-shrink-0 transition-all",
-                        colors.dot,
-                        isActive && "shadow-lg"
-                      )} style={isActive ? { boxShadow: `0 0 10px currentColor` } : {}} />
-                      <div className="flex-1 min-w-0">
-                        <div className={cn("text-sm font-semibold", isActive && colors.text)}>{flow.label}</div>
-                        <div className="text-xs text-muted-foreground truncate">{flow.desc}</div>
-                        {/* Show human examples when flow is selected */}
-                        {isActive && flow.humanExamples && (
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {flow.humanExamples.slice(0, 3).map((example) => (
-                              <span key={example} className="text-[10px] px-1.5 py-0.5 bg-muted rounded-full text-muted-foreground">
-                                {example}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <span className="text-[10px] text-muted-foreground font-mono">up to {flow.maxRounds} rounds</span>
-                        <div className="flex gap-0.5 mt-1 justify-end">
-                          {Array.from({ length: Math.min(flow.maxRounds, 12) }).map((_, r) => (
-                            <div key={r} className={cn(
-                              "h-1 rounded-full transition-all",
-                              r < 1 ? colors.dot : "bg-muted",
-                              r < 1 ? "w-2" : "w-1"
-                            )} />
-                          ))}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+            {/* Strategy Selector - Horizontal */}
+            <div className="flex items-center gap-2 flex-1">
+              <span className="text-xs font-semibold text-muted-foreground tracking-wide mr-2">STRATEGY</span>
+              {FLOWS.map((flow) => {
+                const isActive = selectedFlow === flow.id;
+                const colorClasses = {
+                  blue: { active: "bg-blue-500/15 border-blue-500/30 text-blue-400", dot: "bg-blue-400" },
+                  red: { active: "bg-red-500/15 border-red-500/30 text-red-400", dot: "bg-red-400" },
+                  purple: { active: "bg-purple-500/15 border-purple-500/30 text-purple-400", dot: "bg-purple-400" },
+                  amber: { active: "bg-amber-500/15 border-amber-500/30 text-amber-400", dot: "bg-amber-400" },
+                };
+                const colors = colorClasses[flow.color];
 
-              {/* Strategy Comparison - Shows when accounts are selected */}
-              {selectedAccounts.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-border">
+                return (
+                  <button
+                    key={flow.id}
+                    onClick={() => setSelectedFlow(flow.id)}
+                    className={cn(
+                      "px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all text-sm",
+                      isActive ? colors.active : "bg-muted/30 hover:bg-muted/50 text-muted-foreground",
+                      isActive ? "border shadow-sm" : "border border-transparent"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-2 h-2 rounded-full flex-shrink-0",
+                      colors.dot,
+                      isActive && "shadow-lg"
+                    )} style={isActive ? { boxShadow: `0 0 8px currentColor` } : {}} />
+                    <span className="font-medium">{flow.label}</span>
+                    <span className="text-[10px] text-muted-foreground font-mono hidden xl:inline">
+                      {flow.maxRounds}R
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Strategy Comparison Mini - Shows when accounts selected */}
+            {selectedAccounts.length > 0 && (
+              <>
+                <div className="h-10 w-px bg-border/50" />
+                <div className="flex items-center gap-2">
                   <StrategyComparisonInline
                     currentFlow={selectedFlow}
                     onSelectStrategy={(flow) => setSelectedFlow(flow)}
                   />
                 </div>
-              )}
-            </Card>
+              </>
+            )}
           </div>
-        </Reveal>
+        </Card>
+      </Reveal>
 
-        {/* Middle - Account List */}
-        <Reveal delay={200}>
-          <Card className="bg-card border-border overflow-hidden">
+      {/* Two-Column Layout: Accounts + AMELIA */}
+      <div className="grid grid-cols-[1fr_400px] gap-5">
+        {/* Accounts Panel - Expanded */}
+        <Reveal delay={160}>
+          <Card className="bg-card border-border overflow-hidden h-full">
             {/* Header */}
             <div className="p-5 border-b border-border flex items-center justify-between">
               <div>
@@ -826,7 +827,7 @@ export function DisputesSplit({ initialClient }: DisputesSplitProps) {
             </div>
 
             {/* Account List */}
-            <div className="p-4 space-y-3 max-h-[600px] overflow-y-auto">
+            <div className="p-4 space-y-3 overflow-y-auto" style={{ maxHeight: "calc(100vh - 420px)", minHeight: "400px" }}>
               {accountsLoading ? (
                 <div className="py-12 text-center">
                   <Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />
@@ -975,10 +976,9 @@ export function DisputesSplit({ initialClient }: DisputesSplitProps) {
           </Card>
         </Reveal>
 
-        {/* Right Sidebar - AMELIA */}
-        <div className="sticky top-5">
-          <Reveal delay={260} direction="right">
-            <div className="space-y-4">
+        {/* AMELIA Panel */}
+        <Reveal delay={200} direction="right">
+          <div className="space-y-4 h-full flex flex-col">
               {/* Warning Banner for Too Many Accounts */}
               {selectedAccounts.length > 5 && (
                 <Card className="bg-amber-500/10 border-amber-500/20 p-4">
@@ -1023,7 +1023,7 @@ export function DisputesSplit({ initialClient }: DisputesSplitProps) {
               )}
 
               {/* AMELIA Panel */}
-              <Card className="bg-gradient-to-br from-purple-500/5 to-cyan-500/5 border-purple-500/10 overflow-hidden">
+              <Card className="bg-gradient-to-br from-purple-500/5 to-cyan-500/5 border-purple-500/10 overflow-hidden flex-1 flex flex-col">
                 <div className="p-5">
                   <div className="flex items-center justify-between mb-5">
                     <div className="flex items-center gap-3">
@@ -1290,7 +1290,6 @@ export function DisputesSplit({ initialClient }: DisputesSplitProps) {
               </Card>
             </div>
           </Reveal>
-        </div>
       </div>
 
       {/* Letter Studio Modal */}
