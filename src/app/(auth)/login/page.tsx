@@ -212,45 +212,81 @@ function PwStrength({ password }: PwStrengthProps) {
   return <div style={{ marginTop: -10, marginBottom: 14 }}><div style={{ display: "flex", gap: 3, marginBottom: 3 }}>{[1, 2, 3, 4, 5].map(i => <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, background: i <= s ? colors[s] : C.border, transition: "all 0.3s" }} />)}</div><span style={{ fontSize: 10.5, color: colors[s], fontFamily: "var(--body)" }}>{labels[s]}</span></div>;
 }
 
-// ── Dynamic greeting system ──
-// In production, firstName and gender come from session/JWT/last-login cache.
-// gender: "male" | "female" | "nonbinary" | null
-function getGreeting(firstName: string | null, gender: "male" | "female" | "nonbinary" | null): string {
-  const hour = new Date().getHours();
-  const name = firstName || "Specialist";
-  const royal = gender === "female" ? "Queen" : gender === "male" ? "King" : "Royalty";
+// ── Motivational quotes pool — Black excellence in leadership, business, and legacy ──
+const QUOTES = [
+  // Business Titans
+  { text: "Willing is not enough; we must do.", author: "Robert F. Smith" },
+  { text: "Every successful business is built on the foundation of service.", author: "Robert F. Smith" },
+  { text: "I want to show young people that there are no limits to what they can achieve.", author: "Janice Bryant Howroyd" },
+  { text: "Don't wait for opportunity. Create it.", author: "Madam C.J. Walker" },
+  { text: "I got my start by giving myself a start.", author: "Madam C.J. Walker" },
+  { text: "I had to make my own living and my own opportunity. But I made it.", author: "Madam C.J. Walker" },
+  { text: "You can't build a reputation on what you are going to do.", author: "John H. Johnson" },
+  { text: "To be successful, you must act big, think big, and talk big.", author: "Reginald F. Lewis" },
+  { text: "Keep going. No matter what.", author: "Reginald F. Lewis" },
+  { text: "Why should White guys have all the fun?", author: "Reginald F. Lewis" },
+  { text: "Your brand is what people say about you when you're not in the room.", author: "David Steward" },
+  { text: "Success is the result of perfection, hard work, and learning from failure.", author: "Robert L. Johnson" },
+  { text: "Don't let what you cannot do interfere with what you can do.", author: "Daymond John" },
+  { text: "The Power of Broke forces you to think more creatively.", author: "Daymond John" },
 
-  const greetings = [];
+  // Civil Rights & Activism
+  { text: "If there is no struggle, there is no progress.", author: "Frederick Douglass" },
+  { text: "It is easier to build strong children than to repair broken men.", author: "Frederick Douglass" },
+  { text: "I am no longer accepting the things I cannot change. I am changing the things I cannot accept.", author: "Angela Davis" },
+  { text: "You have to act as if it were possible to radically transform the world. And you have to do it all the time.", author: "Angela Davis" },
+  { text: "Hold fast to dreams, for if dreams die, life is a broken-winged bird that cannot fly.", author: "Langston Hughes" },
+  { text: "The time is always right to do what is right.", author: "Martin Luther King Jr." },
+  { text: "Intelligence plus character — that is the goal of true education.", author: "Martin Luther King Jr." },
+  { text: "If you can't fly then run, if you can't run then walk, if you can't walk then crawl, but whatever you do you have to keep moving forward.", author: "Martin Luther King Jr." },
+  { text: "There is no better than adversity. Every defeat, every heartbreak, every loss, contains its own seed, its own lesson on how to improve your performance the next time.", author: "Malcolm X" },
+  { text: "Education is the passport to the future, for tomorrow belongs to those who prepare for it today.", author: "Malcolm X" },
+  { text: "I am America. I am the part you won't recognize. But get used to me.", author: "Muhammad Ali" },
+  { text: "Service is the rent we pay for being. It is the very purpose of life, and not something you do in your spare time.", author: "Marian Wright Edelman" },
 
-  // Time-gated greeting (4am–9am only)
-  if (hour >= 4 && hour < 9) {
-    greetings.push("The early bird catches the worm 🐛");
-  }
+  // Culture, Arts & Thought Leadership
+  { text: "You are your best thing.", author: "Toni Morrison" },
+  { text: "If you are free, you need to free somebody else. If you have some power, then your job is to empower somebody else.", author: "Toni Morrison" },
+  { text: "Define yourself, or someone else will define you for you.", author: "Chadwick Boseman" },
+  { text: "The struggles along the way are only meant to shape you for your purpose.", author: "Chadwick Boseman" },
+  { text: "You can only become truly accomplished at something you love.", author: "Maya Angelou" },
+  { text: "We delight in the beauty of the butterfly, but rarely admit the changes it has gone through to achieve that beauty.", author: "Maya Angelou" },
+  { text: "Success is liking yourself, liking what you do, and liking how you do it.", author: "Maya Angelou" },
+  { text: "Think like a queen. A queen is not afraid to fail. Failure is another stepping stone to greatness.", author: "Oprah Winfrey" },
+  { text: "Turn your wounds into wisdom.", author: "Oprah Winfrey" },
+  { text: "You become what you believe.", author: "Oprah Winfrey" },
+  { text: "Impossible is just a big word thrown around by small men who find it easier to live in the world they've been given than to explore the power they have to change it.", author: "Muhammad Ali" },
 
-  // Evening greeting (6pm+)
-  if (hour >= 18 || hour < 4) {
-    greetings.push(`Good evening ${royal} 👑`);
-  }
+  // Modern Business & Tech
+  { text: "Don't be intimidated by what you don't know. That can be your greatest strength.", author: "Sara Blakely" },
+  { text: "The biggest risk is not taking any risk.", author: "Tyler Perry" },
+  { text: "I don't want to just be a mogul. I want to build something that lasts.", author: "Tyler Perry" },
+  { text: "It's not about how much money you make but how much money you keep, how hard it works for you, and how many generations you keep it for.", author: "Robert Kiyosaki" },
+  { text: "Invest in as much of yourself as you can. You are your own biggest asset by far.", author: "Warren Buffett" },
+  { text: "When you undervalue what you do, the world will undervalue who you are.", author: "Suze Orman" },
+  { text: "Stop waiting for somebody to elevate your game. You are already equipped with everything you need to manifest your own greatness.", author: "Germany Kent" },
+  { text: "Your legacy is being written by yourself. Make the right decisions.", author: "Gary Vaynerchuk" },
 
-  // All-day greetings
-  greetings.push(
-    `Corporate Thuggin'? Let's Get It ${name} 💼`,
-    `Brick by Brick, Build Your Legacy ${name} 🧱`,
-    "Bonjour! 🇫🇷",
-    `Keep It Rolling ${name} 🎯`,
-    `Stall Letters Beware! Go Get 'em ${name} ⚡`,
-    "Late Payments? Where? Welcome Back Captain! 🫡",
-    `${name}, Let's Create Generational Wealth! 💰`,
-    "Credit is the Game of Time, You're On the Clock... ⏳",
-    "To Dispute or Not to Dispute... 🤔",
-  );
+  // Wealth & Generational Legacy
+  { text: "An investment in knowledge pays the best interest.", author: "Benjamin Franklin" },
+  { text: "Build your own dreams, or someone else will hire you to build theirs.", author: "Farrah Gray" },
+  { text: "Comfort is the enemy of achievement.", author: "Farrah Gray" },
+  { text: "I had to go out and make it happen. Nobody was going to hand it to me.", author: "Berry Gordy" },
+  { text: "The goal isn't more money. The goal is living life on your terms.", author: "Chris Brogan" },
+  { text: "Real wealth is not about money. Real wealth is about freedom.", author: "T. Harv Eker" },
+  { text: "The only limit to your impact is your imagination and commitment.", author: "Tony Robbins" },
+  { text: "Do not wait to strike till the iron is hot; but make it hot by striking.", author: "William Butler Yeats" },
+  { text: "Legacy is not leaving something for people. It's leaving something in people.", author: "Peter Strople" },
+];
 
-  // Deterministic-ish pick: rotate based on day-of-year + hour band
-  const now = new Date();
-  const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000);
-  const band = Math.floor(hour / 3); // changes every 3 hours
-  const idx = (dayOfYear + band) % greetings.length;
-  return greetings[idx];
+interface Quote {
+  text: string;
+  author: string;
+}
+
+function getDailyQuote(): Quote {
+  const day = Math.floor(Date.now() / 86400000);
+  return QUOTES[day % QUOTES.length];
 }
 
 // ── Icons ──
@@ -368,14 +404,12 @@ function D2GAuthV3() {
   const [mounted, setMounted] = useState(false);
   const [remember, setRemember] = useState(false);
 
-  // ── User context (in production, pull from session/JWT/last-login) ──
-  const [userFirstName] = useState("Specialist");
-  const [userGender] = useState<"male" | "female" | "nonbinary" | null>(null);
-  const [greeting, setGreeting] = useState("");
+  // ── Daily motivational quote ──
+  const [quote, setQuote] = useState<Quote>({ text: "", author: "" });
 
   useEffect(() => { setTimeout(() => setMounted(true), 60); }, []);
   useEffect(() => { setErrors({}); setLoading(false); }, [view]);
-  useEffect(() => { setGreeting(getGreeting(userFirstName, userGender)); }, [userFirstName, userGender]);
+  useEffect(() => { setQuote(getDailyQuote()); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -468,8 +502,55 @@ function D2GAuthV3() {
 
         {/* ── LOGIN ── */}
         {view === "login" && <div style={fade(0.1)}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: C.text, fontFamily: "var(--head)", letterSpacing: "-0.02em", margin: "0 0 4px 0", lineHeight: 1.35 }}>{greeting}</h2>
-          <p style={{ fontSize: 13.5, color: C.textMuted, margin: "0 0 28px 0", fontFamily: "var(--body)" }}>Sign in to your specialist portal</p>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: C.text, fontFamily: "var(--head)", letterSpacing: "-0.02em", margin: "0 0 4px 0", lineHeight: 1.35 }}>Welcome back</h2>
+          <p style={{ fontSize: 13.5, color: C.textMuted, margin: "0 0 20px 0", fontFamily: "var(--body)" }}>Sign in to your specialist portal</p>
+
+          {/* ── Daily Quote Card ── */}
+          {quote.text && (
+            <div style={{
+              padding: "14px 16px",
+              borderRadius: 12,
+              background: C.tealSoft,
+              border: `1px solid ${C.tealGlow}`,
+              marginBottom: 24,
+              display: "flex",
+              gap: 12,
+              alignItems: "flex-start",
+            }}>
+              <div style={{
+                flexShrink: 0,
+                width: 32, height: 32,
+                borderRadius: 8,
+                background: `linear-gradient(135deg, ${C.teal}, ${C.tealDark})`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M10 8c-1.1 0-2 .9-2 2v4c0 1.1.9 2 2 2h2l-2 4h2.4l2-4H10V8h4V6H10c-1.1 0-2 .9-2 2zm8-2h-4v2h4v6h-2.4l-2 4h2.4l2-4c1.1 0 2-.9 2-2v-4c0-1.1-.9-2-2-2z" fill="#fff" />
+                </svg>
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{
+                  fontFamily: "var(--body)",
+                  fontSize: 12.5,
+                  fontStyle: "italic",
+                  lineHeight: 1.5,
+                  color: C.textSec,
+                  margin: "0 0 4px 0",
+                }}>
+                  &ldquo;{quote.text}&rdquo;
+                </p>
+                <p style={{
+                  fontFamily: "var(--body)",
+                  fontSize: 11,
+                  color: C.textMuted,
+                  margin: 0,
+                  fontWeight: 500,
+                }}>
+                  — {quote.author}
+                </p>
+              </div>
+            </div>
+          )}
           {errors.form && (
             <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 14px", marginBottom: 18, borderRadius: 10, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.red} strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" /></svg>
