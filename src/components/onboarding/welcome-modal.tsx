@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useOnboarding } from "./onboarding-provider";
+import { D2G_LOGO } from "./d2g-logo";
 
 // ── Motivational quotes pool — Black excellence in leadership, business, and legacy ──
 const QUOTES = [
@@ -229,25 +230,19 @@ export function WelcomeModal() {
                     }}
                   />
 
-                  {/* Shield icon */}
+                  {/* D2G Logo */}
                   <div style={{ ...fade(0.05), display: "flex", justifyContent: "center", marginBottom: 12 }}>
-                    <div
+                    <img
+                      src={D2G_LOGO}
+                      alt="Dispute2Go"
                       style={{
-                        width: 72,
-                        height: 72,
-                        borderRadius: 20,
-                        background: "linear-gradient(135deg, rgba(20,184,166,0.2), rgba(59,130,246,0.2))",
-                        border: "1px solid rgba(255,255,255,0.1)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
+                        width: 120,
+                        height: 120,
+                        objectFit: "contain",
+                        filter: "drop-shadow(0 0 24px rgba(35,97,161,0.35)) drop-shadow(0 0 50px rgba(46,172,213,0.12))",
                         animation: "logoFloat 6s ease-in-out infinite",
                       }}
-                    >
-                      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(226,232,240,0.8)" strokeWidth="1.5">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                      </svg>
-                    </div>
+                    />
                   </div>
 
                   {/* Heading */}
