@@ -544,7 +544,11 @@ function selectStructuredHeader(
 
 /**
  * Generate STRUCTURED format: Account list with inaccurate categories
- * Bold account name + number, followed by inaccurate categories list
+ * Bold account name + number, followed by inaccurate category NAMES only (not full descriptions)
+ *
+ * FORMAT RULES:
+ * - Account line: **CREDITOR NAME - Account #XXXX******** (bold)
+ * - Categories: Inaccurate Details: CATEGORY1, CATEGORY2, CATEGORY3 (ALL CAPS, comma-separated)
  */
 function generateStructuredAccountQuickList(
   accounts: DisputeAccount[],
@@ -559,16 +563,21 @@ function generateStructuredAccountQuickList(
 
   const accountEntries = accounts.map(account => {
     const acctNum = account.accountNumber || "No Account Number";
-    const accountLine = `**${account.creditorName} — Account #${acctNum}**`;
+    // Mask account number with asterisks for security
+    const maskedAcctNum = acctNum.length > 4
+      ? acctNum.slice(0, -4) + "******"
+      : acctNum + "******";
+    const accountLine = `**${account.creditorName} - Account #${maskedAcctNum}**`;
 
-    // Get inaccurate categories from the account data
+    // Get inaccurate categories using doctrine function - returns SHORT NAMES only
+    // E.g., "ACCOUNT TYPE", "MONTHLY PAYMENT", "DATE OPENED" - NOT full descriptions
     const categories = account.inaccurateCategories && account.inaccurateCategories.length > 0
       ? account.inaccurateCategories
-      : account.issues.map(issue => issue.description || issue.code).filter(Boolean);
+      : determineInaccurateCategories(account);
 
-    // Format categories as comma-separated list
+    // Format categories as comma-separated list in ALL CAPS
     const categoriesLine = categories.length > 0
-      ? `Inaccurate Categories: ${categories.join(", ")}.`
+      ? `**Inaccurate Details:** ${categories.map(c => c.toUpperCase()).join(", ")}`
       : "";
 
     return categoriesLine ? `${accountLine}\n${categoriesLine}` : accountLine;
@@ -797,6 +806,23 @@ function generateStructuredInquiriesSection(
 }
 
 /**
+ * Generate numbered deletion list for accounts
+ * FORMAT: "I ask that you please delete the following inaccurate information from my credit report:"
+ * Followed by numbered list: 1. CREDITOR1, 2. CREDITOR2
+ */
+function generateStructuredDeletionList(
+  accounts: DisputeAccount[]
+): string {
+  if (accounts.length === 0) return "";
+
+  const listItems = accounts.map((account, idx) => {
+    return `${idx + 1}. **${account.creditorName}**`;
+  });
+
+  return `I ask that you please delete the following inaccurate information from my credit report:\n\n${listItems.join("\n")}`;
+}
+
+/**
  * Generate STRUCTURED format: Consumer statement with label
  */
 function generateStructuredConsumerStatement(
@@ -822,9 +848,10 @@ function generateStructuredConsumerStatement(
 
 /**
  * Generate STRUCTURED format: Closing signature
+ * Uses {{script}} marker for PDF generator to render in cursive font
  */
 function generateStructuredClosing(clientName: string): string {
-  return `Best,\n\n${clientName}`;
+  return `Best,\n\n{{script}}${clientName}{{/script}}`;
 }
 
 // =============================================================================
@@ -1376,15 +1403,19 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
   // FORMAT-SPECIFIC LETTER ASSEMBLY
   // =========================================================================
 
+  // Generate deletion list for STRUCTURED format
+  const deletionListSection = letterFormat === "STRUCTURED"
+    ? generateStructuredDeletionList(accounts)
+    : "";
+
   if (letterFormat === "STRUCTURED") {
     // STRUCTURED FORMAT assembly:
-    // Opening → Body → Account List with Categories → Demand → Personal Info → Inquiries → Consumer Statement → Closing
+    // Opening → Body → Account List with Categories → Personal Info → Inquiries → Deletion List → Consumer Statement → Closing
     // Note: Corrections section removed - inaccurate categories now shown inline with accounts
+    // Note: Demand section removed - deletion list replaces it
 
     letterParts.push(
-      accountListSection, // Account list with bold names + inaccurate categories
-      "",
-      demandSection, // "You have an opportunity to fix this..."
+      accountListSection, // Account list with bold names + inaccurate details
       ""
     );
 
@@ -1396,11 +1427,16 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
       letterParts.push(inquiriesSection, "");
     }
 
+    // Numbered deletion list
+    if (deletionListSection) {
+      letterParts.push(deletionListSection, "");
+    }
+
     letterParts.push(
-      consumerStatementSection, // Labeled "Consumer Statement:"
+      consumerStatementSection, // Labeled "My Personal Statement:"
       screenshotsRef,
       "",
-      closingSection // "Best,"
+      closingSection // "Best," + script signature
     );
 
   } else {

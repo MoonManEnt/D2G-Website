@@ -341,6 +341,45 @@ function parseLetterContent(
     sections[key] = sections[key].trim();
   }
 
+  // Clean up: Remove any duplicate bureau addresses or greetings that might be in the wrong sections
+  // This handles malformed content where metadata gets appended at the end
+  const craNames = ["transunion", "experian", "equifax"];
+
+  // Clean closing section - remove any bureau addresses, greetings, or timestamps that snuck in
+  if (sections.closing) {
+    const closingLines = sections.closing.split("\n");
+    const cleanedClosing = closingLines.filter(line => {
+      const lower = line.toLowerCase().trim();
+      // Remove bureau addresses
+      if (craNames.some(cra => lower.includes(cra))) return false;
+      // Remove P.O. Box lines
+      if (lower.includes("p.o. box") || lower.includes("po box")) return false;
+      // Remove city/state/zip lines (likely bureau address)
+      if (/^[a-z]+,\s*[a-z]{2}\s+\d{5}/i.test(lower)) return false;
+      // Remove ISO timestamps
+      if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(line.trim())) return false;
+      // Remove "Dear X" greetings
+      if (lower.startsWith("dear ")) return false;
+      return true;
+    });
+    sections.closing = cleanedClosing.join("\n").trim();
+  }
+
+  // Clean signature section similarly
+  if (sections.signature) {
+    const sigLines = sections.signature.split("\n");
+    const cleanedSig = sigLines.filter(line => {
+      const lower = line.toLowerCase().trim();
+      if (craNames.some(cra => lower.includes(cra))) return false;
+      if (lower.includes("p.o. box") || lower.includes("po box")) return false;
+      if (/^[a-z]+,\s*[a-z]{2}\s+\d{5}/i.test(lower)) return false;
+      if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(line.trim())) return false;
+      if (lower.startsWith("dear ")) return false;
+      return true;
+    });
+    sections.signature = cleanedSig.join("\n").trim();
+  }
+
   // If we have very empty sections, try to fill them with defaults
   if (!sections.bureau && cra) {
     const craKey = cra.toUpperCase();
@@ -348,7 +387,21 @@ function parseLetterContent(
   }
 
   if (!sections.date && letterDate) {
-    sections.date = letterDate;
+    // Format the date properly - handle ISO strings
+    try {
+      const dateObj = new Date(letterDate);
+      if (!isNaN(dateObj.getTime())) {
+        sections.date = dateObj.toLocaleDateString("en-US", {
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        });
+      } else {
+        sections.date = letterDate; // Use as-is if not a valid date
+      }
+    } catch {
+      sections.date = letterDate;
+    }
   } else if (!sections.date) {
     sections.date = new Date().toLocaleDateString("en-US", {
       month: "long",
@@ -590,18 +643,30 @@ export function LetterDocument({
   );
 
   // Extract client name from signature for display
+  // Handle {{script}}...{{/script}} markers for script font
   const extractSignatureName = useCallback(() => {
     const signatureContent = getSectionContent("signature");
+
+    // Check for script font markers
+    const scriptMatch = signatureContent.match(/\{\{script\}\}(.+?)\{\{\/script\}\}/);
+    if (scriptMatch) {
+      return scriptMatch[1].trim();
+    }
+
     const lines = signatureContent.split("\n").filter((l) => l.trim());
-    // Find the name line (not "Sincerely" and not underscores)
+    // Find the name line (not "Sincerely"/"Best" and not underscores)
     const nameLine = lines.find(
       (line) =>
         !line.toLowerCase().includes("sincerely") &&
+        !line.toLowerCase().includes("best,") &&
         !line.includes("____") &&
         !line.toLowerCase().includes("regards") &&
+        // Skip {{script}} markers
+        !line.includes("{{script}}") &&
+        !line.includes("{{/script}}") &&
         line.trim().length > 0
     );
-    return nameLine?.trim() || clientName;
+    return nameLine?.trim().replace(/\{\{script\}\}|\{\{\/script\}\}/g, "") || clientName;
   }, [getSectionContent, clientName]);
 
   return (
