@@ -1206,14 +1206,14 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
 
   // HARD RULE: Infinite unique title - centered and bold
   // Seed with client + round + CRA for deterministic but unique generation
-  const titleSeed = `${client.fullName}-${cra}-${round}-${Date.now()}`;
+  const titleSeed = `${client.fullName}-${cra}-${round}-${Date.now()}-${Math.random()}`;
   const rawTitle = generateInfiniteTitle(titleSeed);
   // Format: centered (using spaces) and bold (using ** for markdown, uppercase for plain text)
   const headline = `                    **${rawTitle.toUpperCase()}**`;
 
   // Opening paragraph (DAMAGES) - select from variants for uniqueness
-  // Use client + date + CRA as seed for deterministic but unique selection
-  const variantSeed = `${client.fullName}-${letterDate.toISOString()}-${cra}-${round}`;
+  // Include timestamp for true randomization on each regeneration
+  const variantSeed = `${client.fullName}-${cra}-${round}-${Date.now()}-${Math.random()}`;
   const { paragraph: selectedOpening } = selectOpeningVariant(template, variantSeed);
   let openingParagraph = interpolateVariables(selectedOpening, vars);
 
@@ -1265,8 +1265,8 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
   // FORMAT-SPECIFIC SECTION GENERATION
   // =========================================================================
 
-  // Seed for randomized headers (ensures consistency within same letter)
-  const formatSeed = `${client.fullName}-${letterDate.toISOString()}-${cra}-${round}`;
+  // Seed for randomized headers (include timestamp for unique regeneration)
+  const formatSeed = `${client.fullName}-${cra}-${round}-${Date.now()}-${Math.random()}`;
 
   // Screenshots reference (R2+)
   const screenshotsRef = shouldIncludeScreenshots(round)
@@ -1338,8 +1338,8 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
       round
     );
 
-    // Combined corrections section
-    const correctionsSeed = `${client.fullName}-${letterDate.toISOString()}-${cra}`;
+    // Combined corrections section - include timestamp for unique regeneration
+    const correctionsSeed = `${client.fullName}-${cra}-${round}-${Date.now()}-${Math.random()}`;
     correctionsSection = generateCorrectionsSection(accounts, effectiveFlow, correctionsSeed);
 
     // Combined personal info (names, addresses, inquiries together)
@@ -1353,8 +1353,8 @@ export function generateLetter(input: LetterGenerationInput): GeneratedLetter {
     // No separate inquiries section (included in personalInfoSection)
     inquiriesSection = "";
 
-    // Natural closing paragraph (no label)
-    const closingSeed = `${client.fullName}-${cra}-${round}-closing`;
+    // Natural closing paragraph (no label) - include timestamp for unique regeneration
+    const closingSeed = `${client.fullName}-${cra}-${round}-${Date.now()}-${Math.random()}`;
     consumerStatementSection = generateNaturalClosing(round, closingSeed);
 
     // "Sincerely," closing
