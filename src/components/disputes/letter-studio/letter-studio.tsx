@@ -306,11 +306,12 @@ export function LetterStudio({
     const fontkit = await import("@pdf-lib/fontkit").then(m => m.default);
     pdfDoc.registerFontkit(fontkit);
 
-    const timesRoman = await pdfDoc.embedFont(StandardFonts.TimesRoman);
-    const timesRomanBold = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
+    // Use Helvetica (Arial equivalent) as requested
+    const arial = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const arialBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
     // Load script font for signature
-    let scriptFont = timesRoman; // Fallback to regular if script fails
+    let scriptFont = arial; // Fallback to regular if script fails
     try {
       const scriptFontUrl = "https://fonts.gstatic.com/s/dancingscript/v25/If2cXTr6YS-zF4S-kcSWSVi_sxjsohD9F50Ruu7BMSo3Sup6hNX6plRP.woff";
       const fontResponse = await fetch(scriptFontUrl);
@@ -334,26 +335,68 @@ export function LetterStudio({
 
     // Split content into lines and process
     const lines = content.split("\n");
-    const wrappedLines: { text: string; bold?: boolean; script?: boolean; centered?: boolean; fontSize?: number }[] = [];
+
+    // Helper to draw text with mixed bold/regular on same line
+    const drawMixedLine = (
+      page: ReturnType<typeof pdfDoc.addPage>,
+      x: number,
+      y: number,
+      boldPart: string,
+      regularPart: string
+    ) => {
+      // Draw bold part
+      page.drawText(boldPart, {
+        x,
+        y,
+        size: fontSize,
+        font: arialBold,
+        color: rgb(0, 0, 0),
+      });
+      // Draw regular part after
+      const boldWidth = arialBold.widthOfTextAtSize(boldPart, fontSize);
+      page.drawText(regularPart, {
+        x: x + boldWidth,
+        y,
+        size: fontSize,
+        font: arial,
+        color: rgb(0, 0, 0),
+      });
+    };
+
+    // Create pages and draw text
+    let page = pdfDoc.addPage([pageWidth, pageHeight]);
+    let y = pageHeight - margin;
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       if (line.trim() === "") {
-        wrappedLines.push({ text: "" });
+        y -= lineHeight;
         continue;
+      }
+
+      // Check for page break
+      if (y < margin + lineHeight) {
+        page = pdfDoc.addPage([pageWidth, pageHeight]);
+        y = pageHeight - margin;
       }
 
       // Handle {{script}} signature markers - render in script font
       const scriptMatch = line.match(/\{\{script\}\}(.+?)\{\{\/script\}\}/);
       if (scriptMatch) {
-        wrappedLines.push({ text: scriptMatch[1].trim(), script: true, fontSize: 24 });
+        page.drawText(scriptMatch[1].trim(), {
+          x: margin,
+          y,
+          size: 24,
+          font: scriptFont,
+          color: rgb(0.05, 0.05, 0.2),
+        });
+        y -= 30;
         continue;
       }
 
       const cleanLine = line.replace(/\*\*/g, "").trim();
 
-      // Detect TITLE: Only ONE centered line - typically after date, before "Dear"
-      // Title patterns: contains CORRECTION, REQUEST, CHALLENGE, ERROR, URGENT, REVIEW, INFO, etc.
+      // Detect TITLE: Only ONE centered line
       const titlePatterns = /CORRECTION|REQUEST|CHALLENGE|ERROR|URGENT|REVIEW|INFO|DISPUTE|CREDIT|REPORT|PLEASE|WRONG|FIX/i;
       const isTitle = !titleFound &&
         cleanLine.length > 15 && cleanLine.length < 80 &&
@@ -365,83 +408,162 @@ export function LetterStudio({
 
       if (isTitle) {
         titleFound = true;
+        const textWidth = arialBold.widthOfTextAtSize(cleanLine, fontSize);
+        page.drawText(cleanLine, {
+          x: (pageWidth - textWidth) / 2,
+          y,
+          size: fontSize,
+          font: arialBold,
+          color: rgb(0, 0, 0),
+        });
+        y -= lineHeight;
+        continue;
       }
 
-      // Detect BOLD text - specific patterns only:
-      // 1. Account lines: "CREDITOR - Account #" or starts with creditor name in caps followed by " - Account"
-      // 2. "Inaccurate Details:" label
-      // 3. "My Personal Statement:" or "Consumer Statement:" label
-      // 4. Numbered deletion items: "1. CREDITOR" etc.
+      // Account lines: BOLD + ALL CAPS (e.g., "EXETER FIN - Account #123")
       const isAccountLine = /^[A-Z][A-Z0-9\s\/\.]+\s*-\s*Account\s*#/i.test(cleanLine);
-      const isInaccurateDetails = cleanLine.startsWith("Inaccurate Details:");
-      const isPersonalStatement = /^(My Personal Statement|Consumer Statement|Final Statement):/i.test(cleanLine);
+      if (isAccountLine) {
+        const upperLine = cleanLine.toUpperCase();
+        // Word wrap for long account lines
+        const words = upperLine.split(" ");
+        let currentLine = "";
+        for (const word of words) {
+          const testLine = currentLine ? `${currentLine} ${word}` : word;
+          if (arialBold.widthOfTextAtSize(testLine, fontSize) > maxWidth && currentLine) {
+            page.drawText(currentLine, { x: margin, y, size: fontSize, font: arialBold, color: rgb(0, 0, 0) });
+            y -= lineHeight;
+            if (y < margin + lineHeight) { page = pdfDoc.addPage([pageWidth, pageHeight]); y = pageHeight - margin; }
+            currentLine = word;
+          } else {
+            currentLine = testLine;
+          }
+        }
+        if (currentLine) {
+          page.drawText(currentLine, { x: margin, y, size: fontSize, font: arialBold, color: rgb(0, 0, 0) });
+          y -= lineHeight;
+        }
+        continue;
+      }
+
+      // "Inaccurate Details:" - Bold label, categories in ALL CAPS but NOT bold
+      if (cleanLine.startsWith("Inaccurate Details:")) {
+        const colonIdx = cleanLine.indexOf(":");
+        const label = cleanLine.substring(0, colonIdx + 1); // "Inaccurate Details:"
+        const categories = cleanLine.substring(colonIdx + 1).trim().toUpperCase(); // Categories in ALL CAPS
+
+        // Word wrap the combined line
+        const fullText = label + " " + categories;
+        const words = fullText.split(" ");
+        let currentLine = "";
+        let isFirstLine = true;
+
+        for (const word of words) {
+          const testLine = currentLine ? `${currentLine} ${word}` : word;
+          const testFont = isFirstLine && currentLine.length < label.length ? arialBold : arial;
+          if (testFont.widthOfTextAtSize(testLine, fontSize) > maxWidth && currentLine) {
+            // Draw current line
+            if (isFirstLine && currentLine.includes("Inaccurate Details:")) {
+              // First line has the bold label
+              const labelEnd = currentLine.indexOf(":") + 1;
+              drawMixedLine(page, margin, y, currentLine.substring(0, labelEnd), currentLine.substring(labelEnd));
+            } else {
+              page.drawText(currentLine, { x: margin, y, size: fontSize, font: arial, color: rgb(0, 0, 0) });
+            }
+            y -= lineHeight;
+            if (y < margin + lineHeight) { page = pdfDoc.addPage([pageWidth, pageHeight]); y = pageHeight - margin; }
+            currentLine = word;
+            isFirstLine = false;
+          } else {
+            currentLine = testLine;
+          }
+        }
+        if (currentLine) {
+          if (isFirstLine && currentLine.includes("Inaccurate Details:")) {
+            const labelEnd = currentLine.indexOf(":") + 1;
+            drawMixedLine(page, margin, y, currentLine.substring(0, labelEnd), currentLine.substring(labelEnd));
+          } else {
+            page.drawText(currentLine, { x: margin, y, size: fontSize, font: arial, color: rgb(0, 0, 0) });
+          }
+          y -= lineHeight;
+        }
+        continue;
+      }
+
+      // "Consumer Statement:" / "My Personal Statement:" - Bold label, plain text after
+      const statementMatch = cleanLine.match(/^(My Personal Statement|Consumer Statement|Final Statement):\s*(.*)/i);
+      if (statementMatch) {
+        const label = statementMatch[1] + ":";
+        const statement = statementMatch[2] || "";
+
+        // Word wrap
+        const fullText = label + " " + statement;
+        const words = fullText.split(" ");
+        let currentLine = "";
+        let isFirstLine = true;
+
+        for (const word of words) {
+          const testLine = currentLine ? `${currentLine} ${word}` : word;
+          if (arial.widthOfTextAtSize(testLine, fontSize) > maxWidth && currentLine) {
+            if (isFirstLine) {
+              const labelEnd = currentLine.indexOf(":") + 1;
+              if (labelEnd > 0) {
+                drawMixedLine(page, margin, y, currentLine.substring(0, labelEnd), currentLine.substring(labelEnd));
+              } else {
+                page.drawText(currentLine, { x: margin, y, size: fontSize, font: arial, color: rgb(0, 0, 0) });
+              }
+            } else {
+              page.drawText(currentLine, { x: margin, y, size: fontSize, font: arial, color: rgb(0, 0, 0) });
+            }
+            y -= lineHeight;
+            if (y < margin + lineHeight) { page = pdfDoc.addPage([pageWidth, pageHeight]); y = pageHeight - margin; }
+            currentLine = word;
+            isFirstLine = false;
+          } else {
+            currentLine = testLine;
+          }
+        }
+        if (currentLine) {
+          if (isFirstLine) {
+            const labelEnd = currentLine.indexOf(":") + 1;
+            if (labelEnd > 0) {
+              drawMixedLine(page, margin, y, currentLine.substring(0, labelEnd), currentLine.substring(labelEnd));
+            } else {
+              page.drawText(currentLine, { x: margin, y, size: fontSize, font: arial, color: rgb(0, 0, 0) });
+            }
+          } else {
+            page.drawText(currentLine, { x: margin, y, size: fontSize, font: arial, color: rgb(0, 0, 0) });
+          }
+          y -= lineHeight;
+        }
+        continue;
+      }
+
+      // Numbered deletion items: "1. CREDITOR" - Bold
       const isDeletionItem = /^\d+\.\s+[A-Z]/.test(cleanLine);
+      if (isDeletionItem) {
+        page.drawText(cleanLine.toUpperCase(), { x: margin, y, size: fontSize, font: arialBold, color: rgb(0, 0, 0) });
+        y -= lineHeight;
+        continue;
+      }
 
-      const isBold = isAccountLine || isInaccurateDetails || isPersonalStatement || isDeletionItem || isTitle;
-
-      // Word wrap
+      // Regular text - word wrap
       const words = cleanLine.split(" ");
       let currentLine = "";
-      const font = isBold ? timesRomanBold : timesRoman;
-
       for (const word of words) {
         const testLine = currentLine ? `${currentLine} ${word}` : word;
-        const width = font.widthOfTextAtSize(testLine, fontSize);
-
-        if (width > maxWidth && currentLine) {
-          wrappedLines.push({ text: currentLine, bold: isBold, centered: isTitle });
+        if (arial.widthOfTextAtSize(testLine, fontSize) > maxWidth && currentLine) {
+          page.drawText(currentLine, { x: margin, y, size: fontSize, font: arial, color: rgb(0, 0, 0) });
+          y -= lineHeight;
+          if (y < margin + lineHeight) { page = pdfDoc.addPage([pageWidth, pageHeight]); y = pageHeight - margin; }
           currentLine = word;
         } else {
           currentLine = testLine;
         }
       }
-
       if (currentLine) {
-        wrappedLines.push({ text: currentLine, bold: isBold, centered: isTitle });
+        page.drawText(currentLine, { x: margin, y, size: fontSize, font: arial, color: rgb(0, 0, 0) });
+        y -= lineHeight;
       }
-    }
-
-    // Create pages and draw text
-    let page = pdfDoc.addPage([pageWidth, pageHeight]);
-    let y = pageHeight - margin;
-
-    for (const line of wrappedLines) {
-      const currentFontSize = line.fontSize || fontSize;
-      const currentLineHeight = line.script ? 30 : lineHeight;
-
-      if (y < margin + currentLineHeight) {
-        page = pdfDoc.addPage([pageWidth, pageHeight]);
-        y = pageHeight - margin;
-      }
-
-      // Select font and color
-      let font = timesRoman;
-      let textColor = rgb(0, 0, 0);
-      if (line.script) {
-        font = scriptFont;
-        textColor = rgb(0.05, 0.05, 0.2); // Dark blue for signature
-      } else if (line.bold) {
-        font = timesRomanBold;
-      }
-
-      // Calculate x position - ONLY title is centered, everything else left-aligned
-      let x = margin;
-      if (line.centered && line.text) {
-        const textWidth = font.widthOfTextAtSize(line.text, currentFontSize);
-        x = (pageWidth - textWidth) / 2;
-      }
-
-      if (line.text) {
-        page.drawText(line.text, {
-          x,
-          y,
-          size: currentFontSize,
-          font,
-          color: textColor,
-        });
-      }
-
-      y -= currentLineHeight;
     }
 
     return pdfDoc.save();
@@ -536,32 +658,37 @@ export function LetterStudio({
           return `<p style="text-align: center; font-weight: bold; margin: 20px 0;">${cleanLine}</p>`;
         }
 
-        // Detect BOLD text - specific patterns only:
+        // Account lines: BOLD + ALL CAPS
         const isAccountLine = /^[A-Z][A-Z0-9\s\/\.]+\s*-\s*Account\s*#/i.test(cleanLine);
-        const isInaccurateDetails = cleanLine.startsWith("Inaccurate Details:");
-        const isPersonalStatement = /^(My Personal Statement|Consumer Statement|Final Statement):/i.test(cleanLine);
+        if (isAccountLine) {
+          return `<p><strong>${cleanLine.toUpperCase()}</strong></p>`;
+        }
+
+        // "Inaccurate Details:" - Bold label, categories in ALL CAPS but NOT bold
+        if (cleanLine.startsWith("Inaccurate Details:")) {
+          const colonIdx = cleanLine.indexOf(":");
+          const label = cleanLine.substring(0, colonIdx + 1);
+          const categories = cleanLine.substring(colonIdx + 1).trim().toUpperCase();
+          return `<p><strong>${label}</strong> ${categories}</p>`;
+        }
+
+        // "Consumer Statement:" / "My Personal Statement:" - Bold label, plain text after
+        const statementMatch = cleanLine.match(/^(My Personal Statement|Consumer Statement|Final Statement):\s*(.*)/i);
+        if (statementMatch) {
+          const label = statementMatch[1] + ":";
+          const statement = statementMatch[2] || "";
+          return `<p><strong>${label}</strong> ${statement}</p>`;
+        }
+
+        // Numbered deletion items: Bold + ALL CAPS
         const isDeletionItem = /^\d+\.\s+[A-Z]/.test(cleanLine);
+        if (isDeletionItem) {
+          return `<p><strong>${cleanLine.toUpperCase()}</strong></p>`;
+        }
 
         // Check for "Best," or "Sincerely," closing
         if (trimmed.toLowerCase() === "best," || trimmed.toLowerCase() === "sincerely,") {
           return `<p style="margin-top: 24px;">${trimmed}</p>`;
-        }
-
-        // Bold specific elements
-        if (isAccountLine || isDeletionItem) {
-          return `<p><strong>${cleanLine}</strong></p>`;
-        }
-
-        if (isInaccurateDetails) {
-          // Bold the label, rest is regular
-          const parts = cleanLine.split(":");
-          return `<p><strong>${parts[0]}:</strong>${parts.slice(1).join(":")}</p>`;
-        }
-
-        if (isPersonalStatement) {
-          // Bold the label, rest is regular
-          const parts = cleanLine.split(":");
-          return `<p><strong>${parts[0]}:</strong>${parts.slice(1).join(":")}</p>`;
         }
 
         // Regular paragraph - remove any ** markers
@@ -589,9 +716,9 @@ export function LetterStudio({
             }
           }
           body {
-            font-family: "Times New Roman", Times, serif;
+            font-family: Arial, Helvetica, sans-serif;
             font-size: 11pt;
-            line-height: 1.5;
+            line-height: 1.3;
             color: #000;
             background: #fff;
             max-width: 6.5in;
