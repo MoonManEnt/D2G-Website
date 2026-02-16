@@ -738,14 +738,14 @@ export function LetterDocument({
           )}
         </div>
 
-        {/* Title / Subject Line */}
-        <div className="mb-6">
+        {/* Title / Subject Line - CENTERED */}
+        <div className="mb-6 w-full">
           {renderSection(
             "title",
-            "p-2 -m-2",
-            "text-base font-bold text-center uppercase",
+            "p-2 -m-2 w-full",
+            "text-base font-bold text-center uppercase w-full",
             editingSection !== "title" && (
-              <div className="text-base font-bold text-center uppercase">
+              <div className="text-base font-bold text-center uppercase w-full">
                 {getSectionContent("title").replace(/\*\*/g, "")}
               </div>
             )
