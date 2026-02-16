@@ -286,7 +286,9 @@ function parseLetterContent(
       (lowerLine.includes("sincerely") ||
         lowerLine.includes("thank you") ||
         lowerLine.includes("regards") ||
-        lowerLine.includes("respectfully"))
+        lowerLine.includes("respectfully") ||
+        lowerLine === "best," ||
+        lowerLine.startsWith("best,"))
     ) {
       foundClosing = true;
       currentSection = "signature";
@@ -341,44 +343,53 @@ function parseLetterContent(
     sections[key] = sections[key].trim();
   }
 
-  // Clean up: Remove any duplicate bureau addresses or greetings that might be in the wrong sections
+  // Clean up: Remove any duplicate bureau addresses, greetings, timestamps that might be in wrong sections
   // This handles malformed content where metadata gets appended at the end
   const craNames = ["transunion", "experian", "equifax"];
 
-  // Clean closing section - remove any bureau addresses, greetings, or timestamps that snuck in
-  if (sections.closing) {
-    const closingLines = sections.closing.split("\n");
-    const cleanedClosing = closingLines.filter(line => {
+  // Helper to clean a section of duplicate/metadata content
+  const cleanSectionContent = (sectionContent: string, sectionKey: string): string => {
+    if (!sectionContent) return sectionContent;
+
+    // Don't clean header or bureau sections - they should have this content
+    if (sectionKey === "header" || sectionKey === "bureau" || sectionKey === "date" || sectionKey === "greeting") {
+      return sectionContent;
+    }
+
+    const lines = sectionContent.split("\n");
+    const cleanedLines = lines.filter(line => {
       const lower = line.toLowerCase().trim();
-      // Remove bureau addresses
-      if (craNames.some(cra => lower.includes(cra))) return false;
+      const trimmed = line.trim();
+
+      // Remove bureau addresses (except in bureau section)
+      if (craNames.some(cra => lower.includes(cra) && !lower.includes("account"))) return false;
       // Remove P.O. Box lines
       if (lower.includes("p.o. box") || lower.includes("po box")) return false;
       // Remove city/state/zip lines (likely bureau address)
       if (/^[a-z]+,\s*[a-z]{2}\s+\d{5}/i.test(lower)) return false;
       // Remove ISO timestamps
-      if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(line.trim())) return false;
-      // Remove "Dear X" greetings
-      if (lower.startsWith("dear ")) return false;
-      return true;
-    });
-    sections.closing = cleanedClosing.join("\n").trim();
-  }
+      if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(trimmed)) return false;
+      // Remove "Dear X" greetings (except in greeting section)
+      if (lower.startsWith("dear ") && sectionKey !== "greeting") return false;
+      // Remove duplicate "Sincerely," in non-signature sections
+      if (lower === "sincerely," && sectionKey !== "signature") return false;
+      // Remove raw "Best," lines if they appear after signature
+      if (lower === "best," && sectionKey === "closing") return false;
+      // Remove "Backdated X days" text
+      if (lower.includes("backdated") && lower.includes("days")) return false;
 
-  // Clean signature section similarly
-  if (sections.signature) {
-    const sigLines = sections.signature.split("\n");
-    const cleanedSig = sigLines.filter(line => {
-      const lower = line.toLowerCase().trim();
-      if (craNames.some(cra => lower.includes(cra))) return false;
-      if (lower.includes("p.o. box") || lower.includes("po box")) return false;
-      if (/^[a-z]+,\s*[a-z]{2}\s+\d{5}/i.test(lower)) return false;
-      if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(line.trim())) return false;
-      if (lower.startsWith("dear ")) return false;
       return true;
     });
-    sections.signature = cleanedSig.join("\n").trim();
-  }
+
+    return cleanedLines.join("\n").trim();
+  };
+
+  // Clean all sections that might have duplicate content
+  sections.body = cleanSectionContent(sections.body, "body");
+  sections.accounts = cleanSectionContent(sections.accounts, "accounts");
+  sections.personal = cleanSectionContent(sections.personal, "personal");
+  sections.closing = cleanSectionContent(sections.closing, "closing");
+  sections.signature = cleanSectionContent(sections.signature, "signature");
 
   // If we have very empty sections, try to fill them with defaults
   if (!sections.bureau && cra) {
@@ -778,7 +789,24 @@ export function LetterDocument({
               "text-sm font-serif leading-relaxed",
               editingSection !== "body" && (
                 <div className="text-sm font-serif leading-relaxed whitespace-pre-wrap">
-                  {getSectionContent("body")}
+                  {/* Render markdown-style formatting */}
+                  {getSectionContent("body").split("\n").map((line, idx) => {
+                    const hasBold = line.includes("**");
+                    if (hasBold) {
+                      const parts = line.split(/(\*\*[^*]+\*\*)/g);
+                      return (
+                        <div key={idx}>
+                          {parts.map((part, partIdx) => {
+                            if (part.startsWith("**") && part.endsWith("**")) {
+                              return <strong key={partIdx}>{part.slice(2, -2)}</strong>;
+                            }
+                            return <span key={partIdx}>{part}</span>;
+                          })}
+                        </div>
+                      );
+                    }
+                    return <div key={idx}>{line || "\u00A0"}</div>;
+                  })}
                 </div>
               )
             )}
@@ -794,7 +822,26 @@ export function LetterDocument({
               "text-sm font-serif leading-relaxed",
               editingSection !== "accounts" && (
                 <div className="text-sm font-serif leading-relaxed whitespace-pre-wrap">
-                  {getSectionContent("accounts")}
+                  {/* Render markdown-style formatting */}
+                  {getSectionContent("accounts").split("\n").map((line, idx) => {
+                    // Handle bold text marked with **
+                    const hasBold = line.includes("**");
+                    if (hasBold) {
+                      // Parse and render bold segments
+                      const parts = line.split(/(\*\*[^*]+\*\*)/g);
+                      return (
+                        <div key={idx}>
+                          {parts.map((part, partIdx) => {
+                            if (part.startsWith("**") && part.endsWith("**")) {
+                              return <strong key={partIdx}>{part.slice(2, -2)}</strong>;
+                            }
+                            return <span key={partIdx}>{part}</span>;
+                          })}
+                        </div>
+                      );
+                    }
+                    return <div key={idx}>{line || "\u00A0"}</div>;
+                  })}
                 </div>
               )
             )}
@@ -810,7 +857,24 @@ export function LetterDocument({
               "text-sm font-serif leading-relaxed",
               editingSection !== "personal" && (
                 <div className="text-sm font-serif leading-relaxed whitespace-pre-wrap">
-                  {getSectionContent("personal")}
+                  {/* Render markdown-style formatting */}
+                  {getSectionContent("personal").split("\n").map((line, idx) => {
+                    const hasBold = line.includes("**");
+                    if (hasBold) {
+                      const parts = line.split(/(\*\*[^*]+\*\*)/g);
+                      return (
+                        <div key={idx}>
+                          {parts.map((part, partIdx) => {
+                            if (part.startsWith("**") && part.endsWith("**")) {
+                              return <strong key={partIdx}>{part.slice(2, -2)}</strong>;
+                            }
+                            return <span key={partIdx}>{part}</span>;
+                          })}
+                        </div>
+                      );
+                    }
+                    return <div key={idx}>{line || "\u00A0"}</div>;
+                  })}
                 </div>
               )
             )}
@@ -826,7 +890,24 @@ export function LetterDocument({
               "text-sm font-serif leading-relaxed",
               editingSection !== "closing" && (
                 <div className="text-sm font-serif leading-relaxed whitespace-pre-wrap">
-                  {getSectionContent("closing")}
+                  {/* Render markdown-style formatting */}
+                  {getSectionContent("closing").split("\n").map((line, idx) => {
+                    const hasBold = line.includes("**");
+                    if (hasBold) {
+                      const parts = line.split(/(\*\*[^*]+\*\*)/g);
+                      return (
+                        <div key={idx}>
+                          {parts.map((part, partIdx) => {
+                            if (part.startsWith("**") && part.endsWith("**")) {
+                              return <strong key={partIdx}>{part.slice(2, -2)}</strong>;
+                            }
+                            return <span key={partIdx}>{part}</span>;
+                          })}
+                        </div>
+                      );
+                    }
+                    return <div key={idx}>{line || "\u00A0"}</div>;
+                  })}
                 </div>
               )
             )}
@@ -841,7 +922,9 @@ export function LetterDocument({
             "text-sm font-serif",
             editingSection !== "signature" && (
               <div className="text-sm font-serif">
-                <p className="mb-4">Sincerely,</p>
+                <p className="mb-4">
+                  {getSectionContent("signature").toLowerCase().includes("best") ? "Best," : "Sincerely,"}
+                </p>
                 <p className="font-signature text-2xl text-slate-800 dark:text-slate-200 my-4">
                   {extractSignatureName()}
                 </p>

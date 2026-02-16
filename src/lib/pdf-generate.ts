@@ -115,11 +115,10 @@ export async function generateDisputeLetterPDF(
   options: PDFGenerationOptions = {}
 ): Promise<Uint8Array> {
   const {
-    includeAccountTable = true,
+    includeAccountTable = false, // Default to false - accounts are now in letter body
     includeSignatureLine = true,
     includeFooter = true,
     watermark,
-    useScriptSignature = false,
   } = options;
 
   // Create a new PDF document
@@ -131,16 +130,14 @@ export async function generateDisputeLetterPDF(
   const timesRomanBold = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
   const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-  // Load script font for signature if requested
+  // Always load script font for signature rendering (handles {{script}} markers)
   let scriptFont: PDFFont | null = null;
-  if (useScriptSignature) {
-    try {
-      const scriptFontBytes = await loadScriptFont();
-      scriptFont = await pdfDoc.embedFont(scriptFontBytes);
-    } catch {
-      // Fall back to italic if script font fails to load
-      scriptFont = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
-    }
+  try {
+    const scriptFontBytes = await loadScriptFont();
+    scriptFont = await pdfDoc.embedFont(scriptFontBytes);
+  } catch {
+    // Fall back to italic if script font fails to load
+    scriptFont = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
   }
 
   // Add the first page
@@ -156,21 +153,53 @@ export async function generateDisputeLetterPDF(
     return page;
   };
 
-  // Helper function to draw text with word wrap
-  const drawText = (
+  // Helper function to draw text with word wrap and formatting support
+  // Supports **bold** and {{script}}...{{/script}} markers
+  const drawFormattedText = (
     text: string,
-    font: PDFFont,
+    defaultFont: PDFFont,
     fontSize: number,
     color = BLACK,
-    maxWidth = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT
+    maxWidth = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT,
+    centered = false
   ): void => {
-    const words = text.split(" ");
+    // Check if this line should use script font (signature)
+    const scriptMatch = text.match(/\{\{script\}\}(.+?)\{\{\/script\}\}/);
+    if (scriptMatch && scriptFont) {
+      const signatureName = scriptMatch[1].trim();
+      checkAndAddPage(LINE_HEIGHT * 2);
+      const signatureWidth = scriptFont.widthOfTextAtSize(signatureName, 24);
+      page.drawText(signatureName, {
+        x: centered ? (PAGE_WIDTH - signatureWidth) / 2 : MARGIN_LEFT,
+        y: currentY,
+        size: 24,
+        font: scriptFont,
+        color: rgb(0.1, 0.1, 0.3), // Dark blue for signature
+      });
+      currentY -= LINE_HEIGHT * 2;
+      return;
+    }
+
+    // Remove {{script}} markers if script font failed (fallback)
+    let cleanText = text.replace(/\{\{script\}\}(.+?)\{\{\/script\}\}/g, "$1");
+
+    // Process bold markers - we'll render bold segments inline
+    // For simplicity, if line contains **bold**, render the whole line with bold font
+    const hasBold = cleanText.includes("**");
+    const isBoldLine = cleanText.startsWith("**") && cleanText.endsWith("**");
+
+    // Clean up bold markers for display
+    cleanText = cleanText.replace(/\*\*/g, "");
+
+    const useFont = (hasBold || isBoldLine) ? timesRomanBold : defaultFont;
+
+    const words = cleanText.split(" ");
     let line = "";
     const lines: string[] = [];
 
     for (const word of words) {
       const testLine = line + (line ? " " : "") + word;
-      const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+      const testWidth = useFont.widthOfTextAtSize(testLine, fontSize);
 
       if (testWidth > maxWidth && line) {
         lines.push(line);
@@ -185,15 +214,27 @@ export async function generateDisputeLetterPDF(
 
     for (const l of lines) {
       checkAndAddPage(LINE_HEIGHT);
+      const lineWidth = useFont.widthOfTextAtSize(l, fontSize);
       page.drawText(l, {
-        x: MARGIN_LEFT,
+        x: centered ? (PAGE_WIDTH - lineWidth) / 2 : MARGIN_LEFT,
         y: currentY,
         size: fontSize,
-        font,
+        font: useFont,
         color,
       });
       currentY -= LINE_HEIGHT;
     }
+  };
+
+  // Legacy helper for non-formatted text
+  const drawText = (
+    text: string,
+    font: PDFFont,
+    fontSize: number,
+    color = BLACK,
+    maxWidth = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT
+  ): void => {
+    drawFormattedText(text, font, fontSize, color, maxWidth, false);
   };
 
   // Add watermark if specified
@@ -317,10 +358,23 @@ export async function generateDisputeLetterPDF(
   currentY -= PARAGRAPH_SPACING;
 
   // ===== LETTER BODY =====
+  // Split by double newlines for paragraphs, single newlines for lines within paragraphs
   const paragraphs = data.letterBody.split("\n\n");
   for (const paragraph of paragraphs) {
     if (paragraph.trim()) {
-      drawText(paragraph.trim(), timesRoman, 11);
+      // Check if this paragraph contains multiple lines (account listings, etc.)
+      const lines = paragraph.split("\n");
+      for (const line of lines) {
+        if (line.trim()) {
+          // Check if line is a centered title (all caps, short)
+          const isTitle = line.trim().length < 100 &&
+            line.trim() === line.trim().toUpperCase() &&
+            !line.includes(":") &&
+            !line.startsWith("**Inaccurate");
+
+          drawFormattedText(line.trim(), timesRoman, 11, BLACK, PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT, isTitle);
+        }
+      }
       currentY -= PARAGRAPH_SPACING - LINE_HEIGHT;
     }
   }
@@ -434,88 +488,96 @@ export async function generateDisputeLetterPDF(
   }
 
   // ===== CLOSING =====
-  currentY -= PARAGRAPH_SPACING;
-  checkAndAddPage(100);
+  // Check if letter body already contains signature (Best, or Sincerely, with {{script}})
+  const hasEmbeddedSignature = data.letterBody.includes("{{script}}") ||
+    data.letterBody.includes("Best,") ||
+    data.letterBody.includes("Sincerely,");
 
-  // FCRA Notice
-  const fcraNotice =
-    "Pursuant to the Fair Credit Reporting Act, 15 U.S.C. § 1681i, you are required to investigate these disputes within 30 days and provide me with written notification of the results.";
-  drawText(fcraNotice, timesRoman, 10, DARK_GRAY);
+  // Only add separate closing if not already in letter body
+  if (!hasEmbeddedSignature) {
+    currentY -= PARAGRAPH_SPACING;
+    checkAndAddPage(100);
 
-  currentY -= PARAGRAPH_SPACING;
+    // FCRA Notice (only for default letters without embedded closing)
+    const fcraNotice =
+      "Pursuant to the Fair Credit Reporting Act, 15 U.S.C. § 1681i, you are required to investigate these disputes within 30 days and provide me with written notification of the results.";
+    drawText(fcraNotice, timesRoman, 10, DARK_GRAY);
 
-  page.drawText("Thank you for your prompt attention to this matter.", {
-    x: MARGIN_LEFT,
-    y: currentY,
-    size: 11,
-    font: timesRoman,
-    color: BLACK,
-  });
-  currentY -= PARAGRAPH_SPACING;
+    currentY -= PARAGRAPH_SPACING;
 
-  page.drawText("Sincerely,", {
-    x: MARGIN_LEFT,
-    y: currentY,
-    size: 11,
-    font: timesRoman,
-    color: BLACK,
-  });
-  currentY -= LINE_HEIGHT * 3;
-
-  // ===== SIGNATURE LINE =====
-  if (includeSignatureLine) {
-    // Draw script signature if script font is available
-    if (scriptFont) {
-      // Draw the signature in script font (above the line)
-      page.drawText(data.clientName, {
-        x: MARGIN_LEFT,
-        y: currentY + LINE_HEIGHT + 5,
-        size: 24,
-        font: scriptFont,
-        color: rgb(0.1, 0.1, 0.3), // Dark blue-ish for signature
-      });
-      currentY -= 5;
-    }
-
-    // Signature line
-    page.drawLine({
-      start: { x: MARGIN_LEFT, y: currentY + LINE_HEIGHT },
-      end: { x: MARGIN_LEFT + 200, y: currentY + LINE_HEIGHT },
-      thickness: 0.5,
-      color: BLACK,
-    });
-
-    // Print name below line
-    page.drawText(data.clientName, {
+    page.drawText("Thank you for your prompt attention to this matter.", {
       x: MARGIN_LEFT,
       y: currentY,
       size: 11,
-      font: timesRomanBold,
+      font: timesRoman,
       color: BLACK,
     });
-    currentY -= LINE_HEIGHT * 2;
+    currentY -= PARAGRAPH_SPACING;
 
-    // Include identifiers
-    if (data.clientSSNLast4) {
-      page.drawText(`SSN (last 4 digits): XXX-XX-${data.clientSSNLast4}`, {
-        x: MARGIN_LEFT,
-        y: currentY,
-        size: 10,
-        font: timesRoman,
+    page.drawText("Sincerely,", {
+      x: MARGIN_LEFT,
+      y: currentY,
+      size: 11,
+      font: timesRoman,
+      color: BLACK,
+    });
+    currentY -= LINE_HEIGHT * 3;
+
+    // ===== SIGNATURE LINE (only if no embedded signature) =====
+    if (includeSignatureLine) {
+      // Draw script signature if script font is available
+      if (scriptFont) {
+        // Draw the signature in script font (above the line)
+        page.drawText(data.clientName, {
+          x: MARGIN_LEFT,
+          y: currentY + LINE_HEIGHT + 5,
+          size: 24,
+          font: scriptFont,
+          color: rgb(0.1, 0.1, 0.3), // Dark blue-ish for signature
+        });
+        currentY -= 5;
+      }
+
+      // Signature line
+      page.drawLine({
+        start: { x: MARGIN_LEFT, y: currentY + LINE_HEIGHT },
+        end: { x: MARGIN_LEFT + 200, y: currentY + LINE_HEIGHT },
+        thickness: 0.5,
         color: BLACK,
       });
-      currentY -= LINE_HEIGHT;
-    }
 
-    if (data.clientDOB) {
-      page.drawText(`Date of Birth: ${data.clientDOB}`, {
+      // Print name below line
+      page.drawText(data.clientName, {
         x: MARGIN_LEFT,
         y: currentY,
-        size: 10,
-        font: timesRoman,
+        size: 11,
+        font: timesRomanBold,
         color: BLACK,
       });
-      currentY -= LINE_HEIGHT;
+      currentY -= LINE_HEIGHT * 2;
+
+      // Include identifiers
+      if (data.clientSSNLast4) {
+        page.drawText(`SSN (last 4 digits): XXX-XX-${data.clientSSNLast4}`, {
+          x: MARGIN_LEFT,
+          y: currentY,
+          size: 10,
+          font: timesRoman,
+          color: BLACK,
+        });
+        currentY -= LINE_HEIGHT;
+      }
+
+      if (data.clientDOB) {
+        page.drawText(`Date of Birth: ${data.clientDOB}`, {
+          x: MARGIN_LEFT,
+          y: currentY,
+          size: 10,
+          font: timesRoman,
+          color: BLACK,
+        });
+        currentY -= LINE_HEIGHT;
+      }
     }
   }
 
