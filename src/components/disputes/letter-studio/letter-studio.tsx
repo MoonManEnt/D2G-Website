@@ -303,7 +303,21 @@ export function LetterStudio({
     const pdfDoc = await PDFDocument.create();
     const timesRoman = await pdfDoc.embedFont(StandardFonts.TimesRoman);
     const timesRomanBold = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
-    const timesRomanItalic = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
+
+    // Try to load script font for signature
+    let scriptFont = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic); // Fallback
+    try {
+      const scriptFontUrl = "https://fonts.gstatic.com/s/dancingscript/v25/If2cXTr6YS-zF4S-kcSWSVi_sxjsohD9F50Ruu7BMSo3Sup6hNX6plRP.woff";
+      const fontResponse = await fetch(scriptFontUrl);
+      if (fontResponse.ok) {
+        const fontkit = await import("@pdf-lib/fontkit").then(m => m.default);
+        pdfDoc.registerFontkit(fontkit);
+        const fontBytes = await fontResponse.arrayBuffer();
+        scriptFont = await pdfDoc.embedFont(fontBytes);
+      }
+    } catch (e) {
+      console.log("Using fallback font for signature");
+    }
 
     const fontSize = 11;
     const lineHeight = 14;
@@ -312,9 +326,9 @@ export function LetterStudio({
     const pageHeight = 792;
     const maxWidth = pageWidth - margin * 2;
 
-    // Split content into lines and wrap
+    // Split content into lines and process
     const lines = content.split("\n");
-    const wrappedLines: { text: string; bold?: boolean; italic?: boolean; centered?: boolean }[] = [];
+    const wrappedLines: { text: string; bold?: boolean; script?: boolean; centered?: boolean; fontSize?: number }[] = [];
 
     for (const line of lines) {
       if (line.trim() === "") {
@@ -322,33 +336,33 @@ export function LetterStudio({
         continue;
       }
 
+      // Handle {{script}} signature markers
+      const scriptMatch = line.match(/\{\{script\}\}(.+?)\{\{\/script\}\}/);
+      if (scriptMatch) {
+        wrappedLines.push({ text: scriptMatch[1].trim(), script: true, fontSize: 24 });
+        continue;
+      }
+
       // Check for title line (centered, bold - usually has ** markers or RE:)
-      const isTitle = line.includes("**") || (line.toUpperCase().includes("RE:") && line.length < 80);
+      const hasBoldMarkers = line.includes("**");
       const cleanLine = line.replace(/\*\*/g, "").trim();
+      const isAllCaps = cleanLine.toUpperCase() === cleanLine && cleanLine.length > 10 && cleanLine.length < 80;
+      const isTitle = (hasBoldMarkers && cleanLine.length < 80) || (isAllCaps && !cleanLine.includes(":"));
 
-      // Check for signature area
-      const isSignature =
-        cleanLine.toLowerCase().includes("sincerely") ||
-        (cleanLine.trim().length > 0 &&
-          cleanLine.trim().length < 40 &&
-          !cleanLine.includes(":") &&
-          !cleanLine.includes(".") &&
-          lines.indexOf(line) > lines.length - 10);
-
-      // Check for headers/bold text (ALL CAPS)
-      const isBold = isTitle || (cleanLine.toUpperCase() === cleanLine && cleanLine.trim().length > 3 && cleanLine.trim().length < 60);
+      // Detect bold text (has ** markers or is a label like "Inaccurate Details:")
+      const isBold = hasBoldMarkers || cleanLine.startsWith("Inaccurate Details:") || cleanLine.endsWith(":");
 
       // Word wrap
       const words = cleanLine.split(" ");
       let currentLine = "";
+      const font = isBold ? timesRomanBold : timesRoman;
 
       for (const word of words) {
         const testLine = currentLine ? `${currentLine} ${word}` : word;
-        const font = isBold ? timesRomanBold : timesRoman;
         const width = font.widthOfTextAtSize(testLine, fontSize);
 
         if (width > maxWidth && currentLine) {
-          wrappedLines.push({ text: currentLine, bold: isBold, italic: isSignature, centered: isTitle });
+          wrappedLines.push({ text: currentLine, bold: isBold, centered: isTitle });
           currentLine = word;
         } else {
           currentLine = testLine;
@@ -356,7 +370,7 @@ export function LetterStudio({
       }
 
       if (currentLine) {
-        wrappedLines.push({ text: currentLine, bold: isBold, italic: isSignature, centered: isTitle });
+        wrappedLines.push({ text: currentLine, bold: isBold, centered: isTitle });
       }
     }
 
@@ -365,29 +379,42 @@ export function LetterStudio({
     let y = pageHeight - margin;
 
     for (const line of wrappedLines) {
-      if (y < margin + lineHeight) {
+      const currentFontSize = line.fontSize || fontSize;
+      const currentLineHeight = line.script ? 30 : lineHeight;
+
+      if (y < margin + currentLineHeight) {
         page = pdfDoc.addPage([pageWidth, pageHeight]);
         y = pageHeight - margin;
       }
 
-      const font = line.bold ? timesRomanBold : line.italic ? timesRomanItalic : timesRoman;
+      // Select font
+      let font = timesRoman;
+      let textColor = rgb(0, 0, 0);
+      if (line.script) {
+        font = scriptFont;
+        textColor = rgb(0.1, 0.1, 0.3); // Dark blue for signature
+      } else if (line.bold) {
+        font = timesRomanBold;
+      }
 
       // Calculate x position (centered or left-aligned)
       let x = margin;
       if (line.centered && line.text) {
-        const textWidth = font.widthOfTextAtSize(line.text, fontSize);
+        const textWidth = font.widthOfTextAtSize(line.text, currentFontSize);
         x = (pageWidth - textWidth) / 2;
       }
 
-      page.drawText(line.text, {
-        x,
-        y,
-        size: fontSize,
-        font,
-        color: rgb(0, 0, 0),
-      });
+      if (line.text) {
+        page.drawText(line.text, {
+          x,
+          y,
+          size: currentFontSize,
+          font,
+          color: textColor,
+        });
+      }
 
-      y -= lineHeight;
+      y -= currentLineHeight;
     }
 
     return pdfDoc.save();
@@ -444,20 +471,53 @@ export function LetterStudio({
       return;
     }
 
-    // Format the content for printing - convert ** to bold
+    // Format the content for printing with proper styling
     const formattedContent = generatedLetter.content
       .split("\n")
       .map((line) => {
-        // Handle title lines with **
-        if (line.includes("**")) {
-          const cleanLine = line.replace(/\*\*/g, "").trim();
-          return `<p style="text-align: center; font-weight: bold; text-transform: uppercase; margin: 20px 0;">${cleanLine}</p>`;
+        const trimmed = line.trim();
+
+        // Handle {{script}} signature markers - render in cursive
+        if (line.includes("{{script}}")) {
+          const scriptMatch = line.match(/\{\{script\}\}(.+?)\{\{\/script\}\}/);
+          if (scriptMatch) {
+            return `<p class="signature-script">${scriptMatch[1]}</p>`;
+          }
         }
+
+        // Handle **bold** markers throughout the line
+        if (line.includes("**")) {
+          let processed = line;
+          // Replace **text** with <strong>text</strong>
+          processed = processed.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+          // Check if entire line was bold (title/header)
+          const isTitleLine = trimmed.startsWith("**") ||
+            (trimmed.toUpperCase() === trimmed.replace(/\*\*/g, '').trim() && trimmed.length < 80);
+          if (isTitleLine && !processed.includes("<strong>")) {
+            return `<p style="text-align: center; font-weight: bold; margin: 20px 0;">${processed}</p>`;
+          }
+          return `<p>${processed}</p>`;
+        }
+
         // Empty lines become paragraph breaks
-        if (line.trim() === "") {
+        if (trimmed === "") {
           return "<br/>";
         }
-        return `<p style="margin: 0 0 8px 0; line-height: 1.6;">${line}</p>`;
+
+        // Check for centered title (ALL CAPS, short line, no punctuation at end)
+        const isTitle = trimmed.toUpperCase() === trimmed &&
+          trimmed.length > 10 && trimmed.length < 80 &&
+          !trimmed.endsWith(":") && !trimmed.endsWith(".");
+        if (isTitle) {
+          return `<p style="text-align: center; font-weight: bold; margin: 20px 0;">${trimmed}</p>`;
+        }
+
+        // Check for "Best," or "Sincerely," closing
+        if (trimmed.toLowerCase() === "best," || trimmed.toLowerCase() === "sincerely,") {
+          return `<p style="margin-top: 24px;">${trimmed}</p>`;
+        }
+
+        return `<p>${line}</p>`;
       })
       .join("\n");
 
@@ -466,6 +526,9 @@ export function LetterStudio({
       <html>
       <head>
         <title>Dispute Letter - ${clientName || "Client"}</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500&display=swap" rel="stylesheet">
         <style>
           @media print {
             @page {
@@ -490,6 +553,16 @@ export function LetterStudio({
           p {
             margin: 0 0 8px 0;
           }
+          .signature-script {
+            font-family: 'Dancing Script', cursive;
+            font-size: 24pt;
+            color: #1a1a4a;
+            margin-top: 8px;
+            margin-bottom: 0;
+          }
+          strong {
+            font-weight: bold;
+          }
         </style>
       </head>
       <body>
@@ -500,11 +573,11 @@ export function LetterStudio({
 
     printWindow.document.close();
 
-    // Wait for content to load then print
-    printWindow.onload = () => {
+    // Wait for fonts and content to load then print
+    setTimeout(() => {
       printWindow.focus();
       printWindow.print();
-    };
+    }, 500);
 
     toast({
       title: "Print Ready",
@@ -516,8 +589,13 @@ export function LetterStudio({
     if (!generatedLetter) return;
 
     try {
-      // Clean up the content - remove ** markers for clipboard
-      const cleanContent = generatedLetter.content.replace(/\*\*/g, "");
+      // Clean up the content for clipboard:
+      // 1. Remove ** bold markers
+      // 2. Replace {{script}}Name{{/script}} with just the name
+      let cleanContent = generatedLetter.content
+        .replace(/\*\*/g, "")
+        .replace(/\{\{script\}\}(.+?)\{\{\/script\}\}/g, "$1");
+
       await navigator.clipboard.writeText(cleanContent);
       toast({
         title: "Copied to Clipboard",
