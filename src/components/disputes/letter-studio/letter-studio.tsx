@@ -301,17 +301,20 @@ export function LetterStudio({
 
   const generatePdf = useCallback(async (content: string): Promise<Uint8Array> => {
     const pdfDoc = await PDFDocument.create();
+
+    // Register fontkit BEFORE embedding fonts
+    const fontkit = await import("@pdf-lib/fontkit").then(m => m.default);
+    pdfDoc.registerFontkit(fontkit);
+
     const timesRoman = await pdfDoc.embedFont(StandardFonts.TimesRoman);
     const timesRomanBold = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
 
-    // Try to load script font for signature
-    let scriptFont = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic); // Fallback
+    // Load script font for signature
+    let scriptFont = timesRoman; // Fallback to regular if script fails
     try {
       const scriptFontUrl = "https://fonts.gstatic.com/s/dancingscript/v25/If2cXTr6YS-zF4S-kcSWSVi_sxjsohD9F50Ruu7BMSo3Sup6hNX6plRP.woff";
       const fontResponse = await fetch(scriptFontUrl);
       if (fontResponse.ok) {
-        const fontkit = await import("@pdf-lib/fontkit").then(m => m.default);
-        pdfDoc.registerFontkit(fontkit);
         const fontBytes = await fontResponse.arrayBuffer();
         scriptFont = await pdfDoc.embedFont(fontBytes);
       }
@@ -326,31 +329,55 @@ export function LetterStudio({
     const pageHeight = 792;
     const maxWidth = pageWidth - margin * 2;
 
+    // Track if we've seen the title yet (only ONE line should be centered - the title)
+    let titleFound = false;
+
     // Split content into lines and process
     const lines = content.split("\n");
     const wrappedLines: { text: string; bold?: boolean; script?: boolean; centered?: boolean; fontSize?: number }[] = [];
 
-    for (const line of lines) {
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
       if (line.trim() === "") {
         wrappedLines.push({ text: "" });
         continue;
       }
 
-      // Handle {{script}} signature markers
+      // Handle {{script}} signature markers - render in script font
       const scriptMatch = line.match(/\{\{script\}\}(.+?)\{\{\/script\}\}/);
       if (scriptMatch) {
         wrappedLines.push({ text: scriptMatch[1].trim(), script: true, fontSize: 24 });
         continue;
       }
 
-      // Check for title line (centered, bold - usually has ** markers or RE:)
-      const hasBoldMarkers = line.includes("**");
       const cleanLine = line.replace(/\*\*/g, "").trim();
-      const isAllCaps = cleanLine.toUpperCase() === cleanLine && cleanLine.length > 10 && cleanLine.length < 80;
-      const isTitle = (hasBoldMarkers && cleanLine.length < 80) || (isAllCaps && !cleanLine.includes(":"));
 
-      // Detect bold text (has ** markers or is a label like "Inaccurate Details:")
-      const isBold = hasBoldMarkers || cleanLine.startsWith("Inaccurate Details:") || cleanLine.endsWith(":");
+      // Detect TITLE: Only ONE centered line - typically after date, before "Dear"
+      // Title patterns: contains CORRECTION, REQUEST, CHALLENGE, ERROR, URGENT, REVIEW, INFO, etc.
+      const titlePatterns = /CORRECTION|REQUEST|CHALLENGE|ERROR|URGENT|REVIEW|INFO|DISPUTE|CREDIT|REPORT|PLEASE|WRONG|FIX/i;
+      const isTitle = !titleFound &&
+        cleanLine.length > 15 && cleanLine.length < 80 &&
+        cleanLine.toUpperCase() === cleanLine &&
+        titlePatterns.test(cleanLine) &&
+        !cleanLine.includes("Account") &&
+        !cleanLine.startsWith("SSN") &&
+        !cleanLine.startsWith("DOB");
+
+      if (isTitle) {
+        titleFound = true;
+      }
+
+      // Detect BOLD text - specific patterns only:
+      // 1. Account lines: "CREDITOR - Account #" or starts with creditor name in caps followed by " - Account"
+      // 2. "Inaccurate Details:" label
+      // 3. "My Personal Statement:" or "Consumer Statement:" label
+      // 4. Numbered deletion items: "1. CREDITOR" etc.
+      const isAccountLine = /^[A-Z][A-Z0-9\s\/\.]+\s*-\s*Account\s*#/i.test(cleanLine);
+      const isInaccurateDetails = cleanLine.startsWith("Inaccurate Details:");
+      const isPersonalStatement = /^(My Personal Statement|Consumer Statement|Final Statement):/i.test(cleanLine);
+      const isDeletionItem = /^\d+\.\s+[A-Z]/.test(cleanLine);
+
+      const isBold = isAccountLine || isInaccurateDetails || isPersonalStatement || isDeletionItem || isTitle;
 
       // Word wrap
       const words = cleanLine.split(" ");
@@ -387,17 +414,17 @@ export function LetterStudio({
         y = pageHeight - margin;
       }
 
-      // Select font
+      // Select font and color
       let font = timesRoman;
       let textColor = rgb(0, 0, 0);
       if (line.script) {
         font = scriptFont;
-        textColor = rgb(0.1, 0.1, 0.3); // Dark blue for signature
+        textColor = rgb(0.05, 0.05, 0.2); // Dark blue for signature
       } else if (line.bold) {
         font = timesRomanBold;
       }
 
-      // Calculate x position (centered or left-aligned)
+      // Calculate x position - ONLY title is centered, everything else left-aligned
       let x = margin;
       if (line.centered && line.text) {
         const textWidth = font.widthOfTextAtSize(line.text, currentFontSize);
@@ -471,11 +498,16 @@ export function LetterStudio({
       return;
     }
 
-    // Format the content for printing with proper styling
+    // Track if we've found the title yet (only ONE centered line)
+    let titleFound = false;
+    const titlePatterns = /CORRECTION|REQUEST|CHALLENGE|ERROR|URGENT|REVIEW|INFO|DISPUTE|CREDIT|REPORT|PLEASE|WRONG|FIX/i;
+
+    // Format the content for printing with precise styling
     const formattedContent = generatedLetter.content
       .split("\n")
       .map((line) => {
         const trimmed = line.trim();
+        const cleanLine = trimmed.replace(/\*\*/g, "");
 
         // Handle {{script}} signature markers - render in cursive
         if (line.includes("{{script}}")) {
@@ -485,39 +517,55 @@ export function LetterStudio({
           }
         }
 
-        // Handle **bold** markers throughout the line
-        if (line.includes("**")) {
-          let processed = line;
-          // Replace **text** with <strong>text</strong>
-          processed = processed.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-          // Check if entire line was bold (title/header)
-          const isTitleLine = trimmed.startsWith("**") ||
-            (trimmed.toUpperCase() === trimmed.replace(/\*\*/g, '').trim() && trimmed.length < 80);
-          if (isTitleLine && !processed.includes("<strong>")) {
-            return `<p style="text-align: center; font-weight: bold; margin: 20px 0;">${processed}</p>`;
-          }
-          return `<p>${processed}</p>`;
-        }
-
         // Empty lines become paragraph breaks
         if (trimmed === "") {
           return "<br/>";
         }
 
-        // Check for centered title (ALL CAPS, short line, no punctuation at end)
-        const isTitle = trimmed.toUpperCase() === trimmed &&
-          trimmed.length > 10 && trimmed.length < 80 &&
-          !trimmed.endsWith(":") && !trimmed.endsWith(".");
+        // Detect TITLE: Only ONE centered line
+        const isTitle = !titleFound &&
+          cleanLine.length > 15 && cleanLine.length < 80 &&
+          cleanLine.toUpperCase() === cleanLine &&
+          titlePatterns.test(cleanLine) &&
+          !cleanLine.includes("Account") &&
+          !cleanLine.startsWith("SSN") &&
+          !cleanLine.startsWith("DOB");
+
         if (isTitle) {
-          return `<p style="text-align: center; font-weight: bold; margin: 20px 0;">${trimmed}</p>`;
+          titleFound = true;
+          return `<p style="text-align: center; font-weight: bold; margin: 20px 0;">${cleanLine}</p>`;
         }
+
+        // Detect BOLD text - specific patterns only:
+        const isAccountLine = /^[A-Z][A-Z0-9\s\/\.]+\s*-\s*Account\s*#/i.test(cleanLine);
+        const isInaccurateDetails = cleanLine.startsWith("Inaccurate Details:");
+        const isPersonalStatement = /^(My Personal Statement|Consumer Statement|Final Statement):/i.test(cleanLine);
+        const isDeletionItem = /^\d+\.\s+[A-Z]/.test(cleanLine);
 
         // Check for "Best," or "Sincerely," closing
         if (trimmed.toLowerCase() === "best," || trimmed.toLowerCase() === "sincerely,") {
           return `<p style="margin-top: 24px;">${trimmed}</p>`;
         }
 
-        return `<p>${line}</p>`;
+        // Bold specific elements
+        if (isAccountLine || isDeletionItem) {
+          return `<p><strong>${cleanLine}</strong></p>`;
+        }
+
+        if (isInaccurateDetails) {
+          // Bold the label, rest is regular
+          const parts = cleanLine.split(":");
+          return `<p><strong>${parts[0]}:</strong>${parts.slice(1).join(":")}</p>`;
+        }
+
+        if (isPersonalStatement) {
+          // Bold the label, rest is regular
+          const parts = cleanLine.split(":");
+          return `<p><strong>${parts[0]}:</strong>${parts.slice(1).join(":")}</p>`;
+        }
+
+        // Regular paragraph - remove any ** markers
+        return `<p>${cleanLine}</p>`;
       })
       .join("\n");
 
@@ -556,7 +604,7 @@ export function LetterStudio({
           .signature-script {
             font-family: 'Dancing Script', cursive;
             font-size: 24pt;
-            color: #1a1a4a;
+            color: #0d0d33;
             margin-top: 8px;
             margin-bottom: 0;
           }
