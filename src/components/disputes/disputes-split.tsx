@@ -502,6 +502,71 @@ export function DisputesSplit({ initialClient }: DisputesSplitProps) {
     }
   };
 
+  // Regenerate letter with fresh unique content
+  const handleRegenerateLetter = async () => {
+    if (!generatedLetter) return;
+
+    // Use the current letter's parameters to regenerate
+    const clientId = generatedLetter.clientId || selectedClientId;
+    const accountIds = generatedLetter.accountIds || selectedAccounts;
+    const cra = generatedLetter.cra || selectedCRA;
+    const flow = generatedLetter.flow || selectedFlow;
+
+    if (!clientId || accountIds.length === 0) {
+      toast({ title: "Cannot Regenerate", description: "Missing client or account information", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/disputes/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId,
+          cra,
+          flow,
+          accountIds,
+          forceRegenerate: true, // Signal to generate fresh unique content
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+
+        setGeneratedLetter({
+          isPreview: true,
+          clientId,
+          accountIds,
+          contentHash: data.preview.contentHash,
+          content: data.preview.letterContent,
+          cra: data.preview.cra,
+          flow: data.preview.flow,
+          round: data.preview.round,
+          status: "PREVIEW",
+          ameliaMetadata: {
+            letterDate: data.amelia.letterDate,
+            isBackdated: data.amelia.isBackdated,
+            backdatedDays: data.amelia.backdatedDays,
+            tone: data.amelia.tone,
+            effectiveFlow: data.amelia.effectiveFlow,
+            statute: data.amelia.statute,
+            personalInfoDisputed: data.amelia.personalInfoDisputed,
+          },
+        });
+
+        toast({
+          title: "Letter Regenerated",
+          description: "A new unique letter has been generated.",
+        });
+      } else {
+        const error = await res.json();
+        toast({ title: "Regeneration Failed", description: error.error || "Failed to regenerate letter", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to regenerate letter", variant: "destructive" });
+    }
+  };
+
   // Launch dispute
   const handleLaunchDispute = async () => {
     if (!generatedLetter) return;
@@ -1305,6 +1370,7 @@ export function DisputesSplit({ initialClient }: DisputesSplitProps) {
         launching={launching}
         onDownload={handleDownloadLetter}
         downloading={downloading}
+        onRegenerate={handleRegenerateLetter}
       />
     </div>
   );
