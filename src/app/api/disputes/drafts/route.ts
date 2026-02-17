@@ -28,8 +28,6 @@ async function handleGet(req: NextRequest, context: AuthContext) {
   const { searchParams } = new URL(req.url);
   const clientId = searchParams.get("clientId");
 
-  // TODO: Uncomment after running `npx prisma migrate dev` and `npx prisma generate`
-  /*
   const where: Record<string, unknown> = {
     organizationId: context.organizationId,
     status: "ACTIVE",
@@ -53,13 +51,8 @@ async function handleGet(req: NextRequest, context: AuthContext) {
       },
     },
   });
-  */
 
-  // Temporary empty response until migration is run
-  return NextResponse.json({
-    drafts: [],
-    _note: "Run `npx prisma migrate dev` to enable draft persistence"
-  });
+  return NextResponse.json({ drafts });
 }
 
 /**
@@ -83,9 +76,6 @@ async function handlePost(req: NextRequest, context: AuthContext<DraftInput>) {
     expiresAt,
   };
 
-  // For now, return a mock response since the Prisma model isn't generated yet
-  // TODO: Uncomment after running `npx prisma migrate dev` and `npx prisma generate`
-  /*
   let draft;
   if (validated.draftId) {
     draft = await prisma.disputeDraft.update({
@@ -107,13 +97,8 @@ async function handlePost(req: NextRequest, context: AuthContext<DraftInput>) {
       },
     });
   }
-  */
 
-  return NextResponse.json({
-    draft: { ...draftData, id: validated.draftId || "pending-migration" },
-    success: true,
-    _note: "Run `npx prisma migrate dev` to enable full draft persistence"
-  });
+  return NextResponse.json({ draft, success: true });
 }
 
 /**
@@ -131,15 +116,12 @@ async function handleDelete(req: NextRequest, context: AuthContext) {
     );
   }
 
-  // TODO: Uncomment after running `npx prisma migrate dev` and `npx prisma generate`
-  /*
   await prisma.disputeDraft.deleteMany({
     where: {
       id: draftId,
       organizationId: context.organizationId,
     },
   });
-  */
 
   return NextResponse.json({ success: true });
 }
