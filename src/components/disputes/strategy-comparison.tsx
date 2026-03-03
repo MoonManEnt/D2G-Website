@@ -19,7 +19,7 @@ import {
 // Flow configurations based on AMELIA doctrine
 const FLOW_CONFIGS = {
   ACCURACY: {
-    label: "Something is wrong",
+    label: "Accuracy Flow",
     color: "blue",
     maxRounds: 11,
     r1Citations: false,
@@ -28,7 +28,7 @@ const FLOW_CONFIGS = {
     weaknesses: ["Takes longer to escalate", "Requires documentation"],
   },
   COLLECTION: {
-    label: "Debt collection dispute",
+    label: "Collection Flow",
     color: "red",
     maxRounds: 12,
     r1Citations: true,
@@ -37,7 +37,7 @@ const FLOW_CONFIGS = {
     weaknesses: ["Requires original creditor proof", "More aggressive tone needed"],
   },
   CONSENT: {
-    label: "I didn't authorize this",
+    label: "Consent/Late Payment Flow",
     color: "purple",
     maxRounds: 10,
     r1Citations: true,
@@ -46,7 +46,7 @@ const FLOW_CONFIGS = {
     weaknesses: ["Must prove lack of consent", "Limited to permissible purpose disputes"],
   },
   COMBO: {
-    label: "Multiple issues",
+    label: "Combo Flow",
     color: "amber",
     maxRounds: 12,
     r1Citations: false, // Depends on primary issue

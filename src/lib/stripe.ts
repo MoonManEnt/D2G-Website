@@ -142,7 +142,8 @@ export async function createCheckoutSession(
   successUrl: string,
   cancelUrl: string,
   organizationId: string,
-  tier: string = "PROFESSIONAL"
+  tier: string = "PROFESSIONAL",
+  trialDays?: number
 ): Promise<string | null> {
   if (!stripe) {
     log.error("Stripe not configured");
@@ -171,6 +172,7 @@ export async function createCheckoutSession(
           organizationId,
           tier,
         },
+        ...(trialDays ? { trial_period_days: trialDays } : {}),
       },
       allow_promotion_codes: true,
     });

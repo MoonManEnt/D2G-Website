@@ -390,6 +390,69 @@ export function paymentFailedTemplate(
 
 
 // =============================================================================
+// SUBSCRIPTION CONFIRMATION
+// =============================================================================
+
+export function subscriptionConfirmationTemplate(
+  data: {
+    userName: string;
+    tierName: string;
+    tierFeatures: string[];
+    limits: {
+      clients: string;
+      disputesPerMonth: string;
+      storage: string;
+      teamSeats: string;
+    };
+    isTrialing: boolean;
+    trialDaysRemaining?: number;
+    welcomeUrl: string;
+  },
+  options: TemplateOptions = {}
+): string {
+  const featuresList = data.tierFeatures.length > 0
+    ? `
+    <ul style="margin: 0 0 16px; padding-left: 24px; color: #3f3f46;">
+      ${data.tierFeatures.map((f) => `<li style="margin-bottom: 8px;">${f}</li>`).join("")}
+    </ul>`
+    : "";
+
+  const trialNotice = data.isTrialing
+    ? `
+    <div style="margin: 24px 0; padding: 16px; background-color: #dbeafe; border-radius: 8px; text-align: center;">
+      <p style="margin: 0; font-size: 14px; color: #1e40af;">
+        Your ${data.trialDaysRemaining}-day trial has started. You won't be charged until the trial ends.
+      </p>
+    </div>`
+    : "";
+
+  const content = `
+    ${text.heading(`Welcome to Dispute2Go ${data.tierName}!`)}
+    ${text.paragraph(`Hi ${data.userName},`)}
+    ${text.paragraph(`Your <strong>${data.tierName}</strong> plan is now active. You have access to everything your plan includes.`)}
+    ${trialNotice}
+    ${createDivider()}
+    ${text.subheading("Your Plan Includes")}
+    ${createTable([
+      { label: "Clients", value: data.limits.clients },
+      { label: "Disputes / Month", value: data.limits.disputesPerMonth },
+      { label: "Storage", value: data.limits.storage },
+      { label: "Team Seats", value: data.limits.teamSeats },
+    ])}
+    ${featuresList ? `${text.subheading("Premium Features")}${featuresList}` : ""}
+    ${text.paragraph("Ready to get started? Add your first client and upload a credit report.")}
+    ${createButton("Get Started", data.welcomeUrl)}
+    ${createDivider()}
+    ${text.small("Have questions? Reply to this email or reach out to our support team.")}
+  `;
+
+  return wrapInTemplate(content, {
+    preheader: `Your Dispute2Go ${data.tierName} plan is active!`,
+    ...options,
+  });
+}
+
+// =============================================================================
 // DAILY SUMMARY
 // =============================================================================
 

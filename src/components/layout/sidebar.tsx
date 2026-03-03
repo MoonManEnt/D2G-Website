@@ -42,8 +42,8 @@ const navigation: { name: string; href: string; icon: typeof LayoutDashboard; to
   { name: "Analytics & Reporting", href: "/analytics", icon: BarChart3, tourId: "analytics" },
   { name: "Litigation", href: "/litigation", icon: Gavel, tourId: "litigation" },
   { name: "Feedback", href: "/feedback", icon: MessageSquarePlus },
-  { name: "Settings", href: "/settings", icon: Settings },
-  { name: "Billing", href: "/billing", icon: CreditCard },
+  { name: "Settings", href: "/settings", icon: Settings, tourId: "settings" },
+  { name: "Billing", href: "/billing", icon: CreditCard, tourId: "billing" },
 ];
 
 // Icon-specific hover animations

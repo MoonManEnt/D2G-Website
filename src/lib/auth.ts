@@ -20,6 +20,7 @@ declare module "next-auth" {
       subscriptionStatus: SubscriptionStatus;
       isFoundingMember: boolean;
       foundingMemberNumber: number | null;
+      trialEndsAt: string | null;
     };
   }
 
@@ -34,6 +35,7 @@ declare module "next-auth" {
     subscriptionStatus: SubscriptionStatus;
     isFoundingMember: boolean;
     foundingMemberNumber: number | null;
+    trialEndsAt: string | null;
   }
 }
 
@@ -49,6 +51,7 @@ declare module "next-auth/jwt" {
     subscriptionStatus: SubscriptionStatus;
     isFoundingMember: boolean;
     foundingMemberNumber: number | null;
+    trialEndsAt: string | null;
   }
 }
 
@@ -77,6 +80,7 @@ export const authOptions: NextAuthOptions = {
                   subscriptionStatus: true,
                   isFoundingMember: true,
                   foundingMemberNumber: true,
+                  trialEndsAt: true,
                 },
               },
             },
@@ -129,6 +133,7 @@ export const authOptions: NextAuthOptions = {
             subscriptionStatus: user.organization.subscriptionStatus as SubscriptionStatus,
             isFoundingMember: user.organization.isFoundingMember,
             foundingMemberNumber: user.organization.foundingMemberNumber,
+            trialEndsAt: user.organization.trialEndsAt?.toISOString() || null,
           };
 
         } catch (error) {
@@ -138,7 +143,7 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id;
         token.email = user.email;
@@ -150,7 +155,38 @@ export const authOptions: NextAuthOptions = {
         token.subscriptionStatus = user.subscriptionStatus;
         token.isFoundingMember = user.isFoundingMember;
         token.foundingMemberNumber = user.foundingMemberNumber;
+        token.trialEndsAt = user.trialEndsAt;
       }
+
+      // Refresh subscription data from DB when session update is requested
+      if (trigger === "update" && token.id) {
+        try {
+          const freshUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            include: {
+              organization: {
+                select: {
+                  subscriptionTier: true,
+                  subscriptionStatus: true,
+                  isFoundingMember: true,
+                  foundingMemberNumber: true,
+                  trialEndsAt: true,
+                },
+              },
+            },
+          });
+          if (freshUser?.organization) {
+            token.subscriptionTier = freshUser.organization.subscriptionTier as SubscriptionTier;
+            token.subscriptionStatus = freshUser.organization.subscriptionStatus as SubscriptionStatus;
+            token.isFoundingMember = freshUser.organization.isFoundingMember;
+            token.foundingMemberNumber = freshUser.organization.foundingMemberNumber;
+            token.trialEndsAt = freshUser.organization.trialEndsAt?.toISOString() || null;
+          }
+        } catch (err) {
+          log.error({ err }, "Failed to refresh session data");
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
@@ -165,6 +201,7 @@ export const authOptions: NextAuthOptions = {
         subscriptionStatus: token.subscriptionStatus,
         isFoundingMember: token.isFoundingMember,
         foundingMemberNumber: token.foundingMemberNumber,
+        trialEndsAt: token.trialEndsAt,
       };
       return session;
     },

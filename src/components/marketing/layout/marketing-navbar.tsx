@@ -6,10 +6,13 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { NAV_LINKS } from "@/lib/marketing-data";
 import { Menu, X } from "lucide-react";
+import { useSession, signOut } from "next-auth/react";
 
 export function MarketingNavbar() {
+  const { data: session } = useSession();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const isLoggedIn = !!session?.user;
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -66,18 +69,37 @@ export function MarketingNavbar() {
 
           {/* Desktop CTAs */}
           <div className="hidden lg:flex items-center gap-3">
-            <Link
-              href="/login"
-              className="text-sm font-medium text-slate-600 hover:text-[#0c8ee6] transition-colors px-4 py-2"
-            >
-              Log in
-            </Link>
-            <Link
-              href="/register"
-              className="bg-[#0c8ee6] text-white rounded-lg px-6 py-2.5 text-sm font-medium hover:bg-[#0a7fd0] transition-colors"
-            >
-              Get started
-            </Link>
+            {isLoggedIn ? (
+              <>
+                <Link
+                  href="/dashboard"
+                  className="text-sm font-medium text-slate-600 hover:text-[#0c8ee6] transition-colors px-4 py-2"
+                >
+                  Dashboard
+                </Link>
+                <button
+                  onClick={() => signOut({ callbackUrl: "/login" })}
+                  className="bg-[#0c8ee6] text-white rounded-lg px-6 py-2.5 text-sm font-medium hover:bg-[#0a7fd0] transition-colors"
+                >
+                  Log out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="text-sm font-medium text-slate-600 hover:text-[#0c8ee6] transition-colors px-4 py-2"
+                >
+                  Log in
+                </Link>
+                <Link
+                  href="/login?view=register"
+                  className="bg-[#0c8ee6] text-white rounded-lg px-6 py-2.5 text-sm font-medium hover:bg-[#0a7fd0] transition-colors"
+                >
+                  Get started
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile hamburger */}
@@ -110,20 +132,40 @@ export function MarketingNavbar() {
               </Link>
             ))}
             <div className="flex flex-col gap-3 mt-6 w-64">
-              <Link
-                href="/login"
-                onClick={() => setMobileOpen(false)}
-                className="w-full text-center border border-slate-300 text-slate-700 rounded-lg px-6 py-3 text-sm font-medium hover:bg-slate-50 transition-colors"
-              >
-                Log in
-              </Link>
-              <Link
-                href="/register"
-                onClick={() => setMobileOpen(false)}
-                className="w-full text-center bg-[#0c8ee6] text-white rounded-lg px-6 py-3 text-sm font-medium hover:bg-[#0a7fd0] transition-colors"
-              >
-                Get started
-              </Link>
+              {isLoggedIn ? (
+                <>
+                  <Link
+                    href="/dashboard"
+                    onClick={() => setMobileOpen(false)}
+                    className="w-full text-center border border-slate-300 text-slate-700 rounded-lg px-6 py-3 text-sm font-medium hover:bg-slate-50 transition-colors"
+                  >
+                    Dashboard
+                  </Link>
+                  <button
+                    onClick={() => { setMobileOpen(false); signOut({ callbackUrl: "/login" }); }}
+                    className="w-full text-center bg-[#0c8ee6] text-white rounded-lg px-6 py-3 text-sm font-medium hover:bg-[#0a7fd0] transition-colors"
+                  >
+                    Log out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    onClick={() => setMobileOpen(false)}
+                    className="w-full text-center border border-slate-300 text-slate-700 rounded-lg px-6 py-3 text-sm font-medium hover:bg-slate-50 transition-colors"
+                  >
+                    Log in
+                  </Link>
+                  <Link
+                    href="/login?view=register"
+                    onClick={() => setMobileOpen(false)}
+                    className="w-full text-center bg-[#0c8ee6] text-white rounded-lg px-6 py-3 text-sm font-medium hover:bg-[#0a7fd0] transition-colors"
+                  >
+                    Get started
+                  </Link>
+                </>
+              )}
             </div>
           </nav>
         </div>

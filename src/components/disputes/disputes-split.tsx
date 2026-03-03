@@ -49,7 +49,7 @@ const BUREAUS = [
 const FLOWS = [
   {
     id: "ACCURACY",
-    label: "Something is wrong",
+    label: "Accuracy Flow",
     desc: "Balance, dates, status, or other info is incorrect",
     color: "blue",
     maxRounds: 11,
@@ -57,7 +57,7 @@ const FLOWS = [
   },
   {
     id: "COLLECTION",
-    label: "Debt collection dispute",
+    label: "Collection Flow",
     desc: "Third-party collector, medical debt, or old debt",
     color: "red",
     maxRounds: 12,
@@ -65,7 +65,7 @@ const FLOWS = [
   },
   {
     id: "CONSENT",
-    label: "I didn't authorize this",
+    label: "Consent/Late Payment Flow",
     desc: "Inquiry or account opened without permission",
     color: "purple",
     maxRounds: 10,
@@ -73,8 +73,8 @@ const FLOWS = [
   },
   {
     id: "COMBO",
-    label: "Multiple issues",
-    desc: "Both accuracy and collection problems on same account",
+    label: "Combo Flow",
+    desc: "Multiple issues at once",
     color: "amber",
     maxRounds: 12,
     humanExamples: ["Wrong balance + collection", "Multiple error types", "Complex dispute"]

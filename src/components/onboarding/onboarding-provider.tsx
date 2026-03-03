@@ -33,8 +33,11 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
         setTourCompleted(true);
       }
 
-      if (!welcomeShown) {
-        // New user - show welcome
+      // Skip welcome modal if user came through checkout (they see /welcome page instead)
+      const fromCheckout = localStorage.getItem("dispute2go_checkout_completed");
+
+      if (!welcomeShown && !fromCheckout) {
+        // New user who hasn't been through checkout — show welcome modal
         setShowWelcome(true);
       }
     }

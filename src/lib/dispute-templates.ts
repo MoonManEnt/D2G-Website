@@ -962,3 +962,64 @@ export function getDisputeReasonFromIssueCode(code: string): string {
   };
   return reasons[code] || "Information is inaccurate and requires verification";
 }
+
+export const SECONDARY_AGENCIES = {
+  LEXIS_NEXIS: { name: "LexisNexis Consumer Center", address: "P.O. Box 105108", city: "Atlanta", state: "GA", zip: "30348-5108" },
+  SAGE_STREAM: { name: "SageStream, LLC", address: "P.O. Box 503793", city: "San Diego", state: "CA", zip: "92150" },
+  CHEX_SYSTEMS: { name: "Chex Systems, Inc.", address: "7805 Hudson Road, Suite 100", city: "Woodbury", state: "MN", zip: "55125" },
+  INNOVIS: { name: "Innovis Consumer Assistance", address: "P.O. Box 530088", city: "Atlanta", state: "GA", zip: "30353-0088" },
+  FACTOR_TRUST: { name: "FactorTrust", address: "P.O. Box 3653", city: "Alpharetta", state: "GA", zip: "30023-3653" },
+  CORE_LOGIC: { name: "CoreLogic Credco", address: "P.O. Box 509124", city: "San Diego", state: "CA", zip: "92150" },
+} as const;
+
+export function generate1681gLetter(
+  agencyInfo: { name: string; address: string; city: string; state: string; zip: string },
+  data: Omit<DisputeLetterData, "accounts">
+): string {
+  return `${data.clientName}
+${data.clientAddress}
+${data.clientCity}, ${data.clientState} ${data.clientZip}
+
+${data.currentDate}
+
+${agencyInfo.name}
+${agencyInfo.address}
+${agencyInfo.city}, ${agencyInfo.state} ${agencyInfo.zip}
+
+Subject: Request for Full File Disclosure Pursuant to 15 U.S.C. § 1681g
+Personal Information:
+SSN: XXX-XX-${data.clientSSN4}
+DOB: ${data.clientDOB}
+
+SENT VIA CERTIFIED MAIL, RETURN RECEIPT REQUESTED
+
+To Whom It May Concern:
+
+Under the Fair Credit Reporting Act (FCRA), 15 U.S.C. § 1681g(a), I am writing to demand a complete disclosure of ALL information in my consumer file.
+
+This is a formal request for a "Full File Disclosure" (not merely a standard credit report). By law, you are required to clearly and accurately disclose to me:
+1. All information in my file at the time of your receipt of this request, including all raw data.
+2. The sources of all information.
+3. Every person or entity that has procured my consumer report for any purpose during the past two-year period.
+4. The dates, original payees, and amounts of any checks upon which any adverse characterization of me is based.
+5. A record of all inquiries received by your agency during the one-year period preceding this request identifying me.
+
+Please be advised that if you attempt to state that you do not maintain a file on me, it is your responsibility under the FCRA to verify that fact utilizing all variations of my identifying information provided below.
+
+Enclosed are copies of my government-issued driver's license and a recent utility bill to verify my identity and address.
+
+Please provide this full file disclosure within the legally required 15-day timeframe. Your failure to comply with this federal request may result in a formal complaint filed with the Consumer Financial Protection Bureau and the Federal Trade Commission.
+
+Thank you for your prompt compliance with this federal law.
+
+Sincerely,
+
+
+_______________________________
+${data.clientName}
+
+Enclosures:
+- Copy of Valid ID
+- Proof of Address
+`;
+}

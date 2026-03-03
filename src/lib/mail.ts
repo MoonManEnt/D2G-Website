@@ -453,3 +453,106 @@ export function getAvailableCRAs(): Array<{ code: CRAType; name: string; address
     address,
   }));
 }
+
+// ============================================================================
+// Litigation Letter Sending — supports any recipient address
+// ============================================================================
+
+export interface SendLitigationLetterParams {
+  /** Letter content (PDF buffer or URL) */
+  letterPdf: Buffer | string;
+
+  /** Recipient address — can be court, furnisher, collector, AG, FTC, etc. */
+  to: LobAddress;
+
+  /** Sender info (client) */
+  clientName: string;
+  clientAddress: string;
+  clientCity: string;
+  clientState: string;
+  clientZip: string;
+
+  /** Options */
+  description?: string;
+  color?: boolean;
+  doubleSided?: boolean;
+  mailType?: "usps_first_class" | "usps_standard";
+  extraService?: "certified" | "certified_return_receipt" | "registered";
+  sendDate?: Date;
+}
+
+/**
+ * Send a litigation letter to any recipient (court, furnisher, collector, AG, FTC).
+ * Unlike sendDisputeLetter which only accepts CRA types, this accepts a custom LobAddress.
+ */
+export async function sendLitigationLetter(params: SendLitigationLetterParams): Promise<SendLetterResult> {
+  if (!FEATURE_PHYSICAL_MAIL_ENABLED) {
+    return {
+      success: false,
+      error: "Physical mail feature is not enabled. Set FEATURE_PHYSICAL_MAIL_ENABLED=true",
+    };
+  }
+
+  if (!LOB_API_KEY) {
+    return {
+      success: false,
+      error: "Lob API key not configured. Set LOB_API_KEY environment variable.",
+    };
+  }
+
+  try {
+    const lob = await getLobClient();
+
+    const fromAddress: LobAddress = {
+      name: params.clientName,
+      address_line1: params.clientAddress,
+      address_city: params.clientCity,
+      address_state: params.clientState,
+      address_zip: params.clientZip,
+      address_country: "US",
+    };
+
+    // Prepare file - either URL or base64 encoded PDF
+    let file: string;
+    if (Buffer.isBuffer(params.letterPdf)) {
+      file = `data:application/pdf;base64,${params.letterPdf.toString("base64")}`;
+    } else {
+      file = params.letterPdf;
+    }
+
+    const letterParams: LobLetterCreateParams = {
+      description: params.description || `Litigation Letter to ${params.to.name}`,
+      to: params.to,
+      from: fromAddress,
+      file,
+      color: params.color ?? false,
+      double_sided: params.doubleSided ?? true,
+      address_placement: "top_first_page",
+      mail_type: params.mailType || "usps_first_class",
+    };
+
+    if (params.extraService) {
+      letterParams.extra_service = params.extraService;
+    }
+
+    if (params.sendDate) {
+      letterParams.send_date = params.sendDate.toISOString().split("T")[0];
+    }
+
+    const letter = await lob.letters.create(letterParams);
+
+    return {
+      success: true,
+      letterId: letter.id,
+      expectedDeliveryDate: letter.expected_delivery_date,
+      trackingUrl: letter.url,
+      testMode: LOB_TEST_MODE,
+    };
+  } catch (error) {
+    log.error({ err: error }, "Send litigation letter error");
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to send litigation letter",
+    };
+  }
+}

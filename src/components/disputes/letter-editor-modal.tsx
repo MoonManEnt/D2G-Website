@@ -110,10 +110,10 @@ interface LetterEditorModalProps {
 
 // Flow options for early customization
 const FLOW_OPTIONS = [
-  { id: "ACCURACY", label: "Something is wrong", desc: "Balance, dates, status incorrect" },
-  { id: "COLLECTION", label: "Debt collection dispute", desc: "Third-party collector, medical debt" },
-  { id: "CONSENT", label: "I didn't authorize this", desc: "Unauthorized inquiry or account" },
-  { id: "COMBO", label: "Multiple issues", desc: "Both accuracy and collection problems" },
+  { id: "ACCURACY", label: "Accuracy Flow", desc: "Balance, dates, status incorrect" },
+  { id: "COLLECTION", label: "Collection Flow", desc: "Third-party collector, medical debt" },
+  { id: "CONSENT", label: "Consent/Late Payment Flow", desc: "Unauthorized inquiry or account" },
+  { id: "COMBO", label: "Combo Flow", desc: "Multiple issues at once" },
 ];
 
 const TONE_CONFIG = {

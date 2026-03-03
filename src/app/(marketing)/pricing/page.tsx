@@ -87,7 +87,7 @@ export default function PricingPage() {
                 </div>
 
                 <Link
-                  href={tier.name === "Enterprise" ? "/demo" : "/register"}
+                  href={tier.name === "Enterprise" ? "/demo" : "/login?view=register"}
                   className={`w-full text-center rounded-lg px-6 py-3 text-sm font-medium transition-colors mb-6 block ${
                     tier.highlight
                       ? "bg-[#0c8ee6] text-white hover:bg-[#0a7fd0]"

@@ -320,7 +320,7 @@ function ViolationCard({ violation }: { violation: Violation }) {
 // SCAN RESULTS DISPLAY (inline component)
 // =============================================================================
 
-function ScanResultsDisplay({ scan }: { scan: LitigationScan }) {
+function ScanResultsDisplay({ scan, clientId, onOpenCase }: { scan: LitigationScan; clientId: string; onOpenCase: (scanId: string) => void }) {
   const [activeSection, setActiveSection] = useState<"violations" | "damages" | "case" | "escalation">("violations");
   const strengthConfig = STRENGTH_CONFIG[scan.caseSummary?.strengthLabel] || STRENGTH_CONFIG.WEAK;
 
@@ -700,6 +700,30 @@ function ScanResultsDisplay({ scan }: { scan: LitigationScan }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
+          {/* Open Litigation Case CTA */}
+          <Card className="bg-gradient-to-r from-primary/10 to-purple-500/10 border-primary/30 mb-4">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-foreground font-semibold flex items-center gap-2">
+                    <Gavel className="w-5 h-5 text-primary" />
+                    Ready to Take Action?
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Open a litigation case to generate demand letters, file complaints, and track the full legal workflow.
+                  </p>
+                </div>
+                <Button
+                  onClick={() => onOpenCase(scan.id)}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                >
+                  <Gavel className="w-4 h-4 mr-2" />
+                  Open Litigation Case
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="bg-card border-border">
             <CardHeader className="pb-3">
               <CardTitle className="text-foreground text-lg flex items-center gap-2">
@@ -1071,7 +1095,27 @@ export default function ClientLitigationPage() {
       {/* Current Scan Results */}
       {currentScan && !scanning && (
         <>
-          <ScanResultsDisplay scan={currentScan} />
+          <ScanResultsDisplay
+            scan={currentScan}
+            clientId={clientId}
+            onOpenCase={async (scanId) => {
+              try {
+                const res = await fetch(`/api/clients/${clientId}/litigation-cases`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ scanId }),
+                });
+                const data = await res.json();
+                if (data.success && data.case) {
+                  router.push(`/clients/${clientId}/litigation/case/${data.case.id}`);
+                } else {
+                  toast({ title: "Error", description: data.error || "Failed to create case", variant: "destructive" });
+                }
+              } catch {
+                toast({ title: "Error", description: "Failed to create case", variant: "destructive" });
+              }
+            }}
+          />
 
           {/* Previous Scans (Collapsible) */}
           {scans.length > 1 && (

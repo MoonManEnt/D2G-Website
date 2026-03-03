@@ -16,6 +16,7 @@ import {
   Lock,
   Clock,
   Mail,
+  FileText,
 } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
 import { CRAProgressHeader, calculateCRAStatus } from "./cra-progress-header";
@@ -116,6 +117,9 @@ export function DisputeCommandCenter({
   const [mailDialogOpen, setMailDialogOpen] = useState(false);
   const [mailDisputeId, setMailDisputeId] = useState<string | null>(null);
   const [mailDisputeCRA, setMailDisputeCRA] = useState<string>("TRANSUNION");
+
+  // Secondary Agency Generation State
+  const [isGenerating1681g, setIsGenerating1681g] = useState(false);
 
   // Group accounts by normalized creditor name
   const accountGroups = useMemo(() => {
@@ -434,8 +438,49 @@ export function DisputeCommandCenter({
   const totalSelected = Object.values(selections).reduce((sum, arr) => sum + arr.length, 0);
   const totalAvailable = accounts.filter((a) => !lockedAccountIds.has(a.id)).length;
 
+  const handleGenerate1681g = async () => {
+    setIsGenerating1681g(true);
+    try {
+      const res = await fetch(`/api/clients/${clientId}/secondary-agencies`, { method: "POST" });
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${clientName || "Client"}_Secondary_Agencies_1681g.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        toast({ title: "Success", description: "Secondary Agency 1681g letters downloaded." });
+      } else {
+        toast({ title: "Error", description: "Failed to generate letters", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Generation failed", variant: "destructive" });
+    } finally {
+      setIsGenerating1681g(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Secondary Agency Generation */}
+      <Card className="bg-card border-border">
+        <CardContent className="p-5 flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Phase 1: Deep Discovery Auto-Mailer</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Generate 1681g Full File Disclosure templates for secondary databases (LexisNexis, ChexSystems, etc).
+            </p>
+          </div>
+          <Button onClick={handleGenerate1681g} disabled={isGenerating1681g} className="bg-purple-600 hover:bg-purple-700">
+            {isGenerating1681g ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FileText className="w-4 h-4 mr-2" />}
+            Generate 1681g Package
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* CRA Progress Header */}
       <CRAProgressHeader status={craStatus} />
 

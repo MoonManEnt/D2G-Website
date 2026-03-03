@@ -357,8 +357,9 @@ function D2GAuthV3() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+  const initialView = searchParams.get("view") as "login" | "register" | null;
 
-  const [view, setView] = useState<"login" | "register" | "forgot" | "verify">("login");
+  const [view, setView] = useState<"login" | "register" | "forgot" | "verify">(initialView === "register" ? "register" : "login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -414,10 +415,10 @@ function D2GAuthV3() {
             email,
             password,
             redirect: false,
-            callbackUrl,
+            callbackUrl: "/welcome",
           });
           if (result?.ok) {
-            router.push(callbackUrl);
+            router.push("/welcome");
             router.refresh();
           }
         }
@@ -496,7 +497,7 @@ function D2GAuthV3() {
         {/* ── REGISTER ── */}
         {view === "register" && <div style={fade(0.1)}>
           <h2 style={{ fontSize: 22, fontWeight: 700, color: C.text, fontFamily: "var(--head)", letterSpacing: "-0.02em", margin: "0 0 4px 0" }}>Create your account</h2>
-          <p style={{ fontSize: 13.5, color: C.textMuted, margin: "0 0 24px 0", fontFamily: "var(--body)" }}>14-day free trial • No credit card required</p>
+          <p style={{ fontSize: 13.5, color: C.textMuted, margin: "0 0 24px 0", fontFamily: "var(--body)" }}>Start free and upgrade anytime</p>
           <form onSubmit={handleSubmit} autoComplete="on">
             <Input label="Full Name" name="name" autoComplete="name" icon={IC.user} placeholder="Jane Smith" value={fullName} onChange={e => setFullName(e.target.value)} error={errors.fullName} />
             <Input label="Company / Business" name="organization" autoComplete="organization" icon={IC.bldg} placeholder="Smith Credit Solutions" value={company} onChange={e => setCompany(e.target.value)} error={errors.company} />

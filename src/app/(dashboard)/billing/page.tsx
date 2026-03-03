@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,27 +16,35 @@ import {
 import { useToast } from "@/lib/use-toast";
 
 export default function BillingPage() {
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
   const { toast } = useToast();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("monthly");
   const [showEnterpriseModal, setShowEnterpriseModal] = useState(false);
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const currentTier = (session?.user as any)?.subscriptionTier || "FREE";
   const subscriptionStatus = (session?.user as any)?.subscriptionStatus || "ACTIVE";
+  const trialEndsAt = (session?.user as any)?.trialEndsAt;
+  const daysRemaining = trialEndsAt
+    ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : 0;
 
   // Handle success/cancel redirects from Stripe
   useEffect(() => {
     const success = searchParams.get("success");
     const canceled = searchParams.get("canceled");
     if (success === "true") {
-      toast({ title: "Subscription Activated!", description: "Welcome! All features are now unlocked." });
-      window.history.replaceState({}, "", "/billing");
+      // Refresh session to pick up new tier from webhook, then redirect to welcome
+      update().then(() => {
+        window.history.replaceState({}, "", "/billing");
+        router.push("/welcome");
+      });
     } else if (canceled === "true") {
       toast({ title: "Checkout Canceled", description: "No changes were made.", variant: "destructive" });
       window.history.replaceState({}, "", "/billing");
     }
-  }, [searchParams, toast]);
+  }, [searchParams, toast, update, router]);
   const handleUpgrade = (plan: "SOLO" | "STARTER" | "PROFESSIONAL", interval: "monthly" | "yearly") => {
     setIsLoading(plan);
     fetch("/api/billing/checkout", {
@@ -66,6 +74,7 @@ export default function BillingPage() {
   const getStatusBadge = () => {
     switch (subscriptionStatus) {
       case "ACTIVE": return <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Active</Badge>;
+      case "TRIALING": return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Trial</Badge>;
       case "PAST_DUE": return <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">Past Due</Badge>;
       case "CANCELED": return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Canceled</Badge>;
       default: return null;
@@ -88,6 +97,19 @@ export default function BillingPage() {
           </div>
           <Button variant="outline" size="sm" onClick={handleManageBilling} disabled={isLoading === "portal"} className="border-input text-muted-foreground hover:bg-muted">
             {isLoading === "portal" ? <Loader2 className="w-4 h-4 animate-spin" /> : <><ExternalLink className="w-4 h-4 mr-2" />Manage Billing</>}
+          </Button>
+        </div>
+      )}
+      {/* Trial banner */}
+      {subscriptionStatus === "TRIALING" && (
+        <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-lg p-4 flex items-center gap-4">
+          <div className="bg-blue-500/20 rounded-full p-2"><Clock className="w-6 h-6 text-blue-400" /></div>
+          <div className="flex-1">
+            <h3 className="text-foreground font-medium">{currentTier.charAt(0) + currentTier.slice(1).toLowerCase()} Trial — {daysRemaining} day{daysRemaining !== 1 ? "s" : ""} remaining</h3>
+            <p className="text-muted-foreground text-sm">Your card will be charged after the trial ends. Cancel anytime.</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleManageBilling} disabled={isLoading === "portal"} className="border-input text-muted-foreground hover:bg-muted">
+            {isLoading === "portal" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Manage Billing"}
           </Button>
         </div>
       )}

@@ -190,8 +190,34 @@ ${disputeLines.length > 0 ? disputeLines.join("\n") : "No disputes yet"}
 
 ${piSummary}`;
 
+  // Add litigation case context if any exist
+  let litigationContext = "";
+  try {
+    const litigationCases = await prisma.litigationCase.findMany({
+      where: { clientId, organizationId: orgId },
+      orderBy: { createdAt: "desc" },
+      take: 3,
+      include: {
+        defendants: { select: { name: true, type: true, violationCount: true } },
+        _count: { select: { actions: true, documents: true } },
+      },
+    });
+
+    if (litigationCases.length > 0) {
+      const caseLines = litigationCases.map((c) => {
+        const defNames = c.defendants.map((d) => `${d.name} (${d.type})`).join(", ");
+        return `- ${c.caseNumber} | Status: ${c.status} | Stage: ${c.currentStage} | Violations: ${c.totalViolations} | Damages: $${(c.estimatedDamagesMin / 100).toLocaleString()}-$${(c.estimatedDamagesMax / 100).toLocaleString()} | Court: ${c.courtType || "TBD"} | Defendants: ${defNames} | Actions: ${c._count.actions} | Docs: ${c._count.documents}`;
+      });
+      litigationContext = `\n\nLITIGATION CASES (${litigationCases.length}):\n${caseLines.join("\n")}`;
+    }
+  } catch {
+    // Litigation tables may not exist yet in all environments
+  }
+
+  const fullText = text + litigationContext;
+
   return {
-    text,
+    text: fullText,
     summary: {
       name: `${client.firstName} ${client.lastName}`,
       stage: client.stage,

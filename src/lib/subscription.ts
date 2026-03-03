@@ -1,4 +1,4 @@
-import { SubscriptionTier, SubscriptionStatus, FeatureFlags, FREE_TIER_FLAGS, STARTER_TIER_FLAGS, PROFESSIONAL_TIER_FLAGS, ENTERPRISE_TIER_FLAGS } from "@/types";
+import { SubscriptionTier, SubscriptionStatus, FeatureFlags, FREE_TIER_FLAGS, SOLO_TIER_FLAGS, STARTER_TIER_FLAGS, PROFESSIONAL_TIER_FLAGS, ENTERPRISE_TIER_FLAGS } from "@/types";
 
 /**
  * Get feature flags based on subscription tier and status
@@ -16,6 +16,8 @@ export function getFeatureFlags(tier: SubscriptionTier, status: SubscriptionStat
       return PROFESSIONAL_TIER_FLAGS;
     case SubscriptionTier.STARTER:
       return STARTER_TIER_FLAGS;
+    case SubscriptionTier.SOLO:
+      return SOLO_TIER_FLAGS;
     case SubscriptionTier.FREE:
     default:
       return FREE_TIER_FLAGS;

@@ -9,6 +9,7 @@ import {
   passwordResetTemplate,
   welcomeTemplate,
   documentReadyTemplate,
+  subscriptionConfirmationTemplate,
   sentryItemRemovedTemplate,
   sentryScoreImprovedTemplate,
   sentryMilestoneTemplate,
@@ -245,6 +246,34 @@ export function welcomeEmail(
   };
 }
 
+// Subscription Confirmation Email
+export function subscriptionConfirmationEmail(
+  userName: string,
+  tierName: string,
+  tierFeatures: string[],
+  limits: {
+    clients: string;
+    disputesPerMonth: string;
+    storage: string;
+    teamSeats: string;
+  },
+  isTrialing: boolean = false,
+  trialDaysRemaining?: number,
+  branding?: Partial<BrandingConfig>
+): EmailTemplate {
+  const welcomeUrl = `${APP_URL}/welcome`;
+  const html = subscriptionConfirmationTemplate(
+    { userName, tierName, tierFeatures, limits, isTrialing, trialDaysRemaining, welcomeUrl },
+    { branding }
+  );
+
+  return {
+    subject: `Welcome to Dispute2Go ${tierName}!`,
+    html,
+    text: `Hi ${userName},\n\nYour ${tierName} plan is now active!\n\nYour plan includes:\n- Clients: ${limits.clients}\n- Disputes/Month: ${limits.disputesPerMonth}\n- Storage: ${limits.storage}\n- Team Seats: ${limits.teamSeats}\n${tierFeatures.length > 0 ? `\nPremium Features:\n${tierFeatures.map((f) => `- ${f}`).join("\n")}` : ""}\n\nGet started: ${welcomeUrl}`,
+  };
+}
+
 // Document Ready Email
 export function documentReadyEmail(
   clientName: string,
@@ -466,6 +495,59 @@ export async function sendWelcomeEmail(
     to,
     template,
     tags: [{ name: "category", value: "welcome" }],
+  });
+}
+
+export async function sendSubscriptionConfirmationEmail(
+  to: string,
+  userName: string,
+  tier: string,
+  organizationId?: string
+): Promise<{ success: boolean; error?: string; id?: string }> {
+  const branding = await getOrganizationBranding(organizationId);
+
+  // Map tier to display name and limits
+  const tierMap: Record<string, { name: string; features: string[]; limits: { clients: string; disputesPerMonth: string; storage: string; teamSeats: string } }> = {
+    SOLO: {
+      name: "Solo",
+      features: ["Credit DNA Analysis", "AI-Powered Letters"],
+      limits: { clients: "10", disputesPerMonth: "40", storage: "2 GB", teamSeats: "1" },
+    },
+    STARTER: {
+      name: "Starter",
+      features: ["Bulk Disputes", "Credit DNA Analysis", "AI-Powered Letters"],
+      limits: { clients: "50", disputesPerMonth: "150", storage: "10 GB", teamSeats: "5" },
+    },
+    PROFESSIONAL: {
+      name: "Professional",
+      features: ["Bulk Disputes", "Credit DNA Analysis", "Litigation Scanner", "CFPB Complaints", "White-Label Branding", "Sentry Mode", "AI-Powered Letters"],
+      limits: { clients: "250", disputesPerMonth: "500", storage: "50 GB", teamSeats: "15" },
+    },
+    ENTERPRISE: {
+      name: "Enterprise",
+      features: ["All Professional features", "API Access", "Custom Integrations", "Dedicated Support"],
+      limits: { clients: "Unlimited", disputesPerMonth: "Unlimited", storage: "100 GB", teamSeats: "Unlimited" },
+    },
+  };
+
+  const tierInfo = tierMap[tier] || tierMap.PROFESSIONAL;
+  const template = subscriptionConfirmationEmail(
+    userName,
+    tierInfo.name,
+    tierInfo.features,
+    tierInfo.limits,
+    false,
+    undefined,
+    branding
+  );
+
+  return sendEmail({
+    to,
+    template,
+    tags: [
+      { name: "category", value: "subscription-confirmation" },
+      { name: "tier", value: tier },
+    ],
   });
 }
 

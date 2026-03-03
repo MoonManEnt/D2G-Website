@@ -3,49 +3,82 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronRight, ChevronLeft, Sparkles } from "lucide-react";
+import { useSession } from "next-auth/react";
 
 interface TourStep {
   id: string;
   title: string;
   description: string;
-  targetSelector: string; // CSS selector for the element to highlight
+  targetSelector: string;
   position: "top" | "bottom" | "left" | "right";
+  minTier?: string; // Minimum tier required to show this step
 }
 
-const TOUR_STEPS: TourStep[] = [
+// Tier hierarchy for comparison
+const TIER_LEVEL: Record<string, number> = {
+  FREE: 0,
+  SOLO: 1,
+  STARTER: 2,
+  PROFESSIONAL: 3,
+  ENTERPRISE: 4,
+};
+
+const ALL_TOUR_STEPS: TourStep[] = [
   {
     id: "dashboard",
     title: "Your Command Center",
-    description: "The dashboard shows your action queue, recent responses, approaching deadlines, and key stats at a glance.",
+    description:
+      "This is where it all comes together. Your action queue, approaching deadlines, recent responses, and key metrics — everything you need to run your business at a glance.",
     targetSelector: "[data-tour='dashboard']",
-    position: "bottom",
+    position: "right",
   },
   {
     id: "clients",
     title: "Client Management",
-    description: "Add and manage your clients here. Upload credit reports, track disputes, and monitor progress for each client.",
+    description:
+      "Add clients, upload IdentityIQ credit reports, and watch Dispute2Go automatically parse every account into an actionable dispute workflow. Each client gets a full profile with reports, disputes, and progress tracking.",
     targetSelector: "[data-tour='clients']",
     position: "right",
   },
   {
     id: "disputes",
-    title: "Dispute Center",
-    description: "Create, review, and send dispute letters powered by AMELIA - our AI letter generation engine that creates unique, eOSCAR-resistant letters.",
+    title: "AI Dispute Engine",
+    description:
+      "Create, review, and send dispute letters powered by AMELIA — our AI that generates unique, FCRA-compliant letters tailored to each account. Track every dispute from draft to resolution.",
     targetSelector: "[data-tour='disputes']",
     position: "right",
   },
   {
-    id: "responses",
-    title: "Response Tracking",
-    description: "Track CRA responses, log outcomes (deleted, verified, updated), and let the system recommend next steps automatically.",
-    targetSelector: "[data-tour='responses']",
+    id: "analytics",
+    title: "Analytics & Reporting",
+    description:
+      "Track your success rates by CRA, dispute type, and over time. See which strategies produce the best outcomes and use data to refine your approach.",
+    targetSelector: "[data-tour='analytics']",
     position: "right",
   },
   {
-    id: "analytics",
-    title: "Analytics & Insights",
-    description: "Track your success rates by CRA, flow type, and over time. See which strategies work best for your business.",
-    targetSelector: "[data-tour='analytics']",
+    id: "litigation",
+    title: "Litigation Scanner",
+    description:
+      "Automatically identify potential FCRA, FDCPA, and FCBA violations across your clients' reports. Flag items with litigation potential and generate professional complaint drafts.",
+    targetSelector: "[data-tour='litigation']",
+    position: "right",
+    minTier: "PROFESSIONAL",
+  },
+  {
+    id: "settings",
+    title: "Settings & Branding",
+    description:
+      "Customize your account, manage team members, configure white-label branding for letters, and set up your business preferences.",
+    targetSelector: "[data-tour='settings']",
+    position: "right",
+  },
+  {
+    id: "billing",
+    title: "Billing & Subscription",
+    description:
+      "Manage your subscription, view usage, and upgrade your plan as your business grows. All plans include a 30-day money-back guarantee.",
+    targetSelector: "[data-tour='billing']",
     position: "right",
   },
 ];
@@ -56,10 +89,20 @@ interface GuidedTourProps {
 }
 
 export function GuidedTour({ onComplete, isActive }: GuidedTourProps) {
+  const { data: session } = useSession();
   const [currentStep, setCurrentStep] = useState(0);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
 
-  const step = TOUR_STEPS[currentStep];
+  const userTier = (session?.user as any)?.subscriptionTier || "FREE";
+  const tierLevel = TIER_LEVEL[userTier] ?? 0;
+
+  // Filter steps based on user's tier
+  const steps = ALL_TOUR_STEPS.filter((s) => {
+    if (!s.minTier) return true;
+    return tierLevel >= (TIER_LEVEL[s.minTier] ?? 0);
+  });
+
+  const step = steps[currentStep];
 
   const updateTargetRect = useCallback(() => {
     if (!step) return;
@@ -84,7 +127,7 @@ export function GuidedTour({ onComplete, isActive }: GuidedTourProps) {
   if (!isActive || !step) return null;
 
   const isFirst = currentStep === 0;
-  const isLast = currentStep === TOUR_STEPS.length - 1;
+  const isLast = currentStep === steps.length - 1;
 
   const getTooltipPosition = () => {
     if (!targetRect) return { top: "50%", left: "50%" };
@@ -135,7 +178,7 @@ export function GuidedTour({ onComplete, isActive }: GuidedTourProps) {
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-purple-400" />
               <span className="text-xs text-purple-400 font-medium">
-                Step {currentStep + 1} of {TOUR_STEPS.length}
+                Step {currentStep + 1} of {steps.length}
               </span>
             </div>
             <button
@@ -152,7 +195,7 @@ export function GuidedTour({ onComplete, isActive }: GuidedTourProps) {
 
           {/* Progress dots */}
           <div className="flex items-center gap-1.5 mb-4">
-            {TOUR_STEPS.map((_, i) => (
+            {steps.map((_, i) => (
               <div
                 key={i}
                 className={`h-1.5 rounded-full transition-all ${

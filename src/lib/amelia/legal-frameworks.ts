@@ -330,6 +330,105 @@ const LATE_PAYMENT_R1_R2: LegalFramework = {
 };
 
 // =============================================================================
+// LITIGATION ESCALATION FRAMEWORK
+// =============================================================================
+
+/**
+ * Framework for when disputes have escalated to litigation territory (Round 8+).
+ * This is used by the AI letter generator when litigationMode is enabled and
+ * incorporates knowledge from FCRA litigation best practices:
+ * - 5 failed furnisher procedures × $1,000 = $5,000 statutory per bureau
+ * - Actual damages (credit denials, higher rates, emotional distress)
+ * - Punitive damages for willful noncompliance
+ * - TransUnion v. Ramirez (2021) requires concrete proof of harm
+ */
+const LITIGATION_ESCALATION: LegalFramework = {
+  flow: "ACCURACY" as FlowType,
+  roundRange: [12, 20], // High-round litigation escalation
+  statutes: {
+    primary: "Civil Liability for Willful Noncompliance",
+    primaryCode: "15 USC 1681n",
+    secondary: [
+      "Civil Liability for Negligent Noncompliance",
+      "Furnisher Duties After Notice of Dispute",
+      "Maximum Accuracy Requirement",
+      "Statute of Limitations",
+    ],
+    secondaryCodes: [
+      "15 USC 1681o",
+      "15 USC 1681s-2(b)",
+      "15 USC 1681e(b)",
+      "15 USC 1681p",
+    ],
+  },
+  requiredElements: [
+    "Enumerate all 5 failed furnisher reinvestigation procedures under 1681s-2(b)",
+    "Calculate statutory damages: failed procedures × $1,000 × number of bureaus",
+    "Document proof of harm (credit denials, higher interest rates, emotional distress)",
+    "Assert willful noncompliance given repeated failure to investigate properly",
+    "Reference intent to file in federal court under 28 USC 1331",
+    "Cite specific dollar amount of total damages sought",
+    "Include demand for attorney fees and court costs under 1681n(a)(3)",
+  ],
+  courtCases: [
+    {
+      name: "TransUnion LLC v. Ramirez",
+      citation: "594 U.S. 413",
+      year: 2021,
+      relevance: "Standing requires concrete harm — consumer must show actual injury from inaccurate reporting",
+    },
+    {
+      name: "Safeco Ins. Co. of Am. v. Burr",
+      citation: "551 U.S. 47",
+      year: 2007,
+      relevance: "Willfulness includes reckless disregard of statutory duty, not just knowing violations",
+    },
+    {
+      name: "Cushman v. Trans Union Corp.",
+      citation: "115 F.3d 220 (3d Cir.)",
+      year: 1997,
+      relevance: "CRA cannot simply parrot furnisher response — must conduct independent investigation",
+    },
+    {
+      name: "Johnson v. MBNA America Bank",
+      citation: "357 F.3d 426 (4th Cir.)",
+      year: 2004,
+      relevance: "Furnisher must conduct meaningful investigation, not just verify its own records",
+    },
+    {
+      name: "Gorman v. Wolpoff & Abramson",
+      citation: "584 F.3d 1147 (9th Cir.)",
+      year: 2009,
+      relevance: "Furnisher investigation must be reasonable, not merely superficial",
+    },
+    {
+      name: "Grigoryan v. Experian Info. Solutions",
+      citation: "84 F. Supp. 3d 1131 (C.D. Cal.)",
+      year: 2014,
+      relevance: "Statutory damages of $100-$1,000 per violation for willful noncompliance",
+    },
+  ],
+  violationTypes: [
+    "Willful failure to conduct reasonable reinvestigation",
+    "Negligent failure to ensure maximum possible accuracy",
+    "Continued reporting of disputed information after verification failure",
+    "Failure to provide account-level documentation",
+    "Failure to correct inaccurate information across all bureaus",
+  ],
+  damagesCitation: "15 USC 1681n(a): statutory $100-$1,000 per willful violation + punitive damages + attorney fees + costs; 15 USC 1681o: actual damages + attorney fees for negligent violations",
+  toneGuidance: "Final pre-litigation demand. Professional but unyielding. This letter establishes the paper trail for court. Make clear that filing is imminent and the consumer will seek maximum damages.",
+  keyArguments: [
+    "Multiple rounds of disputes demonstrate willful pattern of noncompliance",
+    "E-Oscar 'verified' responses with no human review constitute negligent investigation",
+    "Each of 5 furnisher procedures failed = separate violation under 1681s-2(b)",
+    "Consumer has documented proof of harm (denial letters, credit score impact, etc.)",
+    "Federal court filing is imminent if resolution not reached within deadline",
+    "Settlement now avoids the additional exposure of punitive damages and attorney fees",
+  ],
+  deadline: "15 days to resolve all disputed items or face federal court action",
+};
+
+// =============================================================================
 // FRAMEWORK LOOKUP
 // =============================================================================
 
@@ -341,6 +440,7 @@ const ALL_FRAMEWORKS: LegalFramework[] = [
   COLLECTION_R8_R12,
   CONSENT_R1_R3,
   LATE_PAYMENT_R1_R2,
+  LITIGATION_ESCALATION,
 ];
 
 /**

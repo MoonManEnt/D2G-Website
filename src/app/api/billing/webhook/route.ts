@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import prisma from "@/lib/prisma";
-import { constructWebhookEvent, mapSubscriptionStatus } from "@/lib/stripe";
-import { sendEmail } from "@/lib/email";
+import { stripe, constructWebhookEvent, mapSubscriptionStatus } from "@/lib/stripe";
+import { sendEmail, sendSubscriptionConfirmationEmail } from "@/lib/email";
 import { paymentFailedTemplate } from "@/lib/email-templates";
 import Stripe from "stripe";
 import { createLogger } from "@/lib/logger";
@@ -101,13 +101,29 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     }
   }
 
+  // Retrieve actual subscription status (may be "trialing" for trial checkouts)
+  let actualStatus = "ACTIVE";
+  let trialEndsAt: Date | null = null;
+  if (stripe) {
+    try {
+      const subscriptionObj = await stripe.subscriptions.retrieve(subscriptionId);
+      actualStatus = mapSubscriptionStatus(subscriptionObj.status);
+      trialEndsAt = subscriptionObj.trial_end
+        ? new Date(subscriptionObj.trial_end * 1000)
+        : null;
+    } catch (err) {
+      log.warn({ err }, "Could not retrieve subscription status, defaulting to ACTIVE");
+    }
+  }
+
   // Update organization with subscription
   await prisma.organization.update({
     where: { id: organizationId },
     data: {
       stripeSubscriptionId: subscriptionId,
       subscriptionTier: tier,
-      subscriptionStatus: "ACTIVE",
+      subscriptionStatus: actualStatus,
+      ...(trialEndsAt && { trialEndsAt }),
       isFoundingMember,
       foundingMemberNumber,
       foundingMemberLockedPrice: isFoundingMember ? 149.0 : null,
@@ -129,6 +145,26 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       organizationId,
     },
   });
+
+  // Send subscription confirmation email to the org owner
+  try {
+    const owner = await prisma.user.findFirst({
+      where: { organizationId, role: "OWNER" },
+      select: { email: true, name: true },
+    });
+
+    if (owner?.email) {
+      await sendSubscriptionConfirmationEmail(
+        owner.email,
+        owner.name || "there",
+        tier,
+        organizationId
+      );
+      log.info({ tier, email: owner.email }, "Subscription confirmation email sent");
+    }
+  } catch (emailError) {
+    log.error({ err: emailError }, "Failed to send subscription confirmation email");
+  }
 }
 
 async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
