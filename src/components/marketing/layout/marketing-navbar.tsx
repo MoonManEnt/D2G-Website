@@ -38,7 +38,7 @@ export function MarketingNavbar() {
       >
         <nav className="max-w-[1200px] mx-auto px-6 lg:px-8 h-16 flex items-center justify-between">
           {/* Logo */}
-          <Link href="/home" className="flex items-center gap-2 shrink-0">
+          <Link href="/" className="flex items-center gap-2 shrink-0">
             <Image
               src="/logos/d2g-logo.svg"
               alt="Dispute2Go"
