@@ -9,7 +9,7 @@ export function MarketingFooter() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8 lg:gap-12">
           {/* Brand column */}
           <div className="col-span-2 md:col-span-1">
-            <Link href="/" className="flex items-center gap-2 mb-4">
+            <Link href="/home" className="flex items-center gap-2 mb-4">
               <Image
                 src="/logos/d2g-logo.svg"
                 alt="Dispute2Go"
