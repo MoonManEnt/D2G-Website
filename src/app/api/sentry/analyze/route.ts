@@ -63,11 +63,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Client not found" }, { status: 404 });
     }
 
-    // Fetch disputable accounts
+    // Fetch only truly negative/derogatory accounts
+    // Sentry should focus on items that are actually harmful and worth disputing,
+    // not every single account on the report.
+    const negativeStatuses = ["COLLECTION", "CHARGED_OFF", "DEROGATORY", "DELINQUENT"];
+
     const accountWhere: Record<string, unknown> = {
       clientId,
-      isDisputable: true,
       isLockedInDispute: false,
+      // Must have isDisputable flag AND at least one negative indicator
+      AND: [
+        { isDisputable: true },
+        {
+          OR: [
+            // Derogatory account statuses
+            { accountStatus: { in: negativeStatuses } },
+            // Has past-due amount
+            { pastDue: { gt: 0 } },
+            // Late/delinquent payment status
+            { paymentStatus: { contains: "Late" } },
+            { paymentStatus: { contains: "Delinquent" } },
+            { paymentStatus: { contains: "Chargeoff" } },
+            { paymentStatus: { contains: "Collection" } },
+            { paymentStatus: { contains: "late" } },
+            { paymentStatus: { contains: "delinquent" } },
+            // Has HIGH severity detected issues
+            { detectedIssues: { contains: "\"severity\":\"HIGH\"" } },
+          ],
+        },
+      ],
     };
     if (accountIds?.length) {
       accountWhere.id = { in: accountIds };
@@ -75,13 +99,15 @@ export async function POST(request: NextRequest) {
 
     const accounts = await prisma.accountItem.findMany({
       where: accountWhere,
-      orderBy: { cra: "asc" },
+      // Chronological order — walk through the report as it appears
+      orderBy: [{ dateReported: "desc" }, { dateOpened: "desc" }, { cra: "asc" }],
     });
 
     if (accounts.length === 0) {
       return NextResponse.json({
-        error: "No disputable accounts found",
-        plan: null,
+        groups: [],
+        readiness: "NOT_READY" as const,
+        summary: "No negative or derogatory items found to dispute. All accounts appear to be in good standing.",
       }, { status: 200 });
     }
 
@@ -260,7 +286,7 @@ export async function POST(request: NextRequest) {
     else overallReadiness = "NOT_READY";
 
     // Build summary text for the UI
-    const summaryText = `Analyzed ${accounts.length} account${accounts.length !== 1 ? "s" : ""} across ${bureauGroups.length} bureau${bureauGroups.length !== 1 ? "s" : ""}. Average success probability: ${Math.round(avgGroupSuccess)}%. ${allRecommendations.length > 0 ? allRecommendations[0] : ""}`;
+    const summaryText = `Found ${accounts.length} negative item${accounts.length !== 1 ? "s" : ""} across ${bureauGroups.length} bureau${bureauGroups.length !== 1 ? "s" : ""}. Average success probability: ${Math.round(avgGroupSuccess)}%. ${allRecommendations.length > 0 ? allRecommendations[0] : ""}`;
 
     // Log activity
     await prisma.sentryActivityLog.create({
@@ -268,7 +294,7 @@ export async function POST(request: NextRequest) {
         organizationId: session.user.organizationId,
         clientId,
         activityType: "ANALYSIS_COMPLETE",
-        summary: `Sentry analyzed ${accounts.length} accounts across ${bureauGroups.length} bureaus. Readiness: ${overallReadiness}`,
+        summary: `Sentry identified ${accounts.length} negative items across ${bureauGroups.length} bureaus. Readiness: ${overallReadiness}`,
         details: JSON.stringify({ totalAccounts: accounts.length, bureauGroups: bureauGroups.length, overallReadiness }),
         triggeredBy: session.user.id,
       },
