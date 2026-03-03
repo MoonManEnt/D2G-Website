@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { STATS, TESTIMONIALS } from "@/lib/marketing-data";
 
@@ -89,10 +90,14 @@ export default function MarketingHomePage() {
                 Learn more <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
-            <div className="rounded-xl border border-slate-200 shadow-lg bg-slate-50 aspect-[4/3] flex items-center justify-center">
-              <span className="text-sm text-slate-400">
-                AMELIA AI screenshot
-              </span>
+            <div className="rounded-xl border border-slate-200 shadow-lg bg-slate-50 overflow-hidden">
+              <Image
+                src="/logos/amelia-engine.svg"
+                alt="AMELIA AI Engine"
+                width={600}
+                height={450}
+                className="w-full h-full object-cover"
+              />
             </div>
           </div>
 
