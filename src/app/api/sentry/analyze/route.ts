@@ -19,11 +19,7 @@ import {
   buildFurnisherProfile,
 } from "@/lib/sentry";
 import { parseDetectedIssues } from "@/lib/dispute-creation/letter-strategies";
-import type {
-  SentryDisputePlan,
-  SentryAccountAnalysis,
-  DisputeFlow,
-} from "@/lib/sentry/types";
+import type { DisputeFlow } from "@/lib/sentry/types";
 import type { DisputeAccountData } from "@/lib/dispute-creation/types";
 import { createLogger } from "@/lib/logger";
 
@@ -101,7 +97,22 @@ export async function POST(request: NextRequest) {
     const allRecommendations: string[] = [];
 
     for (const [cra, craAccounts] of Object.entries(byBureau)) {
-      const accountAnalyses: SentryAccountAnalysis[] = [];
+      // UI-shaped account analysis records
+      const accountAnalyses: Array<{
+        id: string;
+        creditorName: string;
+        accountNumber: string;
+        cra: string;
+        flow: string;
+        round: number;
+        recommendedCodes: string[];
+        metro2Fields: string[];
+        successProbability: number;
+        ocrSafetyScore: number;
+        ocrSafetyLabel: string;
+        issues: Array<{ code: string; description: string; severity: string }>;
+        explanation: string;
+      }> = [];
 
       for (const acct of craAccounts) {
         const accountData: DisputeAccountData = {
@@ -179,15 +190,32 @@ export async function POST(request: NextRequest) {
           furnisherProfile: furnisher || undefined,
         });
 
+        // Transform for UI consumption
+        const successProbPercent = Math.round(successProb.probability * 100);
+        const topCodeStrings = eoscarRecs.slice(0, 5).map((r) => r.code);
+        const metro2FieldNames = metro2Targets.map((t) => t.field?.name || "Unknown");
+
+        // Map issues for UI (DetectedIssue already has code, description, severity)
+        const parsedIssues = issues.map((issue) => ({
+          code: issue.code || "UNKNOWN",
+          description: issue.description || "Issue detected",
+          severity: issue.severity || "MEDIUM",
+        }));
+
         accountAnalyses.push({
-          accountId: acct.id,
+          id: acct.id,
           creditorName: acct.creditorName,
-          maskedAccountId: acct.maskedAccountId,
+          accountNumber: acct.maskedAccountId || "N/A",
           cra: acct.cra,
-          recommendedFlow,
-          eoscarRecommendations: eoscarRecs,
-          metro2Targets,
-          successProbability: successProb,
+          flow: recommendedFlow,
+          round: (acct.currentRound || 0) + 1,
+          recommendedCodes: topCodeStrings,
+          metro2Fields: metro2FieldNames,
+          successProbability: successProbPercent,
+          ocrSafetyScore: 80, // Default until letter is generated
+          ocrSafetyLabel: "Safe",
+          issues: parsedIssues,
+          explanation: `${acct.creditorName}: ${eoscarRecs.length} e-OSCAR codes recommended, ${metro2Targets.length} Metro 2 field targets identified. Success probability: ${successProbPercent}%.`,
         });
 
         // Collect recommendations
@@ -200,15 +228,15 @@ export async function POST(request: NextRequest) {
       const maxRound = Math.max(...craAccounts.map((a) => a.currentRound || 0));
       const nextRound = maxRound + 1;
 
-      // Aggregate success probability
+      // Aggregate success probability (accounts now have flat number 0-100)
       const avgSuccess =
-        accountAnalyses.reduce((sum, a) => sum + a.successProbability.probability, 0) /
+        accountAnalyses.reduce((sum, a) => sum + a.successProbability, 0) /
         accountAnalyses.length;
 
       // Determine flow for bureau group (majority vote)
       const flowCounts: Record<string, number> = {};
       for (const a of accountAnalyses) {
-        flowCounts[a.recommendedFlow] = (flowCounts[a.recommendedFlow] || 0) + 1;
+        flowCounts[a.flow] = (flowCounts[a.flow] || 0) + 1;
       }
       const groupFlow = Object.entries(flowCounts).sort((a, b) => b[1] - a[1])[0][0] as DisputeFlow;
 
@@ -221,24 +249,18 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Determine overall readiness
+    // Determine overall readiness (avgSuccess is now 0-100)
     const avgGroupSuccess =
       bureauGroups.reduce((sum, g) => sum + g.aggregateSuccessProbability, 0) /
       bureauGroups.length;
 
     let overallReadiness: "READY" | "NEEDS_REVIEW" | "NOT_READY";
-    if (avgGroupSuccess >= 0.3) overallReadiness = "READY";
-    else if (avgGroupSuccess >= 0.15) overallReadiness = "NEEDS_REVIEW";
+    if (avgGroupSuccess >= 30) overallReadiness = "READY";
+    else if (avgGroupSuccess >= 15) overallReadiness = "NEEDS_REVIEW";
     else overallReadiness = "NOT_READY";
 
-    const plan: SentryDisputePlan = {
-      clientId,
-      analyzedAt: new Date().toISOString(),
-      bureauGroups,
-      overallReadiness,
-      totalAccounts: accounts.length,
-      recommendations: allRecommendations,
-    };
+    // Build summary text for the UI
+    const summaryText = `Analyzed ${accounts.length} account${accounts.length !== 1 ? "s" : ""} across ${bureauGroups.length} bureau${bureauGroups.length !== 1 ? "s" : ""}. Average success probability: ${Math.round(avgGroupSuccess)}%. ${allRecommendations.length > 0 ? allRecommendations[0] : ""}`;
 
     // Log activity
     await prisma.sentryActivityLog.create({
@@ -252,7 +274,12 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ success: true, plan });
+    // Return in the shape the UI expects: { groups, readiness, summary }
+    return NextResponse.json({
+      groups: bureauGroups,
+      readiness: overallReadiness,
+      summary: summaryText,
+    });
   } catch (error) {
     log.error({ err: error }, "Sentry analyze failed");
     return NextResponse.json(
