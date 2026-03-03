@@ -45,6 +45,15 @@ import {
   AIStrategyMetadata,
   AccountForLetter,
 } from "./types";
+import {
+  buildSentryContext,
+  validateLetterCitations,
+  autoFixCitations,
+  analyzeOCRRisk,
+  applyOCRFixes,
+  recommendEOSCARCodes,
+  detectTargetableFields,
+} from "@/lib/sentry";
 
 /**
  * Letter generation result
@@ -604,7 +613,7 @@ export async function generateHumanFirstLetterContent(
  * Generate letter using the specified strategy
  */
 export async function generateLetter(
-  type: "simple" | "ai" | "amelia" | "human_first",
+  type: "simple" | "ai" | "amelia" | "human_first" | "sentry",
   client: DisputeClientData,
   accounts: DisputeAccountData[],
   cra: CRA,
@@ -657,7 +666,118 @@ export async function generateLetter(
         options?.lastDisputeDate
       );
 
+    case "sentry":
+      return generateSentryLetter(
+        client,
+        accounts,
+        cra,
+        flow,
+        round,
+        organizationId,
+        disputeId,
+        options?.lastDisputeDate
+      );
+
     default:
       throw new Error(`Unknown letter generation type: ${type}`);
   }
+}
+
+// =============================================================================
+// SENTRY MODE GENERATION
+// =============================================================================
+
+/**
+ * Generate letter using AMELIA doctrine enhanced with Sentry intelligence.
+ *
+ * Pre-hook: Run e-OSCAR recommendations + Metro 2 field targeting
+ * Generation: Use AMELIA doctrine with Sentry context injected
+ * Post-hook: Validate citations + OCR risk analysis + auto-fix
+ */
+async function generateSentryLetter(
+  client: DisputeClientData,
+  accounts: DisputeAccountData[],
+  cra: CRA,
+  flow: DisputeFlow,
+  round: number,
+  organizationId: string,
+  disputeId: string,
+  lastDisputeDate?: string
+): Promise<GeneratedLetterResult> {
+  // PRE-HOOK: Build Sentry intelligence context
+  const sentryContext = buildSentryContext(accounts, organizationId);
+
+  // GENERATION: Use AMELIA doctrine as the base generator
+  const baseResult = await generateAmeliaDoctrineLetterContent(
+    client,
+    accounts,
+    cra,
+    flow,
+    round,
+    disputeId
+  );
+
+  let enhancedContent = baseResult.content;
+
+  // Inject Metro 2 dispute language into the letter body if targets were found
+  if (sentryContext.metro2DisputeLanguage.length > 0) {
+    const metro2Section = sentryContext.metro2DisputeLanguage
+      .map((lang) => `\n${lang}`)
+      .join("\n");
+
+    // Insert Metro 2 language before the closing section
+    const closingMarkers = [
+      "Sincerely,",
+      "Thank you for your",
+      "I look forward to",
+      "Please investigate",
+      "I expect a response",
+    ];
+
+    let insertPoint = enhancedContent.length;
+    for (const marker of closingMarkers) {
+      const idx = enhancedContent.lastIndexOf(marker);
+      if (idx > 0 && idx < insertPoint) {
+        insertPoint = idx;
+      }
+    }
+
+    enhancedContent =
+      enhancedContent.slice(0, insertPoint) +
+      "\n\nAdditionally, the following specific data field discrepancies require correction:\n" +
+      metro2Section +
+      "\n\n" +
+      enhancedContent.slice(insertPoint);
+  }
+
+  // POST-HOOK: Validate and fix citations
+  const citationResult = validateLetterCitations(
+    enhancedContent,
+    flow === "COLLECTION" ? "COLLECTOR" : "CRA"
+  );
+  if (citationResult.errors.length > 0) {
+    enhancedContent = autoFixCitations(enhancedContent, citationResult);
+  }
+
+  // POST-HOOK: OCR risk analysis and auto-fix
+  const ocrResult = analyzeOCRRisk(enhancedContent);
+  if (ocrResult.riskLevel !== "LOW" && ocrResult.autoFixes.length > 0) {
+    enhancedContent = applyOCRFixes(enhancedContent, ocrResult.autoFixes);
+  }
+
+  return {
+    content: enhancedContent,
+    statutesCited: baseResult.statutesCited,
+    aiMetadata: {
+      ...baseResult.aiMetadata,
+      type: "sentry",
+      sentryModeActive: true,
+      eoscarCodesUsed: sentryContext.eoscarCodes,
+      metro2FieldsTargeted: sentryContext.metro2Targets.map((t) => t.field.code),
+      ocrRiskScore: ocrResult.score,
+      citationsValidated: true,
+    },
+    title: `${cra} Sentry Mode Dispute Letter - Round ${round}`,
+    aiGenerated: true,
+  };
 }

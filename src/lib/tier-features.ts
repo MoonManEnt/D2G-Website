@@ -19,7 +19,8 @@ export type Feature =
   | "cfpbComplaints"
   | "whiteLabelBranding"
   | "apiAccess"
-  | "customIntegrations";
+  | "customIntegrations"
+  | "sentryMode";
 
 /**
  * Tier hierarchy for comparison
@@ -45,6 +46,9 @@ export const FEATURE_REQUIRED_TIER: Record<Feature, SubscriptionTier> = {
   cfpbComplaints: SubscriptionTier.PROFESSIONAL,
   whiteLabelBranding: SubscriptionTier.PROFESSIONAL,
 
+  // PROFESSIONAL+ features (continued)
+  sentryMode: SubscriptionTier.PROFESSIONAL,
+
   // ENTERPRISE only features
   apiAccess: SubscriptionTier.ENTERPRISE,
   customIntegrations: SubscriptionTier.ENTERPRISE,
@@ -62,6 +66,7 @@ export const TIER_FEATURES: Record<SubscriptionTier, Feature[]> = {
     "litigationScanner",
     "cfpbComplaints",
     "whiteLabelBranding",
+    "sentryMode",
   ],
   [SubscriptionTier.ENTERPRISE]: [
     "bulkDisputes",
@@ -69,6 +74,7 @@ export const TIER_FEATURES: Record<SubscriptionTier, Feature[]> = {
     "litigationScanner",
     "cfpbComplaints",
     "whiteLabelBranding",
+    "sentryMode",
     "apiAccess",
     "customIntegrations",
   ],
@@ -85,6 +91,7 @@ export const FEATURE_DISPLAY_NAMES: Record<Feature, string> = {
   whiteLabelBranding: "White-Label Branding",
   apiAccess: "API Access",
   customIntegrations: "Custom Integrations",
+  sentryMode: "Sentry Mode",
 };
 
 /**
@@ -98,6 +105,7 @@ export const FEATURE_DESCRIPTIONS: Record<Feature, string> = {
   whiteLabelBranding: "Customize letters and documents with your branding",
   apiAccess: "Integrate Dispute2Go with your existing systems",
   customIntegrations: "Build custom workflows and connections",
+  sentryMode: "AI-powered autonomous dispute workflow with intelligence and outcome tracking",
 };
 
 // ============================================================================

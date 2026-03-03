@@ -16,6 +16,7 @@ import {
   type StallTactic,
 } from "@/lib/dispute-intelligence";
 import { disputeResponseBodySchema } from "@/lib/api-validation-schemas";
+import { handleAutoEscalation } from "@/lib/sentry/auto-escalation";
 import { createLogger } from "@/lib/logger";
 const log = createLogger("dispute-responses-api");
 
@@ -381,6 +382,25 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         },
       });
 
+      // Sentry Mode: Auto-escalate verified items
+      let sentryEscalation = null;
+      const verifiedItemIds = allItems
+        .filter(item => item.outcome === "VERIFIED")
+        .map(item => item.id);
+
+      if (verifiedItemIds.length > 0) {
+        try {
+          sentryEscalation = await handleAutoEscalation({
+            disputeId,
+            clientId: dispute.clientId,
+            organizationId: session.user.organizationId,
+            verifiedItemIds,
+          });
+        } catch (escError) {
+          log.error({ err: escError }, "Sentry auto-escalation failed (non-blocking)");
+        }
+      }
+
       return NextResponse.json({
         success: true,
         response: {
@@ -399,6 +419,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           suggestedTone: nextRoundContext.suggestedTone,
           escalationReasons: nextRoundContext.escalationReasons,
         },
+        sentryEscalation,
       });
     }
 

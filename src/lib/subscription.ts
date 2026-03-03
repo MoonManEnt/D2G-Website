@@ -89,6 +89,7 @@ export const FEATURE_GATE_MESSAGES: Record<keyof FeatureFlags, string> = {
   canUseBulkDisputes: "Upgrade to Starter to send bulk disputes",
   canUseCFPB: "Upgrade to Professional to file CFPB complaints",
   canUseAILetters: "Upgrade to Starter to use AI-generated letters",
+  canUseSentryMode: "Upgrade to Professional to use Sentry Mode intelligence",
   maxClients: "You've reached the maximum number of clients for your plan",
   maxReportsPerMonth: "You've reached the maximum number of reports for this month",
   maxDisputesPerMonth: "You've reached the maximum number of disputes for this month",

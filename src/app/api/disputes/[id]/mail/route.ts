@@ -18,7 +18,7 @@ import {
   CRAName,
 } from "@/lib/pdf-generate";
 import { sendMail, MailProvider } from "@/lib/mail-provider";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 import { createLogger } from "@/lib/logger";
 const log = createLogger("dispute-mail-api");
 
@@ -198,13 +198,73 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }
 
       // Update dispute with mailing info
+      const sentNow = new Date();
       await prisma.dispute.update({
         where: { id: disputeId },
         data: {
           status: "SENT",
           mailedLetterId: docuPostResult.letterId,
-          mailedAt: new Date(),
-          sentDate: new Date(),
+          mailedAt: sentNow,
+          sentDate: sentNow,
+        },
+      });
+
+      // Lock disputed account items
+      for (const item of dispute.items) {
+        await prisma.accountItem.update({
+          where: { id: item.accountItemId },
+          data: { isLockedInDispute: true, lockedByDisputeId: disputeId, lockedAt: sentNow },
+        });
+      }
+
+      // Create FCRA 30-day deadline reminder
+      const fcraDeadline = addDays(sentNow, 30);
+      try {
+        await prisma.reminder.create({
+          data: {
+            clientId: dispute.clientId,
+            disputeId,
+            reminderType: "FCRA_DEADLINE",
+            title: `FCRA Deadline: ${cra} dispute`,
+            description: `30-day FCRA response deadline for ${cra} R${dispute.round} dispute (${dispute.items.length} items)`,
+            scheduledFor: fcraDeadline,
+          },
+        });
+      } catch (reminderErr) {
+        log.error({ err: reminderErr }, "Failed to create FCRA deadline reminder (non-blocking)");
+      }
+
+      // Sentry Mode: Log activity and send client notification
+      try {
+        await prisma.sentryActivityLog.create({
+          data: {
+            organizationId: session.user.organizationId,
+            clientId: dispute.clientId,
+            activityType: "LETTER_MAILED",
+            summary: `${cra} R${dispute.round} dispute letter mailed via DocuPost (${dispute.items.length} items)`,
+            triggeredBy: session.user.id,
+          },
+        });
+      } catch (logErr) {
+        log.error({ err: logErr }, "Failed to log Sentry activity (non-blocking)");
+      }
+
+      // Log event
+      await prisma.eventLog.create({
+        data: {
+          eventType: "DISPUTE_MAILED",
+          actorId: session.user.id,
+          actorEmail: session.user.email || undefined,
+          targetType: "DISPUTE",
+          targetId: disputeId,
+          eventData: JSON.stringify({
+            provider: "DOCUPOST",
+            letterId: docuPostResult.letterId,
+            cra,
+            round: dispute.round,
+            itemCount: dispute.items.length,
+          }),
+          organizationId: session.user.organizationId,
         },
       });
 
@@ -213,6 +273,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         letterId: docuPostResult.letterId,
         provider: "DOCUPOST",
         mailProvider: "DOCUPOST",
+        fcraDeadline: fcraDeadline.toISOString(),
       });
     }
 
@@ -310,13 +371,73 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Update dispute with mailing info
+    const lobSentDate = new Date();
     await prisma.dispute.update({
       where: { id: disputeId },
       data: {
         status: "SENT",
         mailedLetterId: result.letterId,
-        mailedAt: new Date(),
-        sentDate: new Date(),
+        mailedAt: lobSentDate,
+        sentDate: lobSentDate,
+      },
+    });
+
+    // Lock disputed account items
+    for (const item of dispute.items) {
+      await prisma.accountItem.update({
+        where: { id: item.accountItemId },
+        data: { isLockedInDispute: true, lockedByDisputeId: disputeId, lockedAt: lobSentDate },
+      });
+    }
+
+    // Create FCRA 30-day deadline reminder
+    const lobFcraDeadline = addDays(lobSentDate, 30);
+    try {
+      await prisma.reminder.create({
+        data: {
+          clientId: dispute.clientId,
+          disputeId,
+          reminderType: "FCRA_DEADLINE",
+          title: `FCRA Deadline: ${cra} dispute`,
+          description: `30-day FCRA response deadline for ${cra} R${dispute.round} dispute (${dispute.items.length} items)`,
+          scheduledFor: lobFcraDeadline,
+        },
+      });
+    } catch (reminderErr) {
+      log.error({ err: reminderErr }, "Failed to create FCRA deadline reminder (non-blocking)");
+    }
+
+    // Sentry Mode: Log activity
+    try {
+      await prisma.sentryActivityLog.create({
+        data: {
+          organizationId: session.user.organizationId,
+          clientId: dispute.clientId,
+          activityType: "LETTER_MAILED",
+          summary: `${cra} R${dispute.round} dispute letter mailed via Lob (${dispute.items.length} items)`,
+          triggeredBy: session.user.id,
+        },
+      });
+    } catch (logErr) {
+      log.error({ err: logErr }, "Failed to log Sentry activity (non-blocking)");
+    }
+
+    // Log event
+    await prisma.eventLog.create({
+      data: {
+        eventType: "DISPUTE_MAILED",
+        actorId: session.user.id,
+        actorEmail: session.user.email || undefined,
+        targetType: "DISPUTE",
+        targetId: disputeId,
+        eventData: JSON.stringify({
+          provider: "LOB",
+          letterId: result.letterId,
+          cra,
+          round: dispute.round,
+          itemCount: dispute.items.length,
+        }),
+        organizationId: session.user.organizationId,
       },
     });
 

@@ -13,7 +13,9 @@ export type JobType =
   | "send-sms"
   | "check-dispute-deadlines"
   | "sync-credit-scores"
-  | "cleanup-old-files";
+  | "cleanup-old-files"
+  | "sentry-heartbeat"
+  | "sentry-auto-escalate";
 
 export interface JobData {
   "parse-credit-report": {
@@ -48,6 +50,18 @@ export interface JobData {
   };
   "cleanup-old-files": {
     olderThanDays: number;
+  };
+  "sentry-heartbeat": {
+    clientId: string;
+    reportId: string;
+    organizationId: string;
+    userId: string;
+  };
+  "sentry-auto-escalate": {
+    disputeId: string;
+    clientId: string;
+    organizationId: string;
+    verifiedItemIds: string[];
   };
 }
 
@@ -113,6 +127,8 @@ export async function initializeQueues(): Promise<void> {
       "check-dispute-deadlines",
       "sync-credit-scores",
       "cleanup-old-files",
+      "sentry-heartbeat",
+      "sentry-auto-escalate",
     ];
 
     for (const type of jobTypes) {
@@ -221,6 +237,14 @@ async function processJob<T extends JobType>(
       await handleCleanupFiles(data as JobData["cleanup-old-files"]);
       break;
 
+    case "sentry-heartbeat":
+      await handleSentryHeartbeat(data as JobData["sentry-heartbeat"]);
+      break;
+
+    case "sentry-auto-escalate":
+      await handleSentryAutoEscalate(data as JobData["sentry-auto-escalate"]);
+      break;
+
     default:
       log.warn({ type }, "Unknown job type");
   }
@@ -304,12 +328,27 @@ async function handleParseCreditReport(data: JobData["parse-credit-report"]) {
     if (parseResult.success) {
       const report = await prisma.creditReport.findUnique({
         where: { id: data.reportId },
-        include: { client: { select: { phone: true } } },
+        include: { client: { select: { phone: true, sentryModeEnabled: true } } },
       });
 
       if (report?.client?.phone) {
         const { sendReportUploadedSMS } = await import("./sms");
         await sendReportUploadedSMS(report.client.phone, parseResult.accountsParsed);
+      }
+
+      // Sentry Mode: Trigger heartbeat if enabled
+      if (report?.client?.sentryModeEnabled) {
+        try {
+          const { triggerSentryHeartbeat } = await import("./sentry/heartbeat");
+          await triggerSentryHeartbeat({
+            clientId: data.clientId,
+            reportId: data.reportId,
+            organizationId: data.organizationId,
+            userId: data.actorId,
+          });
+        } catch (sentryErr) {
+          log.error({ err: sentryErr }, "[QUEUE] Sentry heartbeat failed (non-blocking)");
+        }
       }
     }
   } catch (error) {
@@ -647,6 +686,38 @@ async function handleCleanupFiles(data: JobData["cleanup-old-files"]) {
   }
 
   log.info({ length: oldFiles.length }, "Cleaned up old files");
+}
+
+async function handleSentryHeartbeat(data: JobData["sentry-heartbeat"]) {
+  try {
+    const { triggerSentryHeartbeat } = await import("./sentry/heartbeat");
+    await triggerSentryHeartbeat({
+      clientId: data.clientId,
+      reportId: data.reportId,
+      organizationId: data.organizationId,
+      userId: data.userId,
+    });
+    log.info({ clientId: data.clientId, reportId: data.reportId }, "[QUEUE] Sentry heartbeat completed");
+  } catch (error) {
+    log.error({ err: error, clientId: data.clientId }, "[QUEUE] Sentry heartbeat failed");
+    throw error;
+  }
+}
+
+async function handleSentryAutoEscalate(data: JobData["sentry-auto-escalate"]) {
+  try {
+    const { handleAutoEscalation } = await import("./sentry/auto-escalation");
+    await handleAutoEscalation({
+      disputeId: data.disputeId,
+      clientId: data.clientId,
+      organizationId: data.organizationId,
+      verifiedItemIds: data.verifiedItemIds,
+    });
+    log.info({ disputeId: data.disputeId, verifiedItems: data.verifiedItemIds.length }, "[QUEUE] Sentry auto-escalation completed");
+  } catch (error) {
+    log.error({ err: error, disputeId: data.disputeId }, "[QUEUE] Sentry auto-escalation failed");
+    throw error;
+  }
 }
 
 // ============================================

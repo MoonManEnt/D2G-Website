@@ -598,6 +598,41 @@ async function createHumanFirstDispute(
 }
 
 // =============================================================================
+// SENTRY DISPUTE CREATION
+// =============================================================================
+
+async function createSentryDispute(
+  request: UnifiedDisputeRequest & { type: "sentry" },
+  context: CreateDisputeContext
+): Promise<UnifiedDisputeResponse> {
+  const { accounts } = context;
+  const cra = request.cra!;
+
+  // Determine flow from accounts if not specified
+  const flow: DisputeFlow =
+    request.flow || determineFlowFromAccounts(accounts);
+
+  // Get next round
+  const round = await getNextRound(context.client.id, cra);
+
+  // Create the dispute
+  const disputeInfo = await createSingleDispute(
+    "sentry",
+    context,
+    cra,
+    flow,
+    round,
+    accounts
+  );
+
+  return {
+    success: true,
+    type: "sentry",
+    disputes: [disputeInfo],
+  };
+}
+
+// =============================================================================
 // MAIN EXPORT
 // =============================================================================
 
@@ -626,6 +661,9 @@ export async function createUnifiedDispute(
 
     case "human_first":
       return createHumanFirstDispute(request as UnifiedDisputeRequest & { type: "human_first" }, context);
+
+    case "sentry":
+      return createSentryDispute(request as UnifiedDisputeRequest & { type: "sentry" }, context);
 
     default:
       throw new Error(`Unknown dispute creation type: ${(request as { type: string }).type}`);

@@ -22,6 +22,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { usePortal } from "../portal-context";
+import { SentryProgress } from "@/components/portal/sentry-progress";
 import { createLogger } from "@/lib/logger";
 const log = createLogger("portal-dashboard-page");
 
@@ -462,6 +463,9 @@ export default function PortalDashboardPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Sentry Progress - Client Goal Tracking */}
+        {user?.id && <SentryProgress clientId={user.id} />}
 
         {/* Footer */}
         <div className="mt-12 text-center">

@@ -25,6 +25,11 @@ import { BulkOperationsPanel } from "./bulk-operations-panel";
 import { StrategyComparisonInline } from "./strategy-comparison";
 import type { AmeliaInsight } from "./amelia-insights-panel";
 
+// Sentry Mode components
+import { SentryModeToggle } from "./sentry-mode-toggle";
+import { SentryAnalysisPanel } from "./sentry-analysis-panel";
+import { SentryActivityFeed } from "./sentry-activity-feed";
+
 // Types
 import {
   type ParsedAccountWithIssues,
@@ -231,6 +236,11 @@ export function DisputesSplit({ initialClient }: DisputesSplitProps) {
   const [launching, setLaunching] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
+  // Sentry Mode state
+  const [sentryModeEnabled, setSentryModeEnabled] = useState(false);
+  const [showSentryAnalysis, setShowSentryAnalysis] = useState(false);
+  const [showSentryFeed, setShowSentryFeed] = useState(false);
+
   // Fetch clients on mount
   useEffect(() => {
     fetch("/api/clients")
@@ -379,7 +389,11 @@ export function DisputesSplit({ initialClient }: DisputesSplitProps) {
     fetch(`/api/clients/${selectedClientId}`)
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
-        if (data?.client) setClient(data.client);
+        if (data?.client) {
+          setClient(data.client);
+          setSentryModeEnabled(data.client.sentryModeEnabled || false);
+          setShowSentryAnalysis(false);
+        }
       });
   }, [selectedClientId]);
 
@@ -676,7 +690,7 @@ export function DisputesSplit({ initialClient }: DisputesSplitProps) {
             <p className="text-muted-foreground mt-1">Create and manage credit report dispute letters</p>
           </div>
 
-          {/* Client Selector Badge */}
+          {/* Client Selector Badge + Sentry Toggle */}
           <div className="flex items-center gap-3">
             <select
               value={selectedClientId}
@@ -690,6 +704,18 @@ export function DisputesSplit({ initialClient }: DisputesSplitProps) {
                 </option>
               ))}
             </select>
+
+            {/* Sentry Mode Toggle */}
+            {selectedClientId && (
+              <SentryModeToggle
+                clientId={selectedClientId}
+                enabled={sentryModeEnabled}
+                onToggle={(enabled) => {
+                  setSentryModeEnabled(enabled);
+                  if (!enabled) setShowSentryAnalysis(false);
+                }}
+              />
+            )}
 
             {client && (
               <div className="flex items-center gap-3 px-5 py-3 bg-card border border-border rounded-2xl shadow-sm">
@@ -743,6 +769,33 @@ export function DisputesSplit({ initialClient }: DisputesSplitProps) {
           ))}
         </div>
       </Reveal>
+
+      {/* Sentry Analysis Panel - Shown when Sentry Mode is active */}
+      {sentryModeEnabled && showSentryAnalysis && selectedClientId && (
+        <Reveal delay={120}>
+          <SentryAnalysisPanel
+            clientId={selectedClientId}
+            onPlanApproved={() => {
+              setShowSentryAnalysis(false);
+              toast({ title: "Sentry disputes created", description: "Review and approve the generated letters." });
+            }}
+          />
+        </Reveal>
+      )}
+
+      {/* Sentry Analyze Button - Quick action when Sentry is on */}
+      {sentryModeEnabled && !showSentryAnalysis && selectedClientId && (
+        <Reveal delay={120}>
+          <Button
+            variant="outline"
+            className="w-full border-primary/30 text-primary hover:bg-primary/10"
+            onClick={() => setShowSentryAnalysis(true)}
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            Sentry Analyze — AI-Optimized Dispute Generation
+          </Button>
+        </Reveal>
+      )}
 
       {/* Combined Bureau + Strategy Selector Bar */}
       <Reveal delay={130}>
@@ -1356,6 +1409,26 @@ export function DisputesSplit({ initialClient }: DisputesSplitProps) {
             </div>
           </Reveal>
       </div>
+
+      {/* Sentry Activity Feed - Collapsible */}
+      {sentryModeEnabled && selectedClientId && (
+        <Reveal delay={200}>
+          <div className="mt-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs text-muted-foreground mb-2"
+              onClick={() => setShowSentryFeed(!showSentryFeed)}
+            >
+              {showSentryFeed ? <ChevronUp className="w-3 h-3 mr-1" /> : <ChevronDown className="w-3 h-3 mr-1" />}
+              Sentry Activity
+            </Button>
+            {showSentryFeed && (
+              <SentryActivityFeed clientId={selectedClientId} limit={10} />
+            )}
+          </div>
+        </Reveal>
+      )}
 
       {/* Letter Studio Modal */}
       <LetterStudioModal

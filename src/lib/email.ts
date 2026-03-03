@@ -9,6 +9,13 @@ import {
   passwordResetTemplate,
   welcomeTemplate,
   documentReadyTemplate,
+  sentryItemRemovedTemplate,
+  sentryScoreImprovedTemplate,
+  sentryMilestoneTemplate,
+  sentryNextRoundTemplate,
+  sentryGoalAchievedTemplate,
+  sentryDiffResultsTemplate,
+  sentryAutoEscalationTemplate,
   BrandingConfig,
 } from "./email-templates";
 import prisma from "./prisma";
@@ -516,6 +523,204 @@ Reports Uploaded: ${stats.reportsUploaded}
 
 View your dashboard: ${dashboardUrl}`,
   };
+}
+
+// =============================================================================
+// SENTRY MODE EMAIL FUNCTIONS
+// =============================================================================
+
+/**
+ * Send a Sentry Mode client update email.
+ * Covers item-removed, score-improved, next-round, and goal-achieved scenarios.
+ */
+export async function sendSentryClientUpdate(
+  to: string,
+  type: "item-removed" | "score-improved" | "next-round" | "goal-achieved",
+  data: {
+    clientName: string;
+    organizationId?: string;
+    // item-removed
+    itemName?: string;
+    cra?: string;
+    // score-improved
+    oldScore?: number;
+    newScore?: number;
+    change?: number;
+    // next-round
+    verifiedCount?: number;
+    nextRound?: number;
+    // goal-achieved
+    goalType?: string;
+    startScore?: number;
+    finalScore?: number;
+  }
+): Promise<{ success: boolean; error?: string; id?: string }> {
+  const branding = await getOrganizationBranding(data.organizationId);
+  const portalUrl = `${PORTAL_URL}/dashboard`;
+
+  let template: EmailTemplate;
+
+  switch (type) {
+    case "item-removed":
+      template = {
+        subject: `Great news — "${data.itemName}" was removed from your ${data.cra} report`,
+        html: sentryItemRemovedTemplate(
+          { clientName: data.clientName, itemName: data.itemName!, cra: data.cra!, portalUrl },
+          { branding }
+        ),
+        text: `Hi ${data.clientName},\n\nGreat news! "${data.itemName}" has been removed from your ${data.cra} credit report.\n\nView your progress: ${portalUrl}`,
+      };
+      break;
+
+    case "score-improved":
+      template = {
+        subject: `Your credit score went up by ${data.change} points!`,
+        html: sentryScoreImprovedTemplate(
+          { clientName: data.clientName, oldScore: data.oldScore!, newScore: data.newScore!, change: data.change!, portalUrl },
+          { branding }
+        ),
+        text: `Hi ${data.clientName},\n\nYour credit score increased from ${data.oldScore} to ${data.newScore} (+${data.change} points).\n\nView details: ${portalUrl}`,
+      };
+      break;
+
+    case "next-round":
+      template = {
+        subject: `We're continuing to fight for you — Round ${data.nextRound} is next`,
+        html: sentryNextRoundTemplate(
+          { clientName: data.clientName, verifiedCount: data.verifiedCount!, nextRound: data.nextRound!, portalUrl },
+          { branding }
+        ),
+        text: `Hi ${data.clientName},\n\n${data.verifiedCount} item(s) were verified. We're preparing Round ${data.nextRound} of disputes on your behalf.\n\nView details: ${portalUrl}`,
+      };
+      break;
+
+    case "goal-achieved":
+      template = {
+        subject: `Congratulations — you've reached your ${data.goalType} goal!`,
+        html: sentryGoalAchievedTemplate(
+          { clientName: data.clientName, goalType: data.goalType!, startScore: data.startScore!, finalScore: data.finalScore!, portalUrl },
+          { branding }
+        ),
+        text: `Hi ${data.clientName},\n\nCongratulations! You've achieved your ${data.goalType} goal. You started at ${data.startScore} and reached ${data.finalScore}.\n\nView your results: ${portalUrl}`,
+      };
+      break;
+  }
+
+  return sendEmail({
+    to,
+    template,
+    tags: [
+      { name: "category", value: `sentry-${type}` },
+      { name: "organization", value: data.organizationId || "default" },
+    ],
+  });
+}
+
+/**
+ * Send a Sentry Mode specialist alert email.
+ * Covers diff-results and auto-escalation scenarios.
+ */
+export async function sendSentrySpecialistAlert(
+  to: string,
+  type: "diff-results" | "auto-escalation",
+  data: {
+    specialistName: string;
+    clientName: string;
+    organizationId?: string;
+    // diff-results
+    deletedCount?: number;
+    verifiedCount?: number;
+    scoreChange?: number;
+    // auto-escalation
+    nextRound?: number;
+  }
+): Promise<{ success: boolean; error?: string; id?: string }> {
+  const branding = await getOrganizationBranding(data.organizationId);
+  const reviewUrl = `${APP_URL}/clients/${encodeURIComponent(data.clientName)}/sentry`;
+
+  let template: EmailTemplate;
+
+  switch (type) {
+    case "diff-results":
+      template = {
+        subject: `Sentry results for ${data.clientName}: ${data.deletedCount} deleted, ${data.verifiedCount} verified`,
+        html: sentryDiffResultsTemplate(
+          {
+            specialistName: data.specialistName,
+            clientName: data.clientName,
+            deletedCount: data.deletedCount!,
+            verifiedCount: data.verifiedCount!,
+            scoreChange: data.scoreChange!,
+            reviewUrl,
+          },
+          { branding }
+        ),
+        text: `Hi ${data.specialistName},\n\nSentry Mode diff results for ${data.clientName}:\n- Deleted: ${data.deletedCount}\n- Verified: ${data.verifiedCount}\n- Score Change: ${data.scoreChange! > 0 ? "+" : ""}${data.scoreChange}\n\nReview: ${reviewUrl}`,
+      };
+      break;
+
+    case "auto-escalation":
+      template = {
+        subject: `Auto-escalation: ${data.clientName} moved to Round ${data.nextRound}`,
+        html: sentryAutoEscalationTemplate(
+          {
+            specialistName: data.specialistName,
+            clientName: data.clientName,
+            verifiedCount: data.verifiedCount!,
+            nextRound: data.nextRound!,
+            reviewUrl,
+          },
+          { branding }
+        ),
+        text: `Hi ${data.specialistName},\n\n${data.clientName} has been auto-escalated to Round ${data.nextRound}. ${data.verifiedCount} verified item(s) require follow-up.\n\nReview: ${reviewUrl}`,
+      };
+      break;
+  }
+
+  return sendEmail({
+    to,
+    template,
+    tags: [
+      { name: "category", value: `sentry-specialist-${type}` },
+      { name: "organization", value: data.organizationId || "default" },
+    ],
+  });
+}
+
+/**
+ * Send a Sentry Mode milestone email to a client.
+ */
+export async function sendSentryMilestoneEmail(
+  to: string,
+  clientName: string,
+  milestoneName: string,
+  currentScore: number,
+  targetScore: number,
+  progressPercent: number,
+  organizationId?: string
+): Promise<{ success: boolean; error?: string; id?: string }> {
+  const branding = await getOrganizationBranding(organizationId);
+  const portalUrl = `${PORTAL_URL}/dashboard`;
+
+  const html = sentryMilestoneTemplate(
+    { clientName, milestoneName, currentScore, targetScore, progressPercent, portalUrl },
+    { branding }
+  );
+
+  const template: EmailTemplate = {
+    subject: `You've reached a major milestone: ${milestoneName}`,
+    html,
+    text: `Hi ${clientName},\n\nCongratulations! You've reached a milestone: ${milestoneName}.\n\nCurrent Score: ${currentScore}\nTarget Score: ${targetScore}\nProgress: ${progressPercent}%\n\nView your progress: ${portalUrl}`,
+  };
+
+  return sendEmail({
+    to,
+    template,
+    tags: [
+      { name: "category", value: "sentry-milestone" },
+      { name: "organization", value: organizationId || "default" },
+    ],
+  });
 }
 
 // =============================================================================

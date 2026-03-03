@@ -21,7 +21,7 @@ export type DisputeFlow = "ACCURACY" | "COLLECTION" | "CONSENT" | "COMBO";
  * - "ai": AI rules engine with strategy
  * - "simple": Basic template-based
  */
-export type DisputeCreationType = "simple" | "ai" | "amelia" | "human_first";
+export type DisputeCreationType = "simple" | "ai" | "amelia" | "human_first" | "sentry";
 
 /**
  * Base request for all dispute creation types
@@ -86,11 +86,35 @@ export interface HumanFirstDisputeRequest extends BaseDisputeRequest {
 /**
  * Union type for all dispute creation requests
  */
+/**
+ * Sentry Mode dispute creation request
+ *
+ * Creates letters using AMELIA doctrine enhanced with Sentry intelligence:
+ * - e-OSCAR code optimization
+ * - Metro 2 field targeting
+ * - Legal citation validation + auto-fix
+ * - OCR frivolous detection + auto-fix
+ */
+export interface SentryDisputeRequest extends BaseDisputeRequest {
+  type: "sentry";
+  cra: CRA; // Required
+  flow?: DisputeFlow; // Optional, Sentry determines optimal flow
+  sentryContext?: {
+    eoscarCodes?: string[];
+    metro2Targets?: string[];
+    planId?: string;
+  };
+}
+
+/**
+ * Union type for all dispute creation requests
+ */
 export type UnifiedDisputeRequest =
   | SimpleDisputeRequest
   | AIDisputeRequest
   | AmeliaDisputeRequest
-  | HumanFirstDisputeRequest;
+  | HumanFirstDisputeRequest
+  | SentryDisputeRequest;
 
 /**
  * Client data needed for dispute letter generation
@@ -197,6 +221,15 @@ export interface AIStrategyMetadata {
   // Human-First / Full AI specific
   storyUsed?: string;
   letterStyle?: "HUMAN_FIRST" | "PROFESSIONAL" | "FULL_AI";
+
+  // Sentry Mode specific
+  sentryModeActive?: boolean;
+  eoscarCodesUsed?: string[];
+  metro2FieldsTargeted?: string[];
+  ocrRiskScore?: number;
+  citationsValidated?: boolean;
+  successProbability?: number;
+  sentryAnalysisId?: string;
 }
 
 /**

@@ -24,7 +24,13 @@ export type NotificationType =
   | "REPORT_PARSED"
   | "SUBSCRIPTION_WARNING"
   | "SUBSCRIPTION_LIMIT"
-  | "SYSTEM_MESSAGE";
+  | "SYSTEM_MESSAGE"
+  | "SENTRY_ANALYSIS_COMPLETE"
+  | "SENTRY_AUTO_ESCALATION"
+  | "SENTRY_GOAL_MILESTONE"
+  | "SENTRY_SCORE_CHANGE"
+  | "SENTRY_DIFF_RESULTS"
+  | "SENTRY_APPROVAL_NEEDED";
 
 export interface CreateNotificationInput {
   userId: string;
@@ -107,6 +113,30 @@ const NOTIFICATION_TEMPLATES: Record<
   SYSTEM_MESSAGE: {
     title: "System Notification",
     message: (d) => d.message,
+  },
+  SENTRY_ANALYSIS_COMPLETE: {
+    title: "Sentry Analysis Complete",
+    message: (d) => `Sentry Mode finished analyzing ${d.clientName}'s credit report. ${d.deletedCount} item(s) deleted, ${d.verifiedCount} item(s) verified.`,
+  },
+  SENTRY_AUTO_ESCALATION: {
+    title: "Sentry Auto-Escalation",
+    message: (d) => `${d.clientName} has been auto-escalated to Round ${d.nextRound}. ${d.verifiedCount} verified item(s) require follow-up.`,
+  },
+  SENTRY_GOAL_MILESTONE: {
+    title: "Client Milestone Reached",
+    message: (d) => `${d.clientName} reached a milestone: ${d.milestoneName}. Current score: ${d.currentScore}.`,
+  },
+  SENTRY_SCORE_CHANGE: {
+    title: "Credit Score Change Detected",
+    message: (d) => `Sentry Mode detected a score change for ${d.clientName}: ${d.oldScore} → ${d.newScore} (${d.change > "0" ? "+" : ""}${d.change} points).`,
+  },
+  SENTRY_DIFF_RESULTS: {
+    title: "Sentry Diff Results Ready",
+    message: (d) => `Credit report diff for ${d.clientName} is ready. ${d.deletedCount} deleted, ${d.verifiedCount} verified. Score change: ${d.scoreChange}.`,
+  },
+  SENTRY_APPROVAL_NEEDED: {
+    title: "Sentry Approval Needed",
+    message: (d) => `${d.clientName}'s Round ${d.nextRound} disputes are ready for your review and approval before sending.`,
   },
 };
 

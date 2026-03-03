@@ -28,6 +28,7 @@ import { GlassCard, AnimNum, Reveal, ProgressRing } from "@/components/ui/glass-
 import { useToast } from "@/lib/use-toast";
 import { DisputeCommandCenter } from "@/components/disputes/dispute-command-center";
 import { AmeliaChatDrawer } from "@/components/amelia/amelia-chat-drawer";
+import { GoalTracker } from "@/components/client/goal-tracker";
 import {
   getDNAClassificationLabel,
   getDNAClassificationDescription,
@@ -78,6 +79,7 @@ interface ClientData {
   ssnLast4: string | null;
   dateOfBirth: string | null;
   notes: string | null;
+  sentryModeEnabled?: boolean;
   createdAt: string;
   reports: Array<{
     id: string;
@@ -1336,6 +1338,13 @@ export default function ClientDetailPage() {
           </Tabs>
         </Reveal>
       </div>
+
+      {/* Goal Tracker - Sentry Mode */}
+      {client?.sentryModeEnabled && (
+        <Reveal delay={250}>
+          <GoalTracker clientId={clientId} />
+        </Reveal>
+      )}
 
       {/* Modals */}
       <AddScoreModal open={addScoreModalOpen} onOpenChange={setAddScoreModalOpen} clientId={clientId} onScoreAdded={fetchCreditScores} />

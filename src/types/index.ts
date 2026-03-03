@@ -490,6 +490,7 @@ export interface FeatureFlags {
   canUseBulkDisputes: boolean;
   canUseCFPB: boolean;
   canUseAILetters: boolean;
+  canUseSentryMode: boolean;
   maxClients: number;
   maxReportsPerMonth: number;
   maxDisputesPerMonth: number;
@@ -512,6 +513,7 @@ export const FREE_TIER_FLAGS: FeatureFlags = {
   canUseWhiteLabel: false,
   canUseAPI: false,
   canUseCFPB: false,
+  canUseSentryMode: false,
   maxClients: 5,
   maxReportsPerMonth: 10,
   maxDisputesPerMonth: 15,
@@ -534,6 +536,7 @@ export const STARTER_TIER_FLAGS: FeatureFlags = {
   canUseWhiteLabel: false,
   canUseAPI: false,
   canUseCFPB: false,
+  canUseSentryMode: false,
   maxClients: 50,
   maxReportsPerMonth: 50,
   maxDisputesPerMonth: 100,
@@ -556,6 +559,7 @@ export const PROFESSIONAL_TIER_FLAGS: FeatureFlags = {
   canUseWhiteLabel: true,
   canUseAPI: false,
   canUseCFPB: true,
+  canUseSentryMode: true,
   maxClients: 250,
   maxReportsPerMonth: 200,
   maxDisputesPerMonth: 400,
@@ -578,6 +582,7 @@ export const ENTERPRISE_TIER_FLAGS: FeatureFlags = {
   canUseWhiteLabel: true,
   canUseAPI: true,
   canUseCFPB: true,
+  canUseSentryMode: true,
   maxClients: -1,
   maxReportsPerMonth: -1,
   maxDisputesPerMonth: -1,
