@@ -45,11 +45,11 @@ export const UPLOAD_PRESETS = {
     allowedExtensions: ["pdf", "jpg", "jpeg", "png", "gif", "webp", "doc", "docx", "txt"],
   },
 
-  /** Evidence screenshots - images only, 10MB max */
+  /** Evidence screenshots - images and PDFs, 10MB max */
   evidenceScreenshot: {
     maxSizeBytes: 10 * 1024 * 1024, // 10MB
-    allowedMimeTypes: ["image/jpeg", "image/png", "image/gif", "image/webp"],
-    allowedExtensions: ["jpg", "jpeg", "png", "gif", "webp"],
+    allowedMimeTypes: ["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"],
+    allowedExtensions: ["jpg", "jpeg", "png", "gif", "webp", "pdf"],
   },
 } as const;
 

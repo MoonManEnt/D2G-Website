@@ -45,6 +45,7 @@ interface MailApprovalPanelProps {
   disputeId: string;
   letterContent: string;
   sentryAnalysis?: SentryAnalysisScores;
+  evidenceCount?: number;
   onMailSent: () => void;
 }
 
@@ -56,6 +57,7 @@ export function MailApprovalPanel({
   disputeId,
   letterContent,
   sentryAnalysis,
+  evidenceCount = 0,
   onMailSent,
 }: MailApprovalPanelProps) {
   const { toast } = useToast();
@@ -313,6 +315,24 @@ export function MailApprovalPanel({
           </div>
         </CardContent>
       </Card>
+
+      {/* Evidence Packet Indicator */}
+      {evidenceCount > 0 && (
+        <div className="flex items-center gap-3 p-3 bg-amber-500/10 rounded-lg border border-amber-500/30">
+          <FileText className="w-5 h-5 text-amber-400" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-foreground">
+              Exhibit Packet Included
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {evidenceCount} exhibit{evidenceCount !== 1 ? "s" : ""} will be attached as a separate exhibit packet PDF
+            </p>
+          </div>
+          <Badge className="bg-amber-500/20 text-amber-400 text-[10px]">
+            {evidenceCount} exhibit{evidenceCount !== 1 ? "s" : ""}
+          </Badge>
+        </div>
+      )}
 
       {/* Delivery Options */}
       <Card className="bg-card border-border">

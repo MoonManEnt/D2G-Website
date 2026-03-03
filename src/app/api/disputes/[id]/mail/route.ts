@@ -19,6 +19,8 @@ import {
 } from "@/lib/pdf-generate";
 import { sendMail, MailProvider } from "@/lib/mail-provider";
 import { format, addDays } from "date-fns";
+import { generateExhibitPackagePDF, ExhibitItem, ExhibitPackageData } from "@/lib/pdf-generate";
+import { getFile } from "@/lib/storage";
 import { createLogger } from "@/lib/logger";
 const log = createLogger("dispute-mail-api");
 
@@ -95,6 +97,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       extraService,
       scheduledDate,
       verifyAddressFirst = true,
+      includeEvidence = true,
     } = body;
 
     // Check if mail service is available (for Lob provider)
@@ -159,6 +162,72 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const clientName = `${client.firstName} ${client.lastName}`;
     const cra = dispute.cra as CRAName;
+
+    // =========================================================================
+    // Evidence / Exhibit Packet Generation (if evidence exists)
+    // =========================================================================
+    let exhibitPacketPdfBytes: Uint8Array | null = null;
+    let exhibitPacketIncluded = false;
+
+    if (includeEvidence) {
+      try {
+        const evidenceItems = await prisma.evidence.findMany({
+          where: {
+            disputeId,
+            organizationId: session.user.organizationId,
+          },
+          include: {
+            renderedFile: true,
+            accountItem: { select: { creditorName: true } },
+          },
+          orderBy: { createdAt: "asc" },
+        });
+
+        if (evidenceItems.length > 0) {
+          const exhibits: ExhibitItem[] = [];
+
+          for (let i = 0; i < evidenceItems.length; i++) {
+            const record = evidenceItems[i];
+            let imageBase64: string | undefined;
+
+            if (record.renderedFile) {
+              try {
+                const file = await getFile(record.renderedFile.storagePath);
+                if (file) {
+                  const base64 = file.buffer.toString("base64");
+                  imageBase64 = `data:${file.contentType};base64,${base64}`;
+                }
+              } catch (fileErr) {
+                log.error({ err: fileErr, evidenceId: record.id }, "Failed to load evidence file for packet");
+              }
+            }
+
+            const label = i < 26 ? String.fromCharCode(65 + i) : `A${String.fromCharCode(65 + (i - 26))}`;
+            exhibits.push({
+              label,
+              caption: record.title || record.description || `Evidence ${i + 1}`,
+              creditorName: record.accountItem?.creditorName || undefined,
+              evidenceType: record.evidenceType,
+              imageBase64,
+            });
+          }
+
+          const packageData: ExhibitPackageData = {
+            title: "EXHIBIT PACKET",
+            clientName,
+            disputeId: dispute.disputeCode || dispute.id,
+            generatedDate: new Date(),
+            exhibits,
+          };
+
+          exhibitPacketPdfBytes = await generateExhibitPackagePDF(packageData);
+          exhibitPacketIncluded = true;
+          log.info({ disputeId, exhibitCount: exhibits.length }, "Exhibit packet generated for mailing");
+        }
+      } catch (evidenceErr) {
+        log.error({ err: evidenceErr }, "Failed to generate exhibit packet (non-blocking)");
+      }
+    }
 
     // =========================================================================
     // DocuPost Provider Path
@@ -274,6 +343,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         provider: "DOCUPOST",
         mailProvider: "DOCUPOST",
         fcraDeadline: fcraDeadline.toISOString(),
+        exhibitPacketIncluded,
       });
     }
 

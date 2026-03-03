@@ -133,6 +133,7 @@ model Client {
   ameliaConversations    AmeliaConversation[]
   disputeDrafts          DisputeDraft[]
   clientGoals            ClientGoal[]
+  evidence               Evidence[]
 
   @@index([organizationId])
   @@index([organizationId, archivedAt])
@@ -364,6 +365,7 @@ model Dispute {
   documents       Document[]
   reminders       Reminder[]
   sentryAnalysis  SentryAnalysis?
+  evidence        Evidence[]
 
   @@index([organizationId])
   @@index([organizationId, resolvedAt])
@@ -546,17 +548,24 @@ model Evidence {
   sourceFileId        String?
   renderedFileId      String?
   accountItemId       String?
+  clientId            String?
+  disputeId           String?
+  captureSource       String?            // "UPLOAD" | "PDF_CROP" | "ANNOTATION"
   organizationId      String
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
   documentAttachments DocumentEvidence[]
   organization        Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   accountItem         AccountItem?       @relation(fields: [accountItemId], references: [id])
+  client              Client?            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  dispute             Dispute?           @relation(fields: [disputeId], references: [id])
   renderedFile        StoredFile?        @relation("EvidenceRendered", fields: [renderedFileId], references: [id])
   sourceFile          StoredFile?        @relation("EvidenceSource", fields: [sourceFileId], references: [id])
 
   @@index([organizationId])
   @@index([accountItemId])
+  @@index([clientId])
+  @@index([disputeId])
 }
 
 // Pending evidence suggestions created during report parsing

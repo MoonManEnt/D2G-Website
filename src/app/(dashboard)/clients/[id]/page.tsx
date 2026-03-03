@@ -29,6 +29,7 @@ import { useToast } from "@/lib/use-toast";
 import { DisputeCommandCenter } from "@/components/disputes/dispute-command-center";
 import { AmeliaChatDrawer } from "@/components/amelia/amelia-chat-drawer";
 import { GoalTracker } from "@/components/client/goal-tracker";
+import { EvidenceTab } from "@/components/evidence/evidence-tab";
 import {
   getDNAClassificationLabel,
   getDNAClassificationDescription,
@@ -1093,6 +1094,7 @@ export default function ClientDetailPage() {
                 { v: "dna", l: "Credit DNA", c: null },
                 { v: "readiness", l: "Readiness", c: null },
                 { v: "litigation", l: "Litigation", c: null },
+                { v: "evidence", l: "Evidence", c: null },
               ].map(t => (
                 <TabsTrigger
                   key={t.v}
@@ -1334,6 +1336,11 @@ export default function ClientDetailPage() {
                   <Scale className="w-4 h-4" />Run Litigation Scan
                 </Link>
               </div>
+            </TabsContent>
+
+            {/* Evidence Tab */}
+            <TabsContent value="evidence" className="mt-4">
+              <EvidenceTab clientId={clientId} />
             </TabsContent>
           </Tabs>
         </Reveal>
