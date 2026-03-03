@@ -284,7 +284,7 @@ export function ViolationCard({ violation }: ViolationCardProps) {
                 )}
 
                 {/* Defendants section */}
-                {violation.defendants.length > 0 && (
+                {violation.defendants && violation.defendants.length > 0 && (
                   <div>
                     <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                       Defendants

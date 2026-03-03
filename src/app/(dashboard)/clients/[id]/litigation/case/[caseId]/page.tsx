@@ -162,7 +162,7 @@ export default function LitigationCaseDashboard() {
       }
 
       const data = await response.json();
-      setCaseData(data);
+      setCaseData(data.case || data);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "An unexpected error occurred";
@@ -226,7 +226,7 @@ export default function LitigationCaseDashboard() {
       if (!caseData) return;
       setCaseData({
         ...caseData,
-        defendants: caseData.defendants.map((d) =>
+        defendants: (caseData.defendants || []).map((d) =>
           d.id === updated.id ? updated : d
         ),
       });
@@ -396,7 +396,7 @@ export default function LitigationCaseDashboard() {
         {/* Defendants Tab */}
         <TabsContent value="defendants" className="mt-6">
           <DefendantManager
-            defendants={caseData.defendants}
+            defendants={caseData.defendants || []}
             caseId={caseId}
             clientId={clientId}
             onUpdate={handleUpdateDefendant}
@@ -405,7 +405,7 @@ export default function LitigationCaseDashboard() {
 
         {/* Deadlines Tab */}
         <TabsContent value="deadlines" className="mt-6">
-          <DeadlineTracker deadlines={caseData.deadlines} />
+          <DeadlineTracker deadlines={caseData.deadlines || []} />
         </TabsContent>
       </Tabs>
 
@@ -418,7 +418,7 @@ export default function LitigationCaseDashboard() {
         actionId={docModalActionId}
         documentType={docModalDocType}
         targetDefendantId={docModalDefendantId}
-        defendants={caseData.defendants.map((d) => ({
+        defendants={(caseData.defendants || []).map((d) => ({
           id: d.id,
           entityName: d.entityName,
           entityType: d.entityType,
