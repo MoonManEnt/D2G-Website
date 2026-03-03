@@ -37,7 +37,7 @@ export default function BillingPage() {
       window.history.replaceState({}, "", "/billing");
     }
   }, [searchParams, toast]);
-  const handleUpgrade = (plan: "STARTER" | "PROFESSIONAL", interval: "monthly" | "yearly") => {
+  const handleUpgrade = (plan: "SOLO" | "STARTER" | "PROFESSIONAL", interval: "monthly" | "yearly") => {
     setIsLoading(plan);
     fetch("/api/billing/checkout", {
       method: "POST",
@@ -133,7 +133,7 @@ export default function BillingPage() {
       {/* Billing interval toggle */}
       <div className="flex justify-center gap-2" id="plan-comparison">
         <button onClick={() => setBillingInterval("monthly")} className={billingInterval === "monthly" ? "bg-primary text-primary-foreground px-4 py-2 rounded-lg" : "px-4 py-2 rounded-lg border border-border text-muted-foreground hover:bg-muted"}>Monthly</button>
-        <button onClick={() => setBillingInterval("yearly")} className={billingInterval === "yearly" ? "bg-primary text-primary-foreground px-4 py-2 rounded-lg" : "px-4 py-2 rounded-lg border border-border text-muted-foreground hover:bg-muted"}>Yearly <span className="text-xs ml-1 text-emerald-500">Save 17%</span></button>
+        <button onClick={() => setBillingInterval("yearly")} className={billingInterval === "yearly" ? "bg-primary text-primary-foreground px-4 py-2 rounded-lg" : "px-4 py-2 rounded-lg border border-border text-muted-foreground hover:bg-muted"}>Yearly <span className="text-xs ml-1 text-emerald-500">Save 18%</span></button>
       </div>
       {/* Plan Comparison */}
       <PlanComparison

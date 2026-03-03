@@ -256,8 +256,8 @@ export const updateTeamMemberSchema = z.object({
  * POST /api/billing/checkout - Create a checkout session
  */
 export const checkoutSchema = z.object({
-  plan: z.enum(["STARTER", "PROFESSIONAL"], {
-    errorMap: () => ({ message: "Invalid plan selected. Must be STARTER or PROFESSIONAL." }),
+  plan: z.enum(["SOLO", "STARTER", "PROFESSIONAL"], {
+    errorMap: () => ({ message: "Invalid plan selected. Must be SOLO, STARTER, or PROFESSIONAL." }),
   }),
   interval: z.enum(["monthly", "yearly"]).default("monthly"),
 });

@@ -18,11 +18,11 @@ export const dynamic = "force-dynamic";
 
 // Validation schema for the request
 const validateDowngradeSchema = z.object({
-  targetTier: z.enum(["FREE", "STARTER", "PROFESSIONAL", "ENTERPRISE"]),
+  targetTier: z.enum(["FREE", "SOLO", "STARTER", "PROFESSIONAL", "ENTERPRISE"]),
 });
 
 // Tier hierarchy (lower index = lower tier)
-const TIER_ORDER = ["FREE", "STARTER", "PROFESSIONAL", "ENTERPRISE"] as const;
+const TIER_ORDER = ["FREE", "SOLO", "STARTER", "PROFESSIONAL", "ENTERPRISE"] as const;
 type TierType = (typeof TIER_ORDER)[number];
 
 // Get feature flags for a tier

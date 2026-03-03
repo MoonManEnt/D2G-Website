@@ -28,6 +28,7 @@ export type Feature =
  */
 export const TIER_HIERARCHY: SubscriptionTier[] = [
   SubscriptionTier.FREE,
+  SubscriptionTier.SOLO,
   SubscriptionTier.STARTER,
   SubscriptionTier.PROFESSIONAL,
   SubscriptionTier.ENTERPRISE,
@@ -37,16 +38,16 @@ export const TIER_HIERARCHY: SubscriptionTier[] = [
  * Map of features to their minimum required tier
  */
 export const FEATURE_REQUIRED_TIER: Record<Feature, SubscriptionTier> = {
+  // SOLO+ features
+  creditDna: SubscriptionTier.SOLO,
+
   // STARTER+ features
   bulkDisputes: SubscriptionTier.STARTER,
-  creditDna: SubscriptionTier.STARTER,
 
   // PROFESSIONAL+ features
   litigationScanner: SubscriptionTier.PROFESSIONAL,
   cfpbComplaints: SubscriptionTier.PROFESSIONAL,
   whiteLabelBranding: SubscriptionTier.PROFESSIONAL,
-
-  // PROFESSIONAL+ features (continued)
   sentryMode: SubscriptionTier.PROFESSIONAL,
 
   // ENTERPRISE only features
@@ -59,6 +60,7 @@ export const FEATURE_REQUIRED_TIER: Record<Feature, SubscriptionTier> = {
  */
 export const TIER_FEATURES: Record<SubscriptionTier, Feature[]> = {
   [SubscriptionTier.FREE]: [],
+  [SubscriptionTier.SOLO]: ["creditDna"],
   [SubscriptionTier.STARTER]: ["bulkDisputes", "creditDna"],
   [SubscriptionTier.PROFESSIONAL]: [
     "bulkDisputes",
@@ -188,6 +190,7 @@ export function getUnlockedFeatures(
 export function getTierDisplayName(tier: SubscriptionTier): string {
   const names: Record<SubscriptionTier, string> = {
     [SubscriptionTier.FREE]: "Free",
+    [SubscriptionTier.SOLO]: "Solo",
     [SubscriptionTier.STARTER]: "Starter",
     [SubscriptionTier.PROFESSIONAL]: "Professional",
     [SubscriptionTier.ENTERPRISE]: "Enterprise",

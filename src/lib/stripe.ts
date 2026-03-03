@@ -12,6 +12,8 @@ export const stripe = process.env.STRIPE_SECRET_KEY
 
 // Price IDs from environment
 export const STRIPE_PRICES = {
+  SOLO_MONTHLY: process.env.STRIPE_SOLO_MONTHLY_PRICE_ID || "",
+  SOLO_YEARLY: process.env.STRIPE_SOLO_YEARLY_PRICE_ID || "",
   STARTER_MONTHLY: process.env.STRIPE_STARTER_MONTHLY_PRICE_ID || "",
   STARTER_YEARLY: process.env.STRIPE_STARTER_YEARLY_PRICE_ID || "",
   PROFESSIONAL_MONTHLY: process.env.STRIPE_PROFESSIONAL_MONTHLY_PRICE_ID || "",
@@ -29,60 +31,80 @@ export const PLAN_FEATURES = {
     priceYearly: 0,
     interval: "forever" as const,
     features: [
-      "5 clients",
-      "15 disputes/month",
-      "15 letters/month",
-      "10 reports/month",
+      "3 clients",
+      "10 disputes/month",
+      "10 letters/month",
+      "5 reports/month",
       "500MB storage",
-      "Basic Amelia AI",
-      "Evidence Center (Basic)",
+      "Basic letter templates",
+      "Evidence Center",
     ],
-    limits: { clients: 5, reportsPerMonth: 10, disputesPerMonth: 15, aiRequests: 0 },
+    limits: { clients: 3, reportsPerMonth: 5, disputesPerMonth: 10, aiRequests: 0 },
+  },
+  SOLO: {
+    name: "Solo",
+    price: 79,
+    priceYearly: 65, // $790/year
+    interval: "month" as const,
+    features: [
+      "10 clients",
+      "40 disputes/month",
+      "40 letters/month",
+      "15 reports/month",
+      "2GB storage",
+      "1 team seat",
+      "AMELIA AI letters",
+      "Credit DNA analysis",
+      "Diff engine",
+      "Evidence Center",
+      "Email support",
+    ],
+    limits: { clients: 10, reportsPerMonth: 15, disputesPerMonth: 40, aiRequests: 200 },
   },
   STARTER: {
     name: "Starter",
-    price: 149,
-    priceYearly: 124, // \,490/year
+    price: 129,
+    priceYearly: 107, // $1,290/year
     interval: "month" as const,
     features: [
       "50 clients",
-      "100 disputes/month",
-      "100 letters/month",
+      "150 disputes/month",
+      "150 letters/month",
       "50 reports/month",
-      "5GB storage",
+      "10GB storage",
       "5 team seats",
-      "Full Amelia AI",
-      "AI-generated letters",
+      "AMELIA AI letters",
       "Bulk dispute creation",
       "Credit DNA analysis",
-      "Evidence Center (Full)",
+      "Evidence Center",
       "Email support",
     ],
-    limits: { clients: 50, reportsPerMonth: 50, disputesPerMonth: 100, aiRequests: 500 },
+    limits: { clients: 50, reportsPerMonth: 50, disputesPerMonth: 150, aiRequests: 750 },
   },
   PROFESSIONAL: {
     name: "Professional",
-    price: 249,
-    priceYearly: 207, // \,490/year
+    price: 199,
+    priceYearly: 166, // $1,990/year
     interval: "month" as const,
     features: [
       "250 clients",
-      "400 disputes/month",
-      "400 letters/month",
+      "500 disputes/month",
+      "500 letters/month",
       "200 reports/month",
-      "25GB storage",
+      "50GB storage",
       "15 team seats",
-      "Full Amelia AI with priority",
-      "AI-generated letters",
+      "AMELIA AI with priority",
+      "Sentry Mode",
       "Bulk dispute creation",
       "CFPB complaint generator",
       "Litigation Scanner",
       "Credit DNA analysis",
       "White-label customization",
-      "Evidence Center (Full)",
+      "Auto-mailing integration",
+      "Evidence Center",
       "Priority support",
     ],
-    limits: { clients: 250, reportsPerMonth: 200, disputesPerMonth: 400, aiRequests: 2000 },
+    limits: { clients: 250, reportsPerMonth: 200, disputesPerMonth: 500, aiRequests: 2500 },
   },
   ENTERPRISE: {
     name: "Enterprise",
@@ -96,7 +118,7 @@ export const PLAN_FEATURES = {
       "Unlimited reports",
       "100GB storage",
       "Unlimited team seats",
-      "Full Amelia AI with priority",
+      "AMELIA AI with priority",
       "API access",
       "White-label customization",
       "Dedicated account manager",
@@ -108,7 +130,7 @@ export const PLAN_FEATURES = {
 };
 
 // Get price ID from plan and interval
-export function getPriceId(plan: "STARTER" | "PROFESSIONAL", interval: "monthly" | "yearly"): string {
+export function getPriceId(plan: "SOLO" | "STARTER" | "PROFESSIONAL", interval: "monthly" | "yearly"): string {
   const key = `${plan}_${interval.toUpperCase()}` as keyof typeof STRIPE_PRICES;
   return STRIPE_PRICES[key] || "";
 }

@@ -20,7 +20,7 @@ export async function GET() {
     }
 
     // Minimum tier check: branding/white-label requires PROFESSIONAL or higher
-    const getTierOrder = ["FREE", "STARTER", "PROFESSIONAL", "ENTERPRISE"];
+    const getTierOrder = ["FREE", "SOLO", "STARTER", "PROFESSIONAL", "ENTERPRISE"];
     const getbrandTier = (session.user.subscriptionTier as string) || "FREE";
     if (getTierOrder.indexOf(getbrandTier) < getTierOrder.indexOf("PROFESSIONAL")) {
       return NextResponse.json(
@@ -75,7 +75,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Minimum tier check: branding/white-label requires PROFESSIONAL or higher
-    const patchTierOrder = ["FREE", "STARTER", "PROFESSIONAL", "ENTERPRISE"];
+    const patchTierOrder = ["FREE", "SOLO", "STARTER", "PROFESSIONAL", "ENTERPRISE"];
     const patchBrandTier = (session.user.subscriptionTier as string) || "FREE";
     if (patchTierOrder.indexOf(patchBrandTier) < patchTierOrder.indexOf("PROFESSIONAL")) {
       return NextResponse.json(
@@ -184,7 +184,7 @@ export async function DELETE() {
     }
 
     // Minimum tier check: branding/white-label requires PROFESSIONAL or higher
-    const delTierOrder = ["FREE", "STARTER", "PROFESSIONAL", "ENTERPRISE"];
+    const delTierOrder = ["FREE", "SOLO", "STARTER", "PROFESSIONAL", "ENTERPRISE"];
     const delBrandTier = (session.user.subscriptionTier as string) || "FREE";
     if (delTierOrder.indexOf(delBrandTier) < delTierOrder.indexOf("PROFESSIONAL")) {
       return NextResponse.json(

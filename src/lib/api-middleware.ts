@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import {
   SubscriptionTier,
   FREE_TIER_FLAGS,
+  SOLO_TIER_FLAGS,
   STARTER_TIER_FLAGS,
   PROFESSIONAL_TIER_FLAGS,
   ENTERPRISE_TIER_FLAGS,
@@ -59,6 +60,7 @@ interface ApiOptions<TBody> {
 // Feature flags map by tier - SINGLE SOURCE OF TRUTH from types/index.ts
 const TIER_FLAGS: Record<SubscriptionTier, FeatureFlags> = {
   [SubscriptionTier.FREE]: FREE_TIER_FLAGS,
+  [SubscriptionTier.SOLO]: SOLO_TIER_FLAGS,
   [SubscriptionTier.STARTER]: STARTER_TIER_FLAGS,
   [SubscriptionTier.PROFESSIONAL]: PROFESSIONAL_TIER_FLAGS,
   [SubscriptionTier.ENTERPRISE]: ENTERPRISE_TIER_FLAGS,
@@ -67,6 +69,7 @@ const TIER_FLAGS: Record<SubscriptionTier, FeatureFlags> = {
 // Rate limits per tier (only thing not in FeatureFlags)
 const RATE_LIMITS: Record<SubscriptionTier, number> = {
   [SubscriptionTier.FREE]: 30,
+  [SubscriptionTier.SOLO]: 45,
   [SubscriptionTier.STARTER]: 60,
   [SubscriptionTier.PROFESSIONAL]: 100,
   [SubscriptionTier.ENTERPRISE]: 300,
@@ -279,6 +282,7 @@ async function checkAndNotifyUsageThresholds(
 function meetsMinTier(currentTier: SubscriptionTier, minTier: SubscriptionTier): boolean {
   const tierOrder: SubscriptionTier[] = [
     SubscriptionTier.FREE,
+    SubscriptionTier.SOLO,
     SubscriptionTier.STARTER,
     SubscriptionTier.PROFESSIONAL,
     SubscriptionTier.ENTERPRISE,

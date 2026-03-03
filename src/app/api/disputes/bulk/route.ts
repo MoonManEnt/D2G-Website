@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Minimum tier check: bulk disputes require STARTER or higher
-    const tierOrder = ["FREE", "STARTER", "PROFESSIONAL", "ENTERPRISE"];
+    const tierOrder = ["FREE", "SOLO", "STARTER", "PROFESSIONAL", "ENTERPRISE"];
     const currentTier = (session.user.subscriptionTier as string) || "FREE";
     if (tierOrder.indexOf(currentTier) < tierOrder.indexOf("STARTER")) {
       return NextResponse.json(
@@ -317,7 +317,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Minimum tier check: bulk disputes require STARTER or higher
-    const bulkTierOrder = ["FREE", "STARTER", "PROFESSIONAL", "ENTERPRISE"];
+    const bulkTierOrder = ["FREE", "SOLO", "STARTER", "PROFESSIONAL", "ENTERPRISE"];
     const bulkCurrentTier = (session.user.subscriptionTier as string) || "FREE";
     if (bulkTierOrder.indexOf(bulkCurrentTier) < bulkTierOrder.indexOf("STARTER")) {
       return NextResponse.json(

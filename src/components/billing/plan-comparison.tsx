@@ -10,18 +10,19 @@ import {
   Sparkles,
   Building2,
   Crown,
+  User,
 } from "lucide-react";
 
 interface PlanComparisonProps {
   currentTier: string;
   interval: "monthly" | "yearly";
-  onUpgrade: (plan: "STARTER" | "PROFESSIONAL", interval: "monthly" | "yearly") => void;
+  onUpgrade: (plan: "SOLO" | "STARTER" | "PROFESSIONAL", interval: "monthly" | "yearly") => void;
   onEnterpriseClick: () => void;
   isLoading?: string | null;
   foundingMemberSpotsLeft?: number;
 }
 
-const TIER_ORDER = ["FREE", "STARTER", "PROFESSIONAL", "ENTERPRISE"] as const;
+const TIER_ORDER = ["FREE", "SOLO", "STARTER", "PROFESSIONAL", "ENTERPRISE"] as const;
 
 interface PlanDefinition {
   key: (typeof TIER_ORDER)[number];
@@ -44,27 +45,45 @@ const PLANS: PlanDefinition[] = [
     yearlyTotal: 0,
     description: "Get started with the basics",
     features: [
-      "5 clients",
-      "15 disputes / month",
-      "10 reports / month",
-      "Basic dispute tracking",
+      "3 clients",
+      "10 disputes / month",
+      "5 reports / month",
+      "Basic letter templates",
       "500MB storage",
     ],
     icon: <Zap className="w-5 h-5 text-muted-foreground" />,
   },
   {
+    key: "SOLO",
+    name: "Solo",
+    monthlyPrice: 79,
+    yearlyMonthlyEquiv: 65,
+    yearlyTotal: 790,
+    description: "For solo credit repair specialists",
+    features: [
+      "10 clients",
+      "40 disputes / month",
+      "15 reports / month",
+      "AMELIA AI letters",
+      "Credit DNA analysis",
+      "2GB storage",
+      "Email support",
+    ],
+    icon: <User className="w-5 h-5 text-emerald-400" />,
+  },
+  {
     key: "STARTER",
     name: "Starter",
-    monthlyPrice: 149,
-    yearlyMonthlyEquiv: 124,
-    yearlyTotal: 1490,
+    monthlyPrice: 129,
+    yearlyMonthlyEquiv: 107,
+    yearlyTotal: 1290,
     description: "For growing credit repair businesses",
     features: [
       "50 clients",
-      "100 disputes / month",
+      "150 disputes / month",
       "50 reports / month",
       "5 team seats",
-      "5GB storage",
+      "10GB storage",
       "AI-generated letters",
       "Bulk dispute creation",
       "Credit DNA analysis",
@@ -75,20 +94,22 @@ const PLANS: PlanDefinition[] = [
   {
     key: "PROFESSIONAL",
     name: "Professional",
-    monthlyPrice: 249,
-    yearlyMonthlyEquiv: 207,
-    yearlyTotal: 2490,
+    monthlyPrice: 199,
+    yearlyMonthlyEquiv: 166,
+    yearlyTotal: 1990,
     description: "Full power for professionals",
     highlight: true,
     features: [
       "250 clients",
-      "400 disputes / month",
+      "500 disputes / month",
       "200 reports / month",
       "15 team seats",
-      "25GB storage",
+      "50GB storage",
+      "Sentry Mode",
       "CFPB complaint generator",
       "Litigation Scanner",
       "White-label customization",
+      "Auto-mailing",
       "Priority support",
     ],
     icon: <Crown className="w-5 h-5 text-amber-400" />,
@@ -128,7 +149,7 @@ export function PlanComparison({
   );
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-5">
       {PLANS.map((plan) => {
         const planIndex = TIER_ORDER.indexOf(plan.key);
         const isCurrent = plan.key === currentTier;
@@ -259,7 +280,7 @@ export function PlanComparison({
                     className="w-full border-input text-muted-foreground hover:bg-muted"
                     onClick={() =>
                       onUpgrade(
-                        plan.key as "STARTER" | "PROFESSIONAL",
+                        plan.key as "SOLO" | "STARTER" | "PROFESSIONAL",
                         interval
                       )
                     }
@@ -275,7 +296,7 @@ export function PlanComparison({
                     className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
                     onClick={() =>
                       onUpgrade(
-                        plan.key as "STARTER" | "PROFESSIONAL",
+                        plan.key as "SOLO" | "STARTER" | "PROFESSIONAL",
                         interval
                       )
                     }

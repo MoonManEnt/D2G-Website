@@ -11,6 +11,7 @@ import { checkoutSchema } from "@/lib/api-validation-schemas";
 import { createLogger } from "@/lib/logger";
 import {
   FREE_TIER_FLAGS,
+  SOLO_TIER_FLAGS,
   STARTER_TIER_FLAGS,
   PROFESSIONAL_TIER_FLAGS,
   ENTERPRISE_TIER_FLAGS,
@@ -19,7 +20,7 @@ import {
 const log = createLogger("billing-checkout-api");
 
 // Tier hierarchy (lower index = lower tier)
-const TIER_ORDER = ["FREE", "STARTER", "PROFESSIONAL", "ENTERPRISE"] as const;
+const TIER_ORDER = ["FREE", "SOLO", "STARTER", "PROFESSIONAL", "ENTERPRISE"] as const;
 type TierType = (typeof TIER_ORDER)[number];
 
 // Get feature flags for a tier
@@ -27,6 +28,8 @@ function getTierLimits(tier: TierType): FeatureFlags {
   switch (tier) {
     case "FREE":
       return FREE_TIER_FLAGS;
+    case "SOLO":
+      return SOLO_TIER_FLAGS;
     case "STARTER":
       return STARTER_TIER_FLAGS;
     case "PROFESSIONAL":

@@ -15,6 +15,7 @@ export enum UserRole {
 
 export enum SubscriptionTier {
   FREE = "FREE",
+  SOLO = "SOLO",
   STARTER = "STARTER",
   PROFESSIONAL = "PROFESSIONAL",
   ENTERPRISE = "ENTERPRISE",
@@ -514,12 +515,35 @@ export const FREE_TIER_FLAGS: FeatureFlags = {
   canUseAPI: false,
   canUseCFPB: false,
   canUseSentryMode: false,
-  maxClients: 5,
-  maxReportsPerMonth: 10,
-  maxDisputesPerMonth: 15,
-  maxLettersPerMonth: 15,
+  maxClients: 3,
+  maxReportsPerMonth: 5,
+  maxDisputesPerMonth: 10,
+  maxLettersPerMonth: 10,
   maxTeamSeats: 1,
   storageQuotaBytes: 524288000, // 500MB
+};
+
+export const SOLO_TIER_FLAGS: FeatureFlags = {
+  canUploadReports: true,
+  canGenerateLetters: true,
+  canGenerateCFPB: false,
+  canUseEvidence: true,
+  canViewDiff: true,
+  canExportDocuments: true,
+  canUseAILetters: true,
+  canUseBulkDisputes: false,
+  canUseLitigationScanner: false,
+  canUseCreditDNA: true,
+  canUseWhiteLabel: false,
+  canUseAPI: false,
+  canUseCFPB: false,
+  canUseSentryMode: false,
+  maxClients: 10,
+  maxReportsPerMonth: 15,
+  maxDisputesPerMonth: 40,
+  maxLettersPerMonth: 40,
+  maxTeamSeats: 1,
+  storageQuotaBytes: 2147483648, // 2GB
 };
 
 export const STARTER_TIER_FLAGS: FeatureFlags = {
@@ -539,10 +563,10 @@ export const STARTER_TIER_FLAGS: FeatureFlags = {
   canUseSentryMode: false,
   maxClients: 50,
   maxReportsPerMonth: 50,
-  maxDisputesPerMonth: 100,
-  maxLettersPerMonth: 100,
+  maxDisputesPerMonth: 150,
+  maxLettersPerMonth: 150,
   maxTeamSeats: 5,
-  storageQuotaBytes: 5368709120, // 5GB
+  storageQuotaBytes: 10737418240, // 10GB
 };
 
 export const PROFESSIONAL_TIER_FLAGS: FeatureFlags = {
@@ -562,10 +586,10 @@ export const PROFESSIONAL_TIER_FLAGS: FeatureFlags = {
   canUseSentryMode: true,
   maxClients: 250,
   maxReportsPerMonth: 200,
-  maxDisputesPerMonth: 400,
-  maxLettersPerMonth: 400,
+  maxDisputesPerMonth: 500,
+  maxLettersPerMonth: 500,
   maxTeamSeats: 15,
-  storageQuotaBytes: 26843545600, // 25GB
+  storageQuotaBytes: 53687091200, // 50GB
 };
 
 export const ENTERPRISE_TIER_FLAGS: FeatureFlags = {

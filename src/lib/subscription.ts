@@ -107,15 +107,20 @@ export const TIER_INFO: Record<SubscriptionTier, { name: string; description: st
     description: "View the platform and explore features",
     price: "$0/month",
   },
+  [SubscriptionTier.SOLO]: {
+    name: "Solo",
+    description: "AI-powered dispute tools for solo specialists",
+    price: "$79/month",
+  },
   [SubscriptionTier.STARTER]: {
     name: "Starter",
-    description: "Essential dispute tools for individuals",
-    price: "$149/month",
+    description: "Essential dispute tools for growing businesses",
+    price: "$129/month",
   },
   [SubscriptionTier.PROFESSIONAL]: {
     name: "Professional",
     description: "Full access to all dispute tools",
-    price: "$249/month",
+    price: "$199/month",
   },
   [SubscriptionTier.ENTERPRISE]: {
     name: "Enterprise",

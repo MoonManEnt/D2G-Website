@@ -247,7 +247,7 @@ export async function GET(
     }
 
     // Minimum tier check: Credit DNA requires STARTER or higher
-    const dnaTierOrder = ["FREE", "STARTER", "PROFESSIONAL", "ENTERPRISE"];
+    const dnaTierOrder = ["FREE", "SOLO", "STARTER", "PROFESSIONAL", "ENTERPRISE"];
     const dnaCurrentTier = (session.user.subscriptionTier as string) || "FREE";
     if (dnaTierOrder.indexOf(dnaCurrentTier) < dnaTierOrder.indexOf("STARTER")) {
       return NextResponse.json(
@@ -336,7 +336,7 @@ export async function POST(
     }
 
     // Minimum tier check: Credit DNA requires STARTER or higher
-    const postDnaTierOrder = ["FREE", "STARTER", "PROFESSIONAL", "ENTERPRISE"];
+    const postDnaTierOrder = ["FREE", "SOLO", "STARTER", "PROFESSIONAL", "ENTERPRISE"];
     const postDnaCurrentTier = (session.user.subscriptionTier as string) || "FREE";
     if (postDnaTierOrder.indexOf(postDnaCurrentTier) < postDnaTierOrder.indexOf("STARTER")) {
       return NextResponse.json(
