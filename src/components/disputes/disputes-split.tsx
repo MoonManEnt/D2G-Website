@@ -15,6 +15,8 @@ import {
   Square,
   ChevronDown,
   ChevronUp,
+  Shield,
+  Zap,
 } from "lucide-react";
 import { useToast } from "@/lib/use-toast";
 
@@ -690,7 +692,7 @@ export function DisputesSplit({ initialClient }: DisputesSplitProps) {
             <p className="text-muted-foreground mt-1">Create and manage credit report dispute letters</p>
           </div>
 
-          {/* Client Selector Badge + Sentry Toggle */}
+          {/* Client Selector Badge */}
           <div className="flex items-center gap-3">
             <select
               value={selectedClientId}
@@ -704,18 +706,6 @@ export function DisputesSplit({ initialClient }: DisputesSplitProps) {
                 </option>
               ))}
             </select>
-
-            {/* Sentry Mode Toggle */}
-            {selectedClientId && (
-              <SentryModeToggle
-                clientId={selectedClientId}
-                enabled={sentryModeEnabled}
-                onToggle={(enabled) => {
-                  setSentryModeEnabled(enabled);
-                  if (!enabled) setShowSentryAnalysis(false);
-                }}
-              />
-            )}
 
             {client && (
               <div className="flex items-center gap-3 px-5 py-3 bg-card border border-border rounded-2xl shadow-sm">
@@ -770,6 +760,92 @@ export function DisputesSplit({ initialClient }: DisputesSplitProps) {
         </div>
       </Reveal>
 
+      {/* Sentry Mode Banner */}
+      {selectedClientId && (
+        <Reveal delay={110}>
+          <Card className={cn(
+            "relative overflow-hidden border transition-all duration-300",
+            sentryModeEnabled
+              ? "bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border-emerald-500/30"
+              : "bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-primary/20"
+          )}>
+            <div className="flex items-center justify-between p-4">
+              <div className="flex items-center gap-4">
+                <div className={cn(
+                  "w-12 h-12 rounded-xl flex items-center justify-center",
+                  sentryModeEnabled
+                    ? "bg-emerald-500/20 border border-emerald-500/30"
+                    : "bg-primary/10 border border-primary/20"
+                )}>
+                  <Shield className={cn("w-6 h-6", sentryModeEnabled ? "text-emerald-400" : "text-primary")} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold tracking-wide">SENTRY MODE</h3>
+                    {sentryModeEnabled && (
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                      </span>
+                    )}
+                    <Badge variant="outline" className={cn(
+                      "text-[10px] px-2 py-0",
+                      sentryModeEnabled
+                        ? "border-emerald-500/40 text-emerald-400"
+                        : "border-input text-muted-foreground"
+                    )}>
+                      {sentryModeEnabled ? "ACTIVE" : "OFF"}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {sentryModeEnabled
+                      ? "AI intelligence is optimizing disputes with e-OSCAR codes, legal citations, and Metro 2 targeting"
+                      : "Enable autonomous AI-powered dispute intelligence for this client"
+                    }
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {sentryModeEnabled && !showSentryAnalysis && (
+                  <Button
+                    size="sm"
+                    className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                    onClick={() => setShowSentryAnalysis(true)}
+                  >
+                    <Zap className="w-4 h-4" />
+                    Run Sentry Analysis
+                  </Button>
+                )}
+                {sentryModeEnabled && showSentryAnalysis && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-2 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+                    onClick={() => setShowSentryAnalysis(false)}
+                  >
+                    Close Analysis
+                  </Button>
+                )}
+                <SentryModeToggle
+                  clientId={selectedClientId}
+                  enabled={sentryModeEnabled}
+                  onToggle={(enabled) => {
+                    setSentryModeEnabled(enabled);
+                    if (!enabled) setShowSentryAnalysis(false);
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Decorative gradient */}
+            {sentryModeEnabled && (
+              <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
+            )}
+          </Card>
+        </Reveal>
+      )}
+
       {/* Sentry Analysis Panel - Shown when Sentry Mode is active */}
       {sentryModeEnabled && showSentryAnalysis && selectedClientId && (
         <Reveal delay={120}>
@@ -780,20 +856,6 @@ export function DisputesSplit({ initialClient }: DisputesSplitProps) {
               toast({ title: "Sentry disputes created", description: "Review and approve the generated letters." });
             }}
           />
-        </Reveal>
-      )}
-
-      {/* Sentry Analyze Button - Quick action when Sentry is on */}
-      {sentryModeEnabled && !showSentryAnalysis && selectedClientId && (
-        <Reveal delay={120}>
-          <Button
-            variant="outline"
-            className="w-full border-primary/30 text-primary hover:bg-primary/10"
-            onClick={() => setShowSentryAnalysis(true)}
-          >
-            <Sparkles className="w-4 h-4 mr-2" />
-            Sentry Analyze — AI-Optimized Dispute Generation
-          </Button>
         </Reveal>
       )}
 

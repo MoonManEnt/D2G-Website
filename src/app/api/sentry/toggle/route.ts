@@ -83,8 +83,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      enabled,
       sentryModeEnabled: enabled,
       clientId,
+      message: `Sentry Mode ${enabled ? "activated" : "deactivated"} for ${client.firstName} ${client.lastName}`,
     });
   } catch (error) {
     log.error({ err: error }, "Sentry toggle failed");
