@@ -158,9 +158,9 @@ export const PRICING_TIERS = [
   },
   {
     name: "Starter",
-    price: 49,
+    price: 149,
     period: "month",
-    description: "For growing specialists",
+    description: "For growing credit repair businesses",
     highlight: false,
     cta: "Start Free Trial",
     features: [
@@ -175,9 +175,9 @@ export const PRICING_TIERS = [
   },
   {
     name: "Professional",
-    price: 99,
+    price: 249,
     period: "month",
-    description: "For serious businesses",
+    description: "Full power for professionals",
     highlight: true,
     badge: "Most Popular",
     cta: "Start Free Trial",
@@ -196,7 +196,7 @@ export const PRICING_TIERS = [
     name: "Enterprise",
     price: null,
     period: "custom",
-    description: "For large operations",
+    description: "Custom solutions at scale",
     highlight: false,
     cta: "Contact Sales",
     features: [
@@ -507,7 +507,7 @@ export const PRICING_FAQ = [
   {
     question: "Do you offer annual billing?",
     answer:
-      "Yes — save 20% with annual billing. Starter drops to $39/mo and Professional drops to $79/mo when paid annually.",
+      "Yes — save 20% with annual billing. Starter drops to $119/mo and Professional drops to $199/mo when paid annually.",
   },
   {
     question: "What counts as an 'active client'?",
