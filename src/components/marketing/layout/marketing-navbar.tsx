@@ -40,7 +40,7 @@ export function MarketingNavbar() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 shrink-0">
             <Image
-              src="/logos/d2g-logo-64.png"
+              src="/logos/d2g-logo.svg"
               alt="Dispute2Go"
               width={32}
               height={32}

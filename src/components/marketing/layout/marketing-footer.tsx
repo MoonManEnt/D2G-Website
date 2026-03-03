@@ -11,11 +11,11 @@ export function MarketingFooter() {
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4">
               <Image
-                src="/logos/d2g-logo-64.png"
+                src="/logos/d2g-logo.svg"
                 alt="Dispute2Go"
                 width={32}
                 height={32}
-                className="w-8 h-8"
+                className="w-8 h-8 brightness-0 invert"
               />
               <span className="font-semibold text-lg text-white">
                 Dispute2Go
