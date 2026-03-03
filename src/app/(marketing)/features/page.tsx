@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, Check, Minus } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -160,10 +161,14 @@ export default function FeaturesPage() {
                 ))}
               </ul>
             </div>
-            <div className="rounded-xl border border-slate-200 shadow-lg bg-white aspect-[4/3] flex items-center justify-center">
-              <span className="text-sm text-slate-400">
-                AMELIA AI screenshot
-              </span>
+            <div className="rounded-xl border border-slate-200 shadow-lg bg-white aspect-[4/3] flex items-center justify-center p-8">
+              <Image
+                src="/logos/amelia-orb.png"
+                alt="AMELIA AI Engine"
+                width={500}
+                height={500}
+                className="w-full h-full object-contain"
+              />
             </div>
           </div>
 
