@@ -63,21 +63,21 @@ const TYPE_CONFIG: Record<
   }
 > = {
   CRA: {
-    color: "text-blue-400",
+    color: "text-blue-600 dark:text-blue-400",
     bg: "bg-blue-500/15",
     border: "border-blue-500/30",
     icon: Landmark,
     label: "Credit Reporting Agency",
   },
   FURNISHER: {
-    color: "text-purple-400",
+    color: "text-purple-600 dark:text-purple-400",
     bg: "bg-purple-500/15",
     border: "border-purple-500/30",
     icon: Building2,
     label: "Data Furnisher",
   },
   COLLECTOR: {
-    color: "text-red-400",
+    color: "text-red-600 dark:text-red-400",
     bg: "bg-red-500/15",
     border: "border-red-500/30",
     icon: AlertTriangle,
@@ -219,10 +219,10 @@ function DefendantCard({
             <Badge
               className={`text-xs font-bold px-2.5 py-0.5 border-0 ${
                 defendant.violationCount >= 5
-                  ? "bg-red-500/20 text-red-400"
+                  ? "bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400"
                   : defendant.violationCount >= 3
-                  ? "bg-orange-500/20 text-orange-400"
-                  : "bg-yellow-500/20 text-yellow-400"
+                  ? "bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400"
+                  : "bg-yellow-100 dark:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400"
               }`}
             >
               {defendant.violationCount}
@@ -234,7 +234,7 @@ function DefendantCard({
             <p className="text-[10px] text-muted-foreground mb-0.5">
               Estimated Liability
             </p>
-            <p className="text-sm font-bold text-emerald-400">
+            <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
               {formatCurrency(defendant.estimatedLiabilityMin)} -{" "}
               {formatCurrency(defendant.estimatedLiabilityMax)}
             </p>
@@ -355,10 +355,10 @@ function DefendantCard({
               }`}
             >
               <div className="flex items-center gap-1.5 mb-0.5">
-                <Mail className={`w-3 h-3 ${isServed ? "text-emerald-400" : "text-red-400"}`} />
+                <Mail className={`w-3 h-3 ${isServed ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`} />
                 <p className="text-[10px] text-muted-foreground">Service</p>
               </div>
-              <p className={`text-xs font-medium ${isServed ? "text-emerald-400" : "text-red-400"}`}>
+              <p className={`text-xs font-medium ${isServed ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
                 {isServed
                   ? `Served ${defendant.servedAt ? formatDate(defendant.servedAt) : ""}`
                   : "Not Served"}
@@ -372,9 +372,9 @@ function DefendantCard({
                 <p className="text-[10px] text-muted-foreground">Response</p>
               </div>
               {defendant.hasResponded ? (
-                <p className="text-xs font-medium text-emerald-400">Responded</p>
+                <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">Responded</p>
               ) : defendant.responseDeadline ? (
-                <p className="text-xs font-medium text-amber-400">
+                <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
                   Due {formatDate(defendant.responseDeadline)}
                 </p>
               ) : (

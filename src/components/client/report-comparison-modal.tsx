@@ -172,7 +172,7 @@ const ScoreChart = ({ reports }: { reports: CreditReportData[] }) => {
   // If no valid data, show a placeholder message
   if (!hasValidScores) {
     return (
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+      <div className="bg-zinc-100/50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
         <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
           <BarChart2 size={16} className="text-primary" />
           Score Progression Over Time
@@ -185,7 +185,7 @@ const ScoreChart = ({ reports }: { reports: CreditReportData[] }) => {
   }
 
   return (
-    <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+    <div className="bg-zinc-100/50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
       <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
         <BarChart2 size={16} className="text-primary" />
         Score Progression Over Time
@@ -318,8 +318,8 @@ const ComparisonTable = ({ reports }: { reports: CreditReportData[] }) => {
   ];
 
   return (
-    <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
-      <div className="p-4 border-b border-zinc-800">
+    <div className="bg-zinc-100/50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
+      <div className="p-4 border-b border-zinc-200 dark:border-zinc-800">
         <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
           <GitCompare size={16} className="text-primary" />
           First vs Latest Report
@@ -329,7 +329,7 @@ const ComparisonTable = ({ reports }: { reports: CreditReportData[] }) => {
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-zinc-800">
+            <tr className="border-b border-zinc-200 dark:border-zinc-800">
               <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500">Metric</th>
               <th className="px-4 py-3 text-center text-xs font-medium text-zinc-500">
                 {safeFormat(oldest.reportDate, "MMM d, yyyy")}
@@ -349,7 +349,7 @@ const ComparisonTable = ({ reports }: { reports: CreditReportData[] }) => {
               const newScore = latest.bureaus?.[bureau.key]?.score ?? null;
               const change = getChange(newScore, oldScore);
               return (
-                <tr key={bureau.key} className="border-b border-zinc-800/50">
+                <tr key={bureau.key} className="border-b border-zinc-200/50 dark:border-zinc-800/50">
                   <td className={`px-4 py-3 text-sm font-medium ${bureau.color}`}>{bureau.label} Score</td>
                   <td className="px-4 py-3 text-center text-sm text-foreground">{oldScore ?? "—"}</td>
                   <td className="px-4 py-3 text-center">
@@ -371,7 +371,7 @@ const ComparisonTable = ({ reports }: { reports: CreditReportData[] }) => {
                 </tr>
               );
             })}
-            <tr className="border-b border-zinc-800/50 bg-zinc-800/20">
+            <tr className="border-b border-zinc-200/50 dark:border-zinc-800/50 bg-zinc-800/20">
               <td className="px-4 py-3 text-sm font-medium text-foreground">Negative Items</td>
               <td className="px-4 py-3 text-center text-sm text-red-400">{oldest.summary?.negativeItems ?? 0}</td>
               <td className="px-4 py-3 text-center">
@@ -395,7 +395,7 @@ const ComparisonTable = ({ reports }: { reports: CreditReportData[] }) => {
                 </span>
               </td>
             </tr>
-            <tr className="border-b border-zinc-800/50">
+            <tr className="border-b border-zinc-200/50 dark:border-zinc-800/50">
               <td className="px-4 py-3 text-sm font-medium text-foreground">Collections</td>
               <td className="px-4 py-3 text-center text-sm text-orange-400">{oldest.summary?.collections ?? 0}</td>
               <td className="px-4 py-3 text-center">
@@ -548,7 +548,7 @@ const InsightsPanel = ({ reports }: { reports: CreditReportData[] }) => {
   if (insights.length === 0) return null;
 
   return (
-    <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+    <div className="bg-zinc-100/50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
       <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
         <Target size={16} className="text-purple-400" />
         Key Insights
@@ -662,11 +662,11 @@ export function ReportComparisonModal({
             onClick={onClose}
           >
             <div
-              className="w-full max-w-4xl max-h-[90vh] rounded-2xl bg-zinc-900 border border-zinc-800 shadow-2xl shadow-black/50 overflow-hidden flex flex-col"
+              className="w-full max-w-4xl max-h-[90vh] rounded-2xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl shadow-black/50 overflow-hidden flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="p-5 border-b border-zinc-800 flex items-center justify-between">
+              <div className="p-5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-primary/20">
                     <GitCompare size={20} className="text-primary" />
@@ -686,7 +686,7 @@ export function ReportComparisonModal({
 
               {/* Summary Stats */}
               {summaryStats && (
-                <div className="p-5 border-b border-zinc-800 bg-zinc-800/30">
+                <div className="p-5 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-800/30">
                   <div className="grid grid-cols-4 gap-4">
                     <div className="text-center">
                       <p className="text-2xl font-bold text-foreground">{summaryStats.latestAvg || "—"}</p>
@@ -731,7 +731,7 @@ export function ReportComparisonModal({
               </div>
 
               {/* Footer */}
-              <div className="p-4 border-t border-zinc-800 flex justify-end gap-3">
+              <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 flex justify-end gap-3">
                 <Button variant="ghost" onClick={onClose}>
                   Close
                 </Button>

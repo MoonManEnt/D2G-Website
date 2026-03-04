@@ -47,15 +47,18 @@ const toastVariants = cva(
         ].join(" "),
         destructive: [
           "destructive group",
-          "border-red-500/30 bg-gradient-to-r from-red-950/95 to-red-900/90 text-red-50",
+          "bg-red-50 border-red-200 text-red-900",
+          "dark:bg-gradient-to-r dark:from-red-950/95 dark:to-red-900/90 dark:border-red-500/30 dark:text-red-50",
           "shadow-red-900/30",
         ].join(" "),
         success: [
-          "border-emerald-500/30 bg-gradient-to-r from-emerald-950/95 to-emerald-900/90 text-emerald-50",
+          "bg-emerald-50 border-emerald-200 text-emerald-900",
+          "dark:bg-gradient-to-r dark:from-emerald-950/95 dark:to-emerald-900/90 dark:border-emerald-500/30 dark:text-emerald-50",
           "shadow-emerald-900/30",
         ].join(" "),
         warning: [
-          "border-amber-500/30 bg-gradient-to-r from-amber-950/95 to-amber-900/90 text-amber-50",
+          "bg-amber-50 border-amber-200 text-amber-900",
+          "dark:bg-gradient-to-r dark:from-amber-950/95 dark:to-amber-900/90 dark:border-amber-500/30 dark:text-amber-50",
           "shadow-amber-900/30",
         ].join(" "),
       },
@@ -72,11 +75,11 @@ const ToastIcon = ({ variant }: { variant?: "default" | "destructive" | "success
 
   switch (variant) {
     case "success":
-      return <CheckCircle2 className={cn(iconClass, "text-emerald-400 animate-in zoom-in-50 duration-300")} />;
+      return <CheckCircle2 className={cn(iconClass, "text-emerald-600 dark:text-emerald-400 animate-in zoom-in-50 duration-300")} />;
     case "destructive":
-      return <AlertCircle className={cn(iconClass, "text-red-400 animate-in zoom-in-50 duration-300")} />;
+      return <AlertCircle className={cn(iconClass, "text-red-600 dark:text-red-400 animate-in zoom-in-50 duration-300")} />;
     case "warning":
-      return <AlertCircle className={cn(iconClass, "text-amber-400 animate-in zoom-in-50 duration-300")} />;
+      return <AlertCircle className={cn(iconClass, "text-amber-600 dark:text-amber-400 animate-in zoom-in-50 duration-300")} />;
     default:
       return <Info className={cn(iconClass, "text-primary animate-in zoom-in-50 duration-300")} />;
   }

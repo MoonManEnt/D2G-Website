@@ -113,11 +113,11 @@ function StatCard({
   color: string;
 }) {
   const colorClasses: Record<string, { bg: string; text: string; icon: string }> = {
-    purple: { bg: "bg-purple-500/10", text: "text-purple-400", icon: "text-purple-400" },
-    red: { bg: "bg-red-500/10", text: "text-red-400", icon: "text-red-400" },
-    emerald: { bg: "bg-emerald-500/10", text: "text-emerald-400", icon: "text-emerald-400" },
+    purple: { bg: "bg-purple-500/10", text: "text-purple-600 dark:text-purple-400", icon: "text-purple-600 dark:text-purple-400" },
+    red: { bg: "bg-red-500/10", text: "text-red-600 dark:text-red-400", icon: "text-red-600 dark:text-red-400" },
+    emerald: { bg: "bg-emerald-500/10", text: "text-emerald-600 dark:text-emerald-400", icon: "text-emerald-600 dark:text-emerald-400" },
     blue: { bg: "bg-primary/10", text: "text-primary", icon: "text-primary" },
-    amber: { bg: "bg-amber-500/10", text: "text-amber-400", icon: "text-amber-400" },
+    amber: { bg: "bg-amber-500/10", text: "text-amber-600 dark:text-amber-400", icon: "text-amber-600 dark:text-amber-400" },
   };
 
   const colors = colorClasses[color] || colorClasses.purple;
@@ -390,7 +390,7 @@ export default function LitigationOverviewPage() {
       <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Gavel className="w-6 h-6 text-purple-400" />
+            <Gavel className="w-6 h-6 text-purple-600 dark:text-purple-400" />
             Litigation Center
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -465,8 +465,8 @@ export default function LitigationOverviewPage() {
               <Card className="bg-purple-500/5 border-purple-500/20">
                 <CardContent className="p-5">
                   <div className="flex items-start gap-4">
-                    <div className="p-2 rounded-lg bg-purple-500/20">
-                      <TrendingUp className="w-5 h-5 text-purple-400" />
+                    <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-500/20">
+                      <TrendingUp className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-medium text-foreground mb-1">
@@ -575,7 +575,7 @@ export default function LitigationOverviewPage() {
                     {/* Scan Status */}
                     <div className="col-span-2">
                       {client.scanSummary ? (
-                        <Badge className="bg-emerald-500/20 text-emerald-400 text-xs">
+                        <Badge className="bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs">
                           {client.scanSummary.totalScans} scan{client.scanSummary.totalScans !== 1 ? "s" : ""}
                         </Badge>
                       ) : (
@@ -593,12 +593,12 @@ export default function LitigationOverviewPage() {
                             {client.scanSummary.totalViolations}
                           </span>
                           {client.scanSummary.criticalCount > 0 && (
-                            <Badge className="text-[10px] bg-red-500/20 text-red-400">
+                            <Badge className="text-[10px] bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400">
                               {client.scanSummary.criticalCount} crit
                             </Badge>
                           )}
                           {client.scanSummary.highCount > 0 && (
-                            <Badge className="text-[10px] bg-orange-500/20 text-orange-400">
+                            <Badge className="text-[10px] bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400">
                               {client.scanSummary.highCount} high
                             </Badge>
                           )}
@@ -612,7 +612,7 @@ export default function LitigationOverviewPage() {
                     <div className="col-span-2">
                       {client.scanSummary && client.scanSummary.estimatedDamagesMax > 0 ? (
                         <div>
-                          <p className="text-sm font-medium text-emerald-400">
+                          <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
                             {formatCurrency(client.scanSummary.estimatedDamagesMin)}
                           </p>
                           <p className="text-[10px] text-muted-foreground">
@@ -639,7 +639,7 @@ export default function LitigationOverviewPage() {
                     <div className="col-span-1 flex justify-end">
                       <Link
                         href={`/clients/${client.id}/litigation`}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-purple-400 hover:bg-purple-500/10 transition-colors"
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 transition-colors"
                       >
                         View
                         <ChevronRight className="w-3 h-3" />
@@ -658,7 +658,7 @@ export default function LitigationOverviewPage() {
         <>
           {casesLoading ? (
             <motion.div variants={itemVariants} className="flex items-center justify-center py-20">
-              <Loader2 className="w-6 h-6 animate-spin text-purple-400 mr-2" />
+              <Loader2 className="w-6 h-6 animate-spin text-purple-600 dark:text-purple-400 mr-2" />
               <span className="text-muted-foreground">Loading litigation cases...</span>
             </motion.div>
           ) : activeCases.length === 0 ? (
@@ -728,19 +728,19 @@ export default function LitigationOverviewPage() {
                 <div className="divide-y divide-border">
                   {activeCases.map((caseItem, index) => {
                     const statusColors: Record<string, string> = {
-                      OPEN: "bg-blue-500/20 text-blue-400",
-                      IN_PROGRESS: "bg-amber-500/20 text-amber-400",
-                      SETTLED: "bg-emerald-500/20 text-emerald-400",
-                      WON: "bg-emerald-500/20 text-emerald-400",
-                      LOST: "bg-red-500/20 text-red-400",
-                      DISMISSED: "bg-slate-500/20 text-slate-400",
-                      CLOSED: "bg-slate-500/20 text-slate-400",
+                      OPEN: "bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400",
+                      IN_PROGRESS: "bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400",
+                      SETTLED: "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400",
+                      WON: "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400",
+                      LOST: "bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400",
+                      DISMISSED: "bg-slate-100 dark:bg-slate-500/20 text-slate-600 dark:text-slate-400",
+                      CLOSED: "bg-slate-100 dark:bg-slate-500/20 text-slate-600 dark:text-slate-400",
                     };
 
                     const strengthColors: Record<string, string> = {
-                      STRONG: "text-emerald-400",
-                      MODERATE: "text-amber-400",
-                      WEAK: "text-red-400",
+                      STRONG: "text-emerald-600 dark:text-emerald-400",
+                      MODERATE: "text-amber-600 dark:text-amber-400",
+                      WEAK: "text-red-600 dark:text-red-400",
                     };
 
                     return (
@@ -776,7 +776,7 @@ export default function LitigationOverviewPage() {
                         </div>
 
                         <div className="col-span-2">
-                          <p className="text-sm font-medium text-emerald-400">
+                          <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
                             {formatCurrency(caseItem.estimatedDamagesMin)}
                           </p>
                           <p className="text-[10px] text-muted-foreground">
@@ -802,7 +802,7 @@ export default function LitigationOverviewPage() {
                         <div className="col-span-1 flex justify-end">
                           <Link
                             href={`/clients/${caseItem.clientId}/litigation/case/${caseItem.id}`}
-                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-purple-400 hover:bg-purple-500/10 transition-colors"
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 transition-colors"
                           >
                             Open
                             <ArrowRight className="w-3 h-3" />

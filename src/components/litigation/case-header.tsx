@@ -31,38 +31,38 @@ interface CaseHeaderProps {
 
 const STATUS_CONFIG: Record<string, { color: string; bg: string; border: string }> = {
   OPEN: {
-    color: "text-blue-400",
-    bg: "bg-blue-500/20",
+    color: "text-blue-600 dark:text-blue-400",
+    bg: "bg-blue-100 dark:bg-blue-500/20",
     border: "border-blue-500/30",
   },
   IN_PROGRESS: {
-    color: "text-amber-400",
-    bg: "bg-amber-500/20",
+    color: "text-amber-600 dark:text-amber-400",
+    bg: "bg-amber-100 dark:bg-amber-500/20",
     border: "border-amber-500/30",
   },
   SETTLED: {
-    color: "text-emerald-400",
-    bg: "bg-emerald-500/20",
+    color: "text-emerald-600 dark:text-emerald-400",
+    bg: "bg-emerald-100 dark:bg-emerald-500/20",
     border: "border-emerald-500/30",
   },
   WON: {
-    color: "text-emerald-400",
-    bg: "bg-emerald-500/20",
+    color: "text-emerald-600 dark:text-emerald-400",
+    bg: "bg-emerald-100 dark:bg-emerald-500/20",
     border: "border-emerald-500/30",
   },
   LOST: {
-    color: "text-red-400",
-    bg: "bg-red-500/20",
+    color: "text-red-600 dark:text-red-400",
+    bg: "bg-red-100 dark:bg-red-500/20",
     border: "border-red-500/30",
   },
   DISMISSED: {
-    color: "text-slate-400",
-    bg: "bg-slate-500/20",
+    color: "text-slate-600 dark:text-slate-400",
+    bg: "bg-slate-100 dark:bg-slate-500/20",
     border: "border-slate-500/30",
   },
   CLOSED: {
-    color: "text-slate-400",
-    bg: "bg-slate-500/20",
+    color: "text-slate-600 dark:text-slate-400",
+    bg: "bg-slate-100 dark:bg-slate-500/20",
     border: "border-slate-500/30",
   },
 };
@@ -133,7 +133,7 @@ export function CaseHeader({ case: caseData }: CaseHeaderProps) {
                 {/* Violations */}
                 <div className="bg-background rounded-lg px-4 py-3 border border-border">
                   <div className="flex items-center gap-2 mb-1">
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                     <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                       Violations
                     </span>
@@ -150,7 +150,7 @@ export function CaseHeader({ case: caseData }: CaseHeaderProps) {
                       Est. Damages
                     </span>
                   </div>
-                  <p className="text-sm font-bold text-emerald-400">
+                  <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
                     {formatCurrency(caseData.estimatedDamagesMin)} -{" "}
                     {formatCurrency(caseData.estimatedDamagesMax)}
                   </p>

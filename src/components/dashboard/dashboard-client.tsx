@@ -830,7 +830,7 @@ export function DashboardClient({
                     >
                       <BreathingDot color={catColor} />
                       <span className="text-xs text-muted-foreground">
-                        Target: <strong className="text-emerald-400">{displayClient.bureaus[0].goal}</strong>
+                        Target: <strong className="text-emerald-600 dark:text-emerald-400">{displayClient.bureaus[0].goal}</strong>
                       </span>
                       <div className="w-px h-3.5 bg-border" />
                       <span className="text-xs text-muted-foreground">
@@ -842,7 +842,7 @@ export function DashboardClient({
                       <div className="w-px h-3.5 bg-border" />
                       <span className="text-xs text-muted-foreground">
                         Journey:{" "}
-                        <strong className="text-emerald-400">
+                        <strong className="text-emerald-600 dark:text-emerald-400">
                           {Math.min(100, Math.round(((composite - 300) / (displayClient.bureaus[0].goal - 300)) * 100))}%
                         </strong>
                       </span>

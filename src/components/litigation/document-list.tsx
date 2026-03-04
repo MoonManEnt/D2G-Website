@@ -46,28 +46,28 @@ const APPROVAL_STATUS_CONFIG: Record<
   { color: string; bg: string; label: string }
 > = {
   DRAFT: {
-    color: "text-slate-400",
-    bg: "bg-slate-500/20",
+    color: "text-slate-600 dark:text-slate-400",
+    bg: "bg-slate-100 dark:bg-slate-500/20",
     label: "Draft",
   },
   PENDING_REVIEW: {
-    color: "text-amber-400",
-    bg: "bg-amber-500/20",
+    color: "text-amber-600 dark:text-amber-400",
+    bg: "bg-amber-100 dark:bg-amber-500/20",
     label: "Pending Review",
   },
   APPROVED: {
-    color: "text-emerald-400",
-    bg: "bg-emerald-500/20",
+    color: "text-emerald-600 dark:text-emerald-400",
+    bg: "bg-emerald-100 dark:bg-emerald-500/20",
     label: "Approved",
   },
   SENT: {
-    color: "text-blue-400",
-    bg: "bg-blue-500/20",
+    color: "text-blue-600 dark:text-blue-400",
+    bg: "bg-blue-100 dark:bg-blue-500/20",
     label: "Sent",
   },
   FILED: {
-    color: "text-purple-400",
-    bg: "bg-purple-500/20",
+    color: "text-purple-600 dark:text-purple-400",
+    bg: "bg-purple-100 dark:bg-purple-500/20",
     label: "Filed",
   },
 };

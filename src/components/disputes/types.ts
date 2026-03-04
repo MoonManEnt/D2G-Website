@@ -148,9 +148,9 @@ export const FLOW_INFO: Record<string, { color: string; maxRounds: number; descr
 
 // CRA color configuration
 export const CRA_COLORS: Record<string, { bg: string; text: string; border: string; tailwind: string }> = {
-  TRANSUNION: { bg: "rgba(14, 165, 233, 0.15)", text: "#0ea5e9", border: "rgba(14, 165, 233, 0.3)", tailwind: "bg-sky-500/15 text-sky-400 border-sky-500/30" },
-  EXPERIAN: { bg: "rgba(59, 130, 246, 0.15)", text: "#3b82f6", border: "rgba(59, 130, 246, 0.3)", tailwind: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
-  EQUIFAX: { bg: "rgba(239, 68, 68, 0.15)", text: "#ef4444", border: "rgba(239, 68, 68, 0.3)", tailwind: "bg-red-500/15 text-red-400 border-red-500/30" },
+  TRANSUNION: { bg: "rgba(14, 165, 233, 0.15)", text: "#0ea5e9", border: "rgba(14, 165, 233, 0.3)", tailwind: "text-sky-700 bg-sky-100 dark:text-sky-400 dark:bg-sky-500/15 border-sky-500/30" },
+  EXPERIAN: { bg: "rgba(59, 130, 246, 0.15)", text: "#3b82f6", border: "rgba(59, 130, 246, 0.3)", tailwind: "text-blue-700 bg-blue-100 dark:text-blue-400 dark:bg-blue-500/15 border-blue-500/30" },
+  EQUIFAX: { bg: "rgba(239, 68, 68, 0.15)", text: "#ef4444", border: "rgba(239, 68, 68, 0.3)", tailwind: "text-red-700 bg-red-100 dark:text-red-400 dark:bg-red-500/15 border-red-500/30" },
 };
 
 // Round strategies for UI
@@ -163,10 +163,10 @@ export const ROUND_STRATEGIES: Record<number, { name: string; tone: string; stat
 
 // Status colors
 export const STATUS_COLORS: Record<string, string> = {
-  DRAFT: "bg-slate-500/20 text-slate-400",
-  APPROVED: "bg-blue-500/20 text-blue-400",
-  SENT: "bg-amber-500/20 text-amber-400",
-  RESPONDED: "bg-purple-500/20 text-purple-400",
-  RESOLVED: "bg-emerald-500/20 text-emerald-400",
-  ESCALATED: "bg-red-500/20 text-red-400",
+  DRAFT: "bg-slate-100 text-slate-700 dark:bg-slate-500/20 dark:text-slate-400",
+  APPROVED: "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400",
+  SENT: "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400",
+  RESPONDED: "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400",
+  RESOLVED: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400",
+  ESCALATED: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400",
 };

@@ -152,22 +152,22 @@ interface LitigationScan {
 // =============================================================================
 
 const SEVERITY_CONFIG: Record<string, { color: string; bg: string; border: string }> = {
-  CRITICAL: { color: "text-red-400", bg: "bg-red-500/20", border: "border-red-500/30" },
-  HIGH: { color: "text-orange-400", bg: "bg-orange-500/20", border: "border-orange-500/30" },
-  MEDIUM: { color: "text-amber-400", bg: "bg-amber-500/20", border: "border-amber-500/30" },
-  LOW: { color: "text-blue-400", bg: "bg-primary/20", border: "border-primary/30" },
+  CRITICAL: { color: "text-red-600 dark:text-red-400", bg: "bg-red-100 dark:bg-red-500/20", border: "border-red-500/30" },
+  HIGH: { color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-100 dark:bg-orange-500/20", border: "border-orange-500/30" },
+  MEDIUM: { color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-500/20", border: "border-amber-500/30" },
+  LOW: { color: "text-blue-600 dark:text-blue-400", bg: "bg-primary/20", border: "border-primary/30" },
 };
 
 const CATEGORY_CONFIG: Record<string, { color: string; bg: string; label: string }> = {
-  FCRA: { color: "text-purple-400", bg: "bg-purple-500/20", label: "FCRA" },
-  FDCPA: { color: "text-sky-400", bg: "bg-sky-500/20", label: "FDCPA" },
+  FCRA: { color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-100 dark:bg-purple-500/20", label: "FCRA" },
+  FDCPA: { color: "text-sky-600 dark:text-sky-400", bg: "bg-sky-100 dark:bg-sky-500/20", label: "FDCPA" },
   METRO2: { color: "text-teal-400", bg: "bg-teal-500/20", label: "Metro 2" },
 };
 
 const STRENGTH_CONFIG: Record<string, { color: string; bg: string }> = {
-  STRONG: { color: "text-emerald-400", bg: "from-emerald-500/20 to-emerald-600/10" },
-  MODERATE: { color: "text-amber-400", bg: "from-amber-500/20 to-amber-600/10" },
-  WEAK: { color: "text-red-400", bg: "from-red-500/20 to-red-600/10" },
+  STRONG: { color: "text-emerald-600 dark:text-emerald-400", bg: "from-emerald-500/20 to-emerald-600/10" },
+  MODERATE: { color: "text-amber-600 dark:text-amber-400", bg: "from-amber-500/20 to-amber-600/10" },
+  WEAK: { color: "text-red-600 dark:text-red-400", bg: "from-red-500/20 to-red-600/10" },
 };
 
 function formatDate(dateStr: string) {
@@ -247,7 +247,7 @@ function ViolationCard({ violation }: { violation: Violation }) {
         {/* Expand/Collapse for details */}
         <button
           onClick={() => setExpanded(!expanded)}
-          className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1"
+          className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-300 flex items-center gap-1"
         >
           {expanded ? "Hide details" : "Show details"}
           {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
@@ -335,16 +335,16 @@ function ScanResultsDisplay({ scan, clientId, onOpenCase }: { scan: LitigationSc
           className="rounded-xl bg-card border border-border p-4"
         >
           <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="w-4 h-4 text-red-400" />
+            <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
             <span className="text-xs text-muted-foreground">Total Violations</span>
           </div>
           <p className="text-2xl font-bold text-foreground">{scan.totalViolations}</p>
           <div className="flex gap-2 mt-1">
             {scan.criticalCount > 0 && (
-              <span className="text-[10px] text-red-400">{scan.criticalCount} critical</span>
+              <span className="text-[10px] text-red-600 dark:text-red-400">{scan.criticalCount} critical</span>
             )}
             {scan.highCount > 0 && (
-              <span className="text-[10px] text-orange-400">{scan.highCount} high</span>
+              <span className="text-[10px] text-orange-600 dark:text-orange-400">{scan.highCount} high</span>
             )}
           </div>
         </motion.div>
@@ -356,10 +356,10 @@ function ScanResultsDisplay({ scan, clientId, onOpenCase }: { scan: LitigationSc
           className="rounded-xl bg-card border border-border p-4"
         >
           <div className="flex items-center gap-2 mb-2">
-            <Scale className="w-4 h-4 text-purple-400" />
+            <Scale className="w-4 h-4 text-purple-600 dark:text-purple-400" />
             <span className="text-xs text-muted-foreground">FCRA Violations</span>
           </div>
-          <p className="text-2xl font-bold text-purple-400">{scan.fcraViolations}</p>
+          <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{scan.fcraViolations}</p>
         </motion.div>
 
         <motion.div
@@ -369,10 +369,10 @@ function ScanResultsDisplay({ scan, clientId, onOpenCase }: { scan: LitigationSc
           className="rounded-xl bg-card border border-border p-4"
         >
           <div className="flex items-center gap-2 mb-2">
-            <Shield className="w-4 h-4 text-sky-400" />
+            <Shield className="w-4 h-4 text-sky-600 dark:text-sky-400" />
             <span className="text-xs text-muted-foreground">FDCPA Violations</span>
           </div>
-          <p className="text-2xl font-bold text-sky-400">{scan.fdcpaViolations}</p>
+          <p className="text-2xl font-bold text-sky-600 dark:text-sky-400">{scan.fdcpaViolations}</p>
         </motion.div>
 
         <motion.div
@@ -382,10 +382,10 @@ function ScanResultsDisplay({ scan, clientId, onOpenCase }: { scan: LitigationSc
           className="rounded-xl bg-card border border-border p-4"
         >
           <div className="flex items-center gap-2 mb-2">
-            <Gavel className="w-4 h-4 text-emerald-400" />
+            <Gavel className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             <span className="text-xs text-muted-foreground">Est. Damages</span>
           </div>
-          <p className="text-lg font-bold text-emerald-400">
+          <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
             {formatCurrency(scan.estimatedTotalMin)}
           </p>
           <p className="text-xs text-muted-foreground">
@@ -501,7 +501,7 @@ function ScanResultsDisplay({ scan, clientId, onOpenCase }: { scan: LitigationSc
             </CardHeader>
             <CardContent>
               <div className="text-center py-4">
-                <p className="text-3xl font-bold text-emerald-400">
+                <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
                   {formatCurrency(scan.damageEstimate.totalMin)} - {formatCurrency(scan.damageEstimate.totalMax)}
                 </p>
               </div>
@@ -584,7 +584,7 @@ function ScanResultsDisplay({ scan, clientId, onOpenCase }: { scan: LitigationSc
             <Card className="bg-card border-border">
               <CardHeader className="pb-3">
                 <CardTitle className="text-foreground text-lg flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-amber-400" />
+                  <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                   Key Findings
                 </CardTitle>
               </CardHeader>
@@ -606,7 +606,7 @@ function ScanResultsDisplay({ scan, clientId, onOpenCase }: { scan: LitigationSc
             <Card className="bg-card border-border">
               <CardHeader className="pb-3">
                 <CardTitle className="text-foreground text-lg flex items-center gap-2">
-                  <Scale className="w-5 h-5 text-purple-400" />
+                  <Scale className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                   Causes of Action
                 </CardTitle>
               </CardHeader>
@@ -618,7 +618,7 @@ function ScanResultsDisplay({ scan, clientId, onOpenCase }: { scan: LitigationSc
                         <span className="text-sm font-medium text-foreground">{cause.shortName}</span>
                         <span className="text-xs text-muted-foreground font-mono">{cause.statute}</span>
                         {cause.isWillful && (
-                          <Badge className="text-[10px] bg-red-500/20 text-red-400">Willful</Badge>
+                          <Badge className="text-[10px] bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400">Willful</Badge>
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground">{cause.description}</p>
@@ -637,7 +637,7 @@ function ScanResultsDisplay({ scan, clientId, onOpenCase }: { scan: LitigationSc
             <Card className="bg-card border-border">
               <CardHeader className="pb-3">
                 <CardTitle className="text-foreground text-lg flex items-center gap-2">
-                  <Gavel className="w-5 h-5 text-red-400" />
+                  <Gavel className="w-5 h-5 text-red-600 dark:text-red-400" />
                   Potential Defendants
                 </CardTitle>
               </CardHeader>
@@ -658,7 +658,7 @@ function ScanResultsDisplay({ scan, clientId, onOpenCase }: { scan: LitigationSc
                       </div>
                       <div className="flex flex-wrap gap-1 mt-2">
                         {def.primaryStatutes.map((s, j) => (
-                          <span key={j} className="px-1.5 py-0.5 rounded text-[10px] bg-purple-500/20 text-purple-400">
+                          <span key={j} className="px-1.5 py-0.5 rounded text-[10px] bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400">
                             {s}
                           </span>
                         ))}
@@ -675,7 +675,7 @@ function ScanResultsDisplay({ scan, clientId, onOpenCase }: { scan: LitigationSc
             <Card className="bg-card border-border">
               <CardHeader className="pb-3">
                 <CardTitle className="text-foreground text-lg flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-red-400" />
+                  <Shield className="w-5 h-5 text-red-600 dark:text-red-400" />
                   Risk Factors
                 </CardTitle>
               </CardHeader>
@@ -768,13 +768,13 @@ function ScanResultsDisplay({ scan, clientId, onOpenCase }: { scan: LitigationSc
                           <div className="flex items-center gap-2 mb-1">
                             <span className="text-sm font-medium text-foreground">{step.title}</span>
                             {step.isCompleted && (
-                              <Badge className="text-[10px] bg-emerald-500/20 text-emerald-400">Completed</Badge>
+                              <Badge className="text-[10px] bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">Completed</Badge>
                             )}
                             {step.isCurrent && (
                               <Badge className="text-[10px] bg-primary/20 text-primary">Current</Badge>
                             )}
                             {step.isRecommended && !step.isCurrent && (
-                              <Badge className="text-[10px] bg-amber-500/20 text-amber-400">Recommended Next</Badge>
+                              <Badge className="text-[10px] bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400">Recommended Next</Badge>
                             )}
                           </div>
                           <p className="text-xs text-muted-foreground mb-2">{step.description}</p>
@@ -999,8 +999,8 @@ export default function ClientLitigationPage() {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
-          <AlertTriangle className="w-10 h-10 text-red-400 mx-auto mb-3" />
-          <p className="text-red-400 mb-4">{error}</p>
+          <AlertTriangle className="w-10 h-10 text-red-600 dark:text-red-400 mx-auto mb-3" />
+          <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
           <Button onClick={() => router.back()}>Go Back</Button>
         </div>
       </div>
@@ -1026,7 +1026,7 @@ export default function ClientLitigationPage() {
           </Link>
           <div>
             <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <Gavel className="w-6 h-6 text-purple-400" />
+              <Gavel className="w-6 h-6 text-purple-600 dark:text-purple-400" />
               Litigation Scanner
             </h1>
             <p className="text-muted-foreground text-sm">
@@ -1057,7 +1057,7 @@ export default function ClientLitigationPage() {
             exit={{ opacity: 0, y: -10 }}
             className="rounded-xl bg-purple-500/10 border border-purple-500/30 p-6 text-center"
           >
-            <Loader2 className="w-8 h-8 animate-spin text-purple-400 mx-auto mb-3" />
+            <Loader2 className="w-8 h-8 animate-spin text-purple-600 dark:text-purple-400 mx-auto mb-3" />
             <p className="text-purple-300 font-medium">Running Litigation Scan...</p>
             <p className="text-muted-foreground text-sm mt-1">
               Analyzing credit report data for FCRA, FDCPA, and Metro 2 violations.
@@ -1177,19 +1177,19 @@ export default function ClientLitigationPage() {
                               <div className="flex items-center gap-3 text-xs text-muted-foreground">
                                 <span>{scan.totalViolations} violations</span>
                                 <span className="text-muted-foreground">|</span>
-                                <span className="text-emerald-400">
+                                <span className="text-emerald-600 dark:text-emerald-400">
                                   {formatCurrency(scan.estimatedTotalMin)} - {formatCurrency(scan.estimatedTotalMax)}
                                 </span>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
                               {scan.criticalCount > 0 && (
-                                <Badge className="text-[10px] bg-red-500/20 text-red-400">
+                                <Badge className="text-[10px] bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400">
                                   {scan.criticalCount} critical
                                 </Badge>
                               )}
                               {scan.highCount > 0 && (
-                                <Badge className="text-[10px] bg-orange-500/20 text-orange-400">
+                                <Badge className="text-[10px] bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400">
                                   {scan.highCount} high
                                 </Badge>
                               )}
@@ -1202,10 +1202,10 @@ export default function ClientLitigationPage() {
                               e.stopPropagation();
                               setDeleteConfirmScanId(scan.id);
                             }}
-                            className="p-2 rounded-lg hover:bg-red-500/20 transition-colors flex-shrink-0"
+                            className="p-2 rounded-lg hover:bg-red-100 dark:bg-red-500/20 transition-colors flex-shrink-0"
                             title="Delete scan"
                           >
-                            <Trash2 className="w-4 h-4 text-red-400" />
+                            <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
                           </button>
                         </div>
                       );
@@ -1223,7 +1223,7 @@ export default function ClientLitigationPage() {
         <DialogContent className="bg-card border-border">
           <DialogHeader>
             <DialogTitle className="text-foreground flex items-center gap-2">
-              <Gavel className="w-5 h-5 text-purple-400" />
+              <Gavel className="w-5 h-5 text-purple-600 dark:text-purple-400" />
               Run Litigation Scan
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
@@ -1276,7 +1276,7 @@ export default function ClientLitigationPage() {
         <DialogContent className="bg-card border-border">
           <DialogHeader>
             <DialogTitle className="text-foreground flex items-center gap-2">
-              <Trash2 className="w-5 h-5 text-red-400" />
+              <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
               Delete Scan
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">

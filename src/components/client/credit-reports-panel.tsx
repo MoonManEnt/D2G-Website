@@ -301,7 +301,7 @@ const UploadZone = ({
   return (
     <div
       className={`relative border-2 border-dashed rounded-2xl p-6 transition-all cursor-pointer group ${
-        isDragging ? "border-blue-500 bg-primary/10" : "border-zinc-700 hover:border-zinc-600 hover:bg-zinc-800/30"
+        isDragging ? "border-blue-500 bg-primary/10" : "border-zinc-300 dark:border-zinc-700 hover:border-zinc-600 hover:bg-zinc-800/30"
       }`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -420,11 +420,11 @@ const PasteZone = ({
   }
 
   return (
-    <div className="border-2 border-dashed border-zinc-700 rounded-2xl p-4 hover:border-zinc-600 transition-all">
+    <div className="border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-2xl p-4 hover:border-zinc-600 transition-all">
       {/* Content Type Selector */}
       <div className="flex items-center gap-2 mb-3">
         <span className="text-xs text-zinc-500">Format:</span>
-        <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-lg p-0.5">
+        <div className="flex items-center bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-0.5">
           <button
             onClick={() => setContentType("json")}
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-all ${
@@ -460,8 +460,8 @@ const PasteZone = ({
               ? '{\n  "accounts": [...],\n  "consumer": {...}\n}'
               : "Paste HTML content from your credit report..."
           }
-          className={`w-full h-40 bg-zinc-900/50 border rounded-xl p-3 text-sm text-foreground placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 font-mono resize-none ${
-            error ? "border-red-500/50" : "border-zinc-800"
+          className={`w-full h-40 bg-zinc-100/50 dark:bg-zinc-900/50 border rounded-xl p-3 text-sm text-foreground placeholder:text-zinc-400 dark:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 font-mono resize-none ${
+            error ? "border-red-500/50" : "border-zinc-200 dark:border-zinc-800"
           }`}
         />
         {pastedContent && (
@@ -510,7 +510,7 @@ const PasteZone = ({
       </div>
 
       {/* Help Text */}
-      <div className="mt-3 p-3 bg-zinc-900/50 border border-zinc-800/50 rounded-lg">
+      <div className="mt-3 p-3 bg-zinc-100/50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 rounded-lg">
         <p className="text-[10px] text-zinc-500">
           <strong className="text-zinc-400">Tip:</strong>{" "}
           {contentType === "json"
@@ -535,7 +535,7 @@ const UploadMethodTabs = ({
   activeMethod: UploadMethod;
   onMethodChange: (method: UploadMethod) => void;
 }) => (
-  <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-lg p-0.5 mb-3">
+  <div className="flex items-center bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-0.5 mb-3">
     <button
       onClick={() => onMethodChange("file")}
       className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-all ${
@@ -622,7 +622,7 @@ const SuccessCelebrationModal = ({
             transition={{ type: "spring", duration: 0.5 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
           >
-            <div className="w-full max-w-md bg-gradient-to-b from-zinc-900 to-zinc-950 border border-zinc-700/50 rounded-2xl shadow-2xl overflow-hidden">
+            <div className="w-full max-w-md bg-gradient-to-b from-zinc-900 to-zinc-950 border border-zinc-300/50 dark:border-zinc-700/50 rounded-2xl shadow-2xl overflow-hidden">
               {/* Success Header with Animation */}
               <div className="relative bg-gradient-to-r from-emerald-500/20 via-emerald-400/10 to-emerald-500/20 p-6 text-center overflow-hidden">
                 {/* Animated particles */}
@@ -684,7 +684,7 @@ const SuccessCelebrationModal = ({
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.5 }}
-                  className="bg-zinc-800/50 border border-zinc-700/50 rounded-xl p-4 mb-6"
+                  className="bg-zinc-800/50 border border-zinc-300/50 dark:border-zinc-700/50 rounded-xl p-4 mb-6"
                 >
                   <div className="flex gap-3">
                     <div className="text-4xl text-emerald-500/50 font-serif leading-none">"</div>
@@ -749,7 +749,7 @@ const SuccessCelebrationModal = ({
                   </Button>
                 </motion.div>
 
-                <p className="text-center text-[10px] text-zinc-600 mt-3">
+                <p className="text-center text-[10px] text-zinc-400 dark:text-zinc-600 mt-3">
                   Click anywhere outside to close
                 </p>
               </div>
@@ -812,7 +812,7 @@ const ParsingProgress = ({
   const allComplete = stage >= stages.length - 1 && isComplete;
 
   return (
-    <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-5">
+    <div className="bg-zinc-100/80 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5">
       <div className="flex items-start justify-between mb-5">
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${allComplete ? "bg-emerald-500/20" : "bg-primary/20"}`}>
@@ -881,7 +881,7 @@ const ParsingProgress = ({
         })}
       </div>
 
-      <div className="mt-4 pt-3 border-t border-zinc-800">
+      <div className="mt-4 pt-3 border-t border-zinc-200 dark:border-zinc-800">
         <div className="flex items-center gap-2 text-[10px] text-zinc-500">
           <Activity size={10} />
           <span>
@@ -935,8 +935,8 @@ const ReportCard = ({
 
   return (
     <div
-      className={`group relative bg-zinc-900/50 border rounded-xl overflow-hidden transition-all hover:border-zinc-700 ${
-        isLatest ? "border-blue-500/50 ring-1 ring-blue-500/20" : "border-zinc-800"
+      className={`group relative bg-zinc-100/50 dark:bg-zinc-900/50 border rounded-xl overflow-hidden transition-all hover:border-zinc-300 dark:hover:border-zinc-700 ${
+        isLatest ? "border-blue-500/50 ring-1 ring-blue-500/20" : "border-zinc-200 dark:border-zinc-800"
       }`}
     >
       {isLatest && (
@@ -980,7 +980,7 @@ const ReportCard = ({
             {showMenu && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
-                <div className="absolute right-0 top-full mt-1 w-40 bg-zinc-800 border border-zinc-700 rounded-xl shadow-xl z-20 py-1 overflow-hidden">
+                <div className="absolute right-0 top-full mt-1 w-40 bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-xl shadow-xl z-20 py-1 overflow-hidden">
                   <button
                     onClick={() => {
                       onView();
@@ -1002,7 +1002,7 @@ const ReportCard = ({
                   <button className="w-full px-3 py-2 text-left text-xs text-zinc-300 hover:bg-zinc-700 hover:text-foreground flex items-center gap-2">
                     <Download size={12} /> Download PDF
                   </button>
-                  <div className="border-t border-zinc-700 my-1" />
+                  <div className="border-t border-zinc-300 dark:border-zinc-700 my-1" />
                   <button
                     onClick={() => {
                       onDelete();
@@ -1131,7 +1131,7 @@ const QuickStats = ({ reports }: { reports: CreditReportData[] }) => {
 
   return (
     <div className="grid grid-cols-4 gap-3 mb-4">
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-3">
+      <div className="bg-zinc-100/50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3">
         <div className="flex items-center gap-1.5 text-zinc-500 text-[10px] mb-1.5">
           <BarChart2 size={12} />
           Current Avg Score
@@ -1147,7 +1147,7 @@ const QuickStats = ({ reports }: { reports: CreditReportData[] }) => {
         </div>
       </div>
 
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-3">
+      <div className="bg-zinc-100/50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3">
         <div className="flex items-center gap-1.5 text-zinc-500 text-[10px] mb-1.5">
           <AlertTriangle size={12} />
           Negative Items
@@ -1158,7 +1158,7 @@ const QuickStats = ({ reports }: { reports: CreditReportData[] }) => {
         </div>
       </div>
 
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-3">
+      <div className="bg-zinc-100/50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3">
         <div className="flex items-center gap-1.5 text-zinc-500 text-[10px] mb-1.5">
           <CheckCircle size={12} />
           Items Removed
@@ -1169,7 +1169,7 @@ const QuickStats = ({ reports }: { reports: CreditReportData[] }) => {
         </div>
       </div>
 
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-3">
+      <div className="bg-zinc-100/50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3">
         <div className="flex items-center gap-1.5 text-zinc-500 text-[10px] mb-1.5">
           <Calendar size={12} />
           Reports Uploaded
@@ -1192,7 +1192,7 @@ const QuickStats = ({ reports }: { reports: CreditReportData[] }) => {
 const EmptyState = () => (
   <div className="text-center py-12">
     <div className="w-16 h-16 rounded-xl bg-zinc-800/50 flex items-center justify-center mx-auto mb-4">
-      <FileText size={28} className="text-zinc-600" />
+      <FileText size={28} className="text-zinc-400 dark:text-zinc-600" />
     </div>
     <h3 className="text-base font-medium text-foreground mb-1">No reports uploaded yet</h3>
     <p className="text-xs text-zinc-500 max-w-xs mx-auto mb-4">
@@ -1516,7 +1516,7 @@ export function CreditReportsPanel({
 
         {reports.length > 0 && (
           <div className="flex items-center gap-2">
-            <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-lg p-0.5">
+            <div className="flex items-center bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-0.5">
               <button
                 onClick={() => setViewMode("grid")}
                 className={`px-2 py-1 rounded text-xs font-medium transition-all ${
@@ -1619,7 +1619,7 @@ export function CreditReportsPanel({
         </div>
 
         {reports.length === 0 ? (
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl">
+          <div className="bg-zinc-100/50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl">
             <EmptyState />
           </div>
         ) : viewMode === "grid" ? (
@@ -1660,7 +1660,7 @@ export function CreditReportsPanel({
                     {/* Timeline dot */}
                     <div
                       className={`absolute left-3 w-4 h-4 rounded-full border-2 ${
-                        index === 0 ? "bg-blue-500 border-blue-400" : "bg-zinc-900 border-zinc-700"
+                        index === 0 ? "bg-blue-500 border-blue-400" : "bg-zinc-100 dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700"
                       }`}
                     >
                       {index === 0 && (
@@ -1670,8 +1670,8 @@ export function CreditReportsPanel({
 
                     {/* Card */}
                     <div
-                      className={`flex-1 bg-zinc-900/50 border rounded-xl p-3 ${
-                        index === 0 ? "border-blue-500/50" : "border-zinc-800"
+                      className={`flex-1 bg-zinc-100/50 dark:bg-zinc-900/50 border rounded-xl p-3 ${
+                        index === 0 ? "border-blue-500/50" : "border-zinc-200 dark:border-zinc-800"
                       }`}
                     >
                       <div className="flex items-center justify-between mb-2">
@@ -1734,7 +1734,7 @@ export function CreditReportsPanel({
 
       {/* Help Section */}
       {reports.length > 0 && (
-        <div className="p-4 bg-zinc-900/30 border border-zinc-800/50 rounded-xl">
+        <div className="p-4 bg-zinc-100/30 dark:bg-zinc-900/30 border border-zinc-200/50 dark:border-zinc-800/50 rounded-xl">
           <div className="flex items-start gap-3">
             <div className="p-2 rounded-lg bg-purple-500/20">
               <Sparkles size={16} className="text-purple-400" />

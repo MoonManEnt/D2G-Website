@@ -25,18 +25,18 @@ interface JurisdictionCardProps {
 
 const COURT_TYPE_CONFIG: Record<string, { color: string; bg: string; label: string }> = {
   FEDERAL: {
-    color: "text-blue-400",
-    bg: "bg-blue-500/20",
+    color: "text-blue-600 dark:text-blue-400",
+    bg: "bg-blue-100 dark:bg-blue-500/20",
     label: "Federal Court",
   },
   STATE: {
-    color: "text-purple-400",
-    bg: "bg-purple-500/20",
+    color: "text-purple-600 dark:text-purple-400",
+    bg: "bg-purple-100 dark:bg-purple-500/20",
     label: "State Court",
   },
   SMALL_CLAIMS: {
-    color: "text-amber-400",
-    bg: "bg-amber-500/20",
+    color: "text-amber-600 dark:text-amber-400",
+    bg: "bg-amber-100 dark:bg-amber-500/20",
     label: "Small Claims",
   },
 };

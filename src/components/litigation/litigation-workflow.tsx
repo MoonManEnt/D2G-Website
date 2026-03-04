@@ -100,20 +100,20 @@ const STATUS_CONFIG: Record<
     label: "Pending",
   },
   IN_PROGRESS: {
-    color: "text-blue-400",
-    bg: "bg-blue-500/20",
+    color: "text-blue-600 dark:text-blue-400",
+    bg: "bg-blue-100 dark:bg-blue-500/20",
     border: "border-blue-500/30",
     label: "In Progress",
   },
   COMPLETED: {
-    color: "text-emerald-400",
-    bg: "bg-emerald-500/20",
+    color: "text-emerald-600 dark:text-emerald-400",
+    bg: "bg-emerald-100 dark:bg-emerald-500/20",
     border: "border-emerald-500/30",
     label: "Completed",
   },
   SKIPPED: {
-    color: "text-slate-400",
-    bg: "bg-slate-500/20",
+    color: "text-slate-600 dark:text-slate-400",
+    bg: "bg-slate-100 dark:bg-slate-500/20",
     border: "border-slate-500/30",
     label: "Skipped",
   },
@@ -215,8 +215,8 @@ export function LitigationWorkflow({
               {/* Stage icon */}
               <div className="relative z-10 flex-shrink-0">
                 {stageStatus === "COMPLETED" ? (
-                  <div className="w-10 h-10 rounded-full bg-emerald-500/20 border-2 border-emerald-500/50 flex items-center justify-center">
-                    <Check className="w-4 h-4 text-emerald-400" />
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-500/20 border-2 border-emerald-500/50 flex items-center justify-center">
+                    <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                   </div>
                 ) : stageStatus === "IN_PROGRESS" ? (
                   <motion.div
@@ -326,7 +326,7 @@ export function LitigationWorkflow({
                               {/* Status indicator */}
                               <div className="mt-0.5 flex-shrink-0">
                                 {action.status === "COMPLETED" ? (
-                                  <Check className="w-4 h-4 text-emerald-400" />
+                                  <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                                 ) : action.status === "IN_PROGRESS" ? (
                                   <motion.div
                                     animate={{ opacity: [1, 0.5, 1] }}
@@ -335,10 +335,10 @@ export function LitigationWorkflow({
                                       repeat: Infinity,
                                     }}
                                   >
-                                    <Circle className="w-4 h-4 text-blue-400 fill-blue-400" />
+                                    <Circle className="w-4 h-4 text-blue-600 dark:text-blue-400 fill-blue-400" />
                                   </motion.div>
                                 ) : action.status === "SKIPPED" ? (
-                                  <SkipForward className="w-4 h-4 text-slate-400" />
+                                  <SkipForward className="w-4 h-4 text-slate-600 dark:text-slate-400" />
                                 ) : (
                                   <Circle className="w-4 h-4 text-muted-foreground" />
                                 )}
@@ -349,7 +349,7 @@ export function LitigationWorkflow({
                                 <p
                                   className={`text-xs font-medium ${
                                     isSkipped
-                                      ? "line-through text-slate-400"
+                                      ? "line-through text-slate-600 dark:text-slate-400"
                                       : "text-foreground"
                                   }`}
                                 >
@@ -377,11 +377,11 @@ export function LitigationWorkflow({
                                     <Badge
                                       className={`text-[9px] px-1.5 py-0 border-0 ${
                                         action.document.approvalStatus === "APPROVED"
-                                          ? "bg-emerald-500/20 text-emerald-400"
+                                          ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
                                           : action.document.approvalStatus ===
                                             "PENDING_REVIEW"
-                                          ? "bg-amber-500/20 text-amber-400"
-                                          : "bg-slate-500/20 text-slate-400"
+                                          ? "bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400"
+                                          : "bg-slate-100 dark:bg-slate-500/20 text-slate-600 dark:text-slate-400"
                                       }`}
                                     >
                                       {action.document.approvalStatus}
@@ -416,7 +416,7 @@ export function LitigationWorkflow({
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    className="h-7 text-[10px] px-2 gap-1 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
+                                    className="h-7 text-[10px] px-2 gap-1 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
                                     onClick={() =>
                                       onUpdateAction(action.id, "COMPLETED")
                                     }
@@ -428,7 +428,7 @@ export function LitigationWorkflow({
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="h-7 text-[10px] px-2 gap-1 text-slate-400 hover:text-slate-300"
+                                    className="h-7 text-[10px] px-2 gap-1 text-slate-600 dark:text-slate-400 hover:text-slate-300"
                                     onClick={() =>
                                       onUpdateAction(action.id, "SKIPPED")
                                     }

@@ -47,20 +47,20 @@ const severityConfig: Record<
   { color: string; bg: string; border: string; icon: React.ElementType }
 > = {
   CRITICAL: {
-    color: "text-red-400",
-    bg: "bg-red-500/20",
+    color: "text-red-600 dark:text-red-400",
+    bg: "bg-red-100 dark:bg-red-500/20",
     border: "border-red-500/30",
     icon: AlertTriangle,
   },
   HIGH: {
-    color: "text-orange-400",
-    bg: "bg-orange-500/20",
+    color: "text-orange-600 dark:text-orange-400",
+    bg: "bg-orange-100 dark:bg-orange-500/20",
     border: "border-orange-500/30",
     icon: AlertTriangle,
   },
   MEDIUM: {
-    color: "text-yellow-400",
-    bg: "bg-yellow-500/20",
+    color: "text-yellow-600 dark:text-yellow-400",
+    bg: "bg-yellow-100 dark:bg-yellow-500/20",
     border: "border-yellow-500/30",
     icon: AlertCircle,
   },
@@ -73,9 +73,9 @@ const severityConfig: Record<
 };
 
 const categoryConfig: Record<string, { color: string; bg: string }> = {
-  FCRA: { color: "text-purple-400", bg: "bg-purple-500/20" },
-  FDCPA: { color: "text-blue-400", bg: "bg-blue-500/20" },
-  METRO2: { color: "text-slate-300", bg: "bg-slate-500/20" },
+  FCRA: { color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-100 dark:bg-purple-500/20" },
+  FDCPA: { color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-500/20" },
+  METRO2: { color: "text-slate-300", bg: "bg-slate-100 dark:bg-slate-500/20" },
 };
 
 function formatCentsAsDollars(cents: number): string {
@@ -152,7 +152,7 @@ export function ViolationCard({ violation }: ViolationCardProps) {
           <div className="flex flex-col items-end gap-2 flex-shrink-0">
             <div className="text-right">
               <p className="text-xs text-muted-foreground">Est. Damages</p>
-              <p className="text-sm font-bold text-emerald-400">
+              <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
                 {formatCentsAsDollars(violation.estimatedDamagesMin)} -{" "}
                 {formatCentsAsDollars(violation.estimatedDamagesMax)}
               </p>
@@ -326,10 +326,10 @@ export function ViolationCard({ violation }: ViolationCardProps) {
 
                 {/* Damages detail */}
                 <div className="bg-emerald-500/10 rounded-lg p-3 border border-emerald-500/20">
-                  <h4 className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-1">
+                  <h4 className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-1">
                     Estimated Damages Range
                   </h4>
-                  <p className="text-lg font-bold text-emerald-400">
+                  <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
                     {formatCentsAsDollars(violation.estimatedDamagesMin)} -{" "}
                     {formatCentsAsDollars(violation.estimatedDamagesMax)}
                   </p>

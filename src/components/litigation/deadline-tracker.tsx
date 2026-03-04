@@ -94,38 +94,38 @@ const URGENCY_CONFIG: Record<
   { color: string; bg: string; border: string; iconColor: string; lineColor: string }
 > = {
   OVERDUE: {
-    color: "text-red-400",
+    color: "text-red-600 dark:text-red-400",
     bg: "bg-red-500/10",
     border: "border-red-500/30",
-    iconColor: "text-red-400",
+    iconColor: "text-red-600 dark:text-red-400",
     lineColor: "bg-red-500/40",
   },
   DUE_SOON: {
-    color: "text-amber-400",
+    color: "text-amber-600 dark:text-amber-400",
     bg: "bg-amber-500/10",
     border: "border-amber-500/30",
-    iconColor: "text-amber-400",
+    iconColor: "text-amber-600 dark:text-amber-400",
     lineColor: "bg-amber-500/40",
   },
   UPCOMING: {
-    color: "text-blue-400",
+    color: "text-blue-600 dark:text-blue-400",
     bg: "bg-blue-500/10",
     border: "border-blue-500/30",
-    iconColor: "text-blue-400",
+    iconColor: "text-blue-600 dark:text-blue-400",
     lineColor: "bg-blue-500/40",
   },
   COMPLETED: {
-    color: "text-emerald-400",
+    color: "text-emerald-600 dark:text-emerald-400",
     bg: "bg-emerald-500/10",
     border: "border-emerald-500/30",
-    iconColor: "text-emerald-400",
+    iconColor: "text-emerald-600 dark:text-emerald-400",
     lineColor: "bg-emerald-500/40",
   },
   WAIVED: {
-    color: "text-slate-400",
+    color: "text-slate-600 dark:text-slate-400",
     bg: "bg-slate-500/10",
     border: "border-slate-500/30",
-    iconColor: "text-slate-400",
+    iconColor: "text-slate-600 dark:text-slate-400",
     lineColor: "bg-slate-500/40",
   },
 };
@@ -224,7 +224,7 @@ export function DeadlineTracker({ deadlines }: DeadlineTrackerProps) {
                             isCompleted
                               ? "line-through text-muted-foreground"
                               : isWaived
-                              ? "line-through text-slate-400"
+                              ? "line-through text-slate-600 dark:text-slate-400"
                               : "text-foreground"
                           }`}
                         >
@@ -266,13 +266,13 @@ export function DeadlineTracker({ deadlines }: DeadlineTrackerProps) {
                     )}
 
                     {isCompleted && (
-                      <Badge className="bg-emerald-500/20 text-emerald-400 border-0 text-[9px]">
+                      <Badge className="bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-0 text-[9px]">
                         Done
                       </Badge>
                     )}
 
                     {isWaived && (
-                      <Badge className="bg-slate-500/20 text-slate-400 border-0 text-[9px]">
+                      <Badge className="bg-slate-100 dark:bg-slate-500/20 text-slate-600 dark:text-slate-400 border-0 text-[9px]">
                         Waived
                       </Badge>
                     )}

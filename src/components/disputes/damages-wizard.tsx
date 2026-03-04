@@ -105,7 +105,7 @@ export function DamagesWizard({
                 <div className="bg-muted px-6 py-4 border-b border-border">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2 text-foreground">
-                            <Calculator className="w-5 h-5 text-purple-400" />
+                            <Calculator className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                             Litigation Damages Calculator
                         </DialogTitle>
                         <DialogDescription>
@@ -131,7 +131,7 @@ export function DamagesWizard({
                         {step === 1 && (
                             <div className="space-y-6">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <DollarSign className="w-4 h-4 text-emerald-400" />
+                                    <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                                     <h3 className="text-sm font-medium text-foreground">Financial Damages (Actual Loss)</h3>
                                 </div>
 
@@ -238,7 +238,7 @@ export function DamagesWizard({
                         {step === 3 && (
                             <div className="space-y-6">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <AlertTriangle className="w-4 h-4 text-amber-400" />
+                                    <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                                     <h3 className="text-sm font-medium text-foreground">Statutory Violations Summary</h3>
                                 </div>
 
@@ -254,7 +254,7 @@ export function DamagesWizard({
                                         </div>
                                         <div className="flex justify-between items-center text-sm pt-1">
                                             <span className="text-foreground font-medium">Est. Statutory Damages:</span>
-                                            <span className="font-bold text-amber-400 text-lg">
+                                            <span className="font-bold text-amber-600 dark:text-amber-400 text-lg">
                                                 \${data.statutory.estimatedValue.toLocaleString()}
                                             </span>
                                         </div>
