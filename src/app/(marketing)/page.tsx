@@ -41,11 +41,16 @@ export default function MarketingHomePage() {
               </p>
             </div>
 
-            {/* Right: Product screenshot placeholder */}
-            <div className="rounded-xl border border-slate-200 shadow-lg bg-slate-50 aspect-[4/3] flex items-center justify-center">
-              <span className="text-sm text-slate-400">
-                Product screenshot
-              </span>
+            {/* Right: Product screenshot */}
+            <div className="rounded-xl border border-slate-200 shadow-lg overflow-hidden">
+              <Image
+                src="/logos/hero-dashboard.png"
+                alt="Dispute2Go Dashboard"
+                width={814}
+                height={592}
+                className="w-full h-auto"
+                priority
+              />
             </div>
           </div>
         </div>
